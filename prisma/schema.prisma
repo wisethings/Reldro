@@ -1,0 +1,808 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  COMPANY_ADMIN
+  EMPLOYEE
+  SPECIALIST
+  PLATFORM_ADMIN
+}
+
+enum SubscriptionTier {
+  STARTER
+  GROWTH
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+}
+
+enum AssessmentType {
+  ORGANIZATION
+  EMPLOYEE
+}
+
+enum AssessmentStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum ImpactLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ComplexityLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum OpportunityStatus {
+  IDENTIFIED
+  PLANNED
+  IN_PROGRESS
+  IMPLEMENTED
+  DEFERRED
+}
+
+enum WorkflowAdoptionStatus {
+  NOT_ADOPTED
+  LEARNING
+  IN_PROGRESS
+  ADOPTED
+}
+
+enum InitiativeStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+}
+
+enum ProjectStage {
+  DISCOVERY
+  WORKFLOW_DESIGN
+  IMPLEMENTATION
+  TRAINING
+  LAUNCH
+  MEASUREMENT
+  OPTIMIZATION
+}
+
+enum ProjectStatus {
+  OPEN
+  PROPOSED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  BLOCKED
+  DONE
+}
+
+enum SpecialistTagType {
+  INDUSTRY
+  FUNCTION
+  TOOL
+  CERTIFICATION
+}
+
+enum PriceType {
+  HOURLY
+  PROJECT
+}
+
+enum IntegrationStatus {
+  CONNECTED
+  DISCONNECTED
+  ERROR
+}
+
+enum InvoiceStatus {
+  DRAFT
+  OPEN
+  PAID
+  VOID
+  OVERDUE
+}
+
+enum TransactionStatus {
+  PENDING
+  RELEASED
+  REFUNDED
+}
+
+// ---------------------------------------------------------------------------
+// Core tenancy & identity
+// ---------------------------------------------------------------------------
+
+model Organization {
+  id             String   @id @default(cuid())
+  name           String
+  industry       String
+  size           String // e.g. "1-50", "51-200", "201-1000", "1000+"
+  revenueRange   String
+  geography      String
+  businessModel  String
+  goals          String[] // selected AI goals from onboarding
+  logoUrl        String?
+  onboardingStep Int      @default(0)
+  onboardingDone Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  departments            Department[]
+  employees              Employee[]
+  users                  User[]
+  assessments            Assessment[]
+  learningPaths          LearningPath[]
+  opportunities          Opportunity[]
+  initiatives            Initiative[]
+  organizationWorkflows  OrganizationWorkflow[]
+  projects               Project[]
+  integrationConnections IntegrationConnection[]
+  aiUsageEvents          AIUsageEvent[]
+  adoptionSnapshots      AdoptionMetricSnapshot[]
+  roiMetrics             ROIMetric[]
+  subscription           Subscription?
+  invoices               Invoice[]
+  auditLogs              AuditLog[]
+  reviews                Review[]
+
+  @@index([industry])
+}
+
+model Department {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  createdAt      DateTime     @default(now())
+
+  employees     Employee[]
+  opportunities Opportunity[]
+
+  @@unique([organizationId, name])
+}
+
+model User {
+  id             String        @id @default(cuid())
+  email          String        @unique
+  passwordHash   String
+  name           String
+  role           Role
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  employee      Employee?
+  specialist    Specialist?
+  notifications Notification[]
+  sentMessages  Message[]
+  auditLogs     AuditLog[]
+
+  @@index([organizationId])
+}
+
+model Employee {
+  id                String       @id @default(cuid())
+  userId            String       @unique
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId    String
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  departmentId      String?
+  department        Department?  @relation(fields: [departmentId], references: [id])
+  jobTitle          String
+  isDepartmentAdmin Boolean      @default(false)
+  aiFluencyScore    Int?
+  hireDate          DateTime     @default(now())
+  createdAt         DateTime     @default(now())
+
+  assessments        Assessment[]
+  employeeSkills     EmployeeSkill[]
+  lessonCompletions  LessonCompletion[]
+  simulationAttempts SimulationAttempt[]
+  initiativeMembers  InitiativeMember[]
+  aiUsageEvents      AIUsageEvent[]
+
+  @@index([organizationId])
+  @@index([departmentId])
+}
+
+// ---------------------------------------------------------------------------
+// Specialists / marketplace
+// ---------------------------------------------------------------------------
+
+model Specialist {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  headline          String
+  bio               String
+  photoUrl          String?
+  yearsExperience   Int
+  hourlyRate        Int?
+  projectRateMin    Int?
+  projectRateMax    Int?
+  availability      String // e.g. "Available now", "2 weeks out", "Booked"
+  ratingAvg         Float    @default(0)
+  ratingCount       Int      @default(0)
+  completedProjects Int      @default(0)
+  approved          Boolean  @default(false)
+  featured          Boolean  @default(false)
+  location          String?
+  createdAt         DateTime @default(now())
+
+  tags     SpecialistTag[]
+  services SpecialistService[]
+  projects Project[]
+  reviews  Review[]
+
+  @@index([approved])
+}
+
+model SpecialistTag {
+  id           String            @id @default(cuid())
+  specialistId String
+  specialist   Specialist        @relation(fields: [specialistId], references: [id], onDelete: Cascade)
+  type         SpecialistTagType
+  value        String
+
+  @@index([specialistId])
+  @@index([type, value])
+}
+
+model SpecialistService {
+  id           String     @id @default(cuid())
+  specialistId String
+  specialist   Specialist @relation(fields: [specialistId], references: [id], onDelete: Cascade)
+  name         String
+  description  String
+  priceType    PriceType
+  price        Int
+
+  @@index([specialistId])
+}
+
+// ---------------------------------------------------------------------------
+// Assessments & skills
+// ---------------------------------------------------------------------------
+
+model Assessment {
+  id             String           @id @default(cuid())
+  type           AssessmentType
+  status         AssessmentStatus @default(NOT_STARTED)
+  organizationId String?
+  organization   Organization?    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  employeeId     String?
+  employee       Employee?        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  overallScore   Int?
+  scoreBreakdown Json? // { literacy: 72, usage: 43, ... }
+  completedAt    DateTime?
+  createdAt      DateTime         @default(now())
+
+  responses AssessmentResponse[]
+
+  @@index([organizationId])
+  @@index([employeeId])
+}
+
+model AssessmentResponse {
+  id           String     @id @default(cuid())
+  assessmentId String
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  category     String
+  questionKey  String
+  questionText String
+  score        Int // normalized 0-100
+
+  @@index([assessmentId])
+}
+
+model Skill {
+  id       String @id @default(cuid())
+  name     String @unique
+  category String // e.g. "AI Literacy", "Prompting", "Workflow Design"
+
+  employeeSkills EmployeeSkill[]
+}
+
+model EmployeeSkill {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  skillId    String
+  skill      Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  score      Int
+
+  @@unique([employeeId, skillId])
+}
+
+// ---------------------------------------------------------------------------
+// Learning
+// ---------------------------------------------------------------------------
+
+model LearningPath {
+  id             String        @id @default(cuid())
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  title          String
+  description    String
+  department     String? // target department, null = all
+  roleLevel      String? // e.g. "Individual Contributor", "Manager"
+  createdAt      DateTime      @default(now())
+
+  courses Course[]
+
+  @@index([organizationId])
+}
+
+model Course {
+  id             String        @id @default(cuid())
+  learningPathId String?
+  learningPath   LearningPath? @relation(fields: [learningPathId], references: [id], onDelete: SetNull)
+  title          String
+  description    String
+  department     String
+  workflowId     String?
+  workflow       Workflow?     @relation(fields: [workflowId], references: [id])
+  order          Int           @default(0)
+
+  lessons Lesson[]
+
+  @@index([learningPathId])
+}
+
+model Lesson {
+  id          String @id @default(cuid())
+  courseId    String
+  course      Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title       String
+  concept     String
+  example     String
+  exercise    String
+  order       Int    @default(0)
+  durationMin Int    @default(8)
+
+  completions LessonCompletion[]
+
+  @@index([courseId])
+}
+
+model LessonCompletion {
+  id          String   @id @default(cuid())
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  lessonId    String
+  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  score       Int?
+  completedAt DateTime @default(now())
+
+  @@unique([employeeId, lessonId])
+}
+
+model Simulation {
+  id          String          @id @default(cuid())
+  title       String
+  department  String
+  scenario    String
+  description String
+  difficulty  ComplexityLevel @default(MEDIUM)
+
+  attempts SimulationAttempt[]
+}
+
+model SimulationAttempt {
+  id           String     @id @default(cuid())
+  employeeId   String
+  employee     Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  simulationId String
+  simulation   Simulation @relation(fields: [simulationId], references: [id], onDelete: Cascade)
+  score        Int
+  feedback     String
+  completedAt  DateTime   @default(now())
+
+  @@index([employeeId])
+}
+
+// ---------------------------------------------------------------------------
+// Workflows
+// ---------------------------------------------------------------------------
+
+model Workflow {
+  id               String          @id @default(cuid())
+  title            String
+  department       String
+  industryTags     String[]
+  summary          String
+  currentProcess   String
+  aiProcess        String
+  timeSavedMinutes Int
+  difficulty       ComplexityLevel @default(MEDIUM)
+  skillLevel       String          @default("Intermediate")
+  toolsRequired    String[]
+  skillsRequired   String[]
+  securityNotes    String?
+  trainingNotes    String?
+  createdAt        DateTime        @default(now())
+
+  steps                 WorkflowStep[]
+  opportunities         Opportunity[]
+  organizationWorkflows OrganizationWorkflow[]
+  courses               Course[]
+  projects              Project[]
+
+  @@index([department])
+}
+
+model WorkflowStep {
+  id              String   @id @default(cuid())
+  workflowId      String
+  workflow        Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  order           Int
+  title           String
+  description     String
+  aiPrompt        String?
+  humanCheckpoint Boolean  @default(false)
+
+  @@index([workflowId])
+}
+
+model OrganizationWorkflow {
+  id             String                 @id @default(cuid())
+  organizationId String
+  organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workflowId     String
+  workflow       Workflow               @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  status         WorkflowAdoptionStatus @default(NOT_ADOPTED)
+  adoptedAt      DateTime?
+  usersAdopted   Int                    @default(0)
+
+  @@unique([organizationId, workflowId])
+}
+
+// ---------------------------------------------------------------------------
+// Opportunities & initiatives
+// ---------------------------------------------------------------------------
+
+model Opportunity {
+  id                     String            @id @default(cuid())
+  organizationId         String
+  organization           Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  departmentId           String?
+  department             Department?       @relation(fields: [departmentId], references: [id])
+  workflowId             String?
+  workflow               Workflow?         @relation(fields: [workflowId], references: [id])
+  title                  String
+  currentProcess         String
+  aiOpportunity          String
+  impact                 ImpactLevel
+  complexity             ComplexityLevel
+  estHoursSavedMonthly   Int
+  estAnnualValue         Int
+  status                 OpportunityStatus @default(IDENTIFIED)
+  recommendedSpecialist  Boolean           @default(false)
+  businessImpactScore    Int // 0-100
+  adoptionPotentialScore Int // 0-100
+  frequencyScore         Int // 0-100
+  riskScore              Int // 0-100
+  toolsRequired          String[]
+  createdAt              DateTime          @default(now())
+
+  initiativeWorkflows InitiativeWorkflow[]
+  projects            Project[]
+
+  @@index([organizationId])
+  @@index([departmentId])
+}
+
+model Initiative {
+  id              String           @id @default(cuid())
+  organizationId  String
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name            String
+  goalDescription String
+  startDate       DateTime
+  endDate         DateTime
+  departments     String[]
+  status          InitiativeStatus @default(PLANNED)
+  kpis            Json // [{ label, baseline, current, target, unit }]
+  createdAt       DateTime         @default(now())
+
+  members   InitiativeMember[]
+  workflows InitiativeWorkflow[]
+
+  @@index([organizationId])
+}
+
+model InitiativeMember {
+  id               String     @id @default(cuid())
+  initiativeId     String
+  initiative       Initiative @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+  employeeId       String
+  employee         Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  roleOnInitiative String     @default("Contributor")
+
+  @@unique([initiativeId, employeeId])
+}
+
+model InitiativeWorkflow {
+  id            String       @id @default(cuid())
+  initiativeId  String
+  initiative    Initiative   @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+  opportunityId String?
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id])
+
+  @@index([initiativeId])
+}
+
+// ---------------------------------------------------------------------------
+// Projects (specialist implementation workspace)
+// ---------------------------------------------------------------------------
+
+model Project {
+  id             String        @id @default(cuid())
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  specialistId   String?
+  specialist     Specialist?   @relation(fields: [specialistId], references: [id])
+  workflowId     String?
+  workflow       Workflow?     @relation(fields: [workflowId], references: [id])
+  opportunityId  String?
+  opportunity    Opportunity?  @relation(fields: [opportunityId], references: [id])
+  title          String
+  description    String
+  stage          ProjectStage  @default(DISCOVERY)
+  status         ProjectStatus @default(OPEN)
+  budget         Int?
+  startDate      DateTime?
+  targetEndDate  DateTime?
+  createdAt      DateTime      @default(now())
+
+  tasks        ProjectTask[]
+  milestones   ProjectMilestone[]
+  deliverables ProjectDeliverable[]
+  messages     Message[]
+  reviews      Review[]
+  transactions MarketplaceTransaction[]
+
+  @@index([organizationId])
+  @@index([specialistId])
+}
+
+model ProjectTask {
+  id        String     @id @default(cuid())
+  projectId String
+  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title     String
+  status    TaskStatus @default(TODO)
+  assignee  String?
+  dueDate   DateTime?
+  order     Int        @default(0)
+
+  @@index([projectId])
+}
+
+model ProjectMilestone {
+  id        String       @id @default(cuid())
+  projectId String
+  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title     String
+  dueDate   DateTime
+  completed Boolean      @default(false)
+  stage     ProjectStage
+
+  @@index([projectId])
+}
+
+model ProjectDeliverable {
+  id         String   @id @default(cuid())
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name       String
+  url        String
+  uploadedAt DateTime @default(now())
+
+  @@index([projectId])
+}
+
+model Message {
+  id           String   @id @default(cuid())
+  projectId    String
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  senderUserId String
+  senderUser   User     @relation(fields: [senderUserId], references: [id])
+  body         String
+  createdAt    DateTime @default(now())
+
+  @@index([projectId])
+}
+
+model Review {
+  id             String       @id @default(cuid())
+  projectId      String
+  project        Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  specialistId   String
+  specialist     Specialist   @relation(fields: [specialistId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  rating         Int
+  comment        String
+  createdAt      DateTime     @default(now())
+
+  @@index([specialistId])
+}
+
+// ---------------------------------------------------------------------------
+// Integrations
+// ---------------------------------------------------------------------------
+
+model Integration {
+  id          String @id @default(cuid())
+  key         String @unique // e.g. "google_workspace"
+  name        String
+  category    String
+  description String
+  logoKey     String // used for icon lookup client-side
+
+  connections IntegrationConnection[]
+}
+
+model IntegrationConnection {
+  id             String            @id @default(cuid())
+  organizationId String
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  integrationId  String
+  integration    Integration       @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  status         IntegrationStatus @default(DISCONNECTED)
+  lastSyncAt     DateTime?
+  connectedAt    DateTime?
+  mockData       Json?
+
+  @@unique([organizationId, integrationId])
+}
+
+// ---------------------------------------------------------------------------
+// Telemetry / analytics / ROI
+// ---------------------------------------------------------------------------
+
+model AIUsageEvent {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  employeeId     String?
+  employee       Employee?    @relation(fields: [employeeId], references: [id])
+  tool           String
+  eventType      String
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId])
+}
+
+model AdoptionMetricSnapshot {
+  id                       String       @id @default(cuid())
+  organizationId           String
+  organization             Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  department               String? // null = org-wide
+  month                    DateTime // first of month
+  activeUsers              Int
+  totalUsers               Int
+  adoptionPct              Int
+  hoursSavedMonthly        Int
+  aiAdoptionScore          Int
+  literacyScore            Int
+  usageScore               Int
+  workflowIntegrationScore Int
+  governanceScore          Int
+  measurementScore         Int
+  leadershipScore          Int
+
+  @@unique([organizationId, department, month])
+  @@index([organizationId])
+}
+
+model ROIMetric {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workflowLabel  String
+  month          DateTime
+  investment     Int
+  annualValue    Int
+
+  @@index([organizationId])
+}
+
+// ---------------------------------------------------------------------------
+// Billing
+// ---------------------------------------------------------------------------
+
+model Subscription {
+  id               String             @id @default(cuid())
+  organizationId   String             @unique
+  organization     Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  tier             SubscriptionTier   @default(STARTER)
+  status           SubscriptionStatus @default(TRIALING)
+  seats            Int                @default(25)
+  pricePerMonth    Int
+  currentPeriodEnd DateTime
+  createdAt        DateTime           @default(now())
+}
+
+model Invoice {
+  id             String        @id @default(cuid())
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  amount         Int
+  status         InvoiceStatus @default(OPEN)
+  issuedAt       DateTime      @default(now())
+  dueAt          DateTime
+  description    String
+
+  @@index([organizationId])
+}
+
+model MarketplaceTransaction {
+  id          String            @id @default(cuid())
+  projectId   String
+  project     Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  amount      Int
+  platformFee Int
+  status      TransactionStatus @default(PENDING)
+  createdAt   DateTime          @default(now())
+
+  @@index([projectId])
+}
+
+// ---------------------------------------------------------------------------
+// Notifications & audit
+// ---------------------------------------------------------------------------
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  body      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model AuditLog {
+  id             String        @id @default(cuid())
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String?
+  user           User?         @relation(fields: [userId], references: [id])
+  action         String
+  entityType     String
+  entityId       String?
+  createdAt      DateTime      @default(now())
+
+  @@index([organizationId])
+}
