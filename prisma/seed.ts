@@ -1,9 +1,9 @@
-import { PrismaClient, type Role } from "@prisma/client";
+import type { Role } from "@prisma/client";
+import { prisma } from "../src/lib/prisma";
 import { hashPassword } from "../src/lib/auth/password";
 import { computeOrgAdoptionScore, computeFluencyScore } from "../src/lib/scoring";
 import { INTEGRATION_CATALOG } from "../src/lib/data/catalog";
 
-const prisma = new PrismaClient();
 const DEMO_PASSWORD = "Demo1234!";
 
 const DEPARTMENTS = ["Marketing", "Sales", "Finance", "Operations", "Customer Support", "HR", "Product"] as const;
@@ -1522,7 +1522,7 @@ async function seedSubscription(org: { id: string }) {
   });
 }
 
-async function main() {
+export async function seedDatabase() {
   console.log("Clearing database...");
   await clearDatabase();
 
@@ -1587,11 +1587,13 @@ async function main() {
   console.log("Done. Demo password for all seeded accounts:", DEMO_PASSWORD);
 }
 
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+if (typeof require !== "undefined" && require.main === module) {
+  seedDatabase()
+    .catch((e) => {
+      console.error(e);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}
