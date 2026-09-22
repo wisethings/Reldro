@@ -5,6 +5,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { OrgProfileForm } from "@/components/settings/OrgProfileForm";
 import { changeSubscriptionTier } from "@/lib/actions/settings";
+import { isStripeConfigured, priceIdForTier } from "@/lib/stripe";
 
 const TIERS = [
   { tier: "STARTER" as const, name: "Starter", price: 499, blurb: "For smaller teams." },
@@ -12,9 +13,14 @@ const TIERS = [
   { tier: "ENTERPRISE" as const, name: "Enterprise", price: 5000, blurb: "Custom pricing available." },
 ];
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ checkout?: string }>;
+}) {
   const session = await requireRole(["COMPANY_ADMIN"]);
   if (!session.organizationId) redirect("/login");
+  const params = await searchParams;
 
   const [org, subscription, invoices] = await Promise.all([
     prisma.organization.findUnique({ where: { id: session.organizationId } }),
@@ -38,28 +44,44 @@ export default async function SettingsPage() {
       </Card>
 
       <Card>
-        <CardHeader title="Billing" subtitle={subscription ? `Current plan: ${subscription.tier} · $${subscription.pricePerMonth}/mo` : "No active subscription"} />
+        <CardHeader
+          title="Billing"
+          subtitle={subscription ? `Current plan: ${subscription.tier} · $${subscription.pricePerMonth}/mo` : "No active subscription"}
+        />
         <CardBody className="space-y-3">
+          {params.checkout === "success" && (
+            <p className="rounded-lg bg-sage px-3 py-2 text-sm text-sage-deep">
+              Payment successful. Your plan updates as soon as Stripe confirms the subscription.
+            </p>
+          )}
+          {params.checkout === "cancelled" && (
+            <p className="rounded-lg bg-olive-soft px-3 py-2 text-sm text-olive">Checkout cancelled — your plan wasn't changed.</p>
+          )}
           <div className="grid gap-3 sm:grid-cols-3">
-            {TIERS.map((t) => (
-              <div key={t.tier} className={`rounded-lg border p-4 ${subscription?.tier === t.tier ? "border-brand-600 bg-brand-50" : "border-ink-200"}`}>
-                <p className="text-sm font-semibold text-ink-900">{t.name}</p>
-                <p className="text-lg font-semibold text-ink-900">${t.price}<span className="text-xs font-normal text-ink-500">/mo</span></p>
-                <p className="text-xs text-ink-500">{t.blurb}</p>
-                <form action={changeSubscriptionTier.bind(null, t.tier)} className="mt-3">
-                  <button
-                    disabled={subscription?.tier === t.tier}
-                    className="w-full rounded-full border border-ink-300 px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-ink-50 disabled:opacity-40"
-                  >
-                    {subscription?.tier === t.tier ? "Current plan" : "Switch plan"}
-                  </button>
-                </form>
-              </div>
-            ))}
+            {TIERS.map((t) => {
+              const willCheckout = isStripeConfigured() && Boolean(priceIdForTier(t.tier));
+              return (
+                <div key={t.tier} className={`rounded-lg border p-4 ${subscription?.tier === t.tier ? "border-brand-600 bg-brand-50" : "border-ink-200"}`}>
+                  <p className="text-sm font-semibold text-ink-900">{t.name}</p>
+                  <p className="text-lg font-semibold text-ink-900">${t.price}<span className="text-xs font-normal text-ink-500">/mo</span></p>
+                  <p className="text-xs text-ink-500">{t.blurb}</p>
+                  <form action={changeSubscriptionTier.bind(null, t.tier)} className="mt-3">
+                    <button
+                      disabled={subscription?.tier === t.tier}
+                      className="w-full rounded-full border border-ink-300 px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-ink-50 disabled:opacity-40"
+                    >
+                      {subscription?.tier === t.tier ? "Current plan" : willCheckout ? "Switch plan" : "Switch plan (demo)"}
+                    </button>
+                  </form>
+                </div>
+              );
+            })}
           </div>
           <p className="text-xs text-ink-400">
             Expert-help engagements are billed separately; Reldro takes a platform fee from those transactions.
-            Payment processing (Stripe) is not yet wired up in this environment.
+            {isStripeConfigured()
+              ? " Plan changes are processed by Stripe."
+              : " Stripe isn't configured in this environment yet, so plan changes here update the record directly without a real charge."}
           </p>
         </CardBody>
       </Card>

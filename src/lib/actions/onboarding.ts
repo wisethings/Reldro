@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireOrganization } from "@/lib/auth/guards";
 import { computeOrgAdoptionScore, type OrgMaturityCategory } from "@/lib/scoring";
 import { ORG_ASSESSMENT_QUESTIONS } from "@/lib/data/assessment-questions";
+import { generateOpportunitiesForOrg } from "@/lib/opportunities/generate";
 
 export type OnboardingPayload = {
   industry: string;
@@ -44,6 +45,8 @@ export async function completeOnboarding(payload: OnboardingPayload) {
       })
     )
   );
+
+  await generateOpportunitiesForOrg(org.id);
 
   const integrations = await prisma.integration.findMany({ where: { key: { in: payload.integrationKeys } } });
   await Promise.all(

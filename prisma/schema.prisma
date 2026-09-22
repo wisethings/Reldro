@@ -671,15 +671,18 @@ model Integration {
 }
 
 model IntegrationConnection {
-  id             String            @id @default(cuid())
-  organizationId String
-  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  integrationId  String
-  integration    Integration       @relation(fields: [integrationId], references: [id], onDelete: Cascade)
-  status         IntegrationStatus @default(DISCONNECTED)
-  lastSyncAt     DateTime?
-  connectedAt    DateTime?
-  mockData       Json?
+  id                  String            @id @default(cuid())
+  organizationId      String
+  organization        Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  integrationId       String
+  integration         Integration       @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  status              IntegrationStatus @default(DISCONNECTED)
+  lastSyncAt          DateTime?
+  connectedAt         DateTime?
+  mockData            Json?
+  accessToken         String?
+  externalAccountId   String?
+  externalAccountName String?
 
   @@unique([organizationId, integrationId])
 }
@@ -740,26 +743,29 @@ model ROIMetric {
 // ---------------------------------------------------------------------------
 
 model Subscription {
-  id               String             @id @default(cuid())
-  organizationId   String             @unique
-  organization     Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  tier             SubscriptionTier   @default(STARTER)
-  status           SubscriptionStatus @default(TRIALING)
-  seats            Int                @default(25)
-  pricePerMonth    Int
-  currentPeriodEnd DateTime
-  createdAt        DateTime           @default(now())
+  id                   String             @id @default(cuid())
+  organizationId       String             @unique
+  organization         Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  tier                 SubscriptionTier   @default(STARTER)
+  status               SubscriptionStatus @default(TRIALING)
+  seats                Int                @default(25)
+  pricePerMonth        Int
+  currentPeriodEnd     DateTime
+  createdAt            DateTime           @default(now())
+  stripeCustomerId     String?
+  stripeSubscriptionId String?            @unique
 }
 
 model Invoice {
-  id             String        @id @default(cuid())
-  organizationId String
-  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  amount         Int
-  status         InvoiceStatus @default(OPEN)
-  issuedAt       DateTime      @default(now())
-  dueAt          DateTime
-  description    String
+  id              String        @id @default(cuid())
+  organizationId  String
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  amount          Int
+  status          InvoiceStatus @default(OPEN)
+  issuedAt        DateTime      @default(now())
+  dueAt           DateTime
+  description     String
+  stripeInvoiceId String?       @unique
 
   @@index([organizationId])
 }

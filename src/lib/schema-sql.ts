@@ -913,4 +913,24 @@ ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_organizationId_fkey" FOREIGN KEY
 -- AddForeignKey
 ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
+-- Patch: Stripe billing fields (idempotent - safe to re-run against an
+-- already-migrated database; only the statements below will succeed on a
+-- re-run, everything above will fail harmlessly as "already exists").
+ALTER TABLE "Subscription" ADD COLUMN IF NOT EXISTS "stripeCustomerId" TEXT;
+
+ALTER TABLE "Subscription" ADD COLUMN IF NOT EXISTS "stripeSubscriptionId" TEXT;
+
+DO $$ BEGIN ALTER TABLE "Subscription" ADD CONSTRAINT "Subscription_stripeSubscriptionId_key" UNIQUE ("stripeSubscriptionId"); EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+ALTER TABLE "Invoice" ADD COLUMN IF NOT EXISTS "stripeInvoiceId" TEXT;
+
+DO $$ BEGIN ALTER TABLE "Invoice" ADD CONSTRAINT "Invoice_stripeInvoiceId_key" UNIQUE ("stripeInvoiceId"); EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+-- Patch: real OAuth integration fields (idempotent, same rules as above).
+ALTER TABLE "IntegrationConnection" ADD COLUMN IF NOT EXISTS "accessToken" TEXT;
+
+ALTER TABLE "IntegrationConnection" ADD COLUMN IF NOT EXISTS "externalAccountId" TEXT;
+
+ALTER TABLE "IntegrationConnection" ADD COLUMN IF NOT EXISTS "externalAccountName" TEXT;
+
 `;

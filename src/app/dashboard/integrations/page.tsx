@@ -5,9 +5,14 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { connectIntegration, disconnectIntegration } from "@/lib/actions/integrations";
 
-export default async function IntegrationsPage() {
+export default async function IntegrationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ slack_connected?: string; slack_error?: string }>;
+}) {
   const session = await requireRole(["COMPANY_ADMIN"]);
   if (!session.organizationId) redirect("/login");
+  const params = await searchParams;
 
   const [integrations, connections] = await Promise.all([
     prisma.integration.findMany({ orderBy: { name: "asc" } }),
@@ -20,15 +25,23 @@ export default async function IntegrationsPage() {
       <div>
         <h1 className="text-xl font-semibold text-ink-900">Integrations</h1>
         <p className="text-sm text-ink-500">
-          Demo connections for the MVP — no live data is pulled yet. Each integration is clearly marked as a mock
-          connection until real sync is enabled.
+          Slack connects for real when configured; every other integration here is a demo connection for the MVP —
+          no live data is pulled yet. Each is clearly marked as real or mock.
         </p>
       </div>
+
+      {params.slack_connected && (
+        <p className="rounded-lg bg-sage px-3 py-2 text-sm text-sage-deep">Slack connected.</p>
+      )}
+      {params.slack_error && (
+        <p className="rounded-lg bg-coral-soft px-3 py-2 text-sm text-danger">Slack connection failed: {params.slack_error}</p>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {integrations.map((integration) => {
           const conn = connectionByIntegration.get(integration.id);
           const connected = conn?.status === "CONNECTED";
+          const isReal = connected && Boolean(conn?.accessToken);
           return (
             <Card key={integration.id}>
               <CardBody>
@@ -37,10 +50,15 @@ export default async function IntegrationsPage() {
                     <p className="text-sm font-semibold text-ink-900">{integration.name}</p>
                     <p className="text-xs text-ink-500">{integration.category}</p>
                   </div>
-                  <Badge tone={connected ? "green" : "neutral"}>{connected ? "Connected (demo)" : "Not connected"}</Badge>
+                  <Badge tone={connected ? "green" : "neutral"}>
+                    {connected ? (isReal ? "Connected" : "Connected (demo)") : "Not connected"}
+                  </Badge>
                 </div>
                 <p className="mt-2 text-xs text-ink-500">{integration.description}</p>
-                {connected && conn?.lastSyncAt && (
+                {isReal && conn?.externalAccountName && (
+                  <p className="mt-2 text-[11px] text-ink-400">Workspace: {conn.externalAccountName}</p>
+                )}
+                {connected && !isReal && conn?.lastSyncAt && (
                   <p className="mt-2 text-[11px] text-ink-400">Last synced {conn.lastSyncAt.toLocaleString()}</p>
                 )}
                 <form action={(connected ? disconnectIntegration : connectIntegration).bind(null, integration.id)} className="mt-3">
