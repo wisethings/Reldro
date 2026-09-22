@@ -62,9 +62,16 @@ const config: Config = {
         wordmark: ["var(--font-parkinsans)", "var(--font-inter)", "sans-serif"],
       },
       borderRadius: {
-        md: "12px",
-        xl: "20px",
-        "2xl": "28px",
+        none: "0px",
+        sm: "5px",
+        DEFAULT: "5px",
+        md: "5px",
+        lg: "5px",
+        xl: "5px",
+        "2xl": "5px",
+        "3xl": "5px",
+        // `full` is left at Tailwind's default (9999px) so pills — buttons,
+        // badges, chips, avatars — stay pill-shaped and are unaffected.
       },
       boxShadow: {
         card: "0 1px 2px 0 rgb(42 10 12 / 0.06), 0 1px 3px 0 rgb(42 10 12 / 0.05)",
