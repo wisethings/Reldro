@@ -24,6 +24,15 @@ body {
   }
 }
 
+/* Unlayered so it wins over Tailwind's layered .font-semibold utility
+   regardless of class order: semibold text uses the display face at the
+   kit's weight and tracking, not default Inter at weight 600. */
+.font-semibold {
+  font-family: var(--font-inter-tight), var(--font-inter), sans-serif;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
 @layer utilities {
   .scrollbar-thin::-webkit-scrollbar {
     width: 6px;
