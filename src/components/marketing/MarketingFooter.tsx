@@ -21,7 +21,7 @@ export function MarketingFooter() {
               <p className="font-medium text-ink-900">Product</p>
               <ul className="mt-2 space-y-1.5 text-ink-500">
                 <li><Link href="/#how-it-works" className="hover:text-ink-800">How it works</Link></li>
-                <li><Link href="/#marketplace" className="hover:text-ink-800">Specialists</Link></li>
+                <li><Link href="/#expert-help" className="hover:text-ink-800">Expert help</Link></li>
                 <li><Link href="/pricing" className="hover:text-ink-800">Pricing</Link></li>
               </ul>
             </div>

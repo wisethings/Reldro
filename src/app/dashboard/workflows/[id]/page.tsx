@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { adoptWorkflow } from "@/lib/actions/workflows";
-import { matchSpecialists } from "@/lib/matching";
+import { RequestExpertHelpForm } from "@/components/specialists/RequestExpertHelpForm";
 
 const DIFFICULTY_TONE = { LOW: "green", MEDIUM: "amber", HIGH: "red" } as const;
 
@@ -14,19 +14,14 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
   if (!session.organizationId) redirect("/login");
   const { id } = await params;
 
-  const [workflow, orgWorkflow, org, courses] = await Promise.all([
+  const [workflow, orgWorkflow, courses] = await Promise.all([
     prisma.workflow.findUnique({ where: { id }, include: { steps: { orderBy: { order: "asc" } } } }),
     prisma.organizationWorkflow.findUnique({
       where: { organizationId_workflowId: { organizationId: session.organizationId, workflowId: id } },
     }),
-    prisma.organization.findUnique({ where: { id: session.organizationId } }),
     prisma.course.findMany({ where: { workflowId: id }, include: { lessons: true } }),
   ]);
   if (!workflow) notFound();
-
-  const specialistMatches = workflow.difficulty === "HIGH"
-    ? await matchSpecialists({ industry: org?.industry, department: workflow.department, tools: workflow.toolsRequired, complexity: workflow.difficulty })
-    : [];
 
   const status = orgWorkflow?.status ?? "NOT_ADOPTED";
 
@@ -157,25 +152,11 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
         </Card>
       )}
 
-      {specialistMatches.length > 0 && (
+      {workflow.difficulty === "HIGH" && (
         <Card>
-          <CardHeader title="Recommended specialist" subtitle="High-complexity workflows implement faster with expert help" />
-          <CardBody className="space-y-3">
-            {specialistMatches.map(({ specialist, reasons }) => (
-              <div key={specialist.id} className="flex items-start justify-between rounded-lg border border-ink-200 p-4">
-                <div>
-                  <Link href={`/dashboard/specialists/${specialist.id}`} className="text-sm font-medium text-ink-900 hover:text-brand-700">
-                    {specialist.user?.name}
-                  </Link>
-                  <p className="text-xs text-ink-500">{specialist.headline}</p>
-                  <ul className="mt-2 space-y-0.5 text-xs text-ink-500">
-                    {reasons.map((r) => (
-                      <li key={r}>· {r}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            ))}
+          <CardHeader title="Consider expert help" subtitle="High-complexity workflows implement faster with outside expertise" />
+          <CardBody>
+            <RequestExpertHelpForm workflowId={workflow.id} />
           </CardBody>
         </Card>
       )}

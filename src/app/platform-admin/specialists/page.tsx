@@ -13,7 +13,7 @@ export default async function PlatformSpecialistsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold text-ink-900">Specialists</h1>
-        <p className="text-sm text-ink-500">Approve marketplace applications and manage featured listings.</p>
+        <p className="text-sm text-ink-500">Approve specialist applications so they're eligible for expert-help matches.</p>
       </div>
       <Card>
         <CardBody className="divide-y divide-ink-100 p-0">

@@ -26,7 +26,7 @@ export default async function PlatformAdminOverview() {
         <StatTile label="Organizations" value={orgCount} />
         <StatTile label="Total users" value={userCount} />
         <StatTile label="Approved specialists" value={approvedSpecialists} />
-        <StatTile label="Active marketplace projects" value={activeProjects} />
+        <StatTile label="Active expert-help projects" value={activeProjects} />
         <StatTile label="MRR (subscriptions)" value={`$${mrr.toLocaleString()}`} />
       </div>
 

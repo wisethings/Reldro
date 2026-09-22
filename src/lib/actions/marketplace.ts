@@ -1,30 +1,69 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireRole, requireSession } from "@/lib/auth/guards";
 
 const STAGE_ORDER = ["DISCOVERY", "WORKFLOW_DESIGN", "IMPLEMENTATION", "TRAINING", "LAUNCH", "MEASUREMENT", "OPTIMIZATION"] as const;
 
-export async function requestSpecialist(specialistId: string, opportunityId?: string, workflowId?: string) {
+/**
+ * Company-facing "get expert help" request. No specialist is chosen by the
+ * company — this creates an unassigned engagement (status OPEN, no
+ * specialistId) that shows up in the platform admin's request queue, where
+ * a specialist is matched and assigned behind the scenes via
+ * `assignSpecialistToProject`.
+ */
+export async function requestExpertHelp(params: {
+  opportunityId?: string;
+  workflowId?: string;
+  notes: string;
+  budget?: number;
+  timeline?: string;
+}) {
   const session = await requireRole(["COMPANY_ADMIN"]);
 
-  const specialist = await prisma.specialist.findUnique({ where: { id: specialistId }, include: { user: true } });
-  const opportunity = opportunityId ? await prisma.opportunity.findUnique({ where: { id: opportunityId } }) : null;
+  const opportunity = params.opportunityId
+    ? await prisma.opportunity.findUnique({ where: { id: params.opportunityId } })
+    : null;
+  const workflow = params.workflowId
+    ? await prisma.workflow.findUnique({ where: { id: params.workflowId } })
+    : null;
 
-  const title = opportunity?.title ?? `AI implementation with ${specialist?.user.name ?? "specialist"}`;
-  const now = new Date();
+  const title = opportunity?.title ?? workflow?.title ?? "AI implementation request";
+  const description = [params.notes, params.timeline ? `Timeline: ${params.timeline}` : null]
+    .filter(Boolean)
+    .join("\n\n");
 
   const project = await prisma.project.create({
     data: {
       organizationId: session.organizationId!,
-      specialistId,
-      opportunityId: opportunityId ?? undefined,
-      workflowId: workflowId ?? opportunity?.workflowId ?? undefined,
+      opportunityId: params.opportunityId ?? undefined,
+      workflowId: params.workflowId ?? opportunity?.workflowId ?? undefined,
       title,
-      description: opportunity?.aiOpportunity ?? "New AI implementation engagement.",
+      description: description || "New AI implementation request.",
       stage: "DISCOVERY",
+      status: "OPEN",
+      budget: params.budget,
+    },
+  });
+
+  revalidatePath("/dashboard/opportunities");
+  revalidatePath("/platform-admin/requests");
+  return { projectId: project.id };
+}
+
+/**
+ * Platform admin assigns a specialist to an open request, which is what
+ * turns it into a real engagement the specialist sees in their project list.
+ */
+export async function assignSpecialistToProject(projectId: string, specialistId: string) {
+  await requireRole(["PLATFORM_ADMIN"]);
+  const now = new Date();
+
+  await prisma.project.update({
+    where: { id: projectId },
+    data: {
+      specialistId,
       status: "PROPOSED",
       startDate: now,
       targetEndDate: new Date(now.getTime() + 1000 * 60 * 60 * 24 * 60),
@@ -46,7 +85,8 @@ export async function requestSpecialist(specialistId: string, opportunityId?: st
     },
   });
 
-  redirect(`/dashboard/projects/${project.id}`);
+  revalidatePath("/platform-admin/requests");
+  revalidatePath(`/dashboard/projects/${projectId}`);
 }
 
 export async function postProjectMessage(projectId: string, body: string) {

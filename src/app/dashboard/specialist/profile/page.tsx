@@ -18,7 +18,7 @@ export default async function SpecialistProfilePage() {
     <div className="mx-auto max-w-2xl space-y-6 p-6">
       <div>
         <h1 className="text-xl font-semibold text-ink-900">My profile</h1>
-        <p className="text-sm text-ink-500">This is what companies see in the marketplace.</p>
+        <p className="text-sm text-ink-500">Reldro's team uses this to match you with expert-help requests.</p>
       </div>
       <Card>
         <CardHeader title="Profile details" />

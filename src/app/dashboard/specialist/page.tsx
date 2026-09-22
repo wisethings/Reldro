@@ -24,7 +24,7 @@ export default async function SpecialistHomePage() {
     <div className="mx-auto max-w-5xl space-y-6 p-6">
       <div>
         <h1 className="text-xl font-semibold text-ink-900">Welcome back, {session.name.split(" ")[0]}</h1>
-        <p className="text-sm text-ink-500">Your marketplace activity and active engagements.</p>
+        <p className="text-sm text-ink-500">Your activity and active engagements.</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-4">

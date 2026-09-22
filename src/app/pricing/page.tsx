@@ -17,7 +17,7 @@ const pricing = [
       "Up to 500 employees",
       "Opportunity engine",
       "Personalized learning paths",
-      "Specialist marketplace",
+      "Expert help on demand",
       "ROI engine",
       "Priority support",
     ],
@@ -45,8 +45,8 @@ export default function PricingPage() {
         <div className="mx-auto max-w-2xl text-center">
           <h1 className="text-3xl font-semibold text-ink-900">Simple, transparent pricing</h1>
           <p className="mt-3 text-sm text-ink-600">
-            Subscriptions cover the platform. Marketplace specialist projects are billed separately — Reldro takes a
-            platform fee from specialist transactions.
+            Subscriptions cover the platform. Expert-help engagements are billed separately — Reldro takes a
+            platform fee from those transactions.
           </p>
         </div>
         <div className="mt-12 grid gap-5 lg:grid-cols-3">

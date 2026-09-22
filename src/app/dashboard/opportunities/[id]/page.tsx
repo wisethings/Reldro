@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { LinkButton } from "@/components/ui/Button";
-import { matchSpecialists } from "@/lib/matching";
+import { RequestExpertHelpForm } from "@/components/specialists/RequestExpertHelpForm";
 import { computePriorityScore, computeEffortScore, opportunityQuadrant, QUADRANT_LABELS } from "@/lib/scoring";
 
 const IMPACT_TONE = { LOW: "neutral", MEDIUM: "amber", HIGH: "green" } as const;
@@ -16,26 +16,14 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
   if (!session.organizationId) redirect("/login");
   const { id } = await params;
 
-  const [opportunity, org] = await Promise.all([
-    prisma.opportunity.findFirst({
-      where: { id, organizationId: session.organizationId },
-      include: { department: true, workflow: { include: { steps: true } } },
-    }),
-    prisma.organization.findUnique({ where: { id: session.organizationId } }),
-  ]);
+  const opportunity = await prisma.opportunity.findFirst({
+    where: { id, organizationId: session.organizationId },
+    include: { department: true, workflow: { include: { steps: true } } },
+  });
   if (!opportunity) notFound();
 
   const courses = opportunity.workflow
     ? await prisma.course.findMany({ where: { workflowId: opportunity.workflow.id }, include: { lessons: true } })
-    : [];
-
-  const specialistMatches = opportunity.recommendedSpecialist
-    ? await matchSpecialists({
-        industry: org?.industry,
-        department: opportunity.department?.name,
-        tools: opportunity.toolsRequired,
-        complexity: opportunity.complexity,
-      })
     : [];
 
   const priority = computePriorityScore(opportunity);
@@ -135,26 +123,8 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
       {opportunity.recommendedSpecialist && (
         <Card>
           <CardHeader title="Specialist recommended" subtitle="This opportunity is complex enough to benefit from outside expertise" />
-          <CardBody className="space-y-3">
-            {specialistMatches.length === 0 && <p className="text-sm text-ink-500">No matching specialists yet — check back soon.</p>}
-            {specialistMatches.map(({ specialist, reasons }) => (
-              <div key={specialist.id} className="flex items-start justify-between rounded-lg border border-ink-200 p-4">
-                <div>
-                  <Link href={`/dashboard/specialists/${specialist.id}`} className="text-sm font-medium text-ink-900 hover:text-brand-700">
-                    {specialist.user?.name}
-                  </Link>
-                  <p className="text-xs text-ink-500">{specialist.headline}</p>
-                  <ul className="mt-2 space-y-0.5 text-xs text-ink-500">
-                    {reasons.map((r) => (
-                      <li key={r}>· {r}</li>
-                    ))}
-                  </ul>
-                </div>
-                <LinkButton href={`/dashboard/specialists/${specialist.id}?opportunity=${opportunity.id}`} variant="secondary" size="sm">
-                  View profile
-                </LinkButton>
-              </div>
-            ))}
+          <CardBody>
+            <RequestExpertHelpForm opportunityId={opportunity.id} workflowId={opportunity.workflowId ?? undefined} />
           </CardBody>
         </Card>
       )}

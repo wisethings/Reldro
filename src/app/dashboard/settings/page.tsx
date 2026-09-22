@@ -58,7 +58,7 @@ export default async function SettingsPage() {
             ))}
           </div>
           <p className="text-xs text-ink-400">
-            Marketplace specialist projects are billed separately; Reldro takes a platform fee from those transactions.
+            Expert-help engagements are billed separately; Reldro takes a platform fee from those transactions.
             Payment processing (Stripe) is not yet wired up in this environment.
           </p>
         </CardBody>

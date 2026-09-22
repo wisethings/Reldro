@@ -31,7 +31,7 @@ const industries = [
 
 const pricing = [
   { name: "Starter", price: "$499", period: "/month", desc: "For smaller teams getting started with AI adoption.", features: ["Up to 50 employees", "AI maturity assessment", "Workflow library", "Core analytics"] },
-  { name: "Growth", price: "$1,500", period: "/month", desc: "For growing organizations scaling adoption across departments.", features: ["Up to 500 employees", "Opportunity engine", "Learning paths", "Specialist marketplace", "ROI engine"], highlighted: true },
+  { name: "Growth", price: "$1,500", period: "/month", desc: "For growing organizations scaling adoption across departments.", features: ["Up to 500 employees", "Opportunity engine", "Learning paths", "Expert help on demand", "ROI engine"], highlighted: true },
   { name: "Enterprise", price: "Custom", period: "", desc: "For large, multi-department organizations with governance needs.", features: ["Unlimited employees", "SSO & advanced permissions", "Dedicated success manager", "Custom integrations"] },
 ];
 
@@ -132,8 +132,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Marketplace */}
-      <section id="marketplace" className="border-y border-ink-100 bg-ink-50/60">
+      {/* Expert help */}
+      <section id="expert-help" className="border-y border-ink-100 bg-ink-50/60">
         <div className="mx-auto max-w-6xl px-6 py-20">
           <div className="grid gap-10 md:grid-cols-2 md:items-center">
             <div>
@@ -141,32 +141,25 @@ export default function LandingPage() {
                 When implementation gets complex, bring in a vetted specialist.
               </h2>
               <p className="mt-3 text-sm text-ink-600">
-                Reldro matches you with AI marketing, sales, RevOps, automation, and data specialists based on your
-                workflow, tech stack, industry, and budget — not just keyword search.
+                Request expert help directly from any opportunity or workflow, and our team matches you with a vetted
+                AI specialist based on your industry, tech stack, and budget — no browsing required.
               </p>
               <Link href="/signup" className="mt-6 inline-block text-sm font-medium text-brand-700 hover:text-brand-800">
-                Explore the specialist marketplace →
+                See how it works →
               </Link>
             </div>
             <div className="rounded-2xl border border-ink-200 bg-white p-5 shadow-card">
-              <p className="text-xs font-medium uppercase tracking-wide text-ink-500">Recommended match</p>
-              <div className="mt-4 flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-ink-900">Maya Johnson</p>
-                  <p className="text-xs text-ink-500">AI Marketing &amp; Automation</p>
-                  <p className="mt-1 text-xs text-ink-500">Marketing · HubSpot · Claude · ChatGPT</p>
-                </div>
-                <div className="text-right text-xs text-ink-500">
-                  <p className="font-semibold text-ink-900">4.9 ★</p>
-                  <p>42 projects</p>
-                  <p>$175/hr</p>
-                </div>
+              <p className="text-xs font-medium uppercase tracking-wide text-ink-500">Request expert help</p>
+              <div className="mt-4 space-y-2 text-sm text-ink-700">
+                <p className="rounded-lg bg-ink-50 px-3 py-2">
+                  "We need help rolling out AI-assisted response drafting across our support team in the next 6 weeks."
+                </p>
               </div>
-              <p className="mt-4 text-xs font-medium text-ink-500">Recommended because</p>
+              <p className="mt-4 text-xs font-medium text-ink-500">What happens next</p>
               <ul className="mt-1.5 space-y-1 text-xs text-ink-600">
-                <li>· 12 similar HubSpot + AI implementations</li>
-                <li>· 4 projects in consumer products</li>
-                <li>· Experience with 400+ employee organizations</li>
+                <li>· We match you against specialists with relevant industry and tool experience</li>
+                <li>· A specialist is assigned to a dedicated project workspace</li>
+                <li>· Track stages, tasks, and deliverables from Discovery through Optimization</li>
               </ul>
             </div>
           </div>
@@ -247,7 +240,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-6xl px-6 py-20">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-2xl font-semibold text-ink-900">Pricing</h2>
-            <p className="mt-3 text-sm text-ink-600">Marketplace transactions are billed separately from your subscription.</p>
+            <p className="mt-3 text-sm text-ink-600">Expert help engagements are billed separately from your subscription.</p>
           </div>
           <div className="mt-12 grid gap-5 lg:grid-cols-3">
             {pricing.map((p) => (

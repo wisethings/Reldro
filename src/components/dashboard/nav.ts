@@ -8,7 +8,6 @@ export function getNavItems(role: Role): NavItem[] {
       { href: "/dashboard/specialist", label: "Overview" },
       { href: "/dashboard/specialist/profile", label: "My Profile" },
       { href: "/dashboard/specialist/projects", label: "Projects" },
-      { href: "/dashboard/specialists", label: "Marketplace" },
     ];
   }
 
@@ -19,12 +18,12 @@ export function getNavItems(role: Role): NavItem[] {
     { href: "/dashboard/workflows", label: "Workflows" },
     { href: "/dashboard/learn", label: "Learn" },
     { href: "/dashboard/initiatives", label: "Initiatives" },
-    { href: "/dashboard/specialists", label: "Specialists" },
   ];
 
   if (role === "COMPANY_ADMIN") {
     return [
       ...base,
+      { href: "/dashboard/expert-help", label: "Expert Help" },
       { href: "/dashboard/analytics", label: "Analytics" },
       { href: "/dashboard/team", label: "Team" },
       { href: "/dashboard/integrations", label: "Integrations" },
