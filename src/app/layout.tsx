@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Inter_Tight, Parkinsans } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
+const interTight = Inter_Tight({ subsets: ["latin"], variable: "--font-inter-tight", display: "swap", weight: ["500", "600"] });
+const parkinsans = Parkinsans({ subsets: ["latin"], variable: "--font-parkinsans", display: "swap", weight: "variable" });
 
 export const metadata: Metadata = {
   title: "Reldro — Make AI adoption actually happen",
@@ -12,8 +14,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={inter.variable}>
-      <body className="font-sans antialiased">{children}</body>
+    <html lang="en" className={`${inter.variable} ${interTight.variable} ${parkinsans.variable}`}>
+      <body className="bg-ink-100 font-sans text-ink-900 antialiased">{children}</body>
     </html>
   );
 }

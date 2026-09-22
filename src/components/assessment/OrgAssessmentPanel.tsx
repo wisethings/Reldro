@@ -86,7 +86,7 @@ export function OrgAssessmentPanel({
         <Card>
           <CardHeader title="Assessment history" />
           <CardBody>
-            <div className="divide-y divide-ink-100">
+            <div className="divide-y divide-ink-200">
               {history.map((h, i) => (
                 <div key={i} className="flex items-center justify-between py-2 text-sm">
                   <span className="text-ink-600">{h.date}</span>

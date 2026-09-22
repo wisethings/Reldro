@@ -37,7 +37,7 @@ export function AssistantWidget() {
     <>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="fixed bottom-5 right-5 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-brand-700 text-white shadow-lg hover:bg-brand-800"
+        className="fixed bottom-5 right-5 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-orchid-deep text-white shadow-lg hover:brightness-95"
         aria-label="Open Reldro assistant"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -49,7 +49,7 @@ export function AssistantWidget() {
 
       {open && (
         <div className="fixed bottom-20 right-5 z-40 flex h-[520px] w-[380px] flex-col overflow-hidden rounded-2xl border border-ink-200 bg-white shadow-2xl">
-          <div className="flex items-center justify-between border-b border-ink-100 px-4 py-3">
+          <div className="flex items-center justify-between border-b border-ink-200 px-4 py-3">
             <div>
               <p className="text-sm font-semibold text-ink-900">Reldro assistant</p>
               <p className="text-[11px] text-ink-500">Answers from your organization's data</p>
@@ -66,7 +66,7 @@ export function AssistantWidget() {
                   <button
                     key={s}
                     onClick={() => ask(s)}
-                    className="block w-full rounded-lg border border-ink-200 px-3 py-2 text-left text-xs text-ink-700 hover:border-brand-400 hover:bg-brand-50"
+                    className="block w-full rounded-xl border border-ink-200 px-3 py-2 text-left text-xs text-ink-700 hover:border-orchid hover:bg-orchid-soft"
                   >
                     {s}
                   </button>
@@ -75,11 +75,11 @@ export function AssistantWidget() {
             )}
             {turns.map((t, i) => (
               <div key={i} className="space-y-1.5">
-                <p className="ml-auto max-w-[85%] rounded-lg rounded-br-sm bg-brand-700 px-3 py-2 text-xs text-white">
+                <p className="ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-oxblood px-3 py-2 text-xs text-bone">
                   {t.question}
                 </p>
                 {t.answer ? (
-                  <div className="max-w-[92%] rounded-lg rounded-bl-sm bg-ink-50 px-3 py-2 text-xs text-ink-800">
+                  <div className="max-w-[92%] rounded-2xl rounded-bl-md bg-surface-sunken px-3 py-2 text-xs text-ink-800">
                     <p>{t.answer.answer}</p>
                     {t.answer.bullets && (
                       <ul className="mt-1.5 space-y-1">
@@ -92,7 +92,7 @@ export function AssistantWidget() {
                     )}
                   </div>
                 ) : (
-                  <div className="max-w-[70%] rounded-lg rounded-bl-sm bg-ink-50 px-3 py-2 text-xs text-ink-400">Thinking…</div>
+                  <div className="max-w-[70%] rounded-2xl rounded-bl-md bg-surface-sunken px-3 py-2 text-xs text-ink-400">Thinking…</div>
                 )}
               </div>
             ))}
@@ -102,7 +102,7 @@ export function AssistantWidget() {
               e.preventDefault();
               ask(input);
             }}
-            className="flex items-center gap-2 border-t border-ink-100 p-3"
+            className="flex items-center gap-2 border-t border-ink-200 p-3"
           >
             <input
               value={input}
@@ -113,7 +113,7 @@ export function AssistantWidget() {
             <button
               type="submit"
               disabled={pending}
-              className="rounded-lg bg-brand-700 px-3 py-2 text-xs font-medium text-white hover:bg-brand-800 disabled:opacity-50"
+              className="rounded-full bg-oxblood px-4 py-2 text-xs font-medium text-bone hover:bg-[#45181B] disabled:opacity-50"
             >
               Ask
             </button>

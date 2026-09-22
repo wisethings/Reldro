@@ -22,7 +22,7 @@ export default async function SpecialistProjectsPage() {
         <p className="text-sm text-ink-500">All engagements across your clients.</p>
       </div>
       <Card>
-        <CardBody className="divide-y divide-ink-100 p-0">
+        <CardBody className="divide-y divide-ink-200 p-0">
           {projects.map((p) => (
             <Link key={p.id} href={`/dashboard/projects/${p.id}`} className="flex items-center justify-between px-5 py-4 hover:bg-ink-50">
               <div>

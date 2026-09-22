@@ -42,7 +42,7 @@ export function ProjectStageStepper({
             >
               <span
                 className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
-                  done ? "bg-emerald-100 text-emerald-700" : active ? "bg-brand-700 text-white" : "bg-ink-100 text-ink-500"
+                  done ? "bg-sage text-sage-deep" : active ? "bg-brand-700 text-white" : "bg-ink-100 text-ink-500"
                 }`}
               >
                 {i + 1}

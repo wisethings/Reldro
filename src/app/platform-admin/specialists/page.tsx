@@ -16,7 +16,7 @@ export default async function PlatformSpecialistsPage() {
         <p className="text-sm text-ink-500">Approve specialist applications so they're eligible for expert-help matches.</p>
       </div>
       <Card>
-        <CardBody className="divide-y divide-ink-100 p-0">
+        <CardBody className="divide-y divide-ink-200 p-0">
           {specialists.map((s) => (
             <div key={s.id} className="flex items-center justify-between gap-4 px-5 py-4">
               <div>
@@ -34,7 +34,7 @@ export default async function PlatformSpecialistsPage() {
                   </form>
                 ) : (
                   <form action={approveSpecialist.bind(null, s.id)}>
-                    <button className="rounded-lg bg-brand-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-800">
+                    <button className="rounded-full bg-brand-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-800">
                       Approve
                     </button>
                   </form>

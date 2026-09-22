@@ -10,8 +10,8 @@ export function OrgProfileForm({ org }: { org: Organization }) {
 
   return (
     <form action={formAction} className="space-y-4">
-      {state?.success && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">Saved.</p>}
-      {state?.error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>}
+      {state?.success && <p className="rounded-lg bg-sage px-3 py-2 text-sm text-sage-deep">Saved.</p>}
+      {state?.error && <p className="rounded-lg bg-coral-soft px-3 py-2 text-sm text-danger">{state.error}</p>}
       <div>
         <label className="block text-xs font-medium text-ink-600">Company name</label>
         <input name="name" defaultValue={org.name} className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm" />
@@ -42,7 +42,7 @@ export function OrgProfileForm({ org }: { org: Organization }) {
           </select>
         </div>
       </div>
-      <button disabled={pending} className="rounded-lg bg-brand-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60">
+      <button disabled={pending} className="rounded-full bg-brand-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60">
         {pending ? "Saving…" : "Save changes"}
       </button>
     </form>

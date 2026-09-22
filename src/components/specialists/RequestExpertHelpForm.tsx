@@ -19,7 +19,7 @@ export function RequestExpertHelpForm({
 
   if (submitted) {
     return (
-      <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+      <div className="rounded-lg border border-sage bg-sage p-4 text-sm text-sage-deep">
         Request sent. Our team will match you with a vetted specialist and follow up shortly.
       </div>
     );
@@ -29,7 +29,7 @@ export function RequestExpertHelpForm({
     return (
       <button
         onClick={() => setOpen(true)}
-        className="rounded-lg bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800"
+        className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800"
       >
         Request expert help
       </button>
@@ -88,7 +88,7 @@ export function RequestExpertHelpForm({
         <button
           type="submit"
           disabled={pending || !notes.trim()}
-          className="rounded-lg bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50"
+          className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50"
         >
           {pending ? "Sending…" : "Send request"}
         </button>

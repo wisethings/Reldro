@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "@/components/ui/Logo";
 
 const links = [
   { href: "/#how-it-works", label: "How it works" },
@@ -11,10 +12,7 @@ export function MarketingNav() {
     <header className="sticky top-0 z-30 border-b border-ink-200 bg-white/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-brand-700 text-sm font-bold text-white">
-            R
-          </span>
-          <span className="text-base font-semibold tracking-tight text-ink-900">Reldro</span>
+          <Logo />
         </Link>
         <nav className="hidden items-center gap-7 md:flex">
           {links.map((l) => (
@@ -29,7 +27,7 @@ export function MarketingNav() {
           </Link>
           <Link
             href="/signup"
-            className="rounded-lg bg-brand-700 px-3.5 py-2 text-sm font-medium text-white hover:bg-brand-800"
+            className="rounded-full bg-brand-700 px-3.5 py-2 text-sm font-medium text-white hover:bg-brand-800"
           >
             Assess your organization
           </Link>

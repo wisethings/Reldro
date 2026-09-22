@@ -23,10 +23,10 @@ export function MessageThread({
         {messages.map((m) => {
           const mine = m.senderUserId === currentUserId;
           return (
-            <div key={m.id} className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${mine ? "ml-auto bg-brand-700 text-white" : "bg-ink-50 text-ink-800"}`}>
+            <div key={m.id} className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "ml-auto rounded-br-md bg-oxblood text-bone" : "rounded-bl-md bg-surface-sunken text-ink-800"}`}>
               {!mine && <p className="text-[11px] font-medium text-ink-500">{m.senderName}</p>}
               <p>{m.body}</p>
-              <p className={`mt-1 text-[10px] ${mine ? "text-brand-100" : "text-ink-400"}`}>{new Date(m.createdAt).toLocaleString()}</p>
+              <p className={`mt-1 text-[10px] ${mine ? "text-bone/70" : "text-ink-400"}`}>{new Date(m.createdAt).toLocaleString()}</p>
             </div>
           );
         })}
@@ -48,7 +48,7 @@ export function MessageThread({
           placeholder="Write a message…"
           className="flex-1 rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
         />
-        <button disabled={pending} className="rounded-lg bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">
+        <button disabled={pending} className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">
           Send
         </button>
       </form>

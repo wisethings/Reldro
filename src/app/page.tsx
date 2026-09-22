@@ -53,7 +53,7 @@ export default function LandingPage() {
           connect teams with specialists to implement it.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <Link href="/signup" className="rounded-lg bg-brand-700 px-5 py-3 text-sm font-medium text-white hover:bg-brand-800">
+          <Link href="/signup" className="rounded-full bg-brand-700 px-5 py-3 text-sm font-medium text-white hover:bg-brand-800">
             Assess your organization
           </Link>
           <Link href="#how-it-works" className="rounded-lg border border-ink-300 px-5 py-3 text-sm font-medium text-ink-800 hover:bg-ink-50">
@@ -63,7 +63,7 @@ export default function LandingPage() {
       </section>
 
       {/* Problem */}
-      <section className="border-y border-ink-100 bg-ink-50/60">
+      <section className="border-y border-ink-200 bg-ink-50/60">
         <div className="mx-auto max-w-6xl px-6 py-16">
           <div className="grid gap-10 md:grid-cols-2 md:items-center">
             <div>
@@ -124,7 +124,7 @@ export default function LandingPage() {
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {loopSteps.map((s, i) => (
             <div key={s.step} className="rounded-xl border border-ink-200 p-5">
-              <span className="text-xs font-medium text-brand-700">Step {i + 1}</span>
+              <span className="text-xs font-medium text-orchid-deep">Step {i + 1}</span>
               <h3 className="mt-1 text-base font-semibold text-ink-900">{s.step}</h3>
               <p className="mt-2 text-sm text-ink-600">{s.desc}</p>
             </div>
@@ -133,7 +133,7 @@ export default function LandingPage() {
       </section>
 
       {/* Expert help */}
-      <section id="expert-help" className="border-y border-ink-100 bg-ink-50/60">
+      <section id="expert-help" className="border-y border-ink-200 bg-ink-50/60">
         <div className="mx-auto max-w-6xl px-6 py-20">
           <div className="grid gap-10 md:grid-cols-2 md:items-center">
             <div>
@@ -144,7 +144,7 @@ export default function LandingPage() {
                 Request expert help directly from any opportunity or workflow, and our team matches you with a vetted
                 AI specialist based on your industry, tech stack, and budget — no browsing required.
               </p>
-              <Link href="/signup" className="mt-6 inline-block text-sm font-medium text-brand-700 hover:text-brand-800">
+              <Link href="/signup" className="mt-6 inline-block text-sm font-medium text-orchid-deep hover:text-oxblood">
                 See how it works →
               </Link>
             </div>
@@ -190,7 +190,7 @@ export default function LandingPage() {
       </section>
 
       {/* ROI */}
-      <section className="border-y border-ink-100 bg-ink-50/60">
+      <section className="border-y border-ink-200 bg-ink-50/60">
         <div className="mx-auto max-w-6xl px-6 py-20 text-center">
           <h2 className="text-2xl font-semibold text-ink-900">Prove the business case, not just the training</h2>
           <p className="mx-auto mt-3 max-w-2xl text-sm text-ink-600">
@@ -207,8 +207,8 @@ export default function LandingPage() {
               <p className="mt-1 text-2xl font-semibold text-ink-900">$620,000</p>
             </div>
             <div className="rounded-xl border border-brand-200 bg-brand-50 p-5">
-              <p className="text-xs text-brand-700">Estimated ROI</p>
-              <p className="mt-1 text-2xl font-semibold text-brand-800">638%</p>
+              <p className="text-xs text-orchid-deep">Estimated ROI</p>
+              <p className="mt-1 text-2xl font-semibold text-orchid-deep">638%</p>
             </div>
           </div>
           <p className="mx-auto mt-4 max-w-md text-xs text-ink-400">
@@ -236,7 +236,7 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="border-y border-ink-100 bg-ink-50/60">
+      <section id="pricing" className="border-y border-ink-200 bg-ink-50/60">
         <div className="mx-auto max-w-6xl px-6 py-20">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-2xl font-semibold text-ink-900">Pricing</h2>
@@ -265,7 +265,7 @@ export default function LandingPage() {
                 </ul>
                 <Link
                   href="/signup"
-                  className={`mt-6 block rounded-lg px-4 py-2.5 text-center text-sm font-medium ${p.highlighted ? "bg-brand-700 text-white hover:bg-brand-800" : "border border-ink-300 text-ink-800 hover:bg-ink-50"}`}
+                  className={`mt-6 block rounded-full px-4 py-2.5 text-center text-sm font-medium ${p.highlighted ? "bg-brand-700 text-white hover:bg-brand-800" : "border border-ink-300 text-ink-800 hover:bg-ink-50"}`}
                 >
                   Get started
                 </Link>
@@ -281,7 +281,7 @@ export default function LandingPage() {
         <p className="mx-auto mt-3 max-w-xl text-sm text-ink-600">
           Run your AI maturity assessment in minutes and get a prioritized opportunity map for your organization.
         </p>
-        <Link href="/signup" className="mt-6 inline-block rounded-lg bg-brand-700 px-5 py-3 text-sm font-medium text-white hover:bg-brand-800">
+        <Link href="/signup" className="mt-6 inline-block rounded-full bg-brand-700 px-5 py-3 text-sm font-medium text-white hover:bg-brand-800">
           Assess your organization
         </Link>
       </section>

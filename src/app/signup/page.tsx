@@ -1,15 +1,13 @@
 import Link from "next/link";
 import { SignupForm } from "@/components/auth/SignupForm";
+import { Logo } from "@/components/ui/Logo";
 
 export default function SignupPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-ink-50 px-6 py-12">
       <div className="w-full max-w-sm">
         <Link href="/" className="mb-8 flex items-center justify-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-brand-700 text-sm font-bold text-white">
-            R
-          </span>
-          <span className="text-base font-semibold text-ink-900">Reldro</span>
+          <Logo />
         </Link>
         <div className="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
           <h1 className="text-lg font-semibold text-ink-900">Assess your organization</h1>
@@ -21,7 +19,7 @@ export default function SignupPage() {
           </div>
           <p className="mt-4 text-center text-xs text-ink-500">
             Already have an account?{" "}
-            <Link href="/login" className="font-medium text-brand-700 hover:text-brand-800">
+            <Link href="/login" className="font-medium text-orchid-deep hover:text-oxblood">
               Log in
             </Link>
           </p>

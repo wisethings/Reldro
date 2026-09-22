@@ -37,7 +37,7 @@ export default async function SpecialistHomePage() {
       {proposed.length > 0 && (
         <Card>
           <CardHeader title="New project requests" />
-          <CardBody className="divide-y divide-ink-100 p-0">
+          <CardBody className="divide-y divide-ink-200 p-0">
             {proposed.map((p) => (
               <Link key={p.id} href={`/dashboard/projects/${p.id}`} className="flex items-center justify-between px-5 py-3 hover:bg-ink-50">
                 <div>
@@ -53,7 +53,7 @@ export default async function SpecialistHomePage() {
 
       <Card>
         <CardHeader title="Active projects" />
-        <CardBody className="divide-y divide-ink-100 p-0">
+        <CardBody className="divide-y divide-ink-200 p-0">
           {active.map((p) => (
             <Link key={p.id} href={`/dashboard/projects/${p.id}`} className="flex items-center justify-between px-5 py-3 hover:bg-ink-50">
               <div>

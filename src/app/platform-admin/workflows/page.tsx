@@ -15,7 +15,7 @@ export default async function PlatformWorkflowsPage() {
         <p className="text-sm text-ink-500">The global workflow library available to every organization.</p>
       </div>
       <Card>
-        <CardBody className="divide-y divide-ink-100 p-0">
+        <CardBody className="divide-y divide-ink-200 p-0">
           {workflows.map((w) => (
             <div key={w.id} className="flex items-center justify-between px-5 py-3">
               <div>

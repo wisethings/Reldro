@@ -1,12 +1,12 @@
-// Restrained, calm chart palette: one accent for the primary series, muted
-// neutrals/blues for comparisons. Avoid rainbow categorical sets.
+// Reldro UI kit chart palette. Series order per the brand book:
+// oxblood, orchid, coral, pine, olive, stone.
 export const CHART_COLORS = {
-  primary: "#3552a8",
-  primaryLight: "#8ea9e3",
-  positive: "#1a9c6b",
-  warning: "#c7841f",
-  negative: "#c1462f",
-  neutral: "#9aa3b2",
-  grid: "#eceef1",
-  series: ["#3552a8", "#5b8a72", "#c7841f", "#767f91", "#8e5fa8"],
+  primary: "#2A0A0C",
+  primaryLight: "#D896CC",
+  positive: "#3D5A3A",
+  warning: "#755F2F",
+  negative: "#A33828",
+  neutral: "#8C7F6C",
+  grid: "#DCD5C6",
+  series: ["#2A0A0C", "#D896CC", "#E8827A", "#1F3A2E", "#755F2F", "#BFB5A3"],
 };

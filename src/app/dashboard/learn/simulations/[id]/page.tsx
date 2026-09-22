@@ -26,7 +26,7 @@ export default async function SimulationPage({ params }: { params: Promise<{ id:
         ← Back to Learn
       </Link>
       <div>
-        <p className="text-xs font-medium text-brand-700">{simulation.department} simulation</p>
+        <p className="text-xs font-medium text-orchid-deep">{simulation.department} simulation</p>
         <h1 className="mt-1 text-xl font-semibold text-ink-900">{simulation.title}</h1>
         <p className="mt-1 text-sm text-ink-500">{simulation.description}</p>
       </div>
@@ -52,7 +52,7 @@ export default async function SimulationPage({ params }: { params: Promise<{ id:
       {pastAttempts.length > 0 && (
         <Card>
           <CardHeader title="Past attempts" />
-          <CardBody className="divide-y divide-ink-100 p-0">
+          <CardBody className="divide-y divide-ink-200 p-0">
             {pastAttempts.map((a) => (
               <div key={a.id} className="px-5 py-3">
                 <div className="flex justify-between text-sm">

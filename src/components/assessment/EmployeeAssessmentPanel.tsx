@@ -87,7 +87,7 @@ export function EmployeeAssessmentPanel({
             <p className="text-sm font-medium text-ink-900">Your biggest opportunity: {EMPLOYEE_SKILL_LABELS[weakest]}</p>
             <p className="text-xs text-ink-500">We'll prioritize learning here.</p>
           </div>
-          <Link href="/dashboard/learn" className="text-xs font-medium text-brand-700 hover:text-brand-800">
+          <Link href="/dashboard/learn" className="text-xs font-medium text-orchid-deep hover:text-oxblood">
             View recommended learning →
           </Link>
         </CardBody>

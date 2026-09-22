@@ -100,7 +100,7 @@ export default async function LearnPage() {
                   </div>
                   <p className="mt-1.5 line-clamp-2 text-xs text-ink-500">{sim.description}</p>
                   {bestAttemptBySim.has(sim.id) && (
-                    <p className="mt-2 text-xs font-medium text-brand-700">Best score: {bestAttemptBySim.get(sim.id)}/100</p>
+                    <p className="mt-2 text-xs font-medium text-orchid-deep">Best score: {bestAttemptBySim.get(sim.id)}/100</p>
                   )}
                 </CardBody>
               </Card>

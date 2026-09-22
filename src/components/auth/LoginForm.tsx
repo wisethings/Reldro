@@ -9,7 +9,7 @@ export function LoginForm() {
   return (
     <form action={formAction} className="space-y-4">
       {state?.error && (
-        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
+        <p className="rounded-lg bg-coral-soft px-3 py-2 text-sm text-danger">{state.error}</p>
       )}
       <div>
         <label className="block text-xs font-medium text-ink-600">Work email</label>
@@ -34,7 +34,7 @@ export function LoginForm() {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-lg bg-brand-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
+        className="w-full rounded-full bg-brand-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
       >
         {pending ? "Signing in…" : "Sign in"}
       </button>

@@ -71,7 +71,7 @@ export default function PricingPage() {
               </ul>
               <Link
                 href="/signup"
-                className={`mt-6 block rounded-lg px-4 py-2.5 text-center text-sm font-medium ${p.highlighted ? "bg-brand-700 text-white hover:bg-brand-800" : "border border-ink-300 text-ink-800 hover:bg-ink-50"}`}
+                className={`mt-6 block rounded-full px-4 py-2.5 text-center text-sm font-medium ${p.highlighted ? "bg-brand-700 text-white hover:bg-brand-800" : "border border-ink-300 text-ink-800 hover:bg-ink-50"}`}
               >
                 Get started
               </Link>

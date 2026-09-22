@@ -3,13 +3,25 @@
 @tailwind utilities;
 
 :root {
-  --background: #fafafa;
-  --foreground: #1b1d24;
+  --background: #efebe0;
+  --foreground: #2a0a0c;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+@layer base {
+  h1, h2, h3, h4 {
+    font-family: var(--font-inter-tight), var(--font-inter), sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  ::selection {
+    background-color: #f3ddee;
+    color: #2a0a0c;
+  }
 }
 
 @layer utilities {
@@ -18,7 +30,13 @@ body {
     height: 6px;
   }
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: #d4d7dd;
+    background-color: #dcd5c6;
     border-radius: 9999px;
+  }
+
+  .font-wordmark {
+    font-family: var(--font-parkinsans), var(--font-inter), sans-serif;
+    font-weight: 480;
+    letter-spacing: 0;
   }
 }

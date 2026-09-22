@@ -15,7 +15,7 @@ export default async function PlatformOrganizationsPage() {
         <p className="text-sm text-ink-500">{organizations.length} organizations on Reldro.</p>
       </div>
       <Card>
-        <CardBody className="divide-y divide-ink-100 p-0">
+        <CardBody className="divide-y divide-ink-200 p-0">
           {organizations.map((org) => (
             <div key={org.id} className="flex items-center justify-between px-5 py-4">
               <div>

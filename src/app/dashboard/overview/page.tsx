@@ -106,7 +106,7 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
                 <ProgressBar value={breakdown[cat]} className="mt-1" />
               </div>
             ))}
-            <Link href="/dashboard/assessment" className="mt-2 inline-block text-xs font-medium text-brand-700 hover:text-brand-800">
+            <Link href="/dashboard/assessment" className="mt-2 inline-block text-xs font-medium text-orchid-deep hover:text-oxblood">
               View full assessment →
             </Link>
           </CardBody>
@@ -117,12 +117,12 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
             title="Top AI opportunities"
             subtitle="Ranked by estimated annual value"
             action={
-              <Link href="/dashboard/opportunities" className="text-xs font-medium text-brand-700 hover:text-brand-800">
+              <Link href="/dashboard/opportunities" className="text-xs font-medium text-orchid-deep hover:text-oxblood">
                 View all →
               </Link>
             }
           />
-          <CardBody className="divide-y divide-ink-100 p-0">
+          <CardBody className="divide-y divide-ink-200 p-0">
             {topOpportunities.length === 0 && <p className="p-5 text-sm text-ink-500">No opportunities identified yet.</p>}
             {topOpportunities.map((o) => (
               <Link key={o.id} href={`/dashboard/opportunities/${o.id}`} className="flex items-center justify-between gap-4 px-5 py-3 hover:bg-ink-50">
@@ -180,7 +180,7 @@ async function EmployeeOverview({ employeeId, name }: { employeeId: string; name
             <ScoreRing value={employee.aiFluencyScore ?? 0} size={72} label="/ 100" />
             <div>
               <p className="text-xs font-medium text-ink-500">Your AI Fluency</p>
-              <Link href="/dashboard/assessment" className="text-xs font-medium text-brand-700 hover:text-brand-800">
+              <Link href="/dashboard/assessment" className="text-xs font-medium text-orchid-deep hover:text-oxblood">
                 View breakdown →
               </Link>
             </div>
@@ -196,7 +196,7 @@ async function EmployeeOverview({ employeeId, name }: { employeeId: string; name
           <CardBody>
             <p className="text-sm font-medium text-ink-900">{opportunity.title}</p>
             <p className="mt-1 text-sm text-ink-600">{opportunity.aiOpportunity}</p>
-            <Link href={`/dashboard/opportunities/${opportunity.id}`} className="mt-3 inline-block text-xs font-medium text-brand-700 hover:text-brand-800">
+            <Link href={`/dashboard/opportunities/${opportunity.id}`} className="mt-3 inline-block text-xs font-medium text-orchid-deep hover:text-oxblood">
               Explore this opportunity →
             </Link>
           </CardBody>
@@ -207,12 +207,12 @@ async function EmployeeOverview({ employeeId, name }: { employeeId: string; name
         <CardHeader
           title="Recommended for your role"
           action={
-            <Link href="/dashboard/workflows" className="text-xs font-medium text-brand-700 hover:text-brand-800">
+            <Link href="/dashboard/workflows" className="text-xs font-medium text-orchid-deep hover:text-oxblood">
               Browse workflow library →
             </Link>
           }
         />
-        <CardBody className="divide-y divide-ink-100 p-0">
+        <CardBody className="divide-y divide-ink-200 p-0">
           {relevantWorkflows.length === 0 && <p className="p-5 text-sm text-ink-500">No workflows tailored to your department yet.</p>}
           {relevantWorkflows.map((ow) => (
             <Link key={ow.id} href={`/dashboard/workflows/${ow.workflow.id}`} className="flex items-center justify-between px-5 py-3 hover:bg-ink-50">

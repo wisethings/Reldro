@@ -79,7 +79,7 @@ export default async function InitiativeDetailPage({ params }: { params: Promise
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
           <CardHeader title="Team" />
-          <CardBody className="divide-y divide-ink-100 p-0">
+          <CardBody className="divide-y divide-ink-200 p-0">
             {initiative.members.map((m) => (
               <div key={m.id} className="flex items-center justify-between px-5 py-3">
                 <div>
@@ -94,7 +94,7 @@ export default async function InitiativeDetailPage({ params }: { params: Promise
         </Card>
         <Card>
           <CardHeader title="Linked opportunities" />
-          <CardBody className="divide-y divide-ink-100 p-0">
+          <CardBody className="divide-y divide-ink-200 p-0">
             {initiative.workflows.map((iw) =>
               iw.opportunity ? (
                 <Link key={iw.id} href={`/dashboard/opportunities/${iw.opportunity.id}`} className="flex items-center justify-between px-5 py-3 hover:bg-ink-50">

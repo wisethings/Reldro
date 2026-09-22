@@ -9,7 +9,7 @@ export function SpecialistProfileForm({ specialist }: { specialist: Specialist }
 
   return (
     <form action={formAction} className="space-y-4">
-      {state?.success && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">Profile updated.</p>}
+      {state?.success && <p className="rounded-lg bg-sage px-3 py-2 text-sm text-sage-deep">Profile updated.</p>}
       <div>
         <label className="block text-xs font-medium text-ink-600">Headline</label>
         <input
@@ -61,7 +61,7 @@ export function SpecialistProfileForm({ specialist }: { specialist: Specialist }
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg bg-brand-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
+        className="rounded-full bg-brand-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
       >
         {pending ? "Saving…" : "Save profile"}
       </button>

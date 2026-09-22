@@ -108,7 +108,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
                 <ul className="mt-1.5 space-y-1">
                   {courses.map((c) => (
                     <li key={c.id}>
-                      <Link href={`/dashboard/learn?course=${c.id}`} className="text-sm text-brand-700 hover:text-brand-800">
+                      <Link href={`/dashboard/learn?course=${c.id}`} className="text-sm text-orchid-deep hover:text-oxblood">
                         {c.title} · {c.lessons.length} lessons
                       </Link>
                     </li>

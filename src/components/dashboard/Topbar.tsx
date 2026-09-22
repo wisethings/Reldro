@@ -23,7 +23,7 @@ export function Topbar({
       </div>
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-xs font-semibold text-brand-800">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-xs font-semibold text-orchid-deep">
             {initials}
           </span>
           <div className="hidden text-right sm:block">

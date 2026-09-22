@@ -58,15 +58,15 @@ export function RoiExplorer({ workflows }: { workflows: WorkflowRoi[] }) {
         </Card>
         <Card className="border-brand-200 bg-brand-50">
           <CardBody>
-            <p className="text-xs text-brand-700">Estimated ROI</p>
-            <p className="mt-1 text-2xl font-semibold text-brand-800">{totals.roi}%</p>
+            <p className="text-xs text-orchid-deep">Estimated ROI</p>
+            <p className="mt-1 text-2xl font-semibold text-orchid-deep">{totals.roi}%</p>
           </CardBody>
         </Card>
       </div>
 
       <Card>
         <CardHeader title="ROI by workflow" />
-        <CardBody className="divide-y divide-ink-100 p-0">
+        <CardBody className="divide-y divide-ink-200 p-0">
           {workflows.map((w) => (
             <div key={w.label} className="flex items-center justify-between px-5 py-3">
               <span className="text-sm text-ink-800">{w.label}</span>

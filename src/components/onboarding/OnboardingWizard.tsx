@@ -69,7 +69,7 @@ function CheckGrid({
             key={o.key}
             onClick={() => onToggle(o.key)}
             className={`rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${
-              active ? "border-brand-600 bg-brand-50 text-brand-800" : "border-ink-200 text-ink-700 hover:border-ink-300"
+              active ? "border-brand-600 bg-brand-50 text-orchid-deep" : "border-ink-200 text-ink-700 hover:border-ink-300"
             }`}
           >
             <span className="block font-medium">{o.label}</span>
@@ -171,7 +171,7 @@ export function OnboardingWizard({ companyName }: { companyName: string }) {
             <button
               onClick={next}
               disabled={!industry || !size || !revenueRange || !geography || !businessModel}
-              className="rounded-lg bg-brand-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-40"
+              className="rounded-full bg-brand-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-40"
             >
               Continue
             </button>
@@ -289,7 +289,7 @@ export function OnboardingWizard({ companyName }: { companyName: string }) {
             <button
               onClick={finish}
               disabled={pending}
-              className="rounded-lg bg-brand-700 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
+              className="rounded-full bg-brand-700 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
             >
               {pending ? "Setting up your workspace…" : "Go to my dashboard"}
             </button>
@@ -319,7 +319,7 @@ function StepNav({
       <button
         onClick={onNext}
         disabled={nextDisabled}
-        className="rounded-lg bg-brand-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-40"
+        className="rounded-full bg-brand-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-40"
       >
         {nextLabel}
       </button>

@@ -37,7 +37,7 @@ export default async function PlatformAdminOverview() {
             <p className="text-sm text-ink-700">
               {pendingSpecialists} specialist application{pendingSpecialists > 1 ? "s" : ""} awaiting approval.
             </p>
-            <Link href="/platform-admin/specialists" className="mt-2 inline-block text-xs font-medium text-brand-700 hover:text-brand-800">
+            <Link href="/platform-admin/specialists" className="mt-2 inline-block text-xs font-medium text-orchid-deep hover:text-oxblood">
               Review specialists →
             </Link>
           </CardBody>

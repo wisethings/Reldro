@@ -79,7 +79,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
 
       <Card>
         <CardHeader title="Deliverables" />
-        <CardBody className="divide-y divide-ink-100 p-0">
+        <CardBody className="divide-y divide-ink-200 p-0">
           {project.deliverables.map((d) => (
             <div key={d.id} className="flex items-center justify-between px-5 py-3">
               <span className="text-sm text-ink-800">{d.name}</span>

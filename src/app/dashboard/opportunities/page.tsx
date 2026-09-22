@@ -94,7 +94,7 @@ export default async function OpportunitiesPage({
         <div className="grid gap-4 sm:grid-cols-2">
           {QUADRANT_ORDER.map((q) => (
             <Card key={q}>
-              <div className="border-b border-ink-100 px-5 py-3">
+              <div className="border-b border-ink-200 px-5 py-3">
                 <p className="text-sm font-semibold text-ink-900">{QUADRANT_LABELS[q]}</p>
                 <p className="text-xs text-ink-500">{enriched.filter((e) => e.quadrant === q).length} opportunities</p>
               </div>
@@ -102,7 +102,7 @@ export default async function OpportunitiesPage({
                 {enriched
                   .filter((e) => e.quadrant === q)
                   .map(({ o }) => (
-                    <Link key={o.id} href={`/dashboard/opportunities/${o.id}`} className="block rounded-lg border border-ink-100 p-3 hover:border-brand-300 hover:bg-brand-50/40">
+                    <Link key={o.id} href={`/dashboard/opportunities/${o.id}`} className="block rounded-lg border border-ink-200 p-3 hover:border-brand-300 hover:bg-brand-50/40">
                       <p className="text-sm font-medium text-ink-900">{o.title}</p>
                       <p className="text-xs text-ink-500">{o.department?.name ?? "Cross-functional"} · ${(o.estAnnualValue / 1000).toFixed(0)}k/yr</p>
                     </Link>
@@ -116,7 +116,7 @@ export default async function OpportunitiesPage({
         </div>
       ) : (
         <Card>
-          <CardBody className="divide-y divide-ink-100 p-0">
+          <CardBody className="divide-y divide-ink-200 p-0">
             {enriched.length === 0 && <p className="p-6 text-sm text-ink-500">No opportunities match these filters.</p>}
             {enriched.map(({ o, priority, quadrant }) => (
               <Link key={o.id} href={`/dashboard/opportunities/${o.id}`} className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-ink-50">
@@ -135,7 +135,7 @@ export default async function OpportunitiesPage({
                 <div className="shrink-0 text-right">
                   <p className="text-sm font-semibold text-ink-900">${(o.estAnnualValue / 1000).toFixed(0)}k/yr</p>
                   <p className="text-[11px] text-ink-500">{o.estHoursSavedMonthly} hrs/mo</p>
-                  <p className="mt-1 text-[11px] font-medium text-brand-700">Priority {priority}</p>
+                  <p className="mt-1 text-[11px] font-medium text-orchid-deep">Priority {priority}</p>
                 </div>
               </Link>
             ))}

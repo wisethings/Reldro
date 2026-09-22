@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth/guards";
 import { logout } from "@/lib/actions/auth";
+import { Logo } from "@/components/ui/Logo";
 
 const NAV = [
   { href: "/platform-admin", label: "Overview" },
@@ -20,7 +21,10 @@ export default async function PlatformAdminLayout({ children }: { children: Reac
       <header className="border-b border-ink-200 bg-ink-950 text-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
           <div className="flex items-center gap-6">
-            <span className="text-sm font-semibold">Reldro · Platform Admin</span>
+            <div className="flex items-center gap-2">
+              <Logo inverse className="text-sm" />
+              <span className="text-xs text-ink-200">Platform Admin</span>
+            </div>
             <nav className="flex gap-4">
               {NAV.map((n) => (
                 <Link key={n.href} href={n.href} className="text-xs text-ink-200 hover:text-white">
@@ -30,7 +34,7 @@ export default async function PlatformAdminLayout({ children }: { children: Reac
             </nav>
           </div>
           <form action={logout}>
-            <button className="rounded-md border border-ink-700 px-2.5 py-1 text-xs text-ink-200 hover:bg-ink-900">Log out</button>
+            <button className="rounded-full border border-ink-700 px-3 py-1 text-xs text-ink-200 hover:bg-ink-900">Log out</button>
           </form>
         </div>
       </header>

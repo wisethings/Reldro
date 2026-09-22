@@ -14,16 +14,16 @@ const NEXT_STATUS: Record<Task["status"], Task["status"]> = {
 
 const STATUS_STYLE: Record<Task["status"], string> = {
   TODO: "border-ink-300",
-  IN_PROGRESS: "border-amber-400 bg-amber-50",
-  DONE: "border-emerald-500 bg-emerald-500",
-  BLOCKED: "border-red-400 bg-red-50",
+  IN_PROGRESS: "border-olive bg-olive-soft",
+  DONE: "border-sage-deep bg-sage0",
+  BLOCKED: "border-danger bg-coral-soft",
 };
 
 export function TaskList({ tasks }: { tasks: Task[] }) {
   const [pending, startTransition] = useTransition();
 
   return (
-    <div className="divide-y divide-ink-100">
+    <div className="divide-y divide-ink-200">
       {tasks.map((task) => (
         <button
           key={task.id}

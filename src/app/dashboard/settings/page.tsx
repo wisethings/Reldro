@@ -49,7 +49,7 @@ export default async function SettingsPage() {
                 <form action={changeSubscriptionTier.bind(null, t.tier)} className="mt-3">
                   <button
                     disabled={subscription?.tier === t.tier}
-                    className="w-full rounded-lg border border-ink-300 px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-ink-50 disabled:opacity-40"
+                    className="w-full rounded-full border border-ink-300 px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-ink-50 disabled:opacity-40"
                   >
                     {subscription?.tier === t.tier ? "Current plan" : "Switch plan"}
                   </button>
@@ -66,7 +66,7 @@ export default async function SettingsPage() {
 
       <Card>
         <CardHeader title="Recent invoices" />
-        <CardBody className="divide-y divide-ink-100 p-0">
+        <CardBody className="divide-y divide-ink-200 p-0">
           {invoices.map((inv) => (
             <div key={inv.id} className="flex items-center justify-between px-5 py-3">
               <div>

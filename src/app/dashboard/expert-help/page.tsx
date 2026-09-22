@@ -36,7 +36,7 @@ export default async function ExpertHelpPage() {
 
       <Card>
         <CardHeader title="Your requests" />
-        <CardBody className="divide-y divide-ink-100 p-0">
+        <CardBody className="divide-y divide-ink-200 p-0">
           {requests.length === 0 && (
             <div className="p-6 text-sm text-ink-500">
               No requests yet. Open an opportunity or a high-complexity workflow and use "Request expert help" to get

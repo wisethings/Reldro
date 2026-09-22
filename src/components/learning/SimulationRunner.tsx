@@ -26,7 +26,7 @@ export function SimulationRunner({ simulationId }: { simulationId: string }) {
           })
         }
         disabled={pending || response.trim().length < 5}
-        className="rounded-lg bg-brand-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-40"
+        className="rounded-full bg-brand-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-40"
       >
         {pending ? "Evaluating…" : "Submit response"}
       </button>

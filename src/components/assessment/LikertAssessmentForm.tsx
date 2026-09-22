@@ -48,7 +48,7 @@ export function LikertAssessmentForm<TCategory extends string>({
       <button
         onClick={() => onSubmit(questions.map((q) => ({ key: q.key, score: likertToScore(answers[q.key] ?? 1) })))}
         disabled={!complete || pending}
-        className="w-full rounded-lg bg-brand-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-40"
+        className="w-full rounded-full bg-brand-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-40"
       >
         {pending ? "Saving…" : submitLabel}
       </button>

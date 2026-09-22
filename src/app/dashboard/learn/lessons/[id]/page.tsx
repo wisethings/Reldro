@@ -25,7 +25,7 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
         ← Back to Learn
       </Link>
       <div>
-        <p className="text-xs font-medium text-brand-700">{lesson.course.title}</p>
+        <p className="text-xs font-medium text-orchid-deep">{lesson.course.title}</p>
         <h1 className="mt-1 text-xl font-semibold text-ink-900">{lesson.title}</h1>
         <p className="text-xs text-ink-500">{lesson.durationMin} min</p>
       </div>
@@ -52,7 +52,7 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
       {session.employeeId && (
         <form action={completeLesson.bind(null, lesson.id)}>
           <button
-            className="w-full rounded-lg bg-brand-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50"
+            className="w-full rounded-full bg-brand-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50"
             disabled={Boolean(completed)}
           >
             {completed ? "Completed ✓" : "Mark lesson complete"}

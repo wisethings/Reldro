@@ -45,7 +45,7 @@ export default async function IntegrationsPage() {
                 )}
                 <form action={(connected ? disconnectIntegration : connectIntegration).bind(null, integration.id)} className="mt-3">
                   <button
-                    className={`w-full rounded-lg px-3 py-2 text-xs font-medium ${
+                    className={`w-full rounded-full px-3 py-2 text-xs font-medium ${
                       connected ? "border border-ink-300 text-ink-700 hover:bg-ink-50" : "bg-brand-700 text-white hover:bg-brand-800"
                     }`}
                   >

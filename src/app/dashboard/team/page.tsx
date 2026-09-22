@@ -33,7 +33,7 @@ export default async function TeamPage() {
       </Card>
 
       <Card>
-        <CardBody className="divide-y divide-ink-100 p-0">
+        <CardBody className="divide-y divide-ink-200 p-0">
           {employees.map((e) => (
             <div key={e.id} className="flex items-center justify-between px-5 py-3">
               <div>

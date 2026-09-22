@@ -37,7 +37,7 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
             <p className="mt-1 text-sm text-ink-500">{workflow.department}</p>
           </div>
           <form action={adoptWorkflow.bind(null, workflow.id)}>
-            <button className="rounded-lg bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800">
+            <button className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800">
               {status === "ADOPTED" ? "Re-confirm adoption" : "Adopt workflow"}
             </button>
           </form>
@@ -72,7 +72,7 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
 
       <Card>
         <CardHeader title="Step-by-step process" />
-        <CardBody className="space-y-4 p-0 divide-y divide-ink-100">
+        <CardBody className="space-y-4 p-0 divide-y divide-ink-200">
           {workflow.steps.map((step) => (
             <div key={step.id} className="flex gap-4 px-5 py-4">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink-100 text-xs font-semibold text-ink-700">
@@ -90,7 +90,7 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
                     <p className="mt-1 font-mono text-xs text-ink-700">{step.aiPrompt}</p>
                   </div>
                 )}
-                <div className="mt-2 flex gap-3 text-xs font-medium text-brand-700">
+                <div className="mt-2 flex gap-3 text-xs font-medium text-orchid-deep">
                   {courses[0] && <Link href={`/dashboard/learn?course=${courses[0].id}`}>Learn</Link>}
                   <span className="text-ink-300">·</span>
                   <span className="text-ink-400">Practice</span>
@@ -141,7 +141,7 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
       {courses.length > 0 && (
         <Card>
           <CardHeader title="Recommended learning" />
-          <CardBody className="divide-y divide-ink-100 p-0">
+          <CardBody className="divide-y divide-ink-200 p-0">
             {courses.map((c) => (
               <Link key={c.id} href={`/dashboard/learn?course=${c.id}`} className="flex items-center justify-between px-5 py-3 hover:bg-ink-50">
                 <span className="text-sm font-medium text-ink-900">{c.title}</span>

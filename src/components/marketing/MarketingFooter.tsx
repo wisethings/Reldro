@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "@/components/ui/Logo";
 
 export function MarketingFooter() {
   return (
@@ -6,12 +7,7 @@ export function MarketingFooter() {
       <div className="mx-auto max-w-6xl px-6 py-10">
         <div className="flex flex-col justify-between gap-8 md:flex-row">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="flex h-6 w-6 items-center justify-center rounded-md bg-brand-700 text-xs font-bold text-white">
-                R
-              </span>
-              <span className="text-sm font-semibold text-ink-900">Reldro</span>
-            </div>
+            <Logo className="text-base" />
             <p className="mt-2 max-w-xs text-xs text-ink-500">
               The AI adoption operating system for the modern workforce.
             </p>
@@ -42,7 +38,7 @@ export function MarketingFooter() {
             </div>
           </div>
         </div>
-        <div className="mt-8 border-t border-ink-100 pt-6 text-xs text-ink-400">
+        <div className="mt-8 border-t border-ink-200 pt-6 text-xs text-ink-400">
           © {new Date().getFullYear()} Reldro. All rights reserved.
         </div>
       </div>

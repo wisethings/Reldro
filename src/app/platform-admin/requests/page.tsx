@@ -26,10 +26,10 @@ export default async function PlatformRequestsPage() {
       </div>
 
       <Card>
-        <div className="border-b border-ink-100 px-5 py-3">
+        <div className="border-b border-ink-200 px-5 py-3">
           <p className="text-sm font-semibold text-ink-900">Awaiting match ({openRequests.length})</p>
         </div>
-        <CardBody className="divide-y divide-ink-100 p-0">
+        <CardBody className="divide-y divide-ink-200 p-0">
           {openRequests.length === 0 && <p className="p-6 text-sm text-ink-500">No open requests right now.</p>}
           {await Promise.all(
             openRequests.map(async (request) => {
@@ -65,7 +65,7 @@ export default async function PlatformRequestsPage() {
                           ))}
                         </ul>
                         <form action={assignSpecialistToProject.bind(null, request.id, specialist.id)} className="mt-2">
-                          <button className="w-full rounded-md bg-brand-700 px-2 py-1.5 text-[11px] font-medium text-white hover:bg-brand-800">
+                          <button className="w-full rounded-full bg-brand-700 px-2 py-1.5 text-[11px] font-medium text-white hover:bg-brand-800">
                             Assign
                           </button>
                         </form>
@@ -80,10 +80,10 @@ export default async function PlatformRequestsPage() {
       </Card>
 
       <Card>
-        <div className="border-b border-ink-100 px-5 py-3">
+        <div className="border-b border-ink-200 px-5 py-3">
           <p className="text-sm font-semibold text-ink-900">Recently matched</p>
         </div>
-        <CardBody className="divide-y divide-ink-100 p-0">
+        <CardBody className="divide-y divide-ink-200 p-0">
           {assignedRequests.length === 0 && <p className="p-6 text-sm text-ink-500">No matched engagements yet.</p>}
           {assignedRequests.map((r) => (
             <div key={r.id} className="flex items-center justify-between px-5 py-3">
