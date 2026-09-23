@@ -48,6 +48,9 @@ export default async function PlatformRequestsPage() {
                       <p className="text-xs text-ink-500">{request.organization.name}</p>
                       {request.description && <p className="mt-1 whitespace-pre-line text-xs text-ink-600">{request.description}</p>}
                       {request.budget && <p className="mt-1 text-xs text-ink-500">Budget: ${request.budget.toLocaleString()}</p>}
+                      {request.ccEmails.length > 0 && (
+                        <p className="mt-1 text-xs text-ink-500">Also looped in: {request.ccEmails.join(", ")}</p>
+                      )}
                     </div>
                     <Badge tone="amber">Awaiting match</Badge>
                   </div>

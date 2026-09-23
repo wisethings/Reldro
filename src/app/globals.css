@@ -15,7 +15,6 @@ body {
 @layer base {
   h1, h2, h3, h4 {
     font-family: var(--font-inter-tight), var(--font-inter), sans-serif;
-    letter-spacing: -0.02em;
   }
 
   ::selection {
@@ -26,11 +25,17 @@ body {
 
 /* Unlayered so it wins over Tailwind's layered .font-semibold utility
    regardless of class order: semibold text uses the display face at the
-   kit's weight and tracking, not default Inter at weight 600. */
+   kit's weight, not default Inter at weight 600. */
 .font-semibold {
   font-family: var(--font-inter-tight), var(--font-inter), sans-serif;
   font-weight: 500;
-  letter-spacing: -0.02em;
+}
+
+/* !important because Tailwind's tracking-* utilities (tracking-tight,
+   tracking-wide, etc.) are plain classes with higher specificity than this
+   universal selector — letter spacing is 0 everywhere in the product. */
+* {
+  letter-spacing: 0 !important;
 }
 
 /* Every <select> in the product: replace the cramped native arrow with

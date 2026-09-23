@@ -9,7 +9,8 @@ export type AuditAction =
   | "integration.connected"
   | "integration.disconnected"
   | "workflow.adopted"
-  | "specialist.assigned";
+  | "specialist.assigned"
+  | "expert_help.requested";
 
 /**
  * Records a sensitive action to the audit trail. Best-effort: a failure here
@@ -49,6 +50,7 @@ const ACTION_LABELS: Record<AuditAction, string> = {
   "integration.disconnected": "Disconnected an integration",
   "workflow.adopted": "Adopted a workflow",
   "specialist.assigned": "Assigned a specialist",
+  "expert_help.requested": "Requested expert help",
 };
 
 export function describeAuditAction(action: string): string {

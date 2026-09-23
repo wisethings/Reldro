@@ -947,4 +947,7 @@ DO $$ BEGIN ALTER TABLE "WorkflowStepCompletion" ADD CONSTRAINT "WorkflowStepCom
 -- Patch: structured detail on audit log entries (idempotent, same rules).
 ALTER TABLE "AuditLog" ADD COLUMN IF NOT EXISTS "metadata" JSONB;
 
+-- Patch: extra stakeholders to keep in the loop on an expert-help request (idempotent, same rules).
+ALTER TABLE "Project" ADD COLUMN IF NOT EXISTS "ccEmails" TEXT[] NOT NULL DEFAULT '{}';
+
 `;

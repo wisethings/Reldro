@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireRole, requireSession } from "@/lib/auth/guards";
 import { logAudit } from "@/lib/audit";
+import { sendEmail, expertHelpRequestEmailHtml } from "@/lib/email";
 
 const STAGE_ORDER = ["DISCOVERY", "WORKFLOW_DESIGN", "IMPLEMENTATION", "TRAINING", "LAUNCH", "MEASUREMENT", "OPTIMIZATION"] as const;
 
@@ -14,14 +15,43 @@ const STAGE_ORDER = ["DISCOVERY", "WORKFLOW_DESIGN", "IMPLEMENTATION", "TRAINING
  * a specialist is matched and assigned behind the scenes via
  * `assignSpecialistToProject`.
  */
+const ENGAGEMENT_MODEL_LABEL: Record<string, string> = {
+  advisory: "Strategic advisory",
+  implementation: "Hands-on implementation",
+  augmentation: "Embedded team augmentation",
+  unsure: "Not sure yet",
+};
+
+const URGENCY_LABEL: Record<string, string> = {
+  exploratory: "Exploratory — just scoping",
+  planned: "Planned initiative (next quarter)",
+  time_sensitive: "Time-sensitive (this month)",
+  urgent: "Urgent",
+};
+
+/**
+ * Company-facing "get expert help" request. Modeled on a proper inbound
+ * consulting intake (objective, current situation, engagement model,
+ * urgency) rather than a single free-text box, so the platform admin has
+ * enough to actually match a specialist without a back-and-forth. No
+ * specialist is chosen by the company — this creates an unassigned
+ * engagement (status OPEN, no specialistId) that shows up in the platform
+ * admin's request queue, where a specialist is matched and assigned behind
+ * the scenes via `assignSpecialistToProject`.
+ */
 export async function requestExpertHelp(params: {
   opportunityId?: string;
   workflowId?: string;
-  notes: string;
+  objective: string;
+  challenges: string;
+  engagementModel?: string;
+  urgency?: string;
   budget?: number;
   timeline?: string;
+  ccEmails?: string[];
 }) {
   const session = await requireRole(["COMPANY_ADMIN"]);
+  const org = await prisma.organization.findUnique({ where: { id: session.organizationId! } });
 
   const opportunity = params.opportunityId
     ? await prisma.opportunity.findUnique({ where: { id: params.opportunityId } })
@@ -31,7 +61,17 @@ export async function requestExpertHelp(params: {
     : null;
 
   const title = opportunity?.title ?? workflow?.title ?? "AI implementation request";
-  const description = [params.notes, params.timeline ? `Timeline: ${params.timeline}` : null]
+  const engagementModelLabel = params.engagementModel ? ENGAGEMENT_MODEL_LABEL[params.engagementModel] : undefined;
+  const urgencyLabel = params.urgency ? URGENCY_LABEL[params.urgency] : undefined;
+  const ccEmails = (params.ccEmails ?? []).map((e) => e.trim().toLowerCase()).filter(Boolean);
+
+  const description = [
+    `Objective: ${params.objective}`,
+    `Current situation: ${params.challenges}`,
+    engagementModelLabel ? `Preferred engagement model: ${engagementModelLabel}` : null,
+    urgencyLabel ? `Urgency: ${urgencyLabel}` : null,
+    params.timeline ? `Target timeline: ${params.timeline}` : null,
+  ]
     .filter(Boolean)
     .join("\n\n");
 
@@ -45,12 +85,41 @@ export async function requestExpertHelp(params: {
       stage: "DISCOVERY",
       status: "OPEN",
       budget: params.budget,
+      ccEmails,
     },
   });
 
+  await logAudit({
+    organizationId: session.organizationId,
+    userId: session.sub,
+    action: "expert_help.requested",
+    entityType: "Project",
+    entityId: project.id,
+    metadata: { title, ccEmails },
+  });
+
+  const { sent } = await sendEmail({
+    to: session.email,
+    cc: ccEmails,
+    subject: `We've received your request: ${title}`,
+    html: expertHelpRequestEmailHtml({
+      requesterName: session.name,
+      orgName: org?.name ?? "your organization",
+      title,
+      objective: params.objective,
+      challenges: params.challenges,
+      engagementModel: engagementModelLabel,
+      urgency: urgencyLabel,
+      timeline: params.timeline,
+      budget: params.budget,
+      ccEmails,
+    }),
+  });
+
   revalidatePath("/dashboard/opportunities");
+  revalidatePath("/dashboard/expert-help");
   revalidatePath("/platform-admin/requests");
-  return { projectId: project.id };
+  return { projectId: project.id, emailSent: sent };
 }
 
 /**

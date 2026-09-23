@@ -592,6 +592,7 @@ model Project {
   stage          ProjectStage  @default(DISCOVERY)
   status         ProjectStatus @default(OPEN)
   budget         Int?
+  ccEmails       String[]      @default([])
   startDate      DateTime?
   targetEndDate  DateTime?
   createdAt      DateTime      @default(now())
