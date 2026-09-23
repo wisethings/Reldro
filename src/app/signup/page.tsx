@@ -7,7 +7,7 @@ export default function SignupPage() {
     <div className="flex min-h-screen items-center justify-center bg-ink-50 px-6 py-12">
       <div className="w-full max-w-sm">
         <Link href="/" className="mb-8 flex items-center justify-center gap-2">
-          <Logo height={36} />
+          <Logo height={30} />
         </Link>
         <div className="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
           <h1 className="text-lg font-semibold text-ink-900">Assess your organization</h1>

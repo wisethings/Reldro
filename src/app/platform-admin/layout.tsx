@@ -23,7 +23,7 @@ export default async function PlatformAdminLayout({ children }: { children: Reac
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-6">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <Logo inverse height={24} />
+                <Logo inverse height={20} />
                 <span className="text-xs text-ink-200">Platform Admin</span>
               </div>
               <form action={logout} className="md:hidden">

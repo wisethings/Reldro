@@ -15,7 +15,7 @@ function NavContent({ role, orgName, isDepartmentAdmin, onNavigate }: { role: Ro
     <>
       <div className="flex h-16 items-center gap-2 border-b border-ink-200 px-5">
         <div className="min-w-0">
-          <Logo height={28} />
+          <Logo height={24} />
           {orgName && <p className="truncate text-[11px] text-ink-500">{orgName}</p>}
         </div>
       </div>

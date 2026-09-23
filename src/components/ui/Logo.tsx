@@ -7,7 +7,7 @@ import { cn } from "./cn";
 export function Logo({
   inverse = false,
   iconOnly = false,
-  height = 28,
+  height = 24,
   className,
 }: {
   inverse?: boolean;
