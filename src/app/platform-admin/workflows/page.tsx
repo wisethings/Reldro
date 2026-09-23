@@ -17,12 +17,12 @@ export default async function PlatformWorkflowsPage() {
       <Card>
         <CardBody className="divide-y divide-ink-200 p-0">
           {workflows.map((w) => (
-            <div key={w.id} className="flex items-center justify-between px-5 py-3">
-              <div>
-                <p className="text-sm font-medium text-ink-900">{w.title}</p>
+            <div key={w.id} className="flex flex-col gap-2 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-ink-900">{w.title}</p>
                 <p className="text-xs text-ink-500">{w.department}</p>
               </div>
-              <div className="flex items-center gap-2 text-xs text-ink-500">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-ink-500">
                 <Badge>{w._count.organizationWorkflows} orgs adopted</Badge>
                 <Badge>{w._count.opportunities} linked opportunities</Badge>
               </div>

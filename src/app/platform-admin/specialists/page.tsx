@@ -18,12 +18,12 @@ export default async function PlatformSpecialistsPage() {
       <Card>
         <CardBody className="divide-y divide-ink-200 p-0">
           {specialists.map((s) => (
-            <div key={s.id} className="flex items-center justify-between gap-4 px-5 py-4">
-              <div>
-                <p className="text-sm font-medium text-ink-900">{s.user.name}</p>
+            <div key={s.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-ink-900">{s.user.name}</p>
                 <p className="text-xs text-ink-500">{s.headline}</p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Badge tone={s.approved ? "green" : "amber"}>{s.approved ? "Approved" : "Pending"}</Badge>
                 {s.featured && <Badge tone="brand">Featured</Badge>}
                 {s.approved ? (

@@ -86,9 +86,9 @@ export default async function PlatformRequestsPage() {
         <CardBody className="divide-y divide-ink-200 p-0">
           {assignedRequests.length === 0 && <p className="p-6 text-sm text-ink-500">No matched engagements yet.</p>}
           {assignedRequests.map((r) => (
-            <div key={r.id} className="flex items-center justify-between px-5 py-3">
-              <div>
-                <p className="text-sm text-ink-900">{r.title}</p>
+            <div key={r.id} className="flex flex-col gap-2 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="truncate text-sm text-ink-900">{r.title}</p>
                 <p className="text-xs text-ink-500">
                   {r.organization.name} {r.specialist && `· ${r.specialist.user.name}`}
                 </p>
