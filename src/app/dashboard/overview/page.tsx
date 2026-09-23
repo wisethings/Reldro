@@ -13,6 +13,7 @@ import { maturityBand, ORG_MATURITY_LABELS, type OrgMaturityCategory } from "@/l
 import { DEPLOYED_STATUSES } from "@/lib/workflowLifecycle";
 import { getFluencyForEmployee, getStrongestSkill, getWeakestSkill, EMPLOYEE_SKILL_LABELS } from "@/lib/queries/fluency";
 import { getWeeklyBrief } from "@/lib/queries/weeklyBrief";
+import { getEmployeeRecommendations } from "@/lib/queries/employeeRecommendations";
 import { redirect } from "next/navigation";
 
 export default async function OverviewPage() {
@@ -278,7 +279,7 @@ async function EmployeeOverview({ employeeId, name }: { employeeId: string; name
   });
   if (!employee) redirect("/login");
 
-  const [assignedLessons, workflows, opportunity, fluency] = await Promise.all([
+  const [assignedLessons, workflows, opportunity, fluency, recommendations] = await Promise.all([
     prisma.lessonCompletion.findMany({ where: { employeeId }, include: { lesson: { include: { course: true } } } }),
     prisma.organizationWorkflow.findMany({
       where: { organizationId: employee.organizationId },
@@ -290,6 +291,7 @@ async function EmployeeOverview({ employeeId, name }: { employeeId: string; name
       orderBy: { estAnnualValue: "desc" },
     }),
     getFluencyForEmployee(employeeId),
+    getEmployeeRecommendations(employeeId),
   ]);
 
   const relevantWorkflows = workflows.filter((w) => w.workflow.department === employee.department?.name || !employee.department);
@@ -302,6 +304,31 @@ async function EmployeeOverview({ employeeId, name }: { employeeId: string; name
           {employee.jobTitle} · {employee.department?.name ?? "Unassigned department"}
         </p>
       </div>
+
+      {recommendations.length > 0 && (
+        <Card>
+          <CardHeader title="What should I do next?" subtitle="Personalized based on your skills, workflows, and activity" />
+          <CardBody className="space-y-3">
+            {recommendations.map((rec) => (
+              <div key={rec.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-ink-200 p-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-ink-900">
+                    {rec.title}
+                    {rec.estimatedMinutes && <span className="ml-2 text-xs font-normal text-ink-500">{rec.estimatedMinutes} min</span>}
+                  </p>
+                  <p className="text-xs text-ink-500">{rec.reason}</p>
+                </div>
+                <Link
+                  href={rec.actionHref}
+                  className="shrink-0 rounded-full bg-brand-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-800"
+                >
+                  {rec.actionLabel}
+                </Link>
+              </div>
+            ))}
+          </CardBody>
+        </Card>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
