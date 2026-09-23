@@ -10,6 +10,7 @@ import { RequestExpertHelpForm } from "@/components/specialists/RequestExpertHel
 import { CopyPromptButton } from "@/components/workflows/CopyPromptButton";
 import { WorkflowLifecycleControls } from "@/components/workflows/WorkflowLifecycleControls";
 import { getWorkflowDeploymentStats, getEligibleEmployeesForWorkflow } from "@/lib/queries/workflowDeployment";
+import { getWorkflowReadiness } from "@/lib/queries/workflowReadiness";
 import { WORKFLOW_STATUS_LABEL, WORKFLOW_STATUS_TONE } from "@/lib/workflowLifecycle";
 
 const DIFFICULTY_TONE = { LOW: "green", MEDIUM: "amber", HIGH: "red" } as const;
@@ -35,9 +36,10 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
   const completedStepIds = new Set(completions.map((c) => c.workflowStepId));
   const completedCount = workflow.steps.filter((s) => completedStepIds.has(s.id)).length;
 
-  const [stats, eligibleEmployees] = await Promise.all([
+  const [stats, eligibleEmployees, readiness] = await Promise.all([
     getWorkflowDeploymentStats(session.organizationId, workflow),
     session.role === "COMPANY_ADMIN" ? getEligibleEmployeesForWorkflow(session.organizationId, workflow.department) : Promise.resolve([]),
+    getWorkflowReadiness(session.organizationId, workflow.id, workflow.department),
   ]);
 
   return (
@@ -200,6 +202,38 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
           </ul>
         </CardBody>
       </Card>
+
+      {courses.length > 0 && (
+        <Card>
+          <CardHeader
+            title="Team readiness"
+            subtitle={`${readiness.totalLessons} required lesson${readiness.totalLessons === 1 ? "" : "s"} · ~${readiness.estimatedMinutesPerEmployee} min per employee`}
+          />
+          <CardBody className="space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-ink-700">Ready</span>
+              <span className="font-medium text-ink-900">{readiness.readyCount} / {readiness.eligibleEmployees}</span>
+            </div>
+            <ProgressBar value={readiness.readyCount} max={readiness.eligibleEmployees || 1} tone="green" />
+            {session.role === "COMPANY_ADMIN" && readiness.employeesNeedingTraining.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-ink-500">Need training</p>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {readiness.employeesNeedingTraining.map((e) => (
+                    <Badge key={e.id} tone="amber">{e.name}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            <Link
+              href={`/dashboard/learn?course=${courses[0].id}`}
+              className="inline-block rounded-full bg-brand-700 px-4 py-2 text-xs font-medium text-white hover:bg-brand-800"
+            >
+              Prepare team →
+            </Link>
+          </CardBody>
+        </Card>
+      )}
 
       {courses.length > 0 && (
         <Card>
