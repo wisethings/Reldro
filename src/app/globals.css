@@ -39,10 +39,14 @@ body {
 }
 
 /* Every <select> in the product: replace the cramped native arrow with
-   the kit's custom one and give it real breathing room from the edge. */
+   the kit's custom one and give it real breathing room from the edge.
+   padding-right needs !important because a plain `select` type selector
+   loses to any Tailwind px-* utility class on the same element (class
+   beats type regardless of order) - without it, any select using px-3
+   etc. silently loses its clearance and the arrow collides with the text. */
 select {
   appearance: none;
-  padding-right: 2.5rem;
+  padding-right: 2.5rem !important;
   background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
   background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%;
   background-size: 5px 5px;
