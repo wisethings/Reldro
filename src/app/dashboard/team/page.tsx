@@ -99,7 +99,9 @@ export default async function TeamPage() {
             return (
               <div key={e.id} className="flex flex-col gap-2 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-ink-900">{e.user.name}</p>
+                  <Link href={`/dashboard/team/${e.id}`} className="truncate text-sm font-medium text-ink-900 hover:text-orchid-deep">
+                    {e.user.name}
+                  </Link>
                   <p className="text-xs text-ink-500">{e.jobTitle} · {e.department?.name ?? "No department"}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
