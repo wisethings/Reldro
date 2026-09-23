@@ -18,8 +18,8 @@ export default function LoginPage() {
           </div>
           <p className="mt-4 text-center text-xs text-ink-500">
             No account?{" "}
-            <Link href="/signup" className="font-medium text-orchid-deep hover:text-oxblood">
-              Create your organization
+            <Link href="/demo" className="font-medium text-orchid-deep hover:text-oxblood">
+              Request a demo
             </Link>
           </p>
         </div>

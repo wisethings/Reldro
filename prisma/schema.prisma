@@ -178,6 +178,7 @@ model Organization {
   reviews                Review[]
   customTools            Tool[]
   organizationTools      OrganizationTool[]
+  demoRequests           DemoRequest[]
 
   @@index([industry])
 }
@@ -1091,6 +1092,31 @@ model RewardRedemption {
   resolvedAt   DateTime?
 
   @@index([employeeId])
+}
+
+enum DemoRequestStatus {
+  NEW
+  CONTACTED
+  CONVERTED
+  DECLINED
+}
+
+// Sales-led signup: a prospect submits this from the public marketing site;
+// a platform admin reviews it and provisions the organization from
+// platform-admin, rather than the prospect self-registering.
+model DemoRequest {
+  id             String            @id @default(cuid())
+  name           String
+  email          String
+  companyName    String
+  companySize    String?
+  message        String?
+  status         DemoRequestStatus @default(NEW)
+  organizationId String?
+  organization   Organization?     @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  createdAt      DateTime          @default(now())
+
+  @@index([status])
 }
 
 model Recognition {

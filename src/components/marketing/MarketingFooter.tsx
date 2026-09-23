@@ -25,7 +25,7 @@ export function MarketingFooter() {
               <p className="font-medium text-ink-900">Company</p>
               <ul className="mt-2 space-y-1.5 text-ink-500">
                 <li><Link href="/login" className="hover:text-ink-800">Log in</Link></li>
-                <li><Link href="/signup" className="hover:text-ink-800">Get started</Link></li>
+                <li><Link href="/demo" className="hover:text-ink-800">Request a demo</Link></li>
               </ul>
             </div>
             <div>

@@ -7,6 +7,7 @@ import { Logo } from "@/components/ui/Logo";
 const NAV = [
   { href: "/platform-admin", label: "Overview" },
   { href: "/platform-admin/organizations", label: "Organizations" },
+  { href: "/platform-admin/demo-requests", label: "Demo requests" },
   { href: "/platform-admin/requests", label: "Expert help requests" },
   { href: "/platform-admin/specialists", label: "Specialists" },
   { href: "/platform-admin/workflows", label: "Workflow templates" },

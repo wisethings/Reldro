@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { CreateOrgToggle } from "@/components/platform-admin/CreateOrgToggle";
 
 export default async function PlatformOrganizationsPage() {
   const organizations = await prisma.organization.findMany({
@@ -10,9 +11,12 @@ export default async function PlatformOrganizationsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-ink-900">Organizations</h1>
-        <p className="text-sm text-ink-500">{organizations.length} organizations on Reldro.</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-ink-900">Organizations</h1>
+          <p className="text-sm text-ink-500">{organizations.length} organizations on Reldro.</p>
+        </div>
+        <CreateOrgToggle />
       </div>
       <Card>
         <CardBody className="divide-y divide-ink-200 p-0">

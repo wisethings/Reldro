@@ -1126,4 +1126,13 @@ DO $$ BEGIN ALTER TABLE "Recognition" ADD CONSTRAINT "Recognition_toEmployeeId_f
 -- Patch: unique course titles so the catalog can be topped up idempotently (idempotent, same rules).
 CREATE UNIQUE INDEX IF NOT EXISTS "Course_title_key" ON "Course"("title");
 
+-- Patch: sales-led demo requests (idempotent, same rules).
+DO $$ BEGIN CREATE TYPE "DemoRequestStatus" AS ENUM ('NEW', 'CONTACTED', 'CONVERTED', 'DECLINED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+CREATE TABLE IF NOT EXISTS "DemoRequest" ("id" TEXT NOT NULL, "name" TEXT NOT NULL, "email" TEXT NOT NULL, "companyName" TEXT NOT NULL, "companySize" TEXT, "message" TEXT, "status" "DemoRequestStatus" NOT NULL DEFAULT 'NEW', "organizationId" TEXT, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT "DemoRequest_pkey" PRIMARY KEY ("id"));
+
+CREATE INDEX IF NOT EXISTS "DemoRequest_status_idx" ON "DemoRequest"("status");
+
+DO $$ BEGIN ALTER TABLE "DemoRequest" ADD CONSTRAINT "DemoRequest_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
 `;

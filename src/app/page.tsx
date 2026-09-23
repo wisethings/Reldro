@@ -30,9 +30,9 @@ const industries = [
 ];
 
 const pricing = [
-  { name: "Starter", price: "$499", period: "/month", desc: "For smaller teams getting started with AI adoption.", features: ["Up to 50 employees", "AI maturity assessment", "Workflow library", "Core analytics"] },
-  { name: "Growth", price: "$1,500", period: "/month", desc: "For growing organizations scaling adoption across departments.", features: ["Up to 500 employees", "Opportunity engine", "Learning paths", "Expert help on demand", "ROI engine"], highlighted: true },
-  { name: "Enterprise", price: "Custom", period: "", desc: "For large, multi-department organizations with governance needs.", features: ["Unlimited employees", "SSO & advanced permissions", "Dedicated success manager", "Custom integrations"] },
+  { name: "Starter", desc: "For smaller teams getting started with AI adoption.", features: ["Up to 50 employees", "AI maturity assessment", "Workflow library", "Core analytics"] },
+  { name: "Growth", desc: "For growing organizations scaling adoption across departments.", features: ["Up to 500 employees", "Opportunity engine", "Learning paths", "Expert help on demand", "ROI engine"], highlighted: true },
+  { name: "Enterprise", desc: "For large, multi-department organizations with governance needs.", features: ["Unlimited employees", "SSO & advanced permissions", "Dedicated success manager", "Custom integrations"] },
 ];
 
 export default function LandingPage() {
@@ -53,8 +53,8 @@ export default function LandingPage() {
           connect teams with specialists to implement it.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <Link href="/signup" className="rounded-full bg-brand-700 px-5 py-3 text-sm font-medium text-white hover:bg-brand-800">
-            Assess your organization
+          <Link href="/demo" className="rounded-full bg-brand-700 px-5 py-3 text-sm font-medium text-white hover:bg-brand-800">
+            Request a demo
           </Link>
           <Link href="#how-it-works" className="rounded-lg border border-ink-300 px-5 py-3 text-sm font-medium text-ink-800 hover:bg-ink-50">
             Explore the platform
@@ -144,7 +144,7 @@ export default function LandingPage() {
                 Request expert help directly from any opportunity or workflow, and our team matches you with a vetted
                 AI specialist based on your industry, tech stack, and budget — no browsing required.
               </p>
-              <Link href="/signup" className="mt-6 inline-block text-sm font-medium text-orchid-deep hover:text-oxblood">
+              <Link href="/demo" className="mt-6 inline-block text-sm font-medium text-orchid-deep hover:text-oxblood">
                 See how it works →
               </Link>
             </div>
@@ -239,8 +239,8 @@ export default function LandingPage() {
       <section id="pricing" className="border-y border-ink-200 bg-ink-50/60">
         <div className="mx-auto max-w-6xl px-6 py-20">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-2xl font-semibold text-ink-900">Pricing</h2>
-            <p className="mt-3 text-sm text-ink-600">Expert help engagements are billed separately from your subscription.</p>
+            <h2 className="text-2xl font-semibold text-ink-900">Plans</h2>
+            <p className="mt-3 text-sm text-ink-600">Pricing is tailored to your organization. Request a demo and we'll walk through what fits.</p>
           </div>
           <div className="mt-12 grid gap-5 lg:grid-cols-3">
             {pricing.map((p) => (
@@ -250,10 +250,6 @@ export default function LandingPage() {
               >
                 {p.highlighted && <Badge>Most popular</Badge>}
                 <h3 className="mt-2 text-lg font-semibold text-ink-900">{p.name}</h3>
-                <p className="mt-1 flex items-baseline gap-1">
-                  <span className="text-3xl font-semibold text-ink-900">{p.price}</span>
-                  <span className="text-sm text-ink-500">{p.period}</span>
-                </p>
                 <p className="mt-2 text-sm text-ink-600">{p.desc}</p>
                 <ul className="mt-5 space-y-2 text-sm text-ink-700">
                   {p.features.map((f) => (
@@ -264,10 +260,10 @@ export default function LandingPage() {
                   ))}
                 </ul>
                 <Link
-                  href="/signup"
+                  href="/demo"
                   className={`mt-6 block rounded-full px-4 py-2.5 text-center text-sm font-medium ${p.highlighted ? "bg-brand-700 text-white hover:bg-brand-800" : "border border-ink-300 text-ink-800 hover:bg-ink-50"}`}
                 >
-                  Get started
+                  Request a demo
                 </Link>
               </div>
             ))}
@@ -281,8 +277,8 @@ export default function LandingPage() {
         <p className="mx-auto mt-3 max-w-xl text-sm text-ink-600">
           Run your AI maturity assessment in minutes and get a prioritized opportunity map for your organization.
         </p>
-        <Link href="/signup" className="mt-6 inline-block rounded-full bg-brand-700 px-5 py-3 text-sm font-medium text-white hover:bg-brand-800">
-          Assess your organization
+        <Link href="/demo" className="mt-6 inline-block rounded-full bg-brand-700 px-5 py-3 text-sm font-medium text-white hover:bg-brand-800">
+          Request a demo
         </Link>
       </section>
 
