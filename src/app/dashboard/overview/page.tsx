@@ -11,6 +11,7 @@ import { AdoptionTrendChart } from "@/components/charts/AdoptionTrendChart";
 import { Badge } from "@/components/ui/Badge";
 import { maturityBand, ORG_MATURITY_LABELS, type OrgMaturityCategory } from "@/lib/scoring";
 import { DEPLOYED_STATUSES } from "@/lib/workflowLifecycle";
+import { getFluencyForEmployee, getStrongestSkill, getWeakestSkill, EMPLOYEE_SKILL_LABELS } from "@/lib/queries/fluency";
 import { redirect } from "next/navigation";
 
 export default async function OverviewPage() {
@@ -226,7 +227,7 @@ async function EmployeeOverview({ employeeId, name }: { employeeId: string; name
   });
   if (!employee) redirect("/login");
 
-  const [assignedLessons, workflows, opportunity] = await Promise.all([
+  const [assignedLessons, workflows, opportunity, fluency] = await Promise.all([
     prisma.lessonCompletion.findMany({ where: { employeeId }, include: { lesson: { include: { course: true } } } }),
     prisma.organizationWorkflow.findMany({
       where: { organizationId: employee.organizationId },
@@ -237,6 +238,7 @@ async function EmployeeOverview({ employeeId, name }: { employeeId: string; name
       where: { organizationId: employee.organizationId, departmentId: employee.departmentId ?? undefined },
       orderBy: { estAnnualValue: "desc" },
     }),
+    getFluencyForEmployee(employeeId),
   ]);
 
   const relevantWorkflows = workflows.filter((w) => w.workflow.department === employee.department?.name || !employee.department);
@@ -256,6 +258,12 @@ async function EmployeeOverview({ employeeId, name }: { employeeId: string; name
             <ScoreRing value={employee.aiFluencyScore ?? 0} size={72} label="/ 100" />
             <div>
               <p className="text-xs font-medium text-ink-500">Your AI Fluency</p>
+              <p className="text-[11px] text-ink-400">Not the same as AI adoption — this is how effectively you use it.</p>
+              {fluency && (
+                <p className="mt-1 text-[11px] text-ink-600">
+                  Strongest: {EMPLOYEE_SKILL_LABELS[getStrongestSkill(fluency.breakdown)]} · Focus area: {EMPLOYEE_SKILL_LABELS[getWeakestSkill(fluency.breakdown)]}
+                </p>
+              )}
               <Link href="/dashboard/assessment" className="text-xs font-medium text-orchid-deep hover:text-oxblood">
                 View breakdown →
               </Link>
