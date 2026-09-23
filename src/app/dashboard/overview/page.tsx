@@ -2,6 +2,8 @@ import Link from "next/link";
 import { requireSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { getOrgTrend, getLatestOrgSnapshot, getRealAdoptionMetrics } from "@/lib/queries/adoption";
+import { getOrgValueCapture } from "@/lib/queries/value";
+import { getOrgRecommendations } from "@/lib/recommendations";
 import { StatTile } from "@/components/ui/StatTile";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
 import { ScoreRing, ProgressBar } from "@/components/ui/Progress";
@@ -22,23 +24,36 @@ export default async function OverviewPage() {
 }
 
 async function OrgOverview({ organizationId }: { organizationId: string }) {
-  const [org, trend, latest, metrics, workflowsDeployed, opportunitiesCount, activeInitiatives, activeProjects, topOpportunities] =
-    await Promise.all([
-      prisma.organization.findUnique({ where: { id: organizationId } }),
-      getOrgTrend(organizationId),
-      getLatestOrgSnapshot(organizationId),
-      getRealAdoptionMetrics(organizationId),
-      prisma.organizationWorkflow.count({ where: { organizationId, status: "ADOPTED" } }),
-      prisma.opportunity.count({ where: { organizationId } }),
-      prisma.initiative.count({ where: { organizationId, status: "IN_PROGRESS" } }),
-      prisma.project.count({ where: { organizationId, status: "ACTIVE" } }),
-      prisma.opportunity.findMany({
-        where: { organizationId, status: { in: ["IDENTIFIED", "PLANNED"] } },
-        orderBy: { estAnnualValue: "desc" },
-        take: 4,
-        include: { department: true },
-      }),
-    ]);
+  const [
+    org,
+    trend,
+    latest,
+    metrics,
+    workflowsDeployed,
+    opportunitiesCount,
+    activeInitiatives,
+    activeProjects,
+    topOpportunities,
+    valueCapture,
+    recommendations,
+  ] = await Promise.all([
+    prisma.organization.findUnique({ where: { id: organizationId } }),
+    getOrgTrend(organizationId),
+    getLatestOrgSnapshot(organizationId),
+    getRealAdoptionMetrics(organizationId),
+    prisma.organizationWorkflow.count({ where: { organizationId, status: "ADOPTED" } }),
+    prisma.opportunity.count({ where: { organizationId } }),
+    prisma.initiative.count({ where: { organizationId, status: "IN_PROGRESS" } }),
+    prisma.project.count({ where: { organizationId, status: "ACTIVE" } }),
+    prisma.opportunity.findMany({
+      where: { organizationId, status: { in: ["IDENTIFIED", "PLANNED"] } },
+      orderBy: { estAnnualValue: "desc" },
+      take: 4,
+      include: { department: true },
+    }),
+    getOrgValueCapture(organizationId),
+    getOrgRecommendations(organizationId),
+  ]);
 
   const score = latest?.aiAdoptionScore ?? 0;
   const band = maturityBand(score);
@@ -93,6 +108,65 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
         <StatTile label="Specialist projects" value={activeProjects} />
         <StatTile label="Company size" value={org?.size ?? "—"} />
       </div>
+
+      <Card>
+        <CardHeader
+          title="AI transformation value"
+          subtitle="Estimated potential value vs. value captured from adopted workflows"
+        />
+        <CardBody>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatTile label="Potential AI value" value={`$${(valueCapture.potentialValue / 1000).toFixed(0)}k`} helpText="Estimated, across all identified opportunities" />
+            <StatTile label="Value captured" value={`$${(valueCapture.capturedValue / 1000).toFixed(0)}k`} helpText="From opportunities whose workflow is adopted" />
+            <StatTile label="Value remaining" value={`$${(valueCapture.remainingValue / 1000).toFixed(0)}k`} helpText="Potential minus captured" />
+            <StatTile label="Capture rate" value={`${valueCapture.captureRatePct}%`} helpText="Captured ÷ potential" />
+          </div>
+        </CardBody>
+      </Card>
+
+      {recommendations.length > 0 && (
+        <Card>
+          <CardHeader title="What should we do next?" subtitle="Recommended based on your opportunities and assessment" />
+          <CardBody className="space-y-4">
+            {recommendations.map((rec) => (
+              <div key={rec.id} className="rounded-xl border border-ink-200 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-ink-900">{rec.title}</p>
+                    <p className="mt-1 text-sm text-ink-600">{rec.reason}</p>
+                  </div>
+                  <Link
+                    href={rec.actionHref}
+                    className="shrink-0 rounded-full bg-brand-700 px-4 py-2 text-xs font-medium text-white hover:bg-brand-800"
+                  >
+                    {rec.actionLabel}
+                  </Link>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {rec.evidence.map((e) => (
+                    <Badge key={e} tone="neutral">{e}</Badge>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-ink-500">Expected impact: {rec.expectedImpact}</p>
+                {(rec.relatedWorkflowHref || rec.relatedLearningHref) && (
+                  <div className="mt-2 flex flex-wrap gap-4 text-xs">
+                    {rec.relatedWorkflowHref && (
+                      <Link href={rec.relatedWorkflowHref} className="font-medium text-orchid-deep hover:text-oxblood">
+                        Related workflow: {rec.relatedWorkflowLabel} →
+                      </Link>
+                    )}
+                    {rec.relatedLearningHref && (
+                      <Link href={rec.relatedLearningHref} className="font-medium text-orchid-deep hover:text-oxblood">
+                        Related learning: {rec.relatedLearningLabel} →
+                      </Link>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </CardBody>
+        </Card>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-1">

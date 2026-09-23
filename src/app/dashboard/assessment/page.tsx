@@ -3,6 +3,7 @@ import { requireSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { OrgAssessmentPanel } from "@/components/assessment/OrgAssessmentPanel";
 import { EmployeeAssessmentPanel } from "@/components/assessment/EmployeeAssessmentPanel";
+import { getDimensionDiagnostics } from "@/lib/queries/diagnostics";
 import type { OrgMaturityCategory, EmployeeSkillCategory } from "@/lib/scoring";
 
 export default async function AssessmentPage() {
@@ -55,6 +56,9 @@ export default async function AssessmentPage() {
     leadershipAdoption: 0,
   };
 
+  const breakdown = (latest?.scoreBreakdown as Record<OrgMaturityCategory, number>) ?? defaultBreakdown;
+  const diagnostics = latest ? await getDimensionDiagnostics(session.organizationId, breakdown) : [];
+
   return (
     <div className="mx-auto max-w-4xl space-y-6 p-6">
       <div>
@@ -63,12 +67,13 @@ export default async function AssessmentPage() {
       </div>
       <OrgAssessmentPanel
         overallScore={latest?.overallScore ?? 0}
-        breakdown={(latest?.scoreBreakdown as Record<OrgMaturityCategory, number>) ?? defaultBreakdown}
+        breakdown={breakdown}
         completedAt={latest?.completedAt?.toLocaleDateString() ?? null}
         history={assessments
           .slice()
           .reverse()
           .map((a) => ({ date: a.completedAt?.toLocaleDateString() ?? "", score: a.overallScore ?? 0 }))}
+        diagnostics={diagnostics}
       />
     </div>
   );

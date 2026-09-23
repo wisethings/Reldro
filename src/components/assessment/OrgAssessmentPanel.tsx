@@ -9,17 +9,27 @@ import { LikertAssessmentForm } from "./LikertAssessmentForm";
 import { ORG_ASSESSMENT_QUESTIONS } from "@/lib/data/assessment-questions";
 import { ORG_MATURITY_LABELS, maturityBand, type OrgMaturityCategory } from "@/lib/scoring";
 import { submitOrgAssessment } from "@/lib/actions/assessment";
+import { STATUS_LABEL, getBiggestConstraints, type DimensionDiagnostic, type DimensionStatus } from "@/lib/diagnostics-shared";
+
+const STATUS_TONE: Record<DimensionStatus, "green" | "brand" | "amber" | "red"> = {
+  strong: "green",
+  developing: "brand",
+  "needs-attention": "amber",
+  critical: "red",
+};
 
 export function OrgAssessmentPanel({
   overallScore,
   breakdown,
   completedAt,
   history,
+  diagnostics,
 }: {
   overallScore: number;
   breakdown: Record<OrgMaturityCategory, number>;
   completedAt: string | null;
   history: { date: string; score: number }[];
+  diagnostics: DimensionDiagnostic[];
 }) {
   const [mode, setMode] = useState<"view" | "retake">("view");
   const [pending, startTransition] = useTransition();
@@ -81,6 +91,84 @@ export function OrgAssessmentPanel({
           </CardBody>
         </Card>
       </div>
+
+      {diagnostics.length > 0 && (
+        <Card>
+          <CardHeader title="Why is our score this way?" subtitle="What's pulling the score up or down" />
+          <CardBody className="space-y-5">
+            <div className="space-y-2">
+              {diagnostics
+                .slice()
+                .sort((a, b) => b.score - a.score)
+                .map((d) => (
+                  <div key={d.category} className="flex items-center justify-between gap-3 text-sm">
+                    <span className="text-ink-700">{d.label}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-ink-900">{d.score}</span>
+                      <Badge tone={STATUS_TONE[d.status]}>{STATUS_LABEL[d.status]}</Badge>
+                    </div>
+                  </div>
+                ))}
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Biggest constraints</p>
+              <div className="mt-2 space-y-3">
+                {getBiggestConstraints(diagnostics, 2).map((d, i) => (
+                  <div key={d.category} className="rounded-lg bg-surface-sunken p-3">
+                    <p className="text-sm font-medium text-ink-900">
+                      {i + 1}. {d.label} — {d.score}/100
+                    </p>
+                    <p className="mt-1 text-sm text-ink-600">{d.meaning}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Recommended next steps</p>
+              <ul className="mt-2 space-y-1.5">
+                {getBiggestConstraints(diagnostics, 3).map((d) => (
+                  <li key={d.category} className="flex items-start gap-2 text-sm text-ink-700">
+                    <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-ink-400" />
+                    {d.recommendedAction}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </CardBody>
+        </Card>
+      )}
+
+      {diagnostics.length > 0 && (
+        <Card>
+          <CardHeader title="Diagnostic breakdown" subtitle="What each dimension means, and what to do about it" />
+          <CardBody className="divide-y divide-ink-200 p-0">
+            {diagnostics.map((d) => (
+              <div key={d.category} className="space-y-2 px-5 py-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-ink-900">{d.label}</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-ink-900">{d.score} / 100</span>
+                    <Badge tone={STATUS_TONE[d.status]}>{STATUS_LABEL[d.status]}</Badge>
+                  </div>
+                </div>
+                <ProgressBar value={d.score} tone={STATUS_TONE[d.status]} />
+                <p className="text-sm text-ink-600">{d.meaning}</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {d.evidence.map((e) => (
+                    <Badge key={e} tone="neutral">{e}</Badge>
+                  ))}
+                </div>
+                <p className="text-xs text-ink-500">
+                  <span className="font-medium text-ink-700">Recommended action: </span>
+                  {d.recommendedAction}
+                </p>
+              </div>
+            ))}
+          </CardBody>
+        </Card>
+      )}
 
       {history.length > 1 && (
         <Card>
