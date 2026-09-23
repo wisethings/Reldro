@@ -10,6 +10,7 @@ import { ScoreRing, ProgressBar } from "@/components/ui/Progress";
 import { AdoptionTrendChart } from "@/components/charts/AdoptionTrendChart";
 import { Badge } from "@/components/ui/Badge";
 import { maturityBand, ORG_MATURITY_LABELS, type OrgMaturityCategory } from "@/lib/scoring";
+import { DEPLOYED_STATUSES } from "@/lib/workflowLifecycle";
 import { redirect } from "next/navigation";
 
 export default async function OverviewPage() {
@@ -41,7 +42,7 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
     getOrgTrend(organizationId),
     getLatestOrgSnapshot(organizationId),
     getRealAdoptionMetrics(organizationId),
-    prisma.organizationWorkflow.count({ where: { organizationId, status: "ADOPTED" } }),
+    prisma.organizationWorkflow.count({ where: { organizationId, status: { in: DEPLOYED_STATUSES } } }),
     prisma.opportunity.count({ where: { organizationId } }),
     prisma.initiative.count({ where: { organizationId, status: "IN_PROGRESS" } }),
     prisma.project.count({ where: { organizationId, status: "ACTIVE" } }),

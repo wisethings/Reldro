@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
+import { DEPLOYED_STATUSES } from "@/lib/workflowLifecycle";
 
 export type ValueCapture = {
   potentialValue: number;
@@ -25,7 +26,7 @@ export async function getOrgValueCapture(organizationId: string): Promise<ValueC
       select: { estAnnualValue: true, workflowId: true },
     }),
     prisma.organizationWorkflow.findMany({
-      where: { organizationId, status: "ADOPTED" },
+      where: { organizationId, status: { in: DEPLOYED_STATUSES } },
       select: { workflowId: true },
     }),
   ]);
@@ -54,7 +55,7 @@ export async function getDepartmentValueCapture(organizationId: string): Promise
       select: { estAnnualValue: true, workflowId: true, department: { select: { name: true } } },
     }),
     prisma.organizationWorkflow.findMany({
-      where: { organizationId, status: "ADOPTED" },
+      where: { organizationId, status: { in: DEPLOYED_STATUSES } },
       select: { workflowId: true },
     }),
   ]);

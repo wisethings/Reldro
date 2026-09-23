@@ -65,8 +65,11 @@ enum OpportunityStatus {
 enum WorkflowAdoptionStatus {
   NOT_ADOPTED
   LEARNING
+  PILOT
   IN_PROGRESS
   ADOPTED
+  OPTIMIZING
+  COMPLETE
 }
 
 enum InitiativeStatus {
@@ -227,6 +230,7 @@ model Employee {
   initiativeMembers  InitiativeMember[]
   aiUsageEvents      AIUsageEvent[]
   workflowStepCompletions WorkflowStepCompletion[]
+  ownedWorkflows     OrganizationWorkflow[]
 
   @@index([organizationId])
   @@index([departmentId])
@@ -494,8 +498,11 @@ model OrganizationWorkflow {
   status         WorkflowAdoptionStatus @default(NOT_ADOPTED)
   adoptedAt      DateTime?
   usersAdopted   Int                    @default(0)
+  ownerId        String?
+  owner          Employee?              @relation(fields: [ownerId], references: [id], onDelete: SetNull)
 
   @@unique([organizationId, workflowId])
+  @@index([ownerId])
 }
 
 // ---------------------------------------------------------------------------

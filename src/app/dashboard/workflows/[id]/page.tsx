@@ -8,6 +8,9 @@ import { ProgressBar } from "@/components/ui/Progress";
 import { adoptWorkflow, toggleWorkflowStep } from "@/lib/actions/workflows";
 import { RequestExpertHelpForm } from "@/components/specialists/RequestExpertHelpForm";
 import { CopyPromptButton } from "@/components/workflows/CopyPromptButton";
+import { WorkflowLifecycleControls } from "@/components/workflows/WorkflowLifecycleControls";
+import { getWorkflowDeploymentStats, getEligibleEmployeesForWorkflow } from "@/lib/queries/workflowDeployment";
+import { WORKFLOW_STATUS_LABEL, WORKFLOW_STATUS_TONE } from "@/lib/workflowLifecycle";
 
 const DIFFICULTY_TONE = { LOW: "green", MEDIUM: "amber", HIGH: "red" } as const;
 
@@ -32,6 +35,11 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
   const completedStepIds = new Set(completions.map((c) => c.workflowStepId));
   const completedCount = workflow.steps.filter((s) => completedStepIds.has(s.id)).length;
 
+  const [stats, eligibleEmployees] = await Promise.all([
+    getWorkflowDeploymentStats(session.organizationId, workflow),
+    session.role === "COMPANY_ADMIN" ? getEligibleEmployeesForWorkflow(session.organizationId, workflow.department) : Promise.resolve([]),
+  ]);
+
   return (
     <div className="mx-auto max-w-4xl space-y-6 p-6">
       <div>
@@ -52,7 +60,7 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
         <div className="mt-3 flex flex-wrap gap-1.5">
           <Badge tone={DIFFICULTY_TONE[workflow.difficulty]}>{workflow.difficulty.toLowerCase()} difficulty</Badge>
           <Badge>{workflow.skillLevel} skill level</Badge>
-          <Badge tone={status === "ADOPTED" ? "green" : "neutral"}>{status.replace("_", " ").toLowerCase()}</Badge>
+          <Badge tone={WORKFLOW_STATUS_TONE[status]}>{WORKFLOW_STATUS_LABEL[status]}</Badge>
         </div>
       </div>
 
@@ -61,6 +69,28 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
         <Stat label="Tools required" value={workflow.toolsRequired.join(", ") || "None"} />
         <Stat label="Skills required" value={workflow.skillsRequired.join(", ") || "AI fundamentals"} />
       </div>
+
+      <Card>
+        <CardHeader title="Deployment" subtitle={stats.ownerName ? `Owned by ${stats.ownerName}` : "No owner assigned yet"} />
+        <CardBody className="space-y-4">
+          {session.role === "COMPANY_ADMIN" && (
+            <WorkflowLifecycleControls
+              workflowId={workflow.id}
+              currentStatus={status}
+              currentOwnerId={orgWorkflow?.ownerId ?? null}
+              eligibleEmployees={eligibleEmployees.map((e) => ({ id: e.id, name: e.user.name }))}
+            />
+          )}
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <Stat label="Adoption" value={`${stats.adoptionPct}% (${stats.activeAdopters}/${stats.eligibleEmployees})`} />
+            <Stat label="Completion rate" value={`${stats.completionRatePct}%`} />
+            {stats.estAnnualValue !== null && <Stat label="Estimated value" value={`$${Math.round(stats.estAnnualValue / 1000)}k/yr`} />}
+            <Stat label="Captured value" value={`$${Math.round(stats.capturedValue / 1000)}k/yr`} />
+            <Stat label="Time saved" value={`${stats.hoursSavedMonthly} hrs/mo`} />
+            <Stat label="Last activity" value={stats.lastActivityAt ? stats.lastActivityAt.toLocaleDateString() : "No activity yet"} />
+          </div>
+        </CardBody>
+      </Card>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>

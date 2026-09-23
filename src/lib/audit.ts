@@ -9,6 +9,8 @@ export type AuditAction =
   | "integration.connected"
   | "integration.disconnected"
   | "workflow.adopted"
+  | "workflow.stage_changed"
+  | "workflow.owner_assigned"
   | "specialist.assigned"
   | "expert_help.requested";
 
@@ -49,6 +51,8 @@ const ACTION_LABELS: Record<AuditAction, string> = {
   "integration.connected": "Connected an integration",
   "integration.disconnected": "Disconnected an integration",
   "workflow.adopted": "Adopted a workflow",
+  "workflow.stage_changed": "Changed a workflow's deployment stage",
+  "workflow.owner_assigned": "Assigned a workflow owner",
   "specialist.assigned": "Assigned a specialist",
   "expert_help.requested": "Requested expert help",
 };

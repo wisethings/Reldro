@@ -2,8 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireOrganization, requireSession } from "@/lib/auth/guards";
+import { requireOrganization, requireRole, requireSession } from "@/lib/auth/guards";
 import { logAudit } from "@/lib/audit";
+import type { WorkflowAdoptionStatus } from "@prisma/client";
 
 export async function adoptWorkflow(workflowId: string) {
   const session = await requireOrganization();
@@ -31,6 +32,60 @@ export async function adoptWorkflow(workflowId: string) {
   revalidatePath(`/dashboard/workflows/${workflowId}`);
   revalidatePath("/dashboard/workflows");
   revalidatePath("/dashboard/overview");
+}
+
+/**
+ * Company-admin control over the full deployment lifecycle (Learn -> Pilot
+ * -> In progress -> Adopted -> Optimizing -> Complete), separate from the
+ * one-click "Adopt workflow" button any employee can use. This is what lets
+ * an admin explicitly pilot a workflow before rolling it out, or mark one
+ * as optimizing/complete once it's mature.
+ */
+export async function setWorkflowStage(workflowId: string, status: WorkflowAdoptionStatus) {
+  const session = await requireRole(["COMPANY_ADMIN"]);
+  const organizationId = session.organizationId!;
+
+  await prisma.organizationWorkflow.upsert({
+    where: { organizationId_workflowId: { organizationId, workflowId } },
+    update: { status, adoptedAt: status === "ADOPTED" ? new Date() : undefined },
+    create: { organizationId, workflowId, status, adoptedAt: status === "ADOPTED" ? new Date() : undefined },
+  });
+
+  await logAudit({
+    organizationId,
+    userId: session.sub,
+    action: "workflow.stage_changed",
+    entityType: "Workflow",
+    entityId: workflowId,
+    metadata: { status },
+  });
+
+  revalidatePath(`/dashboard/workflows/${workflowId}`);
+  revalidatePath("/dashboard/workflows");
+  revalidatePath("/dashboard/overview");
+}
+
+export async function setWorkflowOwner(workflowId: string, ownerId: string | null) {
+  const session = await requireRole(["COMPANY_ADMIN"]);
+  const organizationId = session.organizationId!;
+
+  await prisma.organizationWorkflow.upsert({
+    where: { organizationId_workflowId: { organizationId, workflowId } },
+    update: { ownerId },
+    create: { organizationId, workflowId, ownerId },
+  });
+
+  await logAudit({
+    organizationId,
+    userId: session.sub,
+    action: "workflow.owner_assigned",
+    entityType: "Workflow",
+    entityId: workflowId,
+    metadata: { ownerId },
+  });
+
+  revalidatePath(`/dashboard/workflows/${workflowId}`);
+  revalidatePath("/dashboard/workflows");
 }
 
 /**

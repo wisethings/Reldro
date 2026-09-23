@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getDepartmentSnapshots } from "@/lib/queries/adoption";
 import { ORG_MATURITY_LABELS, type OrgMaturityCategory } from "@/lib/scoring";
 import { getDimensionDiagnostics, getBiggestConstraints } from "@/lib/queries/diagnostics";
+import { DEPLOYED_STATUSES } from "@/lib/workflowLifecycle";
 
 export type Recommendation = {
   id: string;
@@ -35,7 +36,7 @@ export async function getOrgRecommendations(organizationId: string): Promise<Rec
     where: {
       organizationId,
       status: { in: ["IDENTIFIED", "PLANNED"] },
-      OR: [{ workflowId: null }, { workflow: { organizationWorkflows: { none: { organizationId, status: "ADOPTED" } } } }],
+      OR: [{ workflowId: null }, { workflow: { organizationWorkflows: { none: { organizationId, status: { in: DEPLOYED_STATUSES } } } } }],
     },
     orderBy: { estAnnualValue: "desc" },
     include: { department: true, workflow: { include: { courses: true } } },

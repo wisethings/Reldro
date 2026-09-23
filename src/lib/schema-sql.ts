@@ -950,4 +950,17 @@ ALTER TABLE "AuditLog" ADD COLUMN IF NOT EXISTS "metadata" JSONB;
 -- Patch: extra stakeholders to keep in the loop on an expert-help request (idempotent, same rules).
 ALTER TABLE "Project" ADD COLUMN IF NOT EXISTS "ccEmails" TEXT[] NOT NULL DEFAULT '{}';
 
+-- Patch: fuller workflow deployment lifecycle + an owning employee (idempotent, same rules).
+ALTER TYPE "WorkflowAdoptionStatus" ADD VALUE IF NOT EXISTS 'PILOT';
+
+ALTER TYPE "WorkflowAdoptionStatus" ADD VALUE IF NOT EXISTS 'OPTIMIZING';
+
+ALTER TYPE "WorkflowAdoptionStatus" ADD VALUE IF NOT EXISTS 'COMPLETE';
+
+ALTER TABLE "OrganizationWorkflow" ADD COLUMN IF NOT EXISTS "ownerId" TEXT;
+
+CREATE INDEX IF NOT EXISTS "OrganizationWorkflow_ownerId_idx" ON "OrganizationWorkflow"("ownerId");
+
+DO $$ BEGIN ALTER TABLE "OrganizationWorkflow" ADD CONSTRAINT "OrganizationWorkflow_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "Employee"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
 `;

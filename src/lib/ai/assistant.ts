@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { computePriorityScore, opportunityQuadrant } from "@/lib/scoring";
 import { getAIProvider } from "@/lib/ai/provider";
 import { getRealAdoptionMetrics } from "@/lib/queries/adoption";
+import { DEPLOYED_STATUSES } from "@/lib/workflowLifecycle";
 
 /**
  * The Reldro Recommendation Assistant.
@@ -297,7 +298,7 @@ async function answerGeneral(organizationId: string, question: string): Promise<
         include: { department: true },
       }),
       prisma.organizationWorkflow.findMany({
-        where: { organizationId, status: "ADOPTED" },
+        where: { organizationId, status: { in: DEPLOYED_STATUSES } },
         include: { workflow: true },
         take: 10,
       }),

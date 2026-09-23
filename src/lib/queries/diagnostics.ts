@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getRealAdoptionMetrics } from "@/lib/queries/adoption";
 import { ORG_MATURITY_LABELS, type OrgMaturityCategory } from "@/lib/scoring";
 import { type DimensionDiagnostic, type DimensionStatus } from "@/lib/diagnostics-shared";
+import { DEPLOYED_STATUSES } from "@/lib/workflowLifecycle";
 
 export type { DimensionDiagnostic, DimensionStatus } from "@/lib/diagnostics-shared";
 export { STATUS_LABEL, getBiggestConstraints } from "@/lib/diagnostics-shared";
@@ -75,7 +76,7 @@ export async function getDimensionDiagnostics(
 ): Promise<DimensionDiagnostic[]> {
   const [metrics, workflowsAdopted, distinctTools] = await Promise.all([
     getRealAdoptionMetrics(organizationId),
-    prisma.organizationWorkflow.count({ where: { organizationId, status: "ADOPTED" } }),
+    prisma.organizationWorkflow.count({ where: { organizationId, status: { in: DEPLOYED_STATUSES } } }),
     prisma.aIUsageEvent.findMany({ where: { organizationId }, select: { tool: true }, distinct: ["tool"] }),
   ]);
 

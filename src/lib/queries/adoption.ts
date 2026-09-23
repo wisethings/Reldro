@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
+import { DEPLOYED_STATUSES } from "@/lib/workflowLifecycle";
 
 export async function getOrgTrend(organizationId: string, months = 6) {
   const snapshots = await prisma.adoptionMetricSnapshot.findMany({
@@ -45,7 +46,7 @@ export async function getRealAdoptionMetrics(organizationId: string) {
       select: { employeeId: true },
       distinct: ["employeeId"],
     }),
-    prisma.organizationWorkflow.findMany({ where: { organizationId, status: "ADOPTED" }, select: { workflowId: true } }),
+    prisma.organizationWorkflow.findMany({ where: { organizationId, status: { in: DEPLOYED_STATUSES } }, select: { workflowId: true } }),
   ]);
 
   const activeEmployeeIds = new Set([
