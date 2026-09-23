@@ -23,9 +23,15 @@ export function InviteEmployeeForm({ departments }: { departments: { id: string;
         {pending ? "Inviting…" : "Invite employee"}
       </button>
       {state?.error && <p className="sm:col-span-5 text-sm text-danger">{state.error}</p>}
+      {state?.emailSent && (
+        <p className="sm:col-span-5 rounded-lg bg-sage px-3 py-2 text-sm text-sage-deep">
+          Invited — an email with their login details was sent.
+        </p>
+      )}
       {state?.tempPassword && (
         <p className="sm:col-span-5 rounded-lg bg-sage px-3 py-2 text-sm text-sage-deep">
-          Invited. Temporary password: <span className="font-mono font-semibold">{state.tempPassword}</span>
+          Invited. Email isn't configured in this environment, so share this temporary password with them directly:{" "}
+          <span className="font-mono font-semibold">{state.tempPassword}</span>
         </p>
       )}
     </form>
