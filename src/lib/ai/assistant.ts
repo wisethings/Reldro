@@ -1,6 +1,8 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { computePriorityScore, opportunityQuadrant } from "@/lib/scoring";
+import { getAIProvider } from "@/lib/ai/provider";
+import { getRealAdoptionMetrics } from "@/lib/queries/adoption";
 
 /**
  * The Reldro Recommendation Assistant.
@@ -65,9 +67,9 @@ export async function answerAssistantQuestion(
     case "top-value":
       return answerTopValue(organizationId);
     case "adoption-trend":
-      return answerAdoptionTrend(organizationId);
+      return answerAdoptionTrend(organizationId, question);
     default:
-      return answerGeneral(organizationId);
+      return answerGeneral(organizationId, question);
   }
 }
 
@@ -110,13 +112,13 @@ async function answerDepartmentGap(organizationId: string, question: string): Pr
     orderBy: { month: "desc" },
     select: { month: true },
   });
-  if (!latestMonth) return answerGeneral(organizationId);
+  if (!latestMonth) return answerGeneral(organizationId, question);
 
   const snapshots = await prisma.adoptionMetricSnapshot.findMany({
     where: { organizationId, month: latestMonth.month, department: { not: null } },
     orderBy: { adoptionPct: "desc" },
   });
-  if (snapshots.length < 2) return answerGeneral(organizationId);
+  if (snapshots.length < 2) return answerGeneral(organizationId, question);
 
   const top = snapshots[0];
   const bottom = snapshots[snapshots.length - 1];
@@ -137,7 +139,7 @@ async function answerLearningRecommendation(organizationId: string, question: st
   const departments = await prisma.department.findMany({ where: { organizationId } });
   const mentioned = departments.find((d) => question.toLowerCase().includes(d.name.toLowerCase()));
   const dept = mentioned ?? departments[0];
-  if (!dept) return answerGeneral(organizationId);
+  if (!dept) return answerGeneral(organizationId, question);
 
   const courses = await prisma.course.findMany({
     where: { department: dept.name },
@@ -205,7 +207,7 @@ async function answerImplementationEffort(organizationId: string, question: stri
   });
   const mentioned = workflows.find((w) => question.toLowerCase().includes(w.title.toLowerCase()));
   const workflow = mentioned ?? workflows[0];
-  if (!workflow) return answerGeneral(organizationId);
+  if (!workflow) return answerGeneral(organizationId, question);
 
   return {
     answer: `${workflow.title} is rated ${workflow.difficulty.toLowerCase()} complexity and typically takes a team through ${workflow.steps.length} steps, saving about ${workflow.timeSavedMinutes} minutes per person per day once adopted.`,
@@ -233,12 +235,12 @@ async function answerTopValue(organizationId: string): Promise<AssistantAnswer> 
   };
 }
 
-async function answerAdoptionTrend(organizationId: string): Promise<AssistantAnswer> {
+async function answerAdoptionTrend(organizationId: string, question: string): Promise<AssistantAnswer> {
   const snapshots = await prisma.adoptionMetricSnapshot.findMany({
     where: { organizationId, department: null },
     orderBy: { month: "asc" },
   });
-  if (snapshots.length === 0) return answerGeneral(organizationId);
+  if (snapshots.length === 0) return answerGeneral(organizationId, question);
 
   const first = snapshots[0];
   const last = snapshots[snapshots.length - 1];
@@ -251,15 +253,84 @@ async function answerAdoptionTrend(organizationId: string): Promise<AssistantAns
   };
 }
 
-async function answerGeneral(organizationId: string): Promise<AssistantAnswer> {
-  const org = await prisma.organization.findUnique({ where: { id: organizationId } });
-  const latestSnapshot = await prisma.adoptionMetricSnapshot.findFirst({
-    where: { organizationId, department: null },
-    orderBy: { month: "desc" },
-  });
-  const opportunityCount = await prisma.opportunity.count({ where: { organizationId } });
-
+function fallbackGeneralAnswer(
+  orgName: string,
+  adoptionScore: number | string,
+  opportunityCount: number
+): AssistantAnswer {
   return {
-    answer: `${org?.name ?? "Your organization"} has an AI Adoption Score of ${latestSnapshot?.aiAdoptionScore ?? "—"}/100 with ${opportunityCount} identified opportunities. Try asking things like "where should we adopt AI next?", "why is Finance behind Marketing?", or "should we hire a specialist?"`,
+    answer: `${orgName} has an AI Adoption Score of ${adoptionScore}/100 with ${opportunityCount} identified opportunities. Try asking things like "where should we adopt AI next?", "why is Finance behind Marketing?", or "should we hire a specialist?"`,
   };
+}
+
+/**
+ * Catch-all for questions that don't match one of the data-driven intents
+ * above. When a real model provider is configured (OPENAI_API_KEY /
+ * ANTHROPIC_API_KEY), this grounds the model in the org's actual platform
+ * data and lets it answer the open-ended question in natural language. With
+ * no provider configured it falls back to the same rule-based summary as
+ * before — the mock provider never fabricates numbers.
+ */
+async function answerGeneral(organizationId: string, question: string): Promise<AssistantAnswer> {
+  const [org, latestSnapshot, opportunityCount] = await Promise.all([
+    prisma.organization.findUnique({ where: { id: organizationId } }),
+    prisma.adoptionMetricSnapshot.findFirst({
+      where: { organizationId, department: null },
+      orderBy: { month: "desc" },
+    }),
+    prisma.opportunity.count({ where: { organizationId } }),
+  ]);
+  const orgName = org?.name ?? "Your organization";
+  const adoptionScore = latestSnapshot?.aiAdoptionScore ?? "—";
+
+  const provider = getAIProvider();
+  if (provider.name === "mock") return fallbackGeneralAnswer(orgName, adoptionScore, opportunityCount);
+
+  try {
+    const [metrics, departments, topOpportunities, adoptedWorkflows] = await Promise.all([
+      getRealAdoptionMetrics(organizationId),
+      prisma.department.findMany({ where: { organizationId } }),
+      prisma.opportunity.findMany({
+        where: { organizationId, status: { in: ["IDENTIFIED", "PLANNED"] } },
+        orderBy: { estAnnualValue: "desc" },
+        take: 5,
+        include: { department: true },
+      }),
+      prisma.organizationWorkflow.findMany({
+        where: { organizationId, status: "ADOPTED" },
+        include: { workflow: true },
+        take: 10,
+      }),
+    ]);
+
+    const context = [
+      `Organization: ${orgName}`,
+      `AI Adoption Score: ${adoptionScore}/100`,
+      `Active users: ${metrics.activeUsers}/${metrics.totalUsers} (${metrics.adoptionPct}%)`,
+      `Estimated monthly hours saved from AI: ${metrics.hoursSavedMonthly}`,
+      `Departments: ${departments.map((d) => d.name).join(", ") || "none set up"}`,
+      `Open high-value opportunities: ${
+        topOpportunities
+          .map((o) => `${o.title} (${o.department?.name ?? "cross-functional"}, ~$${Math.round(o.estAnnualValue / 1000)}k/yr)`)
+          .join("; ") || "none open right now"
+      }`,
+      `Adopted workflows: ${adoptedWorkflows.map((w) => w.workflow.title).join(", ") || "none adopted yet"}`,
+    ].join("\n");
+
+    const system = [
+      "You are the Reldro AI Adoption Assistant, embedded in a B2B SaaS platform that helps companies roll out AI tools.",
+      "Answer the user's question using ONLY the organization data provided below — never invent numbers, names, or facts that aren't in it.",
+      "If the data doesn't cover what's being asked, say so plainly and suggest what to check in the platform instead of guessing.",
+      "Keep the answer to 2-4 short sentences, in a direct, practical tone — no filler, no generic AI advice.",
+      "",
+      "Organization data:",
+      context,
+    ].join("\n");
+
+    const answer = await provider.generateText(question, system);
+    if (!answer.trim()) return fallbackGeneralAnswer(orgName, adoptionScore, opportunityCount);
+    return { answer: answer.trim() };
+  } catch {
+    return fallbackGeneralAnswer(orgName, adoptionScore, opportunityCount);
+  }
 }
