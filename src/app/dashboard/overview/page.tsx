@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/Badge";
 import { maturityBand, ORG_MATURITY_LABELS, type OrgMaturityCategory } from "@/lib/scoring";
 import { DEPLOYED_STATUSES } from "@/lib/workflowLifecycle";
 import { getFluencyForEmployee, getStrongestSkill, getWeakestSkill, EMPLOYEE_SKILL_LABELS } from "@/lib/queries/fluency";
+import { getWeeklyBrief } from "@/lib/queries/weeklyBrief";
 import { redirect } from "next/navigation";
 
 export default async function OverviewPage() {
@@ -38,6 +39,7 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
     topOpportunities,
     valueCapture,
     recommendations,
+    weeklyBrief,
   ] = await Promise.all([
     prisma.organization.findUnique({ where: { id: organizationId } }),
     getOrgTrend(organizationId),
@@ -55,6 +57,7 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
     }),
     getOrgValueCapture(organizationId),
     getOrgRecommendations(organizationId),
+    getWeeklyBrief(organizationId),
   ]);
 
   const score = latest?.aiAdoptionScore ?? 0;
@@ -110,6 +113,54 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
         <StatTile label="Specialist projects" value={activeProjects} />
         <StatTile label="Company size" value={org?.size ?? "—"} />
       </div>
+
+      <Card>
+        <CardHeader title="Your AI adoption brief" subtitle="What changed this week, compared to the week before" />
+        <CardBody className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatTile
+              label="Active users"
+              value={weeklyBrief.activeUsersThisWeek}
+              trend={{
+                value: `${Math.abs(weeklyBrief.activeUsersThisWeek - weeklyBrief.activeUsersLastWeek)} vs last week`,
+                positive: weeklyBrief.activeUsersThisWeek >= weeklyBrief.activeUsersLastWeek,
+              }}
+            />
+            <StatTile
+              label="AI fluency"
+              value={weeklyBrief.fluencyNow ?? "—"}
+              helpText={
+                weeklyBrief.fluencyNow !== null && weeklyBrief.fluencyLastWeek !== null
+                  ? `${weeklyBrief.fluencyNow >= weeklyBrief.fluencyLastWeek ? "+" : ""}${weeklyBrief.fluencyNow - weeklyBrief.fluencyLastWeek} vs last week`
+                  : "Not enough data yet"
+              }
+            />
+            <StatTile
+              label="Lessons completed"
+              value={weeklyBrief.lessonsCompletedThisWeek}
+              helpText={`${weeklyBrief.lessonsCompletedLastWeek} last week`}
+            />
+            <StatTile label="Value captured this week" value={`$${Math.round(weeklyBrief.valueCapturedThisWeek / 1000)}k`} />
+          </div>
+          {(weeklyBrief.workflowsNewlyAdopted.length > 0 || weeklyBrief.fastestGrowingDepartment) && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">What changed</p>
+              <ul className="mt-1.5 space-y-1 text-sm text-ink-700">
+                {weeklyBrief.workflowsNewlyAdopted.map((w) => (
+                  <li key={w.id}>
+                    <Link href={`/dashboard/workflows/${w.id}`} className="text-orchid-deep hover:text-oxblood">{w.title}</Link> was newly adopted this week.
+                  </li>
+                ))}
+                {weeklyBrief.fastestGrowingDepartment && (
+                  <li>
+                    {weeklyBrief.fastestGrowingDepartment.name} is the fastest-growing team this week (+{weeklyBrief.fastestGrowingDepartment.delta} active users).
+                  </li>
+                )}
+              </ul>
+            </div>
+          )}
+        </CardBody>
+      </Card>
 
       <Card>
         <CardHeader
