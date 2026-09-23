@@ -172,6 +172,8 @@ model Organization {
   invoices               Invoice[]
   auditLogs              AuditLog[]
   reviews                Review[]
+  customTools            Tool[]
+  organizationTools      OrganizationTool[]
 
   @@index([industry])
 }
@@ -708,6 +710,67 @@ model IntegrationConnection {
   externalAccountName String?
 
   @@unique([organizationId, integrationId])
+}
+
+// ---------------------------------------------------------------------------
+// Tool library - governance over the actual tools/platforms employees use,
+// distinct from Integration (which is about connecting a service's data in).
+// A Tool with organizationId = null is part of the shared global catalog;
+// one with organizationId set is a custom tool a specific org added (e.g.
+// an internal platform).
+// ---------------------------------------------------------------------------
+
+enum ToolCategory {
+  AI_ASSISTANT
+  CRM
+  ERP
+  PRODUCTIVITY
+  DESIGN
+  DEVELOPMENT
+  COMMUNICATION
+  ANALYTICS
+  CUSTOMER_SERVICE
+  FINANCE
+  HR
+  INTERNAL_PLATFORM
+  OTHER
+}
+
+enum ToolApprovalStatus {
+  APPROVED
+  RECOMMENDED
+  UNDER_REVIEW
+  RESTRICTED
+  DEPRECATED
+}
+
+model Tool {
+  id             String        @id @default(cuid())
+  name           String        @unique
+  category       ToolCategory
+  vendor         String?
+  description    String
+  capabilities   String[]
+  isCustom       Boolean       @default(false)
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime      @default(now())
+
+  organizationTools OrganizationTool[]
+
+  @@index([organizationId])
+}
+
+model OrganizationTool {
+  id             String              @id @default(cuid())
+  organizationId String
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  toolId         String
+  tool           Tool                @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  status         ToolApprovalStatus  @default(UNDER_REVIEW)
+  addedAt        DateTime            @default(now())
+
+  @@unique([organizationId, toolId])
 }
 
 // ---------------------------------------------------------------------------

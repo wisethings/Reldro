@@ -963,4 +963,25 @@ CREATE INDEX IF NOT EXISTS "OrganizationWorkflow_ownerId_idx" ON "OrganizationWo
 
 DO $$ BEGIN ALTER TABLE "OrganizationWorkflow" ADD CONSTRAINT "OrganizationWorkflow_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "Employee"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
 
+-- Patch: Tool Library (idempotent, same rules).
+DO $$ BEGIN CREATE TYPE "ToolCategory" AS ENUM ('AI_ASSISTANT', 'CRM', 'ERP', 'PRODUCTIVITY', 'DESIGN', 'DEVELOPMENT', 'COMMUNICATION', 'ANALYTICS', 'CUSTOMER_SERVICE', 'FINANCE', 'HR', 'INTERNAL_PLATFORM', 'OTHER'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN CREATE TYPE "ToolApprovalStatus" AS ENUM ('APPROVED', 'RECOMMENDED', 'UNDER_REVIEW', 'RESTRICTED', 'DEPRECATED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+CREATE TABLE IF NOT EXISTS "Tool" ("id" TEXT NOT NULL, "name" TEXT NOT NULL, "category" "ToolCategory" NOT NULL, "vendor" TEXT, "description" TEXT NOT NULL, "capabilities" TEXT[], "isCustom" BOOLEAN NOT NULL DEFAULT false, "organizationId" TEXT, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT "Tool_pkey" PRIMARY KEY ("id"));
+
+CREATE UNIQUE INDEX IF NOT EXISTS "Tool_name_key" ON "Tool"("name");
+
+CREATE INDEX IF NOT EXISTS "Tool_organizationId_idx" ON "Tool"("organizationId");
+
+DO $$ BEGIN ALTER TABLE "Tool" ADD CONSTRAINT "Tool_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+CREATE TABLE IF NOT EXISTS "OrganizationTool" ("id" TEXT NOT NULL, "organizationId" TEXT NOT NULL, "toolId" TEXT NOT NULL, "status" "ToolApprovalStatus" NOT NULL DEFAULT 'UNDER_REVIEW', "addedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT "OrganizationTool_pkey" PRIMARY KEY ("id"));
+
+CREATE UNIQUE INDEX IF NOT EXISTS "OrganizationTool_organizationId_toolId_key" ON "OrganizationTool"("organizationId", "toolId");
+
+DO $$ BEGIN ALTER TABLE "OrganizationTool" ADD CONSTRAINT "OrganizationTool_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "OrganizationTool" ADD CONSTRAINT "OrganizationTool_toolId_fkey" FOREIGN KEY ("toolId") REFERENCES "Tool"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
 `;

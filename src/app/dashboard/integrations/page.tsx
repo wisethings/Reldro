@@ -1,7 +1,8 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
-import { Card, CardBody } from "@/components/ui/Card";
+import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { connectIntegration, disconnectIntegration } from "@/lib/actions/integrations";
 
@@ -36,6 +37,21 @@ export default async function IntegrationsPage({
       {params.slack_error && (
         <p className="rounded-lg bg-coral-soft px-3 py-2 text-sm text-danger">Slack connection failed: {params.slack_error}</p>
       )}
+
+      <Card>
+        <CardHeader
+          title="Tool library"
+          subtitle="Govern which AI tools and platforms are approved, and see how they're actually being used"
+        />
+        <CardBody>
+          <Link
+            href="/dashboard/integrations/tools"
+            className="inline-block rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800"
+          >
+            Browse tool library →
+          </Link>
+        </CardBody>
+      </Card>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {integrations.map((integration) => {
