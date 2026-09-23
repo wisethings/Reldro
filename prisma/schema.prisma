@@ -769,6 +769,9 @@ model OrganizationTool {
   tool           Tool                @relation(fields: [toolId], references: [id], onDelete: Cascade)
   status         ToolApprovalStatus  @default(UNDER_REVIEW)
   addedAt        DateTime            @default(now())
+  guidance       String?
+  approvedUses   String[]            @default([])
+  restrictedUses String[]            @default([])
 
   @@unique([organizationId, toolId])
 }

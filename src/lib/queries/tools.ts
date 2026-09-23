@@ -120,6 +120,9 @@ export async function getToolProfile(organizationId: string, toolId: string) {
     tool,
     status: orgTool?.status ?? null,
     addedAt: orgTool?.addedAt ?? null,
+    guidance: orgTool?.guidance ?? null,
+    approvedUses: orgTool?.approvedUses ?? [],
+    restrictedUses: orgTool?.restrictedUses ?? [],
     usage,
     adoptionPct: totalEmployees > 0 ? Math.round((usage.distinctUsers / totalEmployees) * 100) : 0,
   };

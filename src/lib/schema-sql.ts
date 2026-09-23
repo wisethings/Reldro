@@ -984,4 +984,11 @@ DO $$ BEGIN ALTER TABLE "OrganizationTool" ADD CONSTRAINT "OrganizationTool_orga
 
 DO $$ BEGIN ALTER TABLE "OrganizationTool" ADD CONSTRAINT "OrganizationTool_toolId_fkey" FOREIGN KEY ("toolId") REFERENCES "Tool"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
 
+-- Patch: tool playbooks - guidance + approved/restricted uses per org tool (idempotent, same rules).
+ALTER TABLE "OrganizationTool" ADD COLUMN IF NOT EXISTS "guidance" TEXT;
+
+ALTER TABLE "OrganizationTool" ADD COLUMN IF NOT EXISTS "approvedUses" TEXT[] NOT NULL DEFAULT '{}';
+
+ALTER TABLE "OrganizationTool" ADD COLUMN IF NOT EXISTS "restrictedUses" TEXT[] NOT NULL DEFAULT '{}';
+
 `;

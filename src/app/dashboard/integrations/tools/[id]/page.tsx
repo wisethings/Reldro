@@ -7,6 +7,7 @@ import { StatTile } from "@/components/ui/StatTile";
 import { getToolProfile } from "@/lib/queries/tools";
 import { TOOL_CATEGORY_LABEL, TOOL_STATUS_LABEL, TOOL_STATUS_TONE } from "@/lib/toolCatalog";
 import { ToolStatusSelect } from "@/components/tools/ToolStatusSelect";
+import { ToolPlaybookEditor } from "@/components/tools/ToolPlaybookEditor";
 
 export default async function ToolProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireRole(["COMPANY_ADMIN"]);
@@ -15,7 +16,7 @@ export default async function ToolProfilePage({ params }: { params: Promise<{ id
 
   const profile = await getToolProfile(session.organizationId, id);
   if (!profile) notFound();
-  const { tool, status, usage, adoptionPct, addedAt } = profile;
+  const { tool, status, usage, adoptionPct, addedAt, guidance, approvedUses, restrictedUses } = profile;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-6">
@@ -60,6 +61,21 @@ export default async function ToolProfilePage({ params }: { params: Promise<{ id
 
       {usage.distinctUsers === 0 && (
         <p className="text-sm text-ink-500">No usage detected for this tool yet at your organization.</p>
+      )}
+
+      {status && (
+        <Card>
+          <CardHeader title="Playbook" subtitle={`When you use ${tool.name} here, this is how you're expected to use AI`} />
+          <CardBody>
+            <ToolPlaybookEditor
+              toolId={tool.id}
+              toolName={tool.name}
+              guidance={guidance}
+              approvedUses={approvedUses}
+              restrictedUses={restrictedUses}
+            />
+          </CardBody>
+        </Card>
       )}
     </div>
   );

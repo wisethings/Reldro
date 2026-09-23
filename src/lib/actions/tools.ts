@@ -68,3 +68,40 @@ export async function addCustomTool(params: {
   revalidatePath("/dashboard/integrations/tools");
   return { toolId: tool.id };
 }
+
+/**
+ * "When you use this tool here, this is how you're expected to use AI" -
+ * guidance plus explicit approved/restricted uses for a tool already in the
+ * org's library. Requires the tool to already have an OrganizationTool row
+ * (i.e. it's been added/reviewed), so this can't silently add an unreviewed
+ * tool via the back door.
+ */
+export async function setToolPlaybook(params: {
+  toolId: string;
+  guidance: string;
+  approvedUses: string[];
+  restrictedUses: string[];
+}) {
+  const session = await requireRole(["COMPANY_ADMIN"]);
+  const organizationId = session.organizationId!;
+
+  await prisma.organizationTool.update({
+    where: { organizationId_toolId: { organizationId, toolId: params.toolId } },
+    data: {
+      guidance: params.guidance || null,
+      approvedUses: params.approvedUses,
+      restrictedUses: params.restrictedUses,
+    },
+  });
+
+  await logAudit({
+    organizationId,
+    userId: session.sub,
+    action: "tool.status_changed",
+    entityType: "Tool",
+    entityId: params.toolId,
+    metadata: { playbookUpdated: true },
+  });
+
+  revalidatePath(`/dashboard/integrations/tools/${params.toolId}`);
+}
