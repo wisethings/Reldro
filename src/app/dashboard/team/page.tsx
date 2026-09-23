@@ -1,10 +1,13 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { ProgressBar } from "@/components/ui/Progress";
 import { InviteEmployeeForm } from "@/components/team/InviteEmployeeForm";
 import { getEmployeeActivity } from "@/lib/queries/team";
+import { getTeamGaps, getEmployeesNeedingAttention } from "@/lib/queries/teamInsights";
 
 function formatLastActive(date: Date | null) {
   if (!date) return "Never active";
@@ -27,7 +30,13 @@ export default async function TeamPage() {
     }),
     prisma.department.findMany({ where: { organizationId: session.organizationId } }),
   ]);
-  const activity = await getEmployeeActivity(employees.map((e) => e.id));
+  const employeeIds = employees.map((e) => e.id);
+  const [activity, teamGaps, attentionList] = await Promise.all([
+    getEmployeeActivity(employeeIds),
+    getTeamGaps(employeeIds),
+    getEmployeesNeedingAttention(employeeIds),
+  ]);
+  const employeeById = new Map(employees.map((e) => [e.id, e]));
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-6">
@@ -42,6 +51,46 @@ export default async function TeamPage() {
           <InviteEmployeeForm departments={departments} />
         </CardBody>
       </Card>
+
+      {teamGaps.length > 0 && (
+        <Card>
+          <CardHeader title="Organization skill gaps" subtitle="Average AI fluency by skill, across employees who've completed an assessment" />
+          <CardBody className="space-y-3">
+            {teamGaps.map((g) => (
+              <div key={g.category}>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-ink-700">{g.label}</span>
+                  <span className="font-medium text-ink-900">{g.averageScore}</span>
+                </div>
+                <ProgressBar value={g.averageScore} className="mt-1" tone={g.averageScore < 50 ? "amber" : "brand"} />
+              </div>
+            ))}
+          </CardBody>
+        </Card>
+      )}
+
+      {attentionList.length > 0 && (
+        <Card>
+          <CardHeader title="Employees needing attention" subtitle="Flagged from real activity, not a guess" />
+          <CardBody className="divide-y divide-ink-200 p-0">
+            {attentionList.map((a) => {
+              const emp = employeeById.get(a.employeeId);
+              if (!emp) return null;
+              return (
+                <div key={a.employeeId} className="flex flex-col gap-1 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-ink-900">{emp.user.name}</p>
+                    <p className="text-xs text-ink-500">{a.summary} · {emp.department?.name ?? "No department"}</p>
+                  </div>
+                  <Link href={a.recommendationHref} className="shrink-0 text-xs font-medium text-orchid-deep hover:text-oxblood">
+                    {a.recommendation} →
+                  </Link>
+                </div>
+              );
+            })}
+          </CardBody>
+        </Card>
+      )}
 
       <Card>
         <CardBody className="divide-y divide-ink-200 p-0">

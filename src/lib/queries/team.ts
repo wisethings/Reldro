@@ -48,3 +48,33 @@ export async function getEmployeeActivity(employeeIds: string[]): Promise<Map<st
 
   return map;
 }
+
+export type EmployeeEngagement = { aiActivityCount30d: number; workflowStepsCompleted: number };
+
+/** Real signals used to flag "high AI activity but low workflow adoption" (see teamInsights.ts). */
+export async function getEmployeeEngagement(employeeIds: string[]): Promise<Map<string, EmployeeEngagement>> {
+  const map = new Map<string, EmployeeEngagement>();
+  if (employeeIds.length === 0) return map;
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+  const [activityCounts, stepCounts] = await Promise.all([
+    prisma.aIUsageEvent.groupBy({
+      by: ["employeeId"],
+      where: { employeeId: { in: employeeIds }, createdAt: { gte: thirtyDaysAgo } },
+      _count: { _all: true },
+    }),
+    prisma.workflowStepCompletion.groupBy({
+      by: ["employeeId"],
+      where: { employeeId: { in: employeeIds } },
+      _count: { _all: true },
+    }),
+  ]);
+
+  const activityById = new Map(activityCounts.map((r) => [r.employeeId as string, r._count._all]));
+  const stepsById = new Map(stepCounts.map((r) => [r.employeeId, r._count._all]));
+
+  for (const id of employeeIds) {
+    map.set(id, { aiActivityCount30d: activityById.get(id) ?? 0, workflowStepsCompleted: stepsById.get(id) ?? 0 });
+  }
+  return map;
+}
