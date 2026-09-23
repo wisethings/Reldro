@@ -53,10 +53,4 @@ select {
     background-color: #dcd5c6;
     border-radius: 9999px;
   }
-
-  .font-wordmark {
-    font-family: var(--font-parkinsans), var(--font-inter), sans-serif;
-    font-weight: 480;
-    letter-spacing: 0;
-  }
 }

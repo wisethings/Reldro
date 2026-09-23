@@ -22,7 +22,7 @@ export default async function PlatformAdminLayout({ children }: { children: Reac
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
-              <Logo inverse className="text-sm" />
+              <Logo inverse height={24} />
               <span className="text-xs text-ink-200">Platform Admin</span>
             </div>
             <nav className="flex gap-4">

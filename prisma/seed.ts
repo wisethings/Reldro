@@ -98,7 +98,7 @@ const WORKFLOW_SEEDS: WorkflowSeed[] = [
   {
     title: "AI Conversation Summarization & Response Drafting",
     department: "Customer Support",
-    industryTags: ["Retail", "Consumer products (CPG)", "Technology"],
+    industryTags: ["Retail", "Consumer products (CPG)", "Technology", "Business services"],
     summary: "Summarize customer conversations, classify intent, and draft follow-up responses.",
     currentProcess: "Agents manually summarize customer conversations and write follow-up emails after every ticket.",
     aiProcess: "AI summarizes the conversation, classifies intent, drafts a response, and flags escalation risk for agent review.",
@@ -120,7 +120,7 @@ const WORKFLOW_SEEDS: WorkflowSeed[] = [
   {
     title: "Support Ticket Triage & Routing",
     department: "Customer Support",
-    industryTags: ["Retail", "Technology"],
+    industryTags: ["Retail", "Technology", "Business services"],
     summary: "Automatically classify and route incoming tickets to the right queue.",
     currentProcess: "A triage agent manually reads every incoming ticket and routes it to the correct queue.",
     aiProcess: "AI classifies ticket intent and urgency and auto-routes it, flagging high-risk tickets for immediate attention.",
@@ -139,7 +139,7 @@ const WORKFLOW_SEEDS: WorkflowSeed[] = [
   {
     title: "AI-Assisted Sales Prospecting",
     department: "Sales",
-    industryTags: ["Technology", "Financial services", "Consumer products (CPG)"],
+    industryTags: ["Technology", "Financial services", "Consumer products (CPG)", "Professional services", "Business services", "Insurance"],
     summary: "Research prospects, draft personalized outreach, and pre-fill CRM records.",
     currentProcess: "Reps manually research each prospect, draft outreach emails, and enter notes into the CRM.",
     aiProcess: "AI researches the account, drafts a personalized outreach email, and pre-fills CRM fields for rep approval.",
@@ -160,7 +160,7 @@ const WORKFLOW_SEEDS: WorkflowSeed[] = [
   {
     title: "Proposal & RFP Response Drafting",
     department: "Sales",
-    industryTags: ["Professional services", "Technology"],
+    industryTags: ["Professional services", "Technology", "Business services", "Insurance"],
     summary: "Draft first-pass RFP responses from an existing content library.",
     currentProcess: "Reps manually assemble RFP responses from a shared document library, copy-pasting relevant sections.",
     aiProcess: "AI drafts a first-pass RFP response from the content library; reps customize and finalize it.",
@@ -178,7 +178,7 @@ const WORKFLOW_SEEDS: WorkflowSeed[] = [
   {
     title: "AI-Generated Campaign Briefs & Copy Drafts",
     department: "Marketing",
-    industryTags: ["Retail", "Consumer products (CPG)", "Marketing agency"],
+    industryTags: ["Retail", "Consumer products (CPG)", "Marketing agency", "Professional services", "Technology"],
     summary: "Draft campaign briefs and channel-specific copy from a single input brief.",
     currentProcess: "Marketers draft campaign briefs and first-pass copy manually for every channel.",
     aiProcess: "AI drafts a campaign brief and channel-specific copy variants from a single input brief for marketer review.",
@@ -197,7 +197,7 @@ const WORKFLOW_SEEDS: WorkflowSeed[] = [
   {
     title: "Competitive Intelligence Briefs",
     department: "Marketing",
-    industryTags: ["Retail", "Consumer products (CPG)"],
+    industryTags: ["Retail", "Consumer products (CPG)", "Technology", "Financial services", "Insurance"],
     summary: "Monitor competitor activity and draft a monthly intelligence brief.",
     currentProcess: "Marketing manually tracks competitor moves and compiles a brief once a month.",
     aiProcess: "AI monitors public competitor signals and drafts a monthly brief for marketing review.",
@@ -215,7 +215,7 @@ const WORKFLOW_SEEDS: WorkflowSeed[] = [
   {
     title: "AI-Assisted Monthly Reporting Narratives",
     department: "Finance",
-    industryTags: ["Financial services", "Consumer products (CPG)"],
+    industryTags: ["Financial services", "Consumer products (CPG)", "Professional services", "Technology", "Insurance"],
     summary: "Draft the narrative and variance commentary for monthly financial reports.",
     currentProcess: "Finance analysts manually write commentary for monthly board and budget reports.",
     aiProcess: "AI drafts the narrative and variance commentary directly from the numbers; analysts review and finalize.",
@@ -234,7 +234,7 @@ const WORKFLOW_SEEDS: WorkflowSeed[] = [
   {
     title: "Expense Anomaly Detection",
     department: "Finance",
-    industryTags: ["Financial services"],
+    industryTags: ["Financial services", "Professional services", "Business services", "Technology"],
     summary: "Flag unusual expenses for review before they're approved.",
     currentProcess: "Finance manually spot-checks expense reports for anomalies.",
     aiProcess: "AI flags unusual expenses against historical patterns for finance review before approval.",
@@ -252,7 +252,7 @@ const WORKFLOW_SEEDS: WorkflowSeed[] = [
   {
     title: "AI-Assisted Job Descriptions & Resume Screening",
     department: "HR",
-    industryTags: ["Professional services", "Technology"],
+    industryTags: ["Professional services", "Technology", "Business services", "Insurance", "Financial services"],
     summary: "Draft job descriptions and pre-screen resumes against role criteria.",
     currentProcess: "Recruiters write job descriptions from scratch and manually screen every resume.",
     aiProcess: "AI drafts job descriptions and pre-screens resumes against role criteria for recruiter review.",
@@ -310,7 +310,7 @@ const WORKFLOW_SEEDS: WorkflowSeed[] = [
   {
     title: "Contract Review Assistant",
     department: "Legal",
-    industryTags: ["Legal", "Professional services", "Financial services"],
+    industryTags: ["Legal", "Professional services", "Financial services", "Business services", "Insurance", "Technology"],
     summary: "Flag non-standard clauses in incoming contracts before legal review.",
     currentProcess: "Legal manually reads every incoming contract line by line to find non-standard terms.",
     aiProcess: "AI flags non-standard or high-risk clauses against the company's playbook before legal review.",
@@ -329,7 +329,7 @@ const WORKFLOW_SEEDS: WorkflowSeed[] = [
   {
     title: "AI-Assisted Board Reporting",
     department: "Executive",
-    industryTags: ["Technology", "Financial services"],
+    industryTags: ["Technology", "Financial services", "Professional services", "Business services", "Insurance"],
     summary: "Draft board-ready summaries from operating metrics across departments.",
     currentProcess: "Executives and their teams manually compile a board deck narrative from department updates.",
     aiProcess: "AI drafts a first-pass board narrative from department metrics, executives edit and finalize.",

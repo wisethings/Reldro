@@ -16,6 +16,7 @@ export function getNavItems(role: Role): NavItem[] {
     { href: "/dashboard/assessment", label: "AI Assessment" },
     { href: "/dashboard/opportunities", label: "Opportunities" },
     { href: "/dashboard/workflows", label: "Workflows" },
+    { href: "/dashboard/templates", label: "Templates" },
     { href: "/dashboard/learn", label: "Learn" },
     { href: "/dashboard/initiatives", label: "Initiatives" },
   ];

@@ -7,7 +7,7 @@ export function MarketingFooter() {
       <div className="mx-auto max-w-6xl px-6 py-10">
         <div className="flex flex-col justify-between gap-8 md:flex-row">
           <div>
-            <Logo className="text-base" />
+            <Logo height={26} />
             <p className="mt-2 max-w-xs text-xs text-ink-500">
               The AI adoption operating system for the modern workforce.
             </p>

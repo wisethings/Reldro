@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
-import { getOrgTrend, getLatestOrgSnapshot } from "@/lib/queries/adoption";
+import { getOrgTrend, getLatestOrgSnapshot, getRealAdoptionMetrics } from "@/lib/queries/adoption";
 import { StatTile } from "@/components/ui/StatTile";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
 import { ScoreRing, ProgressBar } from "@/components/ui/Progress";
@@ -22,12 +22,12 @@ export default async function OverviewPage() {
 }
 
 async function OrgOverview({ organizationId }: { organizationId: string }) {
-  const [org, trend, latest, employeeCount, workflowsDeployed, opportunitiesCount, activeInitiatives, activeProjects, topOpportunities] =
+  const [org, trend, latest, metrics, workflowsDeployed, opportunitiesCount, activeInitiatives, activeProjects, topOpportunities] =
     await Promise.all([
       prisma.organization.findUnique({ where: { id: organizationId } }),
       getOrgTrend(organizationId),
       getLatestOrgSnapshot(organizationId),
-      prisma.employee.count({ where: { organizationId } }),
+      getRealAdoptionMetrics(organizationId),
       prisma.organizationWorkflow.count({ where: { organizationId, status: "ADOPTED" } }),
       prisma.opportunity.count({ where: { organizationId } }),
       prisma.initiative.count({ where: { organizationId, status: "IN_PROGRESS" } }),
@@ -80,13 +80,14 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile label="AI adoption" value={`${latest?.adoptionPct ?? 0}%`} helpText="Share of employees actively using AI" />
         <StatTile
-          label="Employees actively using AI"
-          value={`${latest?.activeUsers ?? 0} / ${employeeCount}`}
+          label="AI adoption"
+          value={`${metrics.adoptionPct}%`}
+          helpText="Employees active on Reldro in the last 30 days"
         />
+        <StatTile label="Employees actively using AI" value={`${metrics.activeUsers} / ${metrics.totalUsers}`} />
         <StatTile label="AI workflows deployed" value={workflowsDeployed} />
-        <StatTile label="Est. monthly hours saved" value={(latest?.hoursSavedMonthly ?? 0).toLocaleString()} />
+        <StatTile label="Est. monthly hours saved" value={metrics.hoursSavedMonthly.toLocaleString()} />
         <StatTile label="AI opportunities identified" value={opportunitiesCount} />
         <StatTile label="Active AI initiatives" value={activeInitiatives} />
         <StatTile label="Specialist projects" value={activeProjects} />

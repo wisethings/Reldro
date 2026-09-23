@@ -4,8 +4,10 @@ import { requireSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { adoptWorkflow } from "@/lib/actions/workflows";
+import { ProgressBar } from "@/components/ui/Progress";
+import { adoptWorkflow, toggleWorkflowStep } from "@/lib/actions/workflows";
 import { RequestExpertHelpForm } from "@/components/specialists/RequestExpertHelpForm";
+import { CopyPromptButton } from "@/components/workflows/CopyPromptButton";
 
 const DIFFICULTY_TONE = { LOW: "green", MEDIUM: "amber", HIGH: "red" } as const;
 
@@ -14,16 +16,21 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
   if (!session.organizationId) redirect("/login");
   const { id } = await params;
 
-  const [workflow, orgWorkflow, courses] = await Promise.all([
+  const [workflow, orgWorkflow, courses, completions] = await Promise.all([
     prisma.workflow.findUnique({ where: { id }, include: { steps: { orderBy: { order: "asc" } } } }),
     prisma.organizationWorkflow.findUnique({
       where: { organizationId_workflowId: { organizationId: session.organizationId, workflowId: id } },
     }),
     prisma.course.findMany({ where: { workflowId: id }, include: { lessons: true } }),
+    session.employeeId
+      ? prisma.workflowStepCompletion.findMany({ where: { employeeId: session.employeeId, workflowStep: { workflowId: id } } })
+      : Promise.resolve([]),
   ]);
   if (!workflow) notFound();
 
   const status = orgWorkflow?.status ?? "NOT_ADOPTED";
+  const completedStepIds = new Set(completions.map((c) => c.workflowStepId));
+  const completedCount = workflow.steps.filter((s) => completedStepIds.has(s.id)).length;
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 p-6">
@@ -71,35 +78,61 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
       </div>
 
       <Card>
-        <CardHeader title="Step-by-step process" />
+        <CardHeader
+          title="Step-by-step process"
+          subtitle={session.employeeId ? `${completedCount} of ${workflow.steps.length} steps completed` : undefined}
+        />
+        {session.employeeId && (
+          <div className="px-5 pt-4">
+            <ProgressBar value={completedCount} max={workflow.steps.length} tone="green" />
+          </div>
+        )}
         <CardBody className="space-y-4 p-0 divide-y divide-ink-200">
-          {workflow.steps.map((step) => (
-            <div key={step.id} className="flex gap-4 px-5 py-4">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink-100 text-xs font-semibold text-ink-700">
-                {step.order}
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium text-ink-900">{step.title}</p>
-                  {step.humanCheckpoint && <Badge tone="amber">Human checkpoint</Badge>}
-                </div>
-                <p className="mt-1 text-sm text-ink-600">{step.description}</p>
-                {step.aiPrompt && (
-                  <div className="mt-2 rounded-lg bg-ink-50 p-3">
-                    <p className="text-[11px] font-medium uppercase tracking-wide text-ink-500">Example AI prompt</p>
-                    <p className="mt-1 font-mono text-xs text-ink-700">{step.aiPrompt}</p>
-                  </div>
+          {workflow.steps.map((step) => {
+            const done = completedStepIds.has(step.id);
+            return (
+              <div key={step.id} className="flex gap-4 px-5 py-4">
+                {session.employeeId ? (
+                  <form action={toggleWorkflowStep.bind(null, step.id, workflow.id)}>
+                    <button
+                      type="submit"
+                      title={done ? "Mark as not done" : "Mark as done"}
+                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors ${
+                        done ? "bg-sage-deep text-white" : "bg-ink-100 text-ink-700 hover:bg-surface-sunken"
+                      }`}
+                    >
+                      {done ? "✓" : step.order}
+                    </button>
+                  </form>
+                ) : (
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink-100 text-xs font-semibold text-ink-700">
+                    {step.order}
+                  </span>
                 )}
-                <div className="mt-2 flex gap-3 text-xs font-medium text-orchid-deep">
-                  {courses[0] && <Link href={`/dashboard/learn?course=${courses[0].id}`}>Learn</Link>}
-                  <span className="text-ink-300">·</span>
-                  <span className="text-ink-400">Practice</span>
-                  <span className="text-ink-300">·</span>
-                  <span className="text-ink-400">Implement</span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className={`text-sm font-medium ${done ? "text-ink-400 line-through" : "text-ink-900"}`}>{step.title}</p>
+                    {step.humanCheckpoint && <Badge tone="amber">Human checkpoint</Badge>}
+                  </div>
+                  <p className="mt-1 text-sm text-ink-600">{step.description}</p>
+                  {step.aiPrompt && (
+                    <div className="mt-2 rounded-lg bg-ink-50 p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-ink-500">Example AI prompt</p>
+                        <CopyPromptButton prompt={step.aiPrompt} workflowStepId={step.id} />
+                      </div>
+                      <p className="mt-1 font-mono text-xs text-ink-700">{step.aiPrompt}</p>
+                    </div>
+                  )}
+                  {courses[0] && (
+                    <div className="mt-2 text-xs font-medium text-orchid-deep">
+                      <Link href={`/dashboard/learn?course=${courses[0].id}`}>Learn the concepts behind this step →</Link>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </CardBody>
       </Card>
 

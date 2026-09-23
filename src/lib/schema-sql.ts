@@ -933,4 +933,15 @@ ALTER TABLE "IntegrationConnection" ADD COLUMN IF NOT EXISTS "externalAccountId"
 
 ALTER TABLE "IntegrationConnection" ADD COLUMN IF NOT EXISTS "externalAccountName" TEXT;
 
+-- Patch: per-step workflow completion tracking (idempotent, same rules).
+CREATE TABLE IF NOT EXISTS "WorkflowStepCompletion" ("id" TEXT NOT NULL, "employeeId" TEXT NOT NULL, "workflowStepId" TEXT NOT NULL, "completedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT "WorkflowStepCompletion_pkey" PRIMARY KEY ("id"));
+
+CREATE UNIQUE INDEX IF NOT EXISTS "WorkflowStepCompletion_employeeId_workflowStepId_key" ON "WorkflowStepCompletion"("employeeId", "workflowStepId");
+
+CREATE INDEX IF NOT EXISTS "WorkflowStepCompletion_workflowStepId_idx" ON "WorkflowStepCompletion"("workflowStepId");
+
+DO $$ BEGIN ALTER TABLE "WorkflowStepCompletion" ADD CONSTRAINT "WorkflowStepCompletion_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "WorkflowStepCompletion" ADD CONSTRAINT "WorkflowStepCompletion_workflowStepId_fkey" FOREIGN KEY ("workflowStepId") REFERENCES "WorkflowStep"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
 `;

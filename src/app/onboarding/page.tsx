@@ -14,7 +14,7 @@ export default async function OnboardingPage() {
     <div className="min-h-screen bg-ink-50 px-6 py-10">
       <div className="mx-auto max-w-2xl">
         <div className="mb-8 flex items-center gap-2">
-          <Logo />
+          <Logo height={36} />
         </div>
         <OnboardingWizard companyName={org.name} />
       </div>

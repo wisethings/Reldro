@@ -226,6 +226,7 @@ model Employee {
   simulationAttempts SimulationAttempt[]
   initiativeMembers  InitiativeMember[]
   aiUsageEvents      AIUsageEvent[]
+  workflowStepCompletions WorkflowStepCompletion[]
 
   @@index([organizationId])
   @@index([departmentId])
@@ -467,7 +468,21 @@ model WorkflowStep {
   aiPrompt        String?
   humanCheckpoint Boolean  @default(false)
 
+  completions WorkflowStepCompletion[]
+
   @@index([workflowId])
+}
+
+model WorkflowStepCompletion {
+  id             String       @id @default(cuid())
+  employeeId     String
+  employee       Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  workflowStepId String
+  workflowStep   WorkflowStep @relation(fields: [workflowStepId], references: [id], onDelete: Cascade)
+  completedAt    DateTime     @default(now())
+
+  @@unique([employeeId, workflowStepId])
+  @@index([workflowStepId])
 }
 
 model OrganizationWorkflow {

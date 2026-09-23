@@ -12,7 +12,7 @@ export function MarketingNav() {
     <header className="sticky top-0 z-30 border-b border-ink-200 bg-white/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <Link href="/" className="flex items-center gap-2">
-          <Logo />
+          <Logo height={34} />
         </Link>
         <nav className="hidden items-center gap-7 md:flex">
           {links.map((l) => (
