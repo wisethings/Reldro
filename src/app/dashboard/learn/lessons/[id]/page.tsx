@@ -4,6 +4,8 @@ import { requireSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { completeLesson } from "@/lib/actions/learning";
+import { AudioNarration } from "@/components/learning/AudioNarration";
+import { LessonJourney } from "@/components/learning/LessonJourney";
 
 export default async function LessonPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireSession();
@@ -28,22 +30,23 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
         <p className="text-xs font-medium text-orchid-deep">{lesson.course.title}</p>
         <h1 className="mt-1 text-xl font-semibold text-ink-900">{lesson.title}</h1>
         <p className="text-xs text-ink-500">{lesson.durationMin} min</p>
+        <LessonJourney activeIndex={3} />
       </div>
 
       <Card>
-        <CardHeader title="Concept" />
+        <CardHeader title="Concept" action={<AudioNarration text={lesson.concept} />} />
         <CardBody>
           <p className="text-sm text-ink-700">{lesson.concept}</p>
         </CardBody>
       </Card>
       <Card>
-        <CardHeader title="Example" />
+        <CardHeader title="Example" action={<AudioNarration text={lesson.example} />} />
         <CardBody>
           <p className="text-sm text-ink-700 whitespace-pre-line">{lesson.example}</p>
         </CardBody>
       </Card>
       <Card>
-        <CardHeader title="Try it: practice exercise" />
+        <CardHeader title="Try it: practice exercise" action={<AudioNarration text={lesson.exercise} />} />
         <CardBody>
           <p className="text-sm text-ink-700 whitespace-pre-line">{lesson.exercise}</p>
         </CardBody>

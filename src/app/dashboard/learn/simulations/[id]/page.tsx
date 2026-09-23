@@ -3,12 +3,19 @@ import { notFound, redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
 import { SimulationRunner } from "@/components/learning/SimulationRunner";
+import { AudioNarration } from "@/components/learning/AudioNarration";
+import { ensureSimulationCatalog } from "@/lib/queries/simulations";
+
+const DIFFICULTY_TONE = { LOW: "green", MEDIUM: "amber", HIGH: "red" } as const;
 
 export default async function SimulationPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireSession();
   if (!session.organizationId) redirect("/login");
   const { id } = await params;
+
+  await ensureSimulationCatalog();
 
   const simulation = await prisma.simulation.findUnique({ where: { id } });
   if (!simulation) notFound();
@@ -26,13 +33,16 @@ export default async function SimulationPage({ params }: { params: Promise<{ id:
         ← Back to Learn
       </Link>
       <div>
-        <p className="text-xs font-medium text-orchid-deep">{simulation.department} simulation</p>
+        <div className="flex items-center gap-2">
+          <p className="text-xs font-medium text-orchid-deep">{simulation.department} simulation</p>
+          <Badge tone={DIFFICULTY_TONE[simulation.difficulty]}>{simulation.difficulty.toLowerCase()}</Badge>
+        </div>
         <h1 className="mt-1 text-xl font-semibold text-ink-900">{simulation.title}</h1>
         <p className="mt-1 text-sm text-ink-500">{simulation.description}</p>
       </div>
 
       <Card>
-        <CardHeader title="Scenario" />
+        <CardHeader title="Scenario" action={<AudioNarration text={simulation.scenario} label="Listen to scenario" />} />
         <CardBody>
           <p className="text-sm text-ink-700 whitespace-pre-line">{simulation.scenario}</p>
         </CardBody>

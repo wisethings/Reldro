@@ -412,7 +412,7 @@ model LessonCompletion {
 
 model Simulation {
   id          String          @id @default(cuid())
-  title       String
+  title       String          @unique
   department  String
   scenario    String
   description String

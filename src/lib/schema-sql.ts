@@ -991,4 +991,7 @@ ALTER TABLE "OrganizationTool" ADD COLUMN IF NOT EXISTS "approvedUses" TEXT[] NO
 
 ALTER TABLE "OrganizationTool" ADD COLUMN IF NOT EXISTS "restrictedUses" TEXT[] NOT NULL DEFAULT '{}';
 
+-- Patch: unique simulation titles so the catalog can be topped up idempotently (idempotent, same rules).
+CREATE UNIQUE INDEX IF NOT EXISTS "Simulation_title_key" ON "Simulation"("title");
+
 `;

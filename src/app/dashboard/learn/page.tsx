@@ -5,10 +5,15 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { ProgressBar } from "@/components/ui/Progress";
+import { ensureSimulationCatalog } from "@/lib/queries/simulations";
+
+const DIFFICULTY_TONE = { LOW: "green", MEDIUM: "amber", HIGH: "red" } as const;
 
 export default async function LearnPage() {
   const session = await requireSession();
   if (!session.organizationId) redirect("/login");
+
+  await ensureSimulationCatalog();
 
   const employee = session.employeeId
     ? await prisma.employee.findUnique({ where: { id: session.employeeId }, include: { department: true } })
@@ -94,9 +99,12 @@ export default async function LearnPage() {
             <Link key={sim.id} href={`/dashboard/learn/simulations/${sim.id}`}>
               <Card className="h-full hover:border-brand-300">
                 <CardBody>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-semibold text-ink-900">{sim.title}</p>
-                    <Badge>{sim.department}</Badge>
+                    <div className="flex shrink-0 gap-1.5">
+                      <Badge>{sim.department}</Badge>
+                      <Badge tone={DIFFICULTY_TONE[sim.difficulty]}>{sim.difficulty.toLowerCase()}</Badge>
+                    </div>
                   </div>
                   <p className="mt-1.5 line-clamp-2 text-xs text-ink-500">{sim.description}</p>
                   {bestAttemptBySim.has(sim.id) && (

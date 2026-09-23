@@ -3,6 +3,7 @@ import { prisma } from "../src/lib/prisma";
 import { hashPassword } from "../src/lib/auth/password";
 import { computeOrgAdoptionScore, computeFluencyScore } from "../src/lib/scoring";
 import { INTEGRATION_CATALOG } from "../src/lib/data/catalog";
+import { SIMULATION_CATALOG } from "../src/lib/simulationCatalog";
 
 const DEMO_PASSWORD = "Demo1234!";
 
@@ -481,38 +482,7 @@ async function seedCoursesAndLessons(workflows: Awaited<ReturnType<typeof seedWo
 }
 
 async function seedSimulations() {
-  return Promise.all([
-    prisma.simulation.create({
-      data: {
-        title: "Inbound Lead Triage Simulation",
-        department: "Sales",
-        difficulty: "MEDIUM",
-        description: "Practice prioritizing inbound leads under time pressure using AI research.",
-        scenario:
-          "You have 15 inbound leads that came in overnight. You have 30 minutes before your first call. Decide which 3 should receive immediate outreach today, and explain how you'd use AI to research and draft that outreach.",
-      },
-    }),
-    prisma.simulation.create({
-      data: {
-        title: "Customer Escalation Response Simulation",
-        department: "Customer Support",
-        difficulty: "MEDIUM",
-        description: "Practice using AI to draft a response to an upset customer without losing the human touch.",
-        scenario:
-          "A customer has emailed twice in 3 days about a delayed order and is now threatening to cancel their account. Walk through how you'd use AI to draft a response, what you'd verify before sending, and when you'd escalate to a manager instead.",
-      },
-    }),
-    prisma.simulation.create({
-      data: {
-        title: "Campaign Brief Simulation",
-        department: "Marketing",
-        difficulty: "LOW",
-        description: "Practice turning a vague campaign request into a structured, AI-assisted brief.",
-        scenario:
-          "Your VP says: 'We need something to drive awareness for the new product line before the holidays.' Walk through how you'd use AI to turn this into a structured campaign brief, including audience, channels, and key message.",
-      },
-    }),
-  ]);
+  return prisma.simulation.createMany({ data: SIMULATION_CATALOG, skipDuplicates: true });
 }
 
 const SPECIALIST_SEEDS = [
