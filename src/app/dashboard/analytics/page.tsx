@@ -3,6 +3,7 @@ import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { getOrgTrend } from "@/lib/queries/adoption";
 import { getToolUsageBreakdown, getWorkflowAdoptionBreakdown, getTrainingCompletionRate } from "@/lib/queries/analytics";
+import { getAiWaste } from "@/lib/queries/waste";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { StatTile } from "@/components/ui/StatTile";
 import { AdoptionTrendChart } from "@/components/charts/AdoptionTrendChart";
@@ -15,7 +16,7 @@ export default async function AnalyticsPage() {
   if (!session.organizationId) redirect("/login");
   const organizationId = session.organizationId;
 
-  const [trend, deptSnapshots, toolUsage, workflowStatuses, trainingCompletion, employeeCount, latestOrgSnapshot, usageEventCount] =
+  const [trend, deptSnapshots, toolUsage, workflowStatuses, trainingCompletion, employeeCount, latestOrgSnapshot, usageEventCount, waste] =
     await Promise.all([
       getOrgTrend(organizationId, 6),
       prisma.adoptionMetricSnapshot.findMany({
@@ -29,6 +30,7 @@ export default async function AnalyticsPage() {
       prisma.employee.count({ where: { organizationId } }),
       prisma.adoptionMetricSnapshot.findFirst({ where: { organizationId, department: null }, orderBy: { month: "desc" } }),
       prisma.aIUsageEvent.count({ where: { organizationId } }),
+      getAiWaste(organizationId),
     ]);
 
   const latestMonth = deptSnapshots[0]?.month;
@@ -94,6 +96,63 @@ export default async function AnalyticsPage() {
           </CardBody>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader
+          title="AI waste"
+          subtitle="AI usage that isn't happening through a repeatable workflow — where the company isn't capturing the value"
+        />
+        <CardBody className="space-y-4">
+          {waste.totalActivity30d === 0 ? (
+            <p className="text-sm text-ink-500">No AI activity logged in the last 30 days yet.</p>
+          ) : (
+            <>
+              <p className="text-sm text-ink-700">
+                <span className="text-lg font-semibold text-ink-900">{waste.wastePct}%</span> of AI activity in the last
+                30 days ({waste.totalActivity30d - waste.workflowConnectedActivity30d} of {waste.totalActivity30d} actions) is
+                not connected to a repeatable workflow.
+              </p>
+              {waste.departmentsAffected.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-ink-500">Departments affected</p>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {waste.departmentsAffected.map((d) => (
+                      <Badge key={d} tone="amber">{d}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {waste.topUnconnectedTools.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-ink-500">Tools driving it</p>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {waste.topUnconnectedTools.map((t) => (
+                      <Badge key={t.tool}>{t.tool} · {t.count}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {waste.recommendedOpportunities.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-ink-500">Recommended: convert this usage into a workflow</p>
+                  <div className="mt-1.5 space-y-1.5">
+                    {waste.recommendedOpportunities.map((o) => (
+                      <Link
+                        key={o.id}
+                        href={`/dashboard/opportunities/${o.id}`}
+                        className="flex items-center justify-between rounded-lg border border-ink-200 px-3 py-2 text-xs hover:bg-ink-50"
+                      >
+                        <span className="text-ink-800">{o.title} ({o.department})</span>
+                        <span className="font-medium text-ink-900">${Math.round(o.estAnnualValue / 1000)}k/yr</span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </CardBody>
+      </Card>
     </div>
   );
 }
