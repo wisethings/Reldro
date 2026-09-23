@@ -1,8 +1,8 @@
 import { loginAsDemo } from "@/lib/actions/demo";
 
 const demoAccounts = [
-  { email: "admin@northstarcg.com", label: "Company admin", desc: "CIO, Northstar Consumer Group" },
-  { email: "priya.shah@northstarcg.com", label: "Employee", desc: "Marketing manager" },
+  { email: "admin@havenbrook.com", label: "Company admin", desc: "CIO, Havenbrook" },
+  { email: "priya.shah@havenbrook.com", label: "Employee", desc: "Marketing manager" },
   { email: "maya@reldro-specialists.com", label: "AI specialist", desc: "Expert-help specialist" },
   { email: "platform@reldro.com", label: "Platform admin", desc: "Reldro internal admin" },
 ];

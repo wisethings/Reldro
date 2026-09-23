@@ -89,7 +89,7 @@ export default function LandingPage() {
                 <ScoreRing value={54} label="/ 100" />
                 <div>
                   <p className="text-sm font-semibold text-ink-900">AI Adoption Score</p>
-                  <p className="text-xs text-ink-500">Northstar Consumer Group · 412 employees</p>
+                  <p className="text-xs text-ink-500">Havenbrook · 318 employees</p>
                 </div>
               </div>
               <div className="mt-5 grid grid-cols-2 gap-3 text-xs">

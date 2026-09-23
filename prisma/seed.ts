@@ -8,7 +8,7 @@ import { COURSE_CATALOG } from "../src/lib/courseCatalog";
 
 const DEMO_PASSWORD = "Demo1234!";
 
-const DEPARTMENTS = ["Marketing", "Sales", "Finance", "Operations", "Customer Support", "HR", "Product"] as const;
+const DEPARTMENTS = ["Claims", "Underwriting", "Customer Service", "Sales", "Marketing", "Finance", "Operations", "HR", "Compliance"] as const;
 
 function monthsAgo(n: number) {
   const d = new Date();
@@ -98,152 +98,211 @@ type WorkflowSeed = {
 
 const WORKFLOW_SEEDS: WorkflowSeed[] = [
   {
-    title: "AI Conversation Summarization & Response Drafting",
-    department: "Customer Support",
-    industryTags: ["Retail", "Consumer products (CPG)", "Technology", "Business services"],
-    summary: "Summarize customer conversations, classify intent, and draft follow-up responses.",
-    currentProcess: "Agents manually summarize customer conversations and write follow-up emails after every ticket.",
-    aiProcess: "AI summarizes the conversation, classifies intent, drafts a response, and flags escalation risk for agent review.",
-    timeSavedMinutes: 22,
+    title: "AI-Assisted Claims Document Processing",
+    department: "Claims",
+    industryTags: ["Insurance", "Financial services"],
+    summary: "Extract key facts from claim documents, flag discrepancies, and draft adjuster notes.",
+    currentProcess: "Adjusters manually read every document in a claim file (police reports, estimates, statements) to build their case summary.",
+    aiProcess: "AI extracts key facts from claim documents, flags discrepancies between sources, and drafts a structured summary for adjuster review.",
+    timeSavedMinutes: 35,
     difficulty: "MEDIUM",
     skillLevel: "Intermediate",
-    toolsRequired: ["Zendesk", "Claude"],
+    toolsRequired: ["Claims Portal", "ChatGPT"],
     skillsRequired: ["Prompting", "Evaluation"],
-    securityNotes: "Redact customer PII before sending transcripts to any AI tool that isn't under a data processing agreement.",
-    trainingNotes: "Agents need a 20-minute session on reviewing AI drafts for tone and accuracy before go-live.",
+    securityNotes: "Claim documents contain policyholder medical and financial details — only use the Claims Portal's built-in assistant, which is covered by Havenbrook's data processing agreement.",
+    trainingNotes: "Adjusters need a session on requiring AI to flag discrepancies explicitly rather than silently resolving them.",
     steps: [
-      { title: "Ticket received", description: "A customer conversation closes and is queued for follow-up." },
-      { title: "AI summarizes the conversation", description: "AI produces a structured summary of the issue and resolution.", aiPrompt: "Summarize this support conversation in 3 sentences, noting the customer's issue, resolution, and sentiment." },
-      { title: "AI classifies intent and risk", description: "AI tags the ticket by category and flags any escalation risk." },
-      { title: "AI drafts a follow-up response", description: "AI writes a follow-up email drafted in the company's tone.", aiPrompt: "Draft a friendly follow-up email confirming the resolution above." },
-      { title: "Agent reviews and sends", description: "Agent reviews the draft, edits if needed, and sends.", humanCheckpoint: true },
+      { title: "Claim file received", description: "A new claim file with supporting documents is assigned to an adjuster." },
+      { title: "AI extracts key facts", description: "AI pulls key facts from each document with page references.", aiPrompt: "Extract the key facts from this claim document, citing the page or section for each." },
+      { title: "AI flags discrepancies", description: "AI flags any contradicting facts, dates, or figures across documents." },
+      { title: "AI drafts case summary", description: "AI drafts a structured summary for the adjuster's notes.", aiPrompt: "Draft a case summary from these extracted facts, clearly marking anything unresolved." },
+      { title: "Adjuster reviews and finalizes", description: "The adjuster resolves flagged discrepancies and finalizes the file.", humanCheckpoint: true },
     ],
   },
   {
-    title: "Support Ticket Triage & Routing",
-    department: "Customer Support",
-    industryTags: ["Retail", "Technology", "Business services"],
-    summary: "Automatically classify and route incoming tickets to the right queue.",
-    currentProcess: "A triage agent manually reads every incoming ticket and routes it to the correct queue.",
-    aiProcess: "AI classifies ticket intent and urgency and auto-routes it, flagging high-risk tickets for immediate attention.",
-    timeSavedMinutes: 12,
+    title: "Claims Triage & Routing",
+    department: "Claims",
+    industryTags: ["Insurance"],
+    summary: "Automatically classify incoming claims by type and severity and route to the right adjuster queue.",
+    currentProcess: "A triage adjuster manually reads every incoming claim and routes it to the correct queue based on type and severity.",
+    aiProcess: "AI classifies claim type, severity, and potential fraud signals, then auto-routes it, flagging high-severity claims for immediate attention.",
+    timeSavedMinutes: 15,
     difficulty: "MEDIUM",
     skillLevel: "Intermediate",
-    toolsRequired: ["Zendesk"],
+    toolsRequired: ["Claims Portal"],
     skillsRequired: ["Workflow design"],
     steps: [
-      { title: "Ticket arrives", description: "A new ticket enters the support queue." },
-      { title: "AI classifies intent and urgency", description: "AI tags the ticket with category and priority.", aiPrompt: "Classify this ticket's intent and urgency (low/medium/high)." },
-      { title: "Auto-route to queue", description: "The ticket routes automatically to the right team." },
-      { title: "Supervisor spot-checks high-risk tickets", description: "A supervisor reviews any ticket flagged high-risk.", humanCheckpoint: true },
+      { title: "Claim submitted", description: "A new claim enters the intake queue." },
+      { title: "AI classifies type and severity", description: "AI tags the claim by type and estimated severity.", aiPrompt: "Classify this claim's type and severity (low/medium/high)." },
+      { title: "Auto-route to adjuster queue", description: "The claim routes automatically to the right adjuster team." },
+      { title: "Supervisor spot-checks high-severity claims", description: "A supervisor reviews any claim flagged high-severity.", humanCheckpoint: true },
     ],
   },
   {
-    title: "AI-Assisted Sales Prospecting",
+    title: "AI-Assisted Underwriting Research",
+    department: "Underwriting",
+    industryTags: ["Insurance", "Financial services"],
+    summary: "Research a commercial applicant's public risk profile and draft a source-cited summary.",
+    currentProcess: "Underwriters manually research an applicant's safety record, litigation history, and financial stability signals.",
+    aiProcess: "AI gathers public risk signals about an applicant with sources cited; the underwriter verifies and makes the pricing decision.",
+    timeSavedMinutes: 40,
+    difficulty: "MEDIUM",
+    skillLevel: "Intermediate",
+    toolsRequired: ["ChatGPT", "Power BI"],
+    skillsRequired: ["Prompting", "Evaluation"],
+    trainingNotes: "Underwriters need training on the difference between 'no evidence found' and a confirmed clean record.",
+    steps: [
+      { title: "Application received", description: "A new commercial insurance application enters the underwriting queue." },
+      { title: "AI researches public risk signals", description: "AI gathers safety, litigation, and financial stability signals with sources cited.", aiPrompt: "Research this business's public safety record, litigation history, and financial signals, citing sources for each finding." },
+      { title: "Underwriter verifies findings", description: "The underwriter checks cited sources before including any finding in the risk profile.", humanCheckpoint: true },
+      { title: "Pricing decision made", description: "The underwriter finalizes the risk profile and pricing." },
+    ],
+  },
+  {
+    title: "Policy Renewal Risk Review",
+    department: "Underwriting",
+    industryTags: ["Insurance"],
+    summary: "Draft a renewal risk review from the past year's claims and account activity.",
+    currentProcess: "Underwriters manually review a policy's claims history and account changes ahead of each renewal.",
+    aiProcess: "AI drafts a first-pass renewal risk summary from the account's claims history and activity; the underwriter verifies and decides.",
+    timeSavedMinutes: 30,
+    difficulty: "MEDIUM",
+    skillLevel: "Intermediate",
+    toolsRequired: ["ChatGPT", "Power BI"],
+    skillsRequired: ["Evaluation"],
+    steps: [
+      { title: "Renewal window opens", description: "A policy enters its renewal review window." },
+      { title: "AI drafts the risk review", description: "AI summarizes claims history and account changes since the last renewal.", aiPrompt: "Summarize this account's claims history and any changes since the last renewal." },
+      { title: "Underwriter reviews and decides", description: "The underwriter verifies the summary and makes the renewal pricing decision.", humanCheckpoint: true },
+    ],
+  },
+  {
+    title: "AI-Assisted Policy & Claims Inquiry Response",
+    department: "Customer Service",
+    industryTags: ["Insurance", "Financial services"],
+    summary: "Draft accurate responses to policyholder questions about coverage and claim status.",
+    currentProcess: "Representatives manually look up policy terms and claim status, then write a response from scratch.",
+    aiProcess: "AI drafts a response referencing the policyholder's actual policy terms and claim status, flagged for verification before sending.",
+    timeSavedMinutes: 18,
+    difficulty: "MEDIUM",
+    skillLevel: "Intermediate",
+    toolsRequired: ["Claims Portal", "Claude"],
+    skillsRequired: ["Prompting", "Evaluation"],
+    securityNotes: "Never let a draft state or imply a coverage decision that hasn't actually been made or approved.",
+    steps: [
+      { title: "Inquiry received", description: "A policyholder contacts customer service about a policy or claim question." },
+      { title: "AI pulls policy and claim details", description: "AI retrieves the actual policy terms and claim status from the Claims Portal." },
+      { title: "AI drafts a response", description: "AI drafts a response referencing the specific policy and claim details.", aiPrompt: "Draft a response to this policyholder inquiry using their actual policy terms and claim status." },
+      { title: "Representative reviews and sends", description: "The representative verifies accuracy and sends.", humanCheckpoint: true },
+    ],
+  },
+  {
+    title: "AI-Assisted Insurance Sales Prospecting",
     department: "Sales",
-    industryTags: ["Technology", "Financial services", "Consumer products (CPG)", "Professional services", "Business services", "Insurance"],
+    industryTags: ["Insurance", "Financial services"],
     summary: "Research prospects, draft personalized outreach, and pre-fill CRM records.",
-    currentProcess: "Reps manually research each prospect, draft outreach emails, and enter notes into the CRM.",
-    aiProcess: "AI researches the account, drafts a personalized outreach email, and pre-fills CRM fields for rep approval.",
+    currentProcess: "Agents manually research each prospect, draft outreach emails, and enter notes into the CRM.",
+    aiProcess: "AI researches the prospect's business, drafts a personalized outreach email, and pre-fills CRM fields for agent approval.",
     timeSavedMinutes: 35,
     difficulty: "MEDIUM",
     skillLevel: "Intermediate",
     toolsRequired: ["Salesforce", "ChatGPT"],
     skillsRequired: ["Prompting", "Workflow design"],
-    trainingNotes: "Reps should learn how to verify AI-researched facts before sending outreach.",
+    trainingNotes: "Agents should learn how to verify AI-researched facts before sending outreach.",
     steps: [
-      { title: "Employee receives inbound lead", description: "A new lead enters the pipeline." },
-      { title: "AI researches the company", description: "AI gathers public information about the account.", aiPrompt: "Research this company and summarize their business, size, and recent news." },
-      { title: "AI drafts personalized outreach", description: "AI writes a first-draft outreach email referencing the research.", aiPrompt: "Draft a personalized cold outreach email using the research above." },
-      { title: "Rep reviews and approves", description: "The rep edits and approves the draft before sending.", humanCheckpoint: true },
+      { title: "Agent receives inbound lead", description: "A new commercial insurance lead enters the pipeline." },
+      { title: "AI researches the business", description: "AI gathers public information about the prospect's business and risk profile.", aiPrompt: "Research this business and summarize their size, industry, and insurance needs." },
+      { title: "AI drafts personalized outreach", description: "AI writes a first-draft outreach email referencing the research.", aiPrompt: "Draft a personalized outreach email using the research above." },
+      { title: "Agent reviews and approves", description: "The agent edits and approves the draft before sending.", humanCheckpoint: true },
       { title: "CRM is updated", description: "Account and activity fields are updated automatically in Salesforce." },
     ],
   },
   {
-    title: "Proposal & RFP Response Drafting",
+    title: "Quote Proposal Drafting",
     department: "Sales",
-    industryTags: ["Professional services", "Technology", "Business services", "Insurance"],
-    summary: "Draft first-pass RFP responses from an existing content library.",
-    currentProcess: "Reps manually assemble RFP responses from a shared document library, copy-pasting relevant sections.",
-    aiProcess: "AI drafts a first-pass RFP response from the content library; reps customize and finalize it.",
-    timeSavedMinutes: 45,
+    industryTags: ["Insurance"],
+    summary: "Draft first-pass insurance quote proposals from a coverage content library.",
+    currentProcess: "Agents manually assemble quote proposals from a shared content library, copy-pasting relevant coverage sections.",
+    aiProcess: "AI drafts a first-pass quote proposal from the coverage content library; agents customize and finalize it.",
+    timeSavedMinutes: 40,
     difficulty: "MEDIUM",
     skillLevel: "Intermediate",
     toolsRequired: ["Salesforce", "ChatGPT"],
     skillsRequired: ["Prompting", "Evaluation"],
     steps: [
-      { title: "RFP received", description: "A new RFP or proposal request comes in." },
-      { title: "AI drafts responses from content library", description: "AI matches RFP questions to existing approved content.", aiPrompt: "Draft responses to these RFP questions using our approved content library." },
-      { title: "Rep customizes and finalizes", description: "The rep edits the draft for this specific client.", humanCheckpoint: true },
+      { title: "Quote request received", description: "A prospect requests a quote for a specific coverage need." },
+      { title: "AI drafts proposal from content library", description: "AI matches the coverage need to existing approved proposal content.", aiPrompt: "Draft a quote proposal for these coverage needs using our approved content library." },
+      { title: "Agent customizes and finalizes", description: "The agent edits the draft for this specific prospect.", humanCheckpoint: true },
     ],
   },
   {
     title: "AI-Generated Campaign Briefs & Copy Drafts",
     department: "Marketing",
-    industryTags: ["Retail", "Consumer products (CPG)", "Marketing agency", "Professional services", "Technology"],
+    industryTags: ["Insurance", "Financial services"],
     summary: "Draft campaign briefs and channel-specific copy from a single input brief.",
     currentProcess: "Marketers draft campaign briefs and first-pass copy manually for every channel.",
     aiProcess: "AI drafts a campaign brief and channel-specific copy variants from a single input brief for marketer review.",
     timeSavedMinutes: 40,
     difficulty: "LOW",
     skillLevel: "Beginner",
-    toolsRequired: ["HubSpot", "Claude"],
+    toolsRequired: ["Microsoft 365", "Claude"],
     skillsRequired: ["Prompting"],
+    securityNotes: "Any coverage or guarantee-style language in AI-drafted copy must be routed through compliance before it ships.",
     steps: [
       { title: "Campaign kickoff", description: "Marketer defines the campaign goal and audience." },
       { title: "AI drafts the campaign brief", description: "AI expands the goal into a structured brief.", aiPrompt: "Turn this campaign goal into a structured campaign brief." },
       { title: "AI drafts channel copy", description: "AI generates copy variants for email, social, and web.", aiPrompt: "Draft 3 copy variants for email and social based on this brief." },
-      { title: "Marketer reviews and finalizes", description: "Marketer edits and approves final copy.", humanCheckpoint: true },
+      { title: "Marketer and compliance review", description: "Marketer edits copy and compliance reviews any coverage language before approval.", humanCheckpoint: true },
     ],
   },
   {
-    title: "Competitive Intelligence Briefs",
+    title: "Competitive & Market Intelligence Briefs",
     department: "Marketing",
-    industryTags: ["Retail", "Consumer products (CPG)", "Technology", "Financial services", "Insurance"],
-    summary: "Monitor competitor activity and draft a monthly intelligence brief.",
-    currentProcess: "Marketing manually tracks competitor moves and compiles a brief once a month.",
-    aiProcess: "AI monitors public competitor signals and drafts a monthly brief for marketing review.",
+    industryTags: ["Insurance", "Financial services"],
+    summary: "Monitor competitor rates and market moves, and draft a monthly intelligence brief.",
+    currentProcess: "Marketing manually tracks competitor rate filings and market moves and compiles a brief once a month.",
+    aiProcess: "AI monitors public competitor and market signals and drafts a monthly brief for marketing and product review.",
     timeSavedMinutes: 25,
     difficulty: "LOW",
     skillLevel: "Beginner",
     toolsRequired: ["Claude"],
     skillsRequired: ["Evaluation"],
     steps: [
-      { title: "Signals collected", description: "Public competitor signals (pricing, launches, press) are gathered." },
-      { title: "AI drafts the brief", description: "AI synthesizes signals into a structured brief.", aiPrompt: "Summarize this month's competitor signals into a one-page brief." },
+      { title: "Signals collected", description: "Public competitor and market signals (rate filings, launches, press) are gathered." },
+      { title: "AI drafts the brief", description: "AI synthesizes signals into a structured brief.", aiPrompt: "Summarize this month's competitor and market signals into a one-page brief." },
       { title: "Marketer reviews and distributes", description: "Marketer fact-checks and shares with the team.", humanCheckpoint: true },
     ],
   },
   {
-    title: "AI-Assisted Monthly Reporting Narratives",
+    title: "AI-Assisted Financial Reporting Narratives",
     department: "Finance",
-    industryTags: ["Financial services", "Consumer products (CPG)", "Professional services", "Technology", "Insurance"],
-    summary: "Draft the narrative and variance commentary for monthly financial reports.",
-    currentProcess: "Finance analysts manually write commentary for monthly board and budget reports.",
-    aiProcess: "AI drafts the narrative and variance commentary directly from the numbers; analysts review and finalize.",
+    industryTags: ["Insurance", "Financial services"],
+    summary: "Draft the narrative and loss-ratio variance commentary for monthly financial reports.",
+    currentProcess: "Finance analysts manually write commentary for monthly loss-ratio and budget reports.",
+    aiProcess: "AI drafts the narrative and variance commentary directly from the numbers; analysts confirm the cause with claims or underwriting and finalize.",
     timeSavedMinutes: 30,
     difficulty: "MEDIUM",
     skillLevel: "Intermediate",
-    toolsRequired: ["QuickBooks", "ChatGPT"],
+    toolsRequired: ["Power BI", "ChatGPT"],
     skillsRequired: ["Evaluation", "AI safety"],
-    securityNotes: "Financial figures should only be shared with AI tools approved under the company's data governance policy.",
+    securityNotes: "Financial figures should only be shared with AI tools approved under Havenbrook's data governance policy.",
     steps: [
       { title: "Monthly close completes", description: "Finance closes the books for the month." },
-      { title: "AI drafts variance commentary", description: "AI writes commentary explaining month-over-month changes.", aiPrompt: "Draft variance commentary explaining these budget-to-actual differences." },
-      { title: "Analyst reviews and finalizes", description: "An analyst verifies figures and finalizes the narrative.", humanCheckpoint: true },
+      { title: "AI drafts variance commentary", description: "AI writes commentary explaining month-over-month loss-ratio changes.", aiPrompt: "Draft variance commentary explaining these loss-ratio changes." },
+      { title: "Analyst confirms cause and finalizes", description: "An analyst confirms the actual cause with claims/underwriting and finalizes the narrative.", humanCheckpoint: true },
     ],
   },
   {
     title: "Expense Anomaly Detection",
     department: "Finance",
-    industryTags: ["Financial services", "Professional services", "Business services", "Technology"],
+    industryTags: ["Insurance", "Financial services"],
     summary: "Flag unusual expenses for review before they're approved.",
     currentProcess: "Finance manually spot-checks expense reports for anomalies.",
     aiProcess: "AI flags unusual expenses against historical patterns for finance review before approval.",
     timeSavedMinutes: 18,
     difficulty: "MEDIUM",
     skillLevel: "Intermediate",
-    toolsRequired: ["QuickBooks"],
+    toolsRequired: ["Power BI"],
     skillsRequired: ["Automation"],
     steps: [
       { title: "Expense submitted", description: "An employee submits an expense report." },
@@ -252,114 +311,114 @@ const WORKFLOW_SEEDS: WorkflowSeed[] = [
     ],
   },
   {
+    title: "Internal Knowledge Management Assistant",
+    department: "Operations",
+    industryTags: ["Insurance", "Financial services"],
+    summary: "Answer internal procedure questions from Havenbrook's own SOPs, with a citation.",
+    currentProcess: "Employees ask senior staff the same recurring procedural questions, or rely on their own possibly outdated memory of the SOP.",
+    aiProcess: "AI searches Havenbrook's internal SOP documents and answers procedural questions with a section citation for verification.",
+    timeSavedMinutes: 20,
+    difficulty: "LOW",
+    skillLevel: "Beginner",
+    toolsRequired: ["Microsoft 365", "Claude"],
+    skillsRequired: ["Evaluation", "Automation"],
+    trainingNotes: "Staff need to check that a cited SOP section is the current version, not a superseded one.",
+    steps: [
+      { title: "Question asked", description: "An employee has a procedural question they're not fully sure of." },
+      { title: "AI searches internal SOPs", description: "AI searches the actual SOP documents and drafts an answer with a section citation.", aiPrompt: "Answer this procedure question using only our internal SOP documents, and cite the specific section." },
+      { title: "Employee confirms currency", description: "The employee checks that the cited section reflects the current policy version.", humanCheckpoint: true },
+    ],
+  },
+  {
     title: "AI-Assisted Job Descriptions & Resume Screening",
     department: "HR",
-    industryTags: ["Professional services", "Technology", "Business services", "Insurance", "Financial services"],
+    industryTags: ["Insurance", "Financial services"],
     summary: "Draft job descriptions and pre-screen resumes against role criteria.",
     currentProcess: "Recruiters write job descriptions from scratch and manually screen every resume.",
     aiProcess: "AI drafts job descriptions and pre-screens resumes against role criteria for recruiter review.",
     timeSavedMinutes: 28,
     difficulty: "LOW",
     skillLevel: "Beginner",
-    toolsRequired: ["Notion", "ChatGPT"],
+    toolsRequired: ["Microsoft 365", "ChatGPT"],
     skillsRequired: ["Prompting"],
     securityNotes: "Screening criteria should be reviewed for bias before deployment.",
     steps: [
-      { title: "Role opens", description: "A hiring manager requests a new role." },
+      { title: "Role opens", description: "A hiring manager requests a new role (e.g. Claims Adjuster, Underwriter)." },
       { title: "AI drafts the job description", description: "AI writes a first-draft JD from role requirements.", aiPrompt: "Draft a job description for this role and level." },
-      { title: "AI pre-screens resumes", description: "AI scores incoming resumes against the role criteria." },
-      { title: "Recruiter reviews shortlist", description: "Recruiter reviews the AI-shortlisted candidates.", humanCheckpoint: true },
+      { title: "AI pre-screens resumes", description: "AI scores incoming resumes against the written role criteria." },
+      { title: "Recruiter reviews shortlist", description: "Recruiter reviews the AI-shortlisted candidates and spot-checks rejections.", humanCheckpoint: true },
     ],
   },
   {
-    title: "Demand Forecasting Assistant",
-    department: "Operations",
-    industryTags: ["Retail", "Consumer products (CPG)", "Manufacturing"],
-    summary: "Incorporate external signals into demand forecasts and flag anomalies.",
-    currentProcess: "Planners build demand forecasts in spreadsheets using historical sales data alone.",
-    aiProcess: "AI-assisted forecasting incorporates external signals (seasonality, promotions, trends) and flags anomalies for planner review.",
-    timeSavedMinutes: 50,
+    title: "AI-Assisted Regulatory Compliance Review",
+    department: "Compliance",
+    industryTags: ["Insurance", "Financial services"],
+    summary: "Flag potentially non-compliant marketing and communications language before it ships.",
+    currentProcess: "Compliance manually reads every piece of marketing and policyholder communication against state regulatory guidelines.",
+    aiProcess: "AI compares copy against state-specific regulatory guidelines and flags potential issues for a compliance officer's final decision.",
+    timeSavedMinutes: 30,
     difficulty: "HIGH",
     skillLevel: "Advanced",
-    toolsRequired: ["Excel", "OpenAI"],
-    skillsRequired: ["Workflow design", "Automation"],
-    trainingNotes: "Planners need training on interpreting model confidence intervals, not just point forecasts.",
+    toolsRequired: ["ChatGPT"],
+    skillsRequired: ["Evaluation", "AI safety"],
+    securityNotes: "AI may only flag potential issues — a licensed compliance officer must make the final release decision, especially across multiple states.",
     steps: [
-      { title: "Historical data compiled", description: "Sales history and planned promotions are compiled." },
-      { title: "AI generates forecast", description: "AI produces a demand forecast incorporating external signals." },
-      { title: "AI flags anomalies", description: "AI highlights SKUs where the forecast deviates sharply from history." },
-      { title: "Planner reviews and adjusts", description: "Planner reviews flagged items and finalizes the forecast.", humanCheckpoint: true },
+      { title: "Copy submitted for review", description: "Marketing or communications submits copy ahead of a multi-state launch." },
+      { title: "AI flags potential issues", description: "AI compares the copy against state-specific regulatory guidelines and flags risky language.", aiPrompt: "Flag any language in this copy that may conflict with our state insurance marketing guidelines." },
+      { title: "Compliance officer decides", description: "A licensed compliance officer reviews flagged items and makes the final call.", humanCheckpoint: true },
     ],
   },
   {
-    title: "AI-Assisted Product Requirement Docs",
-    department: "Product",
-    industryTags: ["Technology"],
-    summary: "Draft a structured PRD from meeting notes and prior documentation.",
-    currentProcess: "Product managers write requirement docs manually from scattered notes and interviews.",
-    aiProcess: "AI drafts a structured PRD from meeting notes and prior docs for PM review.",
-    timeSavedMinutes: 60,
-    difficulty: "LOW",
-    skillLevel: "Beginner",
-    toolsRequired: ["Notion", "Claude"],
-    skillsRequired: ["Prompting"],
-    steps: [
-      { title: "Discovery notes compiled", description: "PM gathers notes from customer and stakeholder interviews." },
-      { title: "AI drafts the PRD", description: "AI structures the notes into a standard PRD format.", aiPrompt: "Turn these interview notes into a structured PRD with goals, requirements, and open questions." },
-      { title: "PM reviews and refines", description: "PM edits and circulates for feedback.", humanCheckpoint: true },
-    ],
-  },
-  {
-    title: "Contract Review Assistant",
+    title: "Contract & Policy Language Review",
     department: "Legal",
-    industryTags: ["Legal", "Professional services", "Financial services", "Business services", "Insurance", "Technology"],
-    summary: "Flag non-standard clauses in incoming contracts before legal review.",
+    industryTags: ["Insurance", "Legal", "Financial services"],
+    summary: "Flag non-standard clauses in incoming vendor contracts before legal review.",
     currentProcess: "Legal manually reads every incoming contract line by line to find non-standard terms.",
-    aiProcess: "AI flags non-standard or high-risk clauses against the company's playbook before legal review.",
+    aiProcess: "AI flags non-standard or high-risk clauses against Havenbrook's playbook before legal review.",
     timeSavedMinutes: 55,
     difficulty: "HIGH",
     skillLevel: "Advanced",
-    toolsRequired: ["OpenAI"],
+    toolsRequired: ["ChatGPT"],
     skillsRequired: ["Evaluation", "AI safety"],
-    securityNotes: "Contracts often contain confidential terms — only use AI tools covered by a signed data processing agreement.",
+    securityNotes: "Vendor contracts (especially claims-data vendors) contain confidential terms — only use AI tools covered by a signed data processing agreement.",
     steps: [
-      { title: "Contract received", description: "A new contract arrives for review." },
+      { title: "Contract received", description: "A new vendor contract arrives for review." },
       { title: "AI flags non-standard clauses", description: "AI compares clauses against the approved playbook.", aiPrompt: "Flag any clauses in this contract that deviate from our standard playbook." },
-      { title: "Attorney reviews flagged clauses", description: "An attorney reviews only the flagged sections in depth.", humanCheckpoint: true },
+      { title: "Attorney reviews flagged clauses", description: "An attorney reviews only the flagged sections in depth and decides on risk.", humanCheckpoint: true },
     ],
   },
   {
     title: "AI-Assisted Board Reporting",
     department: "Executive",
-    industryTags: ["Technology", "Financial services", "Professional services", "Business services", "Insurance"],
+    industryTags: ["Insurance", "Financial services"],
     summary: "Draft board-ready summaries from operating metrics across departments.",
     currentProcess: "Executives and their teams manually compile a board deck narrative from department updates.",
-    aiProcess: "AI drafts a first-pass board narrative from department metrics, executives edit and finalize.",
+    aiProcess: "AI drafts a first-pass board narrative from department metrics, executives verify every figure and finalize.",
     timeSavedMinutes: 65,
     difficulty: "MEDIUM",
     skillLevel: "Intermediate",
-    toolsRequired: ["Notion", "Claude"],
+    toolsRequired: ["Microsoft 365", "Claude"],
     skillsRequired: ["Evaluation"],
     steps: [
-      { title: "Department updates compiled", description: "Metrics and updates are gathered from each department." },
+      { title: "Department updates compiled", description: "Metrics and updates are gathered from claims, underwriting, sales, compliance, and IT." },
       { title: "AI drafts the narrative", description: "AI writes a first-pass board narrative from the metrics.", aiPrompt: "Draft a board-ready narrative summarizing these department updates." },
-      { title: "Executive team finalizes", description: "The executive team edits and finalizes the deck.", humanCheckpoint: true },
+      { title: "Executive team verifies and finalizes", description: "The executive team traces every figure to its source before finalizing.", humanCheckpoint: true },
     ],
   },
   {
     title: "AI Code Review Assistant",
-    department: "Engineering",
-    industryTags: ["Technology"],
-    summary: "Get an AI first-pass review on pull requests before human review.",
-    currentProcess: "Every pull request waits for a human reviewer to check style, bugs, and test coverage.",
+    department: "IT",
+    industryTags: ["Insurance"],
+    summary: "Get an AI first-pass review on Claims Portal pull requests before human review.",
+    currentProcess: "Every pull request to the Claims Portal waits for a human reviewer to check style, bugs, and test coverage.",
     aiProcess: "AI reviews the diff first for bugs, style, and missing tests, then a human reviewer focuses on design.",
     timeSavedMinutes: 20,
     difficulty: "MEDIUM",
     skillLevel: "Intermediate",
-    toolsRequired: ["Jira", "OpenAI"],
+    toolsRequired: ["ChatGPT"],
     skillsRequired: ["Evaluation", "Automation"],
     steps: [
-      { title: "PR opened", description: "An engineer opens a pull request." },
+      { title: "PR opened", description: "An engineer opens a pull request against the Claims Portal." },
       { title: "AI reviews the diff", description: "AI flags likely bugs, style issues, and missing test coverage." },
       { title: "Human reviewer focuses on design", description: "A human reviewer focuses on architecture and design decisions.", humanCheckpoint: true },
     ],
@@ -612,25 +671,27 @@ const FIRST_NAMES = ["Priya", "Marcus", "Sofia", "James", "Wei", "Isabella", "No
 const LAST_NAMES = ["Shah", "Bennett", "Rossi", "Coleman", "Zhang", "Ferreira", "Park", "Haddad", "O'Brien", "Tanaka", "Silva", "Murphy", "Alvarez", "Novak", "Reed", "Okafor", "Bianchi", "Farah", "Sullivan", "Kim", "Haddad", "Whitfield", "Reyes", "Chen", "Foster", "Aziz", "Turner", "Iyer", "Bishop", "Nguyen", "Costa", "Duarte", "Weber", "Blake", "Petrov", "Marsh", "Rahman", "Wells", "Sato", "Hunt"];
 
 const JOB_TITLES: Record<string, string[]> = {
-  Marketing: ["Marketing Manager", "Content Strategist", "Brand Manager", "Growth Marketer", "Marketing Coordinator", "Campaign Manager"],
-  Sales: ["Account Executive", "Sales Development Rep", "Sales Manager", "Regional Sales Director", "Sales Operations Analyst"],
-  Finance: ["Financial Analyst", "Accountant", "FP&A Manager", "Controller", "AP/AR Specialist"],
-  Operations: ["Operations Manager", "Supply Chain Analyst", "Demand Planner", "Logistics Coordinator", "Operations Analyst"],
-  "Customer Support": ["Support Agent", "Support Team Lead", "Customer Success Manager", "Support Operations Analyst"],
+  Claims: ["Claims Adjuster", "Senior Claims Adjuster", "Claims Examiner", "Claims Team Lead", "Claims Processor"],
+  Underwriting: ["Underwriter", "Senior Underwriter", "Underwriting Analyst", "Underwriting Assistant"],
+  "Customer Service": ["Customer Service Representative", "Customer Service Team Lead", "Customer Success Manager", "Service Operations Analyst"],
+  Sales: ["Insurance Sales Agent", "Account Executive", "Sales Manager", "Regional Sales Director", "Sales Operations Analyst"],
+  Marketing: ["Marketing Manager", "Content Strategist", "Brand Manager", "Marketing Coordinator", "Campaign Manager"],
+  Finance: ["Financial Analyst", "Accountant", "FP&A Manager", "Controller", "Actuarial Analyst"],
+  Operations: ["Operations Manager", "Policy Operations Analyst", "Operations Coordinator", "Process Improvement Analyst"],
   HR: ["HR Business Partner", "Recruiter", "People Operations Manager", "HR Generalist"],
-  Product: ["Product Manager", "Product Designer", "Product Analyst"],
+  Compliance: ["Compliance Analyst", "Compliance Officer", "Regulatory Affairs Specialist", "Compliance Manager"],
 };
 
-async function seedNorthstar() {
+async function seedHavenbrook() {
   const org = await prisma.organization.create({
     data: {
-      name: "Northstar Consumer Group",
-      industry: "Consumer products (CPG)",
-      size: "412",
-      revenueRange: "$250M-$1B",
-      geography: "North America",
-      businessModel: "B2C",
-      goals: ["Increase productivity", "Reduce costs", "Improve customer experience", "Improve marketing", "Improve decision making"],
+      name: "Havenbrook",
+      industry: "Insurance",
+      size: "318",
+      revenueRange: "$100M-$500M",
+      geography: "New York, Chicago, Atlanta, Dallas",
+      businessModel: "B2B2C",
+      goals: ["Standardize AI tool usage", "Increase productivity", "Reduce costs", "Improve customer experience", "Improve decision making"],
       onboardingDone: true,
       onboardingStep: 5,
     },
@@ -642,7 +703,7 @@ async function seedNorthstar() {
 
   await prisma.user.create({
     data: {
-      email: "admin@northstarcg.com",
+      email: "admin@havenbrook.com",
       name: "Jordan Cole",
       passwordHash: await hashPassword(DEMO_PASSWORD),
       role: "COMPANY_ADMIN",
@@ -650,18 +711,36 @@ async function seedNorthstar() {
     },
   });
 
+  // Havenbrook's proprietary internal system - a custom, org-specific tool (not part of the shared global catalog).
+  const claimsPortal = await prisma.tool.create({
+    data: {
+      name: "Claims Portal",
+      category: "INTERNAL_PLATFORM",
+      vendor: "Havenbrook (internal)",
+      description: "Havenbrook's proprietary system for claim intake, document management, and adjuster workflows. Includes a built-in AI assistant covered by Havenbrook's data processing agreement.",
+      capabilities: ["Claim intake", "Document management", "Built-in AI assistant", "Adjuster workflows"],
+      isCustom: true,
+      organizationId: org.id,
+    },
+  });
+  await prisma.organizationTool.create({
+    data: { organizationId: org.id, toolId: claimsPortal.id, status: "APPROVED" },
+  });
+
   return { org, departments };
 }
 
 async function seedEmployees(org: { id: string }, departments: { id: string; name: string }[]) {
   const deptCounts: Record<string, number> = {
-    Marketing: 9,
-    Sales: 10,
-    Finance: 6,
-    Operations: 8,
-    "Customer Support": 9,
+    Claims: 13,
+    Underwriting: 9,
+    "Customer Service": 10,
+    Sales: 8,
+    Marketing: 6,
+    Finance: 7,
+    Operations: 6,
     HR: 4,
-    Product: 3,
+    Compliance: 4,
   };
 
   const employees = [];
@@ -674,9 +753,9 @@ async function seedEmployees(org: { id: string }, departments: { id: string; nam
       const last = LAST_NAMES[(nameIndex * 7) % LAST_NAMES.length];
       nameIndex++;
       const name = `${first} ${last}`;
-      let email = `${first.toLowerCase()}.${last.toLowerCase().replace(/[^a-z]/g, "")}@northstarcg.com`;
+      let email = `${first.toLowerCase()}.${last.toLowerCase().replace(/[^a-z]/g, "")}@havenbrook.com`;
       if (usedEmails.has(email)) {
-        email = `${first.toLowerCase()}.${last.toLowerCase().replace(/[^a-z]/g, "")}${nameIndex}@northstarcg.com`;
+        email = `${first.toLowerCase()}.${last.toLowerCase().replace(/[^a-z]/g, "")}${nameIndex}@havenbrook.com`;
       }
       usedEmails.add(email);
       const jobTitle = pick(JOB_TITLES[dept.name] ?? ["Specialist"]);
@@ -698,12 +777,18 @@ async function seedEmployees(org: { id: string }, departments: { id: string; nam
     }
   }
 
-  // Give priya.shah@northstarcg.com a predictable identity for the demo login button
+  // Give priya.shah@havenbrook.com a predictable identity for the demo login button.
+  // The randomly-cycled name pool can independently produce the same "Priya Shah"
+  // combination for a different employee - free that email first if so.
   const priya = employees.find((e) => e.departmentName === "Marketing");
   if (priya) {
+    const conflicting = await prisma.user.findUnique({ where: { email: "priya.shah@havenbrook.com" } });
+    if (conflicting && conflicting.id !== priya.userId) {
+      await prisma.user.update({ where: { id: conflicting.id }, data: { email: `priya.shah.${conflicting.id.slice(-6)}@havenbrook.com` } });
+    }
     const user = await prisma.user.findUnique({ where: { id: priya.userId } });
     if (user) {
-      await prisma.user.update({ where: { id: user.id }, data: { email: "priya.shah@northstarcg.com", name: "Priya Shah" } });
+      await prisma.user.update({ where: { id: user.id }, data: { email: "priya.shah@havenbrook.com", name: "Priya Shah" } });
     }
   }
 
@@ -711,7 +796,7 @@ async function seedEmployees(org: { id: string }, departments: { id: string; nam
 }
 
 async function seedOrgIntegrations(org: { id: string }, integrations: { id: string; key: string }[]) {
-  const connectedKeys = ["google_workspace", "slack", "hubspot", "zendesk", "quickbooks"];
+  const connectedKeys = ["microsoft_365", "slack", "salesforce", "quickbooks"];
   for (const integration of integrations) {
     const connected = connectedKeys.includes(integration.key);
     await prisma.integrationConnection.create({
@@ -732,8 +817,8 @@ async function seedOrgWorkflowAdoption(org: { id: string }, workflows: { id: str
     "AI-Generated Campaign Briefs & Copy Drafts",
     "AI-Assisted Job Descriptions & Resume Screening",
   ];
-  const inProgress = ["AI Conversation Summarization & Response Drafting", "AI-Assisted Sales Prospecting"];
-  const learning = ["Demand Forecasting Assistant"];
+  const inProgress = ["AI-Assisted Claims Document Processing", "AI-Assisted Policy & Claims Inquiry Response", "AI-Assisted Insurance Sales Prospecting"];
+  const learning = ["Internal Knowledge Management Assistant"];
 
   for (const w of workflows) {
     let status: "NOT_ADOPTED" | "LEARNING" | "IN_PROGRESS" | "ADOPTED" = "NOT_ADOPTED";
@@ -775,39 +860,111 @@ type OpportunitySeed = {
 
 const OPPORTUNITY_SEEDS: OpportunitySeed[] = [
   {
-    title: "AI Conversation Summarization & Response Drafting",
-    department: "Customer Support",
-    workflowTitle: "AI Conversation Summarization & Response Drafting",
-    currentProcess: "Agents manually summarize customer conversations and write follow-up emails.",
-    aiOpportunity: "Use AI to summarize conversations, classify intent, generate response drafts, and identify escalation risk. At full scale this could save the support team roughly 1,200 hours per month.",
+    title: "AI-Assisted Claims Document Processing",
+    department: "Claims",
+    workflowTitle: "AI-Assisted Claims Document Processing",
+    currentProcess: "Adjusters manually read every document in a claim file to build their case summary.",
+    aiOpportunity: "AI extracts key facts from claim documents, flags discrepancies, and drafts a structured summary for adjuster review. At full scale this could save the claims team roughly 1,100 hours per month.",
     impact: "HIGH",
     complexity: "MEDIUM",
-    estHoursSavedMonthly: 420,
-    estAnnualValue: 240000,
+    estHoursSavedMonthly: 440,
+    estAnnualValue: 260000,
     status: "IN_PROGRESS",
     recommendedSpecialist: true,
-    businessImpactScore: 82,
-    adoptionPotentialScore: 70,
-    frequencyScore: 90,
-    riskScore: 25,
-    toolsRequired: ["Zendesk", "Claude"],
+    businessImpactScore: 85,
+    adoptionPotentialScore: 72,
+    frequencyScore: 92,
+    riskScore: 28,
+    toolsRequired: ["Claims Portal", "ChatGPT"],
   },
   {
-    title: "AI-Assisted Sales Prospecting",
-    department: "Sales",
-    workflowTitle: "AI-Assisted Sales Prospecting",
-    currentProcess: "Reps manually research prospects, draft outreach, and log activity in the CRM.",
-    aiOpportunity: "AI researches accounts, drafts personalized outreach, and pre-fills CRM fields for rep approval.",
+    title: "Claims Triage & Routing",
+    department: "Claims",
+    workflowTitle: "Claims Triage & Routing",
+    currentProcess: "A triage adjuster manually reads every incoming claim and routes it to the correct queue.",
+    aiOpportunity: "AI classifies claim type and severity and auto-routes it, flagging high-severity claims for immediate attention.",
+    impact: "MEDIUM",
+    complexity: "MEDIUM",
+    estHoursSavedMonthly: 150,
+    estAnnualValue: 80000,
+    status: "IDENTIFIED",
+    recommendedSpecialist: false,
+    businessImpactScore: 60,
+    adoptionPotentialScore: 70,
+    frequencyScore: 90,
+    riskScore: 24,
+    toolsRequired: ["Claims Portal"],
+  },
+  {
+    title: "AI-Assisted Underwriting Research",
+    department: "Underwriting",
+    workflowTitle: "AI-Assisted Underwriting Research",
+    currentProcess: "Underwriters manually research an applicant's public risk profile before pricing.",
+    aiOpportunity: "AI gathers public risk signals with sources cited; the underwriter verifies and prices the policy.",
     impact: "HIGH",
     complexity: "MEDIUM",
-    estHoursSavedMonthly: 310,
-    estAnnualValue: 185000,
+    estHoursSavedMonthly: 260,
+    estAnnualValue: 175000,
     status: "IDENTIFIED",
     recommendedSpecialist: true,
-    businessImpactScore: 78,
-    adoptionPotentialScore: 65,
-    frequencyScore: 85,
-    riskScore: 20,
+    businessImpactScore: 76,
+    adoptionPotentialScore: 60,
+    frequencyScore: 70,
+    riskScore: 40,
+    toolsRequired: ["ChatGPT", "Power BI"],
+  },
+  {
+    title: "AI-Assisted Policy & Claims Inquiry Response",
+    department: "Customer Service",
+    workflowTitle: "AI-Assisted Policy & Claims Inquiry Response",
+    currentProcess: "Representatives manually look up policy terms and claim status, then write a response from scratch.",
+    aiOpportunity: "AI drafts a response referencing the policyholder's actual policy and claim status for representative review.",
+    impact: "HIGH",
+    complexity: "MEDIUM",
+    estHoursSavedMonthly: 300,
+    estAnnualValue: 165000,
+    status: "IN_PROGRESS",
+    recommendedSpecialist: true,
+    businessImpactScore: 79,
+    adoptionPotentialScore: 68,
+    frequencyScore: 88,
+    riskScore: 30,
+    toolsRequired: ["Claims Portal", "Claude"],
+  },
+  {
+    title: "AI-Assisted Insurance Sales Prospecting",
+    department: "Sales",
+    workflowTitle: "AI-Assisted Insurance Sales Prospecting",
+    currentProcess: "Agents manually research prospects, draft outreach, and log activity in the CRM.",
+    aiOpportunity: "AI researches prospect businesses, drafts personalized outreach, and pre-fills CRM fields for agent approval.",
+    impact: "HIGH",
+    complexity: "MEDIUM",
+    estHoursSavedMonthly: 220,
+    estAnnualValue: 150000,
+    status: "IDENTIFIED",
+    recommendedSpecialist: true,
+    businessImpactScore: 74,
+    adoptionPotentialScore: 62,
+    frequencyScore: 80,
+    riskScore: 22,
+    toolsRequired: ["Salesforce", "ChatGPT"],
+  },
+  {
+    title: "Quote Proposal Drafting",
+    department: "Sales",
+    workflowTitle: "Quote Proposal Drafting",
+    currentProcess: "Agents assemble quote proposals manually from a shared coverage content library.",
+    aiOpportunity: "AI drafts first-pass quote proposals from the content library; agents customize and finalize.",
+    impact: "MEDIUM",
+    complexity: "MEDIUM",
+    estHoursSavedMonthly: 90,
+    estAnnualValue: 60000,
+    status: "DEFERRED",
+    recommendedSpecialist: false,
+    businessImpactScore: 50,
+    adoptionPotentialScore: 32,
+    frequencyScore: 20,
+    riskScore: 28,
     toolsRequired: ["Salesforce", "ChatGPT"],
   },
   {
@@ -818,141 +975,51 @@ const OPPORTUNITY_SEEDS: OpportunitySeed[] = [
     aiOpportunity: "AI drafts campaign briefs and channel-specific copy variants from a single input brief for marketer review.",
     impact: "MEDIUM",
     complexity: "LOW",
-    estHoursSavedMonthly: 180,
-    estAnnualValue: 90000,
+    estHoursSavedMonthly: 150,
+    estAnnualValue: 80000,
     status: "IMPLEMENTED",
-    recommendedSpecialist: false,
-    businessImpactScore: 60,
-    adoptionPotentialScore: 75,
-    frequencyScore: 80,
-    riskScore: 15,
-    toolsRequired: ["HubSpot", "Claude"],
-  },
-  {
-    title: "AI-Assisted Monthly Reporting Narratives",
-    department: "Finance",
-    workflowTitle: "AI-Assisted Monthly Reporting Narratives",
-    currentProcess: "Finance analysts manually write commentary for monthly board and budget reports.",
-    aiOpportunity: "AI drafts the narrative and variance commentary from the numbers; analysts review and finalize.",
-    impact: "MEDIUM",
-    complexity: "MEDIUM",
-    estHoursSavedMonthly: 90,
-    estAnnualValue: 65000,
-    status: "IDENTIFIED",
-    recommendedSpecialist: true,
-    businessImpactScore: 55,
-    adoptionPotentialScore: 40,
-    frequencyScore: 30,
-    riskScore: 35,
-    toolsRequired: ["QuickBooks", "ChatGPT"],
-  },
-  {
-    title: "AI Demand Forecasting Assistant",
-    department: "Operations",
-    workflowTitle: "Demand Forecasting Assistant",
-    currentProcess: "Planners build demand forecasts in spreadsheets using historical sales data alone.",
-    aiOpportunity: "AI-assisted forecasting incorporates external signals and flags anomalies for planner review.",
-    impact: "HIGH",
-    complexity: "HIGH",
-    estHoursSavedMonthly: 140,
-    estAnnualValue: 210000,
-    status: "IDENTIFIED",
-    recommendedSpecialist: true,
-    businessImpactScore: 80,
-    adoptionPotentialScore: 35,
-    frequencyScore: 20,
-    riskScore: 55,
-    toolsRequired: ["Excel", "OpenAI"],
-  },
-  {
-    title: "AI-Assisted Job Descriptions & Resume Screening",
-    department: "HR",
-    workflowTitle: "AI-Assisted Job Descriptions & Resume Screening",
-    currentProcess: "Recruiters write job descriptions from scratch and manually screen every resume.",
-    aiOpportunity: "AI drafts job descriptions and pre-screens resumes against role criteria for recruiter review.",
-    impact: "MEDIUM",
-    complexity: "LOW",
-    estHoursSavedMonthly: 60,
-    estAnnualValue: 40000,
-    status: "IMPLEMENTED",
-    recommendedSpecialist: false,
-    businessImpactScore: 45,
-    adoptionPotentialScore: 60,
-    frequencyScore: 40,
-    riskScore: 20,
-    toolsRequired: ["Notion", "ChatGPT"],
-  },
-  {
-    title: "AI-Assisted Product Requirement Docs",
-    department: "Product",
-    workflowTitle: "AI-Assisted Product Requirement Docs",
-    currentProcess: "Product managers write requirement docs manually from scattered notes and interviews.",
-    aiOpportunity: "AI drafts a structured PRD from meeting notes and prior docs for PM review.",
-    impact: "MEDIUM",
-    complexity: "LOW",
-    estHoursSavedMonthly: 50,
-    estAnnualValue: 35000,
-    status: "IDENTIFIED",
-    recommendedSpecialist: false,
-    businessImpactScore: 42,
-    adoptionPotentialScore: 55,
-    frequencyScore: 35,
-    riskScore: 15,
-    toolsRequired: ["Notion", "Claude"],
-  },
-  {
-    title: "Support Ticket Triage & Routing",
-    department: "Customer Support",
-    workflowTitle: "Support Ticket Triage & Routing",
-    currentProcess: "Tickets are manually read and routed to the right queue by a triage agent.",
-    aiOpportunity: "AI classifies intent and urgency and auto-routes tickets, flagging high-risk ones for immediate attention.",
-    impact: "MEDIUM",
-    complexity: "MEDIUM",
-    estHoursSavedMonthly: 130,
-    estAnnualValue: 70000,
-    status: "IDENTIFIED",
     recommendedSpecialist: false,
     businessImpactScore: 58,
-    adoptionPotentialScore: 68,
-    frequencyScore: 88,
-    riskScore: 22,
-    toolsRequired: ["Zendesk"],
+    adoptionPotentialScore: 74,
+    frequencyScore: 78,
+    riskScore: 18,
+    toolsRequired: ["Microsoft 365", "Claude"],
   },
   {
-    title: "Proposal & RFP Response Drafting",
-    department: "Sales",
-    workflowTitle: "Proposal & RFP Response Drafting",
-    currentProcess: "Reps assemble RFP responses manually from a shared document library.",
-    aiOpportunity: "AI drafts first-pass RFP responses from the content library; reps customize and finalize.",
-    impact: "MEDIUM",
-    complexity: "MEDIUM",
-    estHoursSavedMonthly: 70,
-    estAnnualValue: 55000,
-    status: "DEFERRED",
-    recommendedSpecialist: false,
-    businessImpactScore: 48,
-    adoptionPotentialScore: 30,
-    frequencyScore: 15,
-    riskScore: 30,
-    toolsRequired: ["Salesforce", "ChatGPT"],
-  },
-  {
-    title: "Competitive Intelligence Briefs",
+    title: "Competitive & Market Intelligence Briefs",
     department: "Marketing",
-    workflowTitle: "Competitive Intelligence Briefs",
-    currentProcess: "Marketing manually tracks competitor moves and compiles briefs monthly.",
-    aiOpportunity: "AI monitors public competitor signals and drafts a monthly brief for marketing review.",
+    workflowTitle: "Competitive & Market Intelligence Briefs",
+    currentProcess: "Marketing manually tracks competitor rate moves and compiles briefs monthly.",
+    aiOpportunity: "AI monitors public competitor and market signals and drafts a monthly brief for review.",
     impact: "LOW",
     complexity: "LOW",
-    estHoursSavedMonthly: 40,
-    estAnnualValue: 20000,
+    estHoursSavedMonthly: 35,
+    estAnnualValue: 18000,
     status: "IDENTIFIED",
     recommendedSpecialist: false,
-    businessImpactScore: 30,
-    adoptionPotentialScore: 50,
+    businessImpactScore: 28,
+    adoptionPotentialScore: 48,
     frequencyScore: 25,
     riskScore: 10,
     toolsRequired: ["Claude"],
+  },
+  {
+    title: "AI-Assisted Financial Reporting Narratives",
+    department: "Finance",
+    workflowTitle: "AI-Assisted Financial Reporting Narratives",
+    currentProcess: "Finance analysts manually write commentary for monthly loss-ratio and budget reports.",
+    aiOpportunity: "AI drafts the narrative and variance commentary from the numbers; analysts confirm the cause and finalize.",
+    impact: "MEDIUM",
+    complexity: "MEDIUM",
+    estHoursSavedMonthly: 95,
+    estAnnualValue: 68000,
+    status: "IDENTIFIED",
+    recommendedSpecialist: true,
+    businessImpactScore: 56,
+    adoptionPotentialScore: 42,
+    frequencyScore: 30,
+    riskScore: 35,
+    toolsRequired: ["Power BI", "ChatGPT"],
   },
   {
     title: "Expense Anomaly Detection",
@@ -970,7 +1037,61 @@ const OPPORTUNITY_SEEDS: OpportunitySeed[] = [
     adoptionPotentialScore: 45,
     frequencyScore: 30,
     riskScore: 25,
-    toolsRequired: ["QuickBooks"],
+    toolsRequired: ["Power BI"],
+  },
+  {
+    title: "Internal Knowledge Management Assistant",
+    department: "Operations",
+    workflowTitle: "Internal Knowledge Management Assistant",
+    currentProcess: "Employees ask senior staff the same recurring procedural questions.",
+    aiOpportunity: "AI answers internal procedure questions from Havenbrook's actual SOPs, with a citation for verification.",
+    impact: "MEDIUM",
+    complexity: "LOW",
+    estHoursSavedMonthly: 100,
+    estAnnualValue: 55000,
+    status: "IDENTIFIED",
+    recommendedSpecialist: false,
+    businessImpactScore: 48,
+    adoptionPotentialScore: 55,
+    frequencyScore: 60,
+    riskScore: 20,
+    toolsRequired: ["Microsoft 365", "Claude"],
+  },
+  {
+    title: "AI-Assisted Job Descriptions & Resume Screening",
+    department: "HR",
+    workflowTitle: "AI-Assisted Job Descriptions & Resume Screening",
+    currentProcess: "Recruiters write job descriptions from scratch and manually screen every resume.",
+    aiOpportunity: "AI drafts job descriptions and pre-screens resumes against role criteria for recruiter review.",
+    impact: "MEDIUM",
+    complexity: "LOW",
+    estHoursSavedMonthly: 60,
+    estAnnualValue: 40000,
+    status: "IMPLEMENTED",
+    recommendedSpecialist: false,
+    businessImpactScore: 45,
+    adoptionPotentialScore: 60,
+    frequencyScore: 40,
+    riskScore: 20,
+    toolsRequired: ["Microsoft 365", "ChatGPT"],
+  },
+  {
+    title: "AI-Assisted Regulatory Compliance Review",
+    department: "Compliance",
+    workflowTitle: "AI-Assisted Regulatory Compliance Review",
+    currentProcess: "Compliance manually reads every piece of marketing and communication against state regulatory guidelines.",
+    aiOpportunity: "AI flags potentially non-compliant language against state-specific guidelines for a compliance officer's final decision.",
+    impact: "HIGH",
+    complexity: "HIGH",
+    estHoursSavedMonthly: 70,
+    estAnnualValue: 95000,
+    status: "IDENTIFIED",
+    recommendedSpecialist: true,
+    businessImpactScore: 70,
+    adoptionPotentialScore: 38,
+    frequencyScore: 35,
+    riskScore: 60,
+    toolsRequired: ["ChatGPT"],
   },
 ];
 
@@ -1021,7 +1142,7 @@ async function seedInitiatives(
   void deptId;
 
   const salesMarketingEmployees = employees.filter((e) => e.departmentName === "Sales" || e.departmentName === "Marketing").slice(0, 8);
-  const supportEmployees = employees.filter((e) => e.departmentName === "Customer Support").slice(0, 6);
+  const claimsEmployees = employees.filter((e) => e.departmentName === "Claims").slice(0, 6);
 
   const salesInitiative = await prisma.initiative.create({
     data: {
@@ -1043,37 +1164,37 @@ async function seedInitiatives(
       },
       workflows: {
         create: [
-          { opportunityId: opportunities.find((o) => o.title === "AI-Assisted Sales Prospecting")?.id },
+          { opportunityId: opportunities.find((o) => o.title === "AI-Assisted Insurance Sales Prospecting")?.id },
           { opportunityId: opportunities.find((o) => o.title === "AI-Generated Campaign Briefs & Copy Drafts")?.id },
         ],
       },
     },
   });
 
-  const supportInitiative = await prisma.initiative.create({
+  const claimsInitiative = await prisma.initiative.create({
     data: {
       organizationId: org.id,
-      name: "Customer Support AI Rollout",
-      goalDescription: "Deploy AI-assisted response drafting across all support tiers.",
+      name: "Claims AI Rollout",
+      goalDescription: "Deploy AI-assisted document processing and inquiry response across the claims team.",
       startDate: monthsAgo(4),
       endDate: monthsAgo(1),
-      departments: ["Customer Support"],
+      departments: ["Claims"],
       status: "COMPLETED",
       kpis: [
         { label: "AI adoption", baseline: 20, current: 76, target: 75, unit: "%" },
-        { label: "Avg. handle time", baseline: 12, current: 8, target: 8, unit: " min" },
+        { label: "Avg. claim review time", baseline: 45, current: 28, target: 28, unit: " min" },
         { label: "Training completion", baseline: 0, current: 100, target: 100, unit: "%" },
       ],
       members: {
-        create: supportEmployees.map((e, i) => ({ employeeId: e.id, roleOnInitiative: i === 0 ? "Lead" : "Contributor" })),
+        create: claimsEmployees.map((e, i) => ({ employeeId: e.id, roleOnInitiative: i === 0 ? "Lead" : "Contributor" })),
       },
       workflows: {
-        create: [{ opportunityId: opportunities.find((o) => o.title === "AI Conversation Summarization & Response Drafting")?.id }],
+        create: [{ opportunityId: opportunities.find((o) => o.title === "AI-Assisted Claims Document Processing")?.id }],
       },
     },
   });
 
-  return [salesInitiative, supportInitiative];
+  return [salesInitiative, claimsInitiative];
 }
 
 async function seedProjects(
@@ -1087,9 +1208,9 @@ async function seedProjects(
   const priya = specialists[3];
 
   const campaignOpp = opportunities.find((o) => o.title === "AI-Generated Campaign Briefs & Copy Drafts");
-  const prospectingOpp = opportunities.find((o) => o.title === "AI-Assisted Sales Prospecting");
-  const forecastOpp = opportunities.find((o) => o.title === "AI Demand Forecasting Assistant");
-  const supportOpp = opportunities.find((o) => o.title === "AI Conversation Summarization & Response Drafting");
+  const prospectingOpp = opportunities.find((o) => o.title === "AI-Assisted Insurance Sales Prospecting");
+  const underwritingOpp = opportunities.find((o) => o.title === "AI-Assisted Underwriting Research");
+  const claimsInquiryOpp = opportunities.find((o) => o.title === "AI-Assisted Policy & Claims Inquiry Response");
 
   // Completed project with reviews
   const completedProject = await prisma.project.create({
@@ -1136,10 +1257,10 @@ async function seedProjects(
     data: {
       organizationId: org.id,
       specialistId: amara.id,
-      opportunityId: forecastOpp?.id,
-      workflowId: forecastOpp?.workflowId ?? undefined,
-      title: "Demand Forecasting AI Pilot",
-      description: "Piloting AI-assisted demand forecasting with external signal integration.",
+      opportunityId: underwritingOpp?.id,
+      workflowId: underwritingOpp?.workflowId ?? undefined,
+      title: "Underwriting Research AI Pilot",
+      description: "Piloting AI-assisted public risk research for commercial underwriting.",
       stage: "MEASUREMENT",
       status: "COMPLETED",
       budget: 18000,
@@ -1161,7 +1282,7 @@ async function seedProjects(
       specialistId: amara.id,
       organizationId: org.id,
       rating: 5,
-      comment: "Deep expertise in forecasting and very clear about tradeoffs. Planners trust the new process.",
+      comment: "Deep expertise in underwriting risk research and very clear about tradeoffs. Underwriters trust the new process.",
     },
   });
 
@@ -1172,7 +1293,7 @@ async function seedProjects(
       specialistId: david.id,
       opportunityId: prospectingOpp?.id,
       workflowId: prospectingOpp?.workflowId ?? undefined,
-      title: "AI-Assisted Sales Prospecting Implementation",
+      title: "AI-Assisted Insurance Sales Prospecting Implementation",
       description: "Implementing AI-assisted account research and outreach drafting inside Salesforce.",
       stage: "IMPLEMENTATION",
       status: "ACTIVE",
@@ -1203,10 +1324,10 @@ async function seedProjects(
     data: {
       organizationId: org.id,
       specialistId: priya.id,
-      opportunityId: supportOpp?.id,
-      workflowId: supportOpp?.workflowId ?? undefined,
-      title: "Support AI Rollout Proposal",
-      description: "Proposal to roll out AI-assisted summarization and response drafting across support tiers.",
+      opportunityId: claimsInquiryOpp?.id,
+      workflowId: claimsInquiryOpp?.workflowId ?? undefined,
+      title: "Policyholder Inquiry AI Rollout Proposal",
+      description: "Proposal to roll out AI-assisted policy and claims inquiry response across customer service tiers.",
       stage: "DISCOVERY",
       status: "PROPOSED",
       startDate: new Date(),
@@ -1318,13 +1439,15 @@ async function seedAdoptionMetrics(org: { id: string }, departments: { id: strin
   }
 
   const deptAdoption: Record<string, number> = {
-    Marketing: 82,
-    Sales: 67,
+    Claims: 76,
+    "Customer Service": 71,
+    Marketing: 68,
+    Sales: 62,
+    Underwriting: 50,
     Finance: 44,
-    Operations: 31,
-    "Customer Support": 76,
     HR: 55,
-    Product: 48,
+    Operations: 38,
+    Compliance: 29,
   };
 
   for (const dept of departments) {
@@ -1355,11 +1478,11 @@ async function seedAdoptionMetrics(org: { id: string }, departments: { id: strin
 async function seedRoiMetrics(org: { id: string }) {
   const month = monthsAgo(0);
   const rows = [
-    { workflowLabel: "AI Customer Support", investment: 22000, annualValue: 180000 },
-    { workflowLabel: "AI Sales Research & Prospecting", investment: 18000, annualValue: 120000 },
-    { workflowLabel: "AI Marketing Campaigns", investment: 14000, annualValue: 95000 },
-    { workflowLabel: "AI Finance Reporting", investment: 12000, annualValue: 75000 },
-    { workflowLabel: "AI Operations & Forecasting", investment: 18000, annualValue: 150000 },
+    { workflowLabel: "AI Claims Document Processing", investment: 24000, annualValue: 260000 },
+    { workflowLabel: "AI Policy & Claims Inquiry Response", investment: 20000, annualValue: 165000 },
+    { workflowLabel: "AI Sales Prospecting", investment: 18000, annualValue: 150000 },
+    { workflowLabel: "AI Marketing Campaigns", investment: 14000, annualValue: 80000 },
+    { workflowLabel: "AI Underwriting Research", investment: 18000, annualValue: 175000 },
   ];
   for (const r of rows) {
     await prisma.rOIMetric.create({ data: { organizationId: org.id, month, ...r } });
@@ -1368,13 +1491,15 @@ async function seedRoiMetrics(org: { id: string }) {
 
 async function seedUsageEvents(org: { id: string }, employees: { id: string; departmentName: string }[]) {
   const toolsByDept: Record<string, string[]> = {
-    Marketing: ["HubSpot AI", "Claude"],
+    Claims: ["Claims Portal", "ChatGPT"],
+    Underwriting: ["ChatGPT", "Power BI"],
+    "Customer Service": ["Claims Portal", "Claude"],
     Sales: ["Salesforce Einstein", "ChatGPT"],
-    Finance: ["QuickBooks AI", "ChatGPT"],
-    Operations: ["OpenAI", "Excel Copilot"],
-    "Customer Support": ["Zendesk AI", "Claude"],
-    HR: ["ChatGPT", "Notion AI"],
-    Product: ["Notion AI", "Claude"],
+    Marketing: ["Microsoft Copilot", "Claude"],
+    Finance: ["Power BI", "ChatGPT"],
+    Operations: ["Claude", "Microsoft Copilot"],
+    HR: ["ChatGPT", "Microsoft Copilot"],
+    Compliance: ["ChatGPT"],
   };
 
   const events = [];
@@ -1454,8 +1579,8 @@ export async function seedDatabase() {
   console.log("Seeding platform admin...");
   await seedPlatformAdmin();
 
-  console.log("Seeding Northstar Consumer Group...");
-  const { org, departments } = await seedNorthstar();
+  console.log("Seeding Havenbrook...");
+  const { org, departments } = await seedHavenbrook();
 
   console.log("Seeding employees...");
   const employees = await seedEmployees(org, departments);
