@@ -119,20 +119,22 @@ export default async function OpportunitiesPage({
           <CardBody className="divide-y divide-ink-200 p-0">
             {enriched.length === 0 && <p className="p-6 text-sm text-ink-500">No opportunities match these filters.</p>}
             {enriched.map(({ o, priority, quadrant }) => (
-              <Link key={o.id} href={`/dashboard/opportunities/${o.id}`} className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-ink-50">
+              <Link
+                key={o.id}
+                href={`/dashboard/opportunities/${o.id}`}
+                className="flex flex-col gap-2 px-5 py-4 hover:bg-ink-50 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+              >
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="truncate text-sm font-medium text-ink-900">{o.title}</p>
-                    {o.recommendedSpecialist && <Badge tone="blue">Specialist recommended</Badge>}
-                  </div>
+                  <p className="truncate text-sm font-medium text-ink-900">{o.title}</p>
                   <p className="mt-0.5 text-xs text-ink-500">{o.department?.name ?? "Cross-functional"} · {QUADRANT_LABELS[quadrant]}</p>
-                  <div className="mt-1.5 flex gap-1.5">
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {o.recommendedSpecialist && <Badge tone="blue">Specialist recommended</Badge>}
                     <Badge tone={IMPACT_TONE[o.impact]}>{o.impact.toLowerCase()} impact</Badge>
                     <Badge tone={COMPLEXITY_TONE[o.complexity]}>{o.complexity.toLowerCase()} complexity</Badge>
                     <Badge>{o.status.replace("_", " ").toLowerCase()}</Badge>
                   </div>
                 </div>
-                <div className="shrink-0 text-right">
+                <div className="shrink-0 sm:text-right">
                   <p className="text-sm font-semibold text-ink-900">${(o.estAnnualValue / 1000).toFixed(0)}k/yr</p>
                   <p className="text-[11px] text-ink-500">{o.estHoursSavedMonthly} hrs/mo</p>
                   <p className="mt-1 text-[11px] font-medium text-orchid-deep">Priority {priority}</p>

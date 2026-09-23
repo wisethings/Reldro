@@ -48,7 +48,7 @@ export function AssistantWidget() {
       </button>
 
       {open && (
-        <div className="fixed bottom-20 right-5 z-40 flex h-[520px] w-[380px] flex-col overflow-hidden rounded-2xl border border-ink-200 bg-white shadow-2xl">
+        <div className="fixed bottom-20 left-4 right-4 z-40 flex h-[70vh] max-h-[520px] flex-col overflow-hidden rounded-2xl border border-ink-200 bg-white shadow-2xl sm:left-auto sm:right-5 sm:h-[520px] sm:w-[380px]">
           <div className="flex items-center justify-between border-b border-ink-200 px-4 py-3">
             <div>
               <p className="text-sm font-semibold text-ink-900">Reldro assistant</p>
