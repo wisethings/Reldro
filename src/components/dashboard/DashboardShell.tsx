@@ -9,6 +9,7 @@ import { AssistantWidget } from "./AssistantWidget";
 export function DashboardShell({
   role,
   orgName,
+  isDepartmentAdmin,
   name,
   roleLabel,
   showAssistant,
@@ -16,6 +17,7 @@ export function DashboardShell({
 }: {
   role: Role;
   orgName: string | null;
+  isDepartmentAdmin?: boolean;
   name: string;
   roleLabel: string;
   showAssistant: boolean;
@@ -25,7 +27,13 @@ export function DashboardShell({
 
   return (
     <div className="flex h-screen overflow-hidden bg-ink-50">
-      <Sidebar role={role} orgName={orgName} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
+      <Sidebar
+        role={role}
+        orgName={orgName}
+        isDepartmentAdmin={isDepartmentAdmin}
+        mobileOpen={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+      />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar name={name} roleLabel={roleLabel} onMenuClick={() => setMobileOpen(true)} />
         <main className="flex-1 overflow-y-auto">{children}</main>

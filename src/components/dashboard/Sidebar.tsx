@@ -7,9 +7,9 @@ import type { Role } from "@prisma/client";
 import { Logo } from "@/components/ui/Logo";
 import { getNavItems } from "./nav";
 
-function NavContent({ role, orgName, onNavigate }: { role: Role; orgName?: string | null; onNavigate?: () => void }) {
+function NavContent({ role, orgName, isDepartmentAdmin, onNavigate }: { role: Role; orgName?: string | null; isDepartmentAdmin?: boolean; onNavigate?: () => void }) {
   const pathname = usePathname();
-  const items = getNavItems(role);
+  const items = getNavItems(role, isDepartmentAdmin);
 
   return (
     <>
@@ -46,11 +46,13 @@ function NavContent({ role, orgName, onNavigate }: { role: Role; orgName?: strin
 export function Sidebar({
   role,
   orgName,
+  isDepartmentAdmin,
   mobileOpen = false,
   onClose,
 }: {
   role: Role;
   orgName?: string | null;
+  isDepartmentAdmin?: boolean;
   mobileOpen?: boolean;
   onClose?: () => void;
 }) {
@@ -65,7 +67,7 @@ export function Sidebar({
   return (
     <>
       <aside className="hidden w-60 shrink-0 flex-col border-r border-ink-200 bg-white md:flex">
-        <NavContent role={role} orgName={orgName} />
+        <NavContent role={role} orgName={orgName} isDepartmentAdmin={isDepartmentAdmin} />
       </aside>
 
       {mobileOpen && (
@@ -76,7 +78,7 @@ export function Sidebar({
             onClick={onClose}
           />
           <aside className="relative flex h-full w-72 max-w-[80vw] flex-col bg-white shadow-lg">
-            <NavContent role={role} orgName={orgName} onNavigate={onClose} />
+            <NavContent role={role} orgName={orgName} isDepartmentAdmin={isDepartmentAdmin} onNavigate={onClose} />
           </aside>
         </div>
       )}

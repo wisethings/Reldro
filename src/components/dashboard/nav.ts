@@ -2,7 +2,7 @@ import type { Role } from "@prisma/client";
 
 export type NavItem = { href: string; label: string };
 
-export function getNavItems(role: Role): NavItem[] {
+export function getNavItems(role: Role, isDepartmentAdmin = false): NavItem[] {
   if (role === "SPECIALIST") {
     return [
       { href: "/dashboard/specialist", label: "Overview" },
@@ -32,6 +32,7 @@ export function getNavItems(role: Role): NavItem[] {
     ];
   }
 
-  // Employee: personalized, lighter-weight nav
-  return base;
+  // Employee: personalized, lighter-weight nav, plus a team rollup for
+  // department admins (a manager-level view without full company-admin access).
+  return isDepartmentAdmin ? [...base, { href: "/dashboard/my-team", label: "My Team" }] : base;
 }
