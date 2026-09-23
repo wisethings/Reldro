@@ -11,6 +11,7 @@ import { CopyPromptButton } from "@/components/workflows/CopyPromptButton";
 import { WorkflowLifecycleControls } from "@/components/workflows/WorkflowLifecycleControls";
 import { getWorkflowDeploymentStats, getEligibleEmployeesForWorkflow } from "@/lib/queries/workflowDeployment";
 import { getWorkflowReadiness } from "@/lib/queries/workflowReadiness";
+import { getMatchedTools } from "@/lib/queries/tools";
 import { WORKFLOW_STATUS_LABEL, WORKFLOW_STATUS_TONE } from "@/lib/workflowLifecycle";
 
 const DIFFICULTY_TONE = { LOW: "green", MEDIUM: "amber", HIGH: "red" } as const;
@@ -36,10 +37,11 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
   const completedStepIds = new Set(completions.map((c) => c.workflowStepId));
   const completedCount = workflow.steps.filter((s) => completedStepIds.has(s.id)).length;
 
-  const [stats, eligibleEmployees, readiness] = await Promise.all([
+  const [stats, eligibleEmployees, readiness, matchedTools] = await Promise.all([
     getWorkflowDeploymentStats(session.organizationId, workflow),
     session.role === "COMPANY_ADMIN" ? getEligibleEmployeesForWorkflow(session.organizationId, workflow.department) : Promise.resolve([]),
     getWorkflowReadiness(session.organizationId, workflow.id, workflow.department),
+    getMatchedTools(session.organizationId, workflow.toolsRequired),
   ]);
 
   return (
@@ -68,7 +70,24 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat label="Time saved" value={`${workflow.timeSavedMinutes} min/day`} />
-        <Stat label="Tools required" value={workflow.toolsRequired.join(", ") || "None"} />
+        <div className="rounded-xl border border-ink-200 bg-white p-4">
+          <p className="text-xs text-ink-500">Tools required</p>
+          {workflow.toolsRequired.length > 0 ? (
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {workflow.toolsRequired.map((toolName) =>
+                matchedTools.has(toolName) ? (
+                  <Link key={toolName} href={`/dashboard/integrations/tools/${matchedTools.get(toolName)}`}>
+                    <Badge tone="brand">{toolName}</Badge>
+                  </Link>
+                ) : (
+                  <Badge key={toolName}>{toolName}</Badge>
+                )
+              )}
+            </div>
+          ) : (
+            <p className="mt-1 text-sm font-semibold text-ink-900">None</p>
+          )}
+        </div>
         <Stat label="Skills required" value={workflow.skillsRequired.join(", ") || "AI fundamentals"} />
       </div>
 
@@ -108,6 +127,24 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
           </CardBody>
         </Card>
       </div>
+
+      {workflow.steps.length > 0 && (
+        <Card>
+          <CardHeader title="Process chain" subtitle="AI actions and human checkpoints, in order" />
+          <CardBody>
+            <div className="flex flex-wrap items-center gap-2">
+              {workflow.steps.map((step, i) => (
+                <div key={step.id} className="flex items-center gap-2">
+                  <Badge tone={step.humanCheckpoint ? "amber" : "brand"}>
+                    {step.humanCheckpoint ? "Human review" : "AI"}: {step.title}
+                  </Badge>
+                  {i < workflow.steps.length - 1 && <span className="text-ink-400">→</span>}
+                </div>
+              ))}
+            </div>
+          </CardBody>
+        </Card>
+      )}
 
       <Card>
         <CardHeader

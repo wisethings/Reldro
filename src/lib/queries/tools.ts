@@ -105,6 +105,22 @@ export async function getUnmanagedTools(organizationId: string): Promise<Unmanag
   return unmanagedNames.map((name) => ({ name, usage: usageByName.get(name) ?? { distinctUsers: 0, actionCount: 0 } }));
 }
 
+/** Matches free-text tool names (e.g. Workflow.toolsRequired) against real catalog/custom tools, for linking. */
+export async function getMatchedTools(organizationId: string, toolNames: string[]): Promise<Map<string, string>> {
+  if (toolNames.length === 0) return new Map();
+  const tools = await prisma.tool.findMany({
+    where: { name: { in: toolNames, mode: "insensitive" }, OR: [{ organizationId: null }, { organizationId }] },
+    select: { id: true, name: true },
+  });
+  const byNameLower = new Map(tools.map((t) => [t.name.toLowerCase(), t.id]));
+  const result = new Map<string, string>();
+  for (const name of toolNames) {
+    const id = byNameLower.get(name.toLowerCase());
+    if (id) result.set(name, id);
+  }
+  return result;
+}
+
 export async function getToolProfile(organizationId: string, toolId: string) {
   await ensureGlobalToolCatalog();
   const [tool, orgTool] = await Promise.all([
