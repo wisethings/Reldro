@@ -944,4 +944,7 @@ DO $$ BEGIN ALTER TABLE "WorkflowStepCompletion" ADD CONSTRAINT "WorkflowStepCom
 
 DO $$ BEGIN ALTER TABLE "WorkflowStepCompletion" ADD CONSTRAINT "WorkflowStepCompletion_workflowStepId_fkey" FOREIGN KEY ("workflowStepId") REFERENCES "WorkflowStep"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
 
+-- Patch: structured detail on audit log entries (idempotent, same rules).
+ALTER TABLE "AuditLog" ADD COLUMN IF NOT EXISTS "metadata" JSONB;
+
 `;

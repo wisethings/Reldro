@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireRole, requireSession } from "@/lib/auth/guards";
+import { logAudit } from "@/lib/audit";
 
 const STAGE_ORDER = ["DISCOVERY", "WORKFLOW_DESIGN", "IMPLEMENTATION", "TRAINING", "LAUNCH", "MEASUREMENT", "OPTIMIZATION"] as const;
 
@@ -57,10 +58,10 @@ export async function requestExpertHelp(params: {
  * turns it into a real engagement the specialist sees in their project list.
  */
 export async function assignSpecialistToProject(projectId: string, specialistId: string) {
-  await requireRole(["PLATFORM_ADMIN"]);
+  const session = await requireRole(["PLATFORM_ADMIN"]);
   const now = new Date();
 
-  await prisma.project.update({
+  const project = await prisma.project.update({
     where: { id: projectId },
     data: {
       specialistId,
@@ -83,6 +84,15 @@ export async function assignSpecialistToProject(projectId: string, specialistId:
         ],
       },
     },
+  });
+
+  await logAudit({
+    organizationId: project.organizationId,
+    userId: session.sub,
+    action: "specialist.assigned",
+    entityType: "Project",
+    entityId: projectId,
+    metadata: { specialistId },
   });
 
   revalidatePath("/platform-admin/requests");

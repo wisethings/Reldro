@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/guards";
 import { getStripe, priceIdForTier } from "@/lib/stripe";
+import { logAudit } from "@/lib/audit";
 import type { SubscriptionTier } from "@prisma/client";
 
 export type FormState = { success?: boolean; error?: string } | undefined;
@@ -99,6 +100,14 @@ export async function changeSubscriptionTier(tier: SubscriptionTier) {
       pricePerMonth: TIER_PRICE[tier],
       currentPeriodEnd: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
     },
+  });
+
+  await logAudit({
+    organizationId,
+    userId: session.sub,
+    action: "subscription.tier_changed",
+    entityType: "Subscription",
+    metadata: { tier },
   });
 
   revalidatePath("/dashboard/settings");

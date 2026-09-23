@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth/guards";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
+import { logAudit } from "@/lib/audit";
 
 export type FormState = { error?: string; success?: boolean } | undefined;
 
@@ -20,6 +21,14 @@ export async function changePassword(_prevState: FormState, formData: FormData):
   await prisma.user.update({
     where: { id: user.id },
     data: { passwordHash: await hashPassword(newPassword) },
+  });
+
+  await logAudit({
+    organizationId: session.organizationId,
+    userId: user.id,
+    action: "account.password_changed",
+    entityType: "User",
+    entityId: user.id,
   });
 
   return { success: true };

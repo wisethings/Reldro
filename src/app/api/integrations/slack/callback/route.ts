@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { exchangeSlackCode, verifySlackState } from "@/lib/integrations/slack";
+import { logAudit } from "@/lib/audit";
 
 export async function GET(request: NextRequest) {
   const url = request.nextUrl;
@@ -50,6 +51,14 @@ export async function GET(request: NextRequest) {
       externalAccountId: result.teamId,
       externalAccountName: result.teamName,
     },
+  });
+
+  await logAudit({
+    organizationId: claims.organizationId,
+    action: "integration.connected",
+    entityType: "IntegrationConnection",
+    entityId: claims.integrationId,
+    metadata: { integrationKey: "slack", teamName: result.teamName, source: "oauth" },
   });
 
   settingsUrl.searchParams.set("slack_connected", "1");

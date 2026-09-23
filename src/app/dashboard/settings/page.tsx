@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/Badge";
 import { OrgProfileForm } from "@/components/settings/OrgProfileForm";
 import { changeSubscriptionTier } from "@/lib/actions/settings";
 import { isStripeConfigured, priceIdForTier } from "@/lib/stripe";
+import { describeAuditAction } from "@/lib/audit";
 
 const TIERS = [
   { tier: "STARTER" as const, name: "Starter", price: 499, blurb: "For smaller teams." },
@@ -22,10 +23,16 @@ export default async function SettingsPage({
   if (!session.organizationId) redirect("/login");
   const params = await searchParams;
 
-  const [org, subscription, invoices] = await Promise.all([
+  const [org, subscription, invoices, auditLogs] = await Promise.all([
     prisma.organization.findUnique({ where: { id: session.organizationId } }),
     prisma.subscription.findUnique({ where: { organizationId: session.organizationId } }),
     prisma.invoice.findMany({ where: { organizationId: session.organizationId }, orderBy: { issuedAt: "desc" }, take: 5 }),
+    prisma.auditLog.findMany({
+      where: { organizationId: session.organizationId },
+      include: { user: true },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    }),
   ]);
   if (!org) redirect("/login");
 
@@ -102,6 +109,21 @@ export default async function SettingsPage({
             </div>
           ))}
           {invoices.length === 0 && <p className="p-5 text-sm text-ink-500">No invoices yet.</p>}
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader title="Activity log" subtitle="Sensitive actions taken on this organization, most recent first." />
+        <CardBody className="divide-y divide-ink-200 p-0">
+          {auditLogs.map((log) => (
+            <div key={log.id} className="flex items-center justify-between gap-3 px-5 py-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm text-ink-800">{describeAuditAction(log.action)}</p>
+                <p className="text-xs text-ink-500">{log.user?.name ?? "System"} · {log.createdAt.toLocaleString()}</p>
+              </div>
+            </div>
+          ))}
+          {auditLogs.length === 0 && <p className="p-5 text-sm text-ink-500">No activity recorded yet.</p>}
         </CardBody>
       </Card>
 

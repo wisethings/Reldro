@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/guards";
 import { isSlackConfigured, signSlackState, slackAuthorizeUrl } from "@/lib/integrations/slack";
+import { logAudit } from "@/lib/audit";
 
 /**
  * Connects an integration. Slack is wired up to real OAuth when configured
@@ -39,6 +40,15 @@ export async function connectIntegration(integrationId: string) {
     },
   });
 
+  await logAudit({
+    organizationId,
+    userId: session.sub,
+    action: "integration.connected",
+    entityType: "IntegrationConnection",
+    entityId: integrationId,
+    metadata: { integrationKey: integration?.key },
+  });
+
   revalidatePath("/dashboard/integrations");
 }
 
@@ -48,6 +58,14 @@ export async function disconnectIntegration(integrationId: string) {
   await prisma.integrationConnection.updateMany({
     where: { organizationId: session.organizationId!, integrationId },
     data: { status: "DISCONNECTED", accessToken: null, externalAccountId: null, externalAccountName: null },
+  });
+
+  await logAudit({
+    organizationId: session.organizationId,
+    userId: session.sub,
+    action: "integration.disconnected",
+    entityType: "IntegrationConnection",
+    entityId: integrationId,
   });
 
   revalidatePath("/dashboard/integrations");

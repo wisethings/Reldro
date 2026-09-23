@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireOrganization, requireSession } from "@/lib/auth/guards";
+import { logAudit } from "@/lib/audit";
 
 export async function adoptWorkflow(workflowId: string) {
   const session = await requireOrganization();
@@ -17,6 +18,14 @@ export async function adoptWorkflow(workflowId: string) {
       adoptedAt: new Date(),
       usersAdopted: 1,
     },
+  });
+
+  await logAudit({
+    organizationId: session.organizationId,
+    userId: session.sub,
+    action: "workflow.adopted",
+    entityType: "Workflow",
+    entityId: workflowId,
   });
 
   revalidatePath(`/dashboard/workflows/${workflowId}`);

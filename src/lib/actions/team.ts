@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/guards";
 import { hashPassword } from "@/lib/auth/password";
 import { sendEmail, inviteEmailHtml } from "@/lib/email";
+import { logAudit } from "@/lib/audit";
 
 export type FormState = { error?: string; tempPassword?: string; emailSent?: boolean } | undefined;
 
@@ -30,7 +31,7 @@ export async function inviteEmployee(_prevState: FormState, formData: FormData):
 
   const org = await prisma.organization.findUnique({ where: { id: session.organizationId! } });
 
-  await prisma.user.create({
+  const newUser = await prisma.user.create({
     data: {
       name,
       email,
@@ -45,6 +46,15 @@ export async function inviteEmployee(_prevState: FormState, formData: FormData):
         },
       },
     },
+  });
+
+  await logAudit({
+    organizationId: session.organizationId,
+    userId: session.sub,
+    action: "employee.invited",
+    entityType: "User",
+    entityId: newUser.id,
+    metadata: { name, email, jobTitle },
   });
 
   const host = (await headers()).get("host");

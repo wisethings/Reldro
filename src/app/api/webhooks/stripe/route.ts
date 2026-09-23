@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
 import { getStripe } from "@/lib/stripe";
+import { logAudit } from "@/lib/audit";
 import type { SubscriptionTier } from "@prisma/client";
 
 const TIER_PRICE: Record<SubscriptionTier, number> = { STARTER: 499, GROWTH: 1500, ENTERPRISE: 5000 };
@@ -63,6 +64,13 @@ export async function POST(request: NextRequest) {
           stripeCustomerId: customerId,
           stripeSubscriptionId: subscriptionId,
         },
+      });
+
+      await logAudit({
+        organizationId,
+        action: "subscription.tier_changed",
+        entityType: "Subscription",
+        metadata: { tier, source: "stripe_checkout" },
       });
       break;
     }
