@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireOrganization, requireRole, requireSession } from "@/lib/auth/guards";
 import { logAudit } from "@/lib/audit";
+import { awardPoints } from "@/lib/rewards";
+import { checkAndAwardCertifications } from "@/lib/queries/certifications";
 import type { WorkflowAdoptionStatus } from "@prisma/client";
 
 export async function adoptWorkflow(workflowId: string) {
@@ -106,6 +108,16 @@ export async function toggleWorkflowStep(workflowStepId: string, workflowId: str
   if (existing) {
     await prisma.workflowStepCompletion.delete({ where: { id: existing.id } });
   } else {
+    const priorWorkflowIds = new Set(
+      (
+        await prisma.workflowStepCompletion.findMany({
+          where: { employeeId: session.employeeId },
+          select: { workflowStep: { select: { workflowId: true } } },
+        })
+      ).map((s) => s.workflowStep.workflowId)
+    );
+    const isNewWorkflowForEmployee = !priorWorkflowIds.has(workflowId);
+
     const [step] = await Promise.all([
       prisma.workflowStep.findUniqueOrThrow({ where: { id: workflowStepId }, include: { workflow: true } }),
       prisma.workflowStepCompletion.create({ data: { employeeId: session.employeeId, workflowStepId } }),
@@ -118,6 +130,32 @@ export async function toggleWorkflowStep(workflowStepId: string, workflowId: str
         eventType: "workflow_step_completed",
       },
     });
+
+    if (isNewWorkflowForEmployee) {
+      const organizationId = session.organizationId!;
+      const distinctWorkflowCount = priorWorkflowIds.size + 1;
+      await awardPoints({
+        employeeId: session.employeeId,
+        organizationId,
+        ruleKey: "workflow_first_adopted",
+        reason: "Used your first AI workflow",
+        entityType: "Workflow",
+        entityId: workflowId,
+        dedupeKey: "workflow_first_adopted",
+      });
+      if (distinctWorkflowCount === 3) {
+        await awardPoints({
+          employeeId: session.employeeId,
+          organizationId,
+          ruleKey: "workflow_three_adopted",
+          reason: "Used 3 different AI workflows",
+          entityType: "Workflow",
+          entityId: workflowId,
+          dedupeKey: "workflow_three_adopted",
+        });
+      }
+      await checkAndAwardCertifications(session.employeeId);
+    }
   }
 
   revalidatePath(`/dashboard/workflows/${workflowId}`);

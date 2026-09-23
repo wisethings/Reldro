@@ -4,6 +4,7 @@ import { hashPassword } from "../src/lib/auth/password";
 import { computeOrgAdoptionScore, computeFluencyScore } from "../src/lib/scoring";
 import { INTEGRATION_CATALOG } from "../src/lib/data/catalog";
 import { SIMULATION_CATALOG } from "../src/lib/simulationCatalog";
+import { COURSE_CATALOG } from "../src/lib/courseCatalog";
 
 const DEMO_PASSWORD = "Demo1234!";
 
@@ -401,71 +402,7 @@ async function seedWorkflows() {
 }
 
 async function seedCoursesAndLessons(workflows: Awaited<ReturnType<typeof seedWorkflows>>) {
-  const courseSeeds = [
-    {
-      workflowTitle: "AI Conversation Summarization & Response Drafting",
-      title: "Use AI to resolve support tickets faster",
-      description: "Summarize conversations, draft responses, and catch escalation risk with AI.",
-      department: "Customer Support",
-      lessons: [
-        { title: "Why summarization is the fastest AI win in support", concept: "AI can read a full conversation and produce a structured summary in seconds, freeing agents to focus on resolution instead of documentation.", example: "A 12-message conversation about a billing dispute becomes: 'Customer disputes a duplicate charge from March. Refund issued. Customer satisfied.'", exercise: "Paste a recent conversation transcript into your AI tool and ask it to summarize the issue, resolution, and customer sentiment in 3 sentences." },
-        { title: "Drafting responses your customers will actually like", concept: "Good AI-drafted responses match your brand voice and confirm the specific resolution — not a generic template.", example: "Instead of 'Thank you for contacting us,' a good draft opens with 'Thanks for your patience while we looked into the duplicate charge on your March invoice.'", exercise: "Draft a follow-up email using AI for a ticket you resolved this week, then edit it to match your voice." },
-        { title: "Catching escalation risk before it becomes a complaint", concept: "AI can flag sentiment and repeated-contact patterns that predict escalation, so you can intervene early.", example: "A customer who has contacted support 3 times about the same issue in a week is a high escalation risk even if their tone stays polite.", exercise: "Review 5 recent tickets and note which signals (tone, repeat contact, ticket age) you'd want AI to flag." },
-      ],
-    },
-    {
-      workflowTitle: "AI-Assisted Sales Prospecting",
-      title: "Use AI to qualify and research your inbound leads",
-      description: "Research accounts and draft personalized outreach in a fraction of the time.",
-      department: "Sales",
-      lessons: [
-        { title: "Researching an account in 2 minutes instead of 20", concept: "AI can synthesize public information about a company into a usable account brief.", example: "Ask: 'Research Acme Corp and summarize their business, size, and any recent news relevant to a sales conversation.'", exercise: "Pick a real lead from your pipeline and generate an AI research brief on it." },
-        { title: "Personalizing outreach without starting from scratch", concept: "The best AI-drafted outreach references something specific about the prospect, not generic value props.", example: "Reference a recent funding round or product launch in the opening line, not 'I hope this finds you well.'", exercise: "Draft a personalized outreach email using your AI research brief from the previous lesson." },
-        { title: "Knowing when to trust the draft vs. rewrite it", concept: "AI drafts are a starting point — verify facts and adjust tone before sending.", example: "If AI states a fact about the company you can't verify, either confirm it or remove it before sending.", exercise: "Review an AI-drafted email and mark any claims you'd need to verify before sending." },
-      ],
-    },
-    {
-      workflowTitle: "AI-Generated Campaign Briefs & Copy Drafts",
-      title: "Turn one brief into every channel's copy",
-      description: "Draft campaign briefs and channel-specific copy variants with AI.",
-      department: "Marketing",
-      lessons: [
-        { title: "From goal to structured brief in one prompt", concept: "AI can expand a one-line campaign goal into a structured brief with audience, message, and channels.", example: "Input: 'Drive trial signups for our new product among small business owners.' Output: a structured brief with audience, key message, and channel plan.", exercise: "Turn one of your current campaign goals into a structured brief using AI." },
-        { title: "Getting channel-specific copy that doesn't sound the same everywhere", concept: "Email, social, and web copy need different lengths and tones even for the same message.", example: "The same offer becomes a 3-line punchy post on social and a warmer, longer email.", exercise: "Generate email and social copy variants from your brief and compare the differences." },
-      ],
-    },
-    {
-      workflowTitle: "AI-Assisted Monthly Reporting Narratives",
-      title: "Draft financial commentary your board will actually read",
-      description: "Turn budget variance data into a clear narrative with AI.",
-      department: "Finance",
-      lessons: [
-        { title: "Why variance data needs a narrative", concept: "Numbers alone don't tell stakeholders why something changed — AI can draft the 'why' from the data.", example: "Instead of just '+12% marketing spend,' a narrative reads: 'Marketing spend rose 12% due to an accelerated Q3 campaign launch.'", exercise: "Feed a budget-to-actual table into AI and ask it to draft variance commentary." },
-        { title: "Keeping sensitive data safe when using AI", concept: "Only use AI tools approved under your company's data governance policy for financial data.", example: "Aggregate or anonymize figures when testing a new AI tool before it's formally approved.", exercise: "Check which AI tools are approved for financial data at your company before your next report." },
-      ],
-    },
-    {
-      workflowTitle: "AI-Assisted Job Descriptions & Resume Screening",
-      title: "Hire faster without losing the human review",
-      description: "Draft job descriptions and pre-screen resumes with AI.",
-      department: "HR",
-      lessons: [
-        { title: "Writing a job description in minutes, not hours", concept: "AI can draft a strong first version from just the role, level, and key requirements.", example: "Input the role title and 3 must-have skills; AI drafts the full JD including responsibilities and qualifications.", exercise: "Draft a JD for an open role using AI, then edit it for your company's voice." },
-        { title: "Using AI screening without introducing bias", concept: "AI screening should score against explicit role criteria — always spot-check for bias before trusting the shortlist.", example: "Review a sample of AI-screened-out resumes each month to check the criteria are working as intended.", exercise: "List the explicit criteria you'd want AI to screen for in your next open role." },
-      ],
-    },
-    {
-      workflowTitle: "AI-Assisted Product Requirement Docs",
-      title: "Turn interview notes into a PRD your team can act on",
-      description: "Draft structured PRDs from scattered notes with AI.",
-      department: "Product",
-      lessons: [
-        { title: "From messy notes to a structured PRD", concept: "AI can organize scattered interview notes into goals, requirements, and open questions.", example: "Feed in 5 pages of raw notes; AI returns a PRD with clear sections.", exercise: "Turn your most recent set of discovery notes into a structured PRD with AI." },
-      ],
-    },
-  ];
-
-  for (const c of courseSeeds) {
+  for (const c of COURSE_CATALOG) {
     const workflow = workflows.find((w) => w.title === c.workflowTitle);
     await prisma.course.create({
       data: {
@@ -473,6 +410,9 @@ async function seedCoursesAndLessons(workflows: Awaited<ReturnType<typeof seedWo
         description: c.description,
         department: c.department,
         workflowId: workflow?.id,
+        role: c.role,
+        skills: c.skills,
+        tools: c.tools,
         lessons: {
           create: c.lessons.map((l, i) => ({ order: i + 1, ...l })),
         },

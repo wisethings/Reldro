@@ -8,6 +8,7 @@ import { ProgressBar } from "@/components/ui/Progress";
 import { InviteEmployeeForm } from "@/components/team/InviteEmployeeForm";
 import { getEmployeeActivity } from "@/lib/queries/team";
 import { getTeamGaps, getEmployeesNeedingAttention } from "@/lib/queries/teamInsights";
+import { getTeamRewardsSummary } from "@/lib/rewards";
 
 function formatLastActive(date: Date | null) {
   if (!date) return "Never active";
@@ -31,10 +32,11 @@ export default async function TeamPage() {
     prisma.department.findMany({ where: { organizationId: session.organizationId } }),
   ]);
   const employeeIds = employees.map((e) => e.id);
-  const [activity, teamGaps, attentionList] = await Promise.all([
+  const [activity, teamGaps, attentionList, rewardsSummary] = await Promise.all([
     getEmployeeActivity(employeeIds),
     getTeamGaps(employeeIds),
     getEmployeesNeedingAttention(employeeIds),
+    getTeamRewardsSummary(employeeIds),
   ]);
   const employeeById = new Map(employees.map((e) => [e.id, e]));
 
@@ -51,6 +53,21 @@ export default async function TeamPage() {
           <InviteEmployeeForm departments={departments} />
         </CardBody>
       </Card>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="rounded-xl border border-ink-200 bg-white p-4">
+          <p className="text-xs text-ink-500">AI points earned this month</p>
+          <p className="mt-1 text-2xl font-semibold text-ink-900">{rewardsSummary.pointsEarnedThisMonth.toLocaleString()}</p>
+        </div>
+        <div className="rounded-xl border border-ink-200 bg-white p-4">
+          <p className="text-xs text-ink-500">Certifications earned</p>
+          <p className="mt-1 text-2xl font-semibold text-ink-900">{rewardsSummary.certificationsEarned}</p>
+        </div>
+        <div className="rounded-xl border border-ink-200 bg-white p-4">
+          <p className="text-xs text-ink-500">Recognitions received</p>
+          <p className="mt-1 text-2xl font-semibold text-ink-900">{rewardsSummary.recognitionsReceived}</p>
+        </div>
+      </div>
 
       {teamGaps.length > 0 && (
         <Card>

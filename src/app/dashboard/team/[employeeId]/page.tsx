@@ -9,6 +9,10 @@ import { ScoreRing, ProgressBar } from "@/components/ui/Progress";
 import { getEmployeeAiProfile, getEmployeeMilestones } from "@/lib/queries/employeeProfile";
 import { EMPLOYEE_SKILL_LABELS, type EmployeeSkillCategory } from "@/lib/scoring";
 import { CAPABILITY_LEVEL_LABEL, CAPABILITY_LEVEL_DESCRIPTION } from "@/lib/employeeCapability";
+import { getSkillMasteryEvidence } from "@/lib/queries/skillMastery";
+import { getCertificationReadiness } from "@/lib/queries/certifications";
+import { getPointsBalance, getRecentPointsTransactions } from "@/lib/rewards";
+import { RecognitionForm } from "@/components/team/RecognitionForm";
 
 export default async function EmployeeProfilePage({ params }: { params: Promise<{ employeeId: string }> }) {
   const session = await requireSession();
@@ -24,16 +28,30 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
   const isSelf = session.employeeId === employeeId;
   const isCompanyAdmin = session.role === "COMPANY_ADMIN";
   let isDeptAdminOfThem = false;
+  let isSameDepartmentPeer = false;
   if (!isSelf && !isCompanyAdmin && session.employeeId) {
     const me = await prisma.employee.findUnique({ where: { id: session.employeeId } });
     isDeptAdminOfThem = Boolean(me?.isDepartmentAdmin && me.departmentId === employee.departmentId);
+    isSameDepartmentPeer = Boolean(me?.departmentId && me.departmentId === employee.departmentId);
   }
-  if (!isSelf && !isCompanyAdmin && !isDeptAdminOfThem) redirect("/dashboard/overview");
+  if (!isSelf && !isCompanyAdmin && !isDeptAdminOfThem && !isSameDepartmentPeer) redirect("/dashboard/overview");
+  const canManage = isCompanyAdmin || isDeptAdminOfThem;
 
-  const [profile, milestones] = await Promise.all([
+  const [profile, milestones, skillEvidence, certifications, pointsBalance, recentPoints] = await Promise.all([
     getEmployeeAiProfile(session.organizationId, employeeId),
     getEmployeeMilestones(employeeId),
+    getSkillMasteryEvidence(employeeId),
+    getCertificationReadiness(employeeId),
+    getPointsBalance(employeeId),
+    getRecentPointsTransactions(employeeId, 5),
   ]);
+  const earnedCertifications = certifications.filter((c) => c.earned).length;
+  const recognitions = await prisma.recognition.findMany({
+    where: { toEmployeeId: employeeId },
+    include: { fromUser: true },
+    orderBy: { createdAt: "desc" },
+    take: 5,
+  });
 
   const level = profile.capabilityLevel;
 
@@ -52,6 +70,11 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
           </div>
           <Badge tone="brand">{CAPABILITY_LEVEL_LABEL[level]}</Badge>
         </div>
+        {!isSelf && (canManage || isSameDepartmentPeer) && (
+          <div className="mt-3">
+            <RecognitionForm toEmployeeId={employeeId} mode={canManage ? "manager" : "peer"} />
+          </div>
+        )}
       </div>
 
       <Card>
@@ -76,6 +99,28 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
         <StatTile label="Est. hours saved/mo" value={profile.estimatedHoursSavedMonthly} helpText="Attributed from workflows they use" />
       </div>
 
+      <Card>
+        <CardHeader title="AI points" subtitle="Earned from real progress, never for logins or time in the app" />
+        <CardBody className="flex flex-wrap items-center gap-6">
+          <div>
+            <p className="text-2xl font-semibold text-ink-900">{pointsBalance.toLocaleString()}</p>
+            <p className="text-xs text-ink-500">{earnedCertifications} certification{earnedCertifications === 1 ? "" : "s"} earned</p>
+          </div>
+          {recentPoints.length > 0 && (
+            <div className="min-w-0 flex-1 space-y-1">
+              {recentPoints.map((t) => (
+                <p key={t.id} className="truncate text-xs text-ink-600">
+                  <span className={t.amount >= 0 ? "font-medium text-sage-deep" : "font-medium text-ink-500"}>
+                    {t.amount >= 0 ? "+" : ""}{t.amount}
+                  </span>{" "}
+                  {t.reason}
+                </p>
+              ))}
+            </div>
+          )}
+        </CardBody>
+      </Card>
+
       {profile.estimatedAnnualValueContributed > 0 && (
         <Card>
           <CardBody>
@@ -90,15 +135,73 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
 
       {profile.fluency && (
         <Card>
-          <CardHeader title="Skills" />
-          <CardBody className="space-y-3">
-            {(Object.keys(profile.fluency.breakdown) as EmployeeSkillCategory[]).map((cat) => (
-              <div key={cat}>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-ink-700">{EMPLOYEE_SKILL_LABELS[cat]}</span>
-                  <span className="font-medium text-ink-900">{profile.fluency!.breakdown[cat]}</span>
+          <CardHeader title="Skills" subtitle="Why is this score what it is? See the evidence for each." />
+          <CardBody className="space-y-4">
+            {(Object.keys(profile.fluency.breakdown) as EmployeeSkillCategory[]).map((cat) => {
+              const evidence = skillEvidence.find((e) => e.skill === cat);
+              return (
+                <div key={cat}>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-ink-700">{EMPLOYEE_SKILL_LABELS[cat]}</span>
+                    <span className="font-medium text-ink-900">{profile.fluency!.breakdown[cat]}</span>
+                  </div>
+                  <ProgressBar value={profile.fluency!.breakdown[cat]} className="mt-1.5" />
+                  {evidence && (
+                    <ul className="mt-1.5 space-y-0.5">
+                      {evidence.evidenceLines.map((line, i) => (
+                        <li key={i} className="text-xs text-ink-500">· {line}</li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
-                <ProgressBar value={profile.fluency!.breakdown[cat]} className="mt-1.5" />
+              );
+            })}
+          </CardBody>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader title="Certifications" subtitle="Real, checkable requirements - not a time-based badge" />
+        <CardBody className="space-y-4">
+          {certifications.map((cert) => (
+            <div key={cert.key} className="border-b border-ink-100 pb-4 last:border-0 last:pb-0">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-ink-900">{cert.title}</p>
+                {cert.earned ? (
+                  <Badge tone="green">Earned {cert.earnedAt?.toLocaleDateString()}</Badge>
+                ) : (
+                  <Badge tone="neutral">{cert.percentComplete}% ready</Badge>
+                )}
+              </div>
+              <p className="mt-0.5 text-xs text-ink-500">{cert.description}</p>
+              {!cert.earned && (
+                <ul className="mt-2 space-y-1">
+                  {cert.checklist.map((item, i) => (
+                    <li key={i} className={`text-xs ${item.met ? "text-sage-deep" : "text-ink-500"}`}>
+                      {item.met ? "✓" : "△"} {item.label}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
+        </CardBody>
+      </Card>
+
+      {recognitions.length > 0 && (
+        <Card>
+          <CardHeader title="Recognition" />
+          <CardBody className="divide-y divide-ink-200 p-0">
+            {recognitions.map((r) => (
+              <div key={r.id} className="px-5 py-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm text-ink-800">
+                    <span className="font-medium">{r.fromUser.name}</span> recognized {r.type === "MANAGER" ? "as a manager" : "as a peer"}
+                  </p>
+                  <span className="text-xs text-ink-400">{r.createdAt.toLocaleDateString()}</span>
+                </div>
+                <p className="mt-1 text-sm text-ink-600">&ldquo;{r.message}&rdquo;</p>
+                {r.pointsAwarded > 0 && <p className="mt-1 text-xs text-sage-deep">+{r.pointsAwarded} points</p>}
               </div>
             ))}
           </CardBody>

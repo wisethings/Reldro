@@ -4,6 +4,8 @@ import { computePriorityScore, opportunityQuadrant } from "@/lib/scoring";
 import { getAIProvider } from "@/lib/ai/provider";
 import { getRealAdoptionMetrics } from "@/lib/queries/adoption";
 import { DEPLOYED_STATUSES } from "@/lib/workflowLifecycle";
+import { getFluencyForEmployee, getStrongestSkill, getWeakestSkill, EMPLOYEE_SKILL_LABELS } from "@/lib/queries/fluency";
+import { getEmployeeRecommendations } from "@/lib/queries/employeeRecommendations";
 
 /**
  * The Reldro Recommendation Assistant.
@@ -31,10 +33,14 @@ type Intent =
   | "implementation-effort"
   | "top-value"
   | "adoption-trend"
+  | "my-weakest-skill"
+  | "my-next-practice"
   | "general";
 
-function detectIntent(question: string): Intent {
+function detectIntent(question: string, hasEmployeeId: boolean): Intent {
   const q = question.toLowerCase();
+  if (hasEmployeeId && /(my|i'?m|am i)/.test(q) && /(weak|worst|behind|strength|good at|strong)/.test(q)) return "my-weakest-skill";
+  if (hasEmployeeId && /(what should i|next|practice|improve|work on)/.test(q) && /(learn|practice|skill|do)/.test(q)) return "my-next-practice";
   if (/(where|what).*(adopt|use ai).*(next)?/.test(q) && /next|should/.test(q)) return "next-opportunity";
   if (/why.*(lower|behind|trail)/.test(q)) return "department-gap";
   if (/(learn|training|skill)/.test(q) && /(team|department|should)/.test(q)) return "learning-recommendation";
@@ -46,11 +52,17 @@ function detectIntent(question: string): Intent {
   return "general";
 }
 
+/**
+ * The "AI Coach inside Learn" - grounded entirely in the employee's own
+ * fluency breakdown and recommendation data (already computed elsewhere for
+ * the profile/overview pages), never a generic chatbot answer.
+ */
 export async function answerAssistantQuestion(
   organizationId: string,
-  question: string
+  question: string,
+  employeeId: string | null = null
 ): Promise<AssistantAnswer> {
-  const intent = detectIntent(question);
+  const intent = detectIntent(question, Boolean(employeeId));
 
   switch (intent) {
     case "next-opportunity":
@@ -69,9 +81,40 @@ export async function answerAssistantQuestion(
       return answerTopValue(organizationId);
     case "adoption-trend":
       return answerAdoptionTrend(organizationId, question);
+    case "my-weakest-skill":
+      return answerMyWeakestSkill(employeeId!);
+    case "my-next-practice":
+      return answerMyNextPractice(employeeId!);
     default:
       return answerGeneral(organizationId, question);
   }
+}
+
+async function answerMyWeakestSkill(employeeId: string): Promise<AssistantAnswer> {
+  const fluency = await getFluencyForEmployee(employeeId);
+  if (!fluency) {
+    return { answer: "You haven't completed an AI skills assessment yet - take one from the Assessment tab and I can tell you exactly where you're strongest and weakest." };
+  }
+  const strongest = getStrongestSkill(fluency.breakdown);
+  const weakest = getWeakestSkill(fluency.breakdown);
+  return {
+    answer: `Your strongest skill is ${EMPLOYEE_SKILL_LABELS[strongest]} (${fluency.breakdown[strongest]}/100). Your biggest gap is ${EMPLOYEE_SKILL_LABELS[weakest]} (${fluency.breakdown[weakest]}/100).`,
+    bullets: (Object.keys(fluency.breakdown) as (keyof typeof fluency.breakdown)[]).map(
+      (k) => `${EMPLOYEE_SKILL_LABELS[k]}: ${fluency.breakdown[k]}/100`
+    ),
+  };
+}
+
+async function answerMyNextPractice(employeeId: string): Promise<AssistantAnswer> {
+  const recommendations = await getEmployeeRecommendations(employeeId);
+  if (recommendations.length === 0) {
+    return { answer: "You're caught up on everything recommended for you right now - check Learn directly for the full library." };
+  }
+  const top = recommendations[0];
+  return {
+    answer: `${top.reason} Start with: ${top.title}.`,
+    bullets: recommendations.map((r) => `${r.title}${r.estimatedMinutes ? ` (${r.estimatedMinutes} min)` : ""}`),
+  };
 }
 
 async function answerNextOpportunity(organizationId: string): Promise<AssistantAnswer> {

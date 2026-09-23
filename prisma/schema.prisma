@@ -171,6 +171,10 @@ model Organization {
   subscription           Subscription?
   invoices               Invoice[]
   auditLogs              AuditLog[]
+  pointsRules            PointsRule[]
+  pointsTransactions     PointsTransaction[]
+  rewardItems            RewardItem[]
+  recognitions           Recognition[]
   reviews                Review[]
   customTools            Tool[]
   organizationTools      OrganizationTool[]
@@ -207,6 +211,7 @@ model User {
   notifications Notification[]
   sentMessages  Message[]
   auditLogs     AuditLog[]
+  recognitionsGiven Recognition[]
 
   @@index([organizationId])
 }
@@ -233,6 +238,10 @@ model Employee {
   aiUsageEvents      AIUsageEvent[]
   workflowStepCompletions WorkflowStepCompletion[]
   ownedWorkflows     OrganizationWorkflow[]
+  certifications        EmployeeCertification[]
+  pointsTransactions    PointsTransaction[]
+  rewardRedemptions     RewardRedemption[]
+  recognitionsReceived  Recognition[]
 
   @@index([organizationId])
   @@index([departmentId])
@@ -370,28 +379,53 @@ model Course {
   id             String        @id @default(cuid())
   learningPathId String?
   learningPath   LearningPath? @relation(fields: [learningPathId], references: [id], onDelete: SetNull)
-  title          String
+  title          String        @unique
   description    String
   department     String
   workflowId     String?
   workflow       Workflow?     @relation(fields: [workflowId], references: [id])
   order          Int           @default(0)
+  role           String?       // e.g. "Account Executives" - who this path is for
+  skills         String[]      @default([]) // EmployeeSkillCategory keys this path develops
+  tools          String[]      @default([]) // real tools this path teaches (ChatGPT, Salesforce, ...)
 
   lessons Lesson[]
 
   @@index([learningPathId])
 }
 
+enum LessonType {
+  CONCEPT
+  DEMONSTRATION
+  INTERACTIVE_EXERCISE
+  TOOL_PRACTICE
+  PROMPT_EXERCISE
+  DECISION_EXERCISE
+  KNOWLEDGE_CHECK
+  REFLECTION
+  WORKFLOW_PRACTICE
+}
+
 model Lesson {
-  id          String @id @default(cuid())
+  id          String     @id @default(cuid())
   courseId    String
-  course      Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course      Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
   title       String
-  concept     String
-  example     String
-  exercise    String
-  order       Int    @default(0)
-  durationMin Int    @default(8)
+  type        LessonType @default(CONCEPT)
+  objective   String     @default("") // "What you'll be able to do"
+  whyItMatters String    @default("") // connects the skill to the employee's actual work
+  concept     String // "Learn": short practical explanation
+  example     String // "See it": an expert applying the skill
+  tryItPrompt String     @default("") // "Try it": instructions for the employee to perform the task
+  evaluatePrompt String  @default("") // "Evaluate": an AI output or decision to assess
+  exercise    String // "Apply": connect the skill to the employee's actual workflow
+  knowledgeCheckQuestion String   @default("")
+  knowledgeCheckOptions  String[] @default([])
+  knowledgeCheckCorrectIndex Int  @default(-1)
+  takeaway    String     @default("") // one concise principle to remember
+  skills      String[]   @default([]) // EmployeeSkillCategory keys this lesson develops
+  order       Int        @default(0)
+  durationMin Int        @default(8)
 
   completions LessonCompletion[]
 
@@ -414,9 +448,31 @@ model Simulation {
   id          String          @id @default(cuid())
   title       String          @unique
   department  String
-  scenario    String
+  scenario    String // final open-ended reasoning prompt
   description String
   difficulty  ComplexityLevel @default(MEDIUM)
+
+  // Briefing (shown before the employee starts)
+  role             String   @default("") // "Your Role"
+  objective        String   @default("")
+  availableTools   String[] @default([])
+  companyPolicy    String   @default("")
+  workflowNote     String   @default("") // approved process to follow
+  constraints      String   @default("")
+  successCriteria  String   @default("")
+  timeLimitMinutes Int?
+
+  // Step 1: decision point with branching consequences
+  decisionPrompt  String @default("")
+  decisionOptions Json   @default("[]") // {id,label,quality:"strong"|"partial"|"weak",consequence}[]
+
+  // Step 2: evaluate a realistic AI output for planted issues
+  aiOutputSample String @default("")
+  aiOutputIssues Json   @default("[]") // {id,label,present:boolean}[]
+
+  // Debrief: revealed only after the attempt
+  expertApproach String   @default("")
+  skills         String[] @default([]) // EmployeeSkillCategory keys this simulation develops
 
   attempts SimulationAttempt[]
 }
@@ -429,6 +485,10 @@ model SimulationAttempt {
   simulation   Simulation @relation(fields: [simulationId], references: [id], onDelete: Cascade)
   score        Int
   feedback     String
+  dimensions   Json     @default("{}") // {reasoning,aiUsage,promptQuality,accuracy,workflowAdherence}
+  decisionChoiceId  String?
+  evaluationChoices String[] @default([])
+  passed            Boolean  @default(false)
   completedAt  DateTime   @default(now())
 
   @@index([employeeId])
@@ -900,5 +960,153 @@ model AuditLog {
   metadata       Json?
   createdAt      DateTime      @default(now())
 
+  @@index([organizationId])
+}
+
+// ---------------------------------------------------------------------------
+// Certification
+// ---------------------------------------------------------------------------
+
+// Global certification definitions (like the global Tool/Simulation catalogs) - real, checkable requirements against data already tracked elsewhere.
+model Certification {
+  id                    String   @id @default(cuid())
+  key                   String   @unique
+  title                 String
+  description           String
+  minFluency            Int? // required overall AI fluency score
+  requiredSkills        Json     @default("[]") // {skill: EmployeeSkillCategory, minScore: number}[]
+  minCoursesCompleted   Int      @default(0) // fully-completed learning paths, any department
+  minSimulationsPassed  Int      @default(0) // distinct simulations with at least one passed attempt
+  pointsAwarded         Int      @default(0)
+  order                 Int      @default(0)
+  createdAt             DateTime @default(now())
+
+  employeeCertifications EmployeeCertification[]
+}
+
+model EmployeeCertification {
+  id              String        @id @default(cuid())
+  employeeId      String
+  employee        Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  certificationId String
+  certification   Certification @relation(fields: [certificationId], references: [id], onDelete: Cascade)
+  earnedAt        DateTime      @default(now())
+
+  @@unique([employeeId, certificationId])
+  @@index([employeeId])
+}
+
+// ---------------------------------------------------------------------------
+// Rewards
+// ---------------------------------------------------------------------------
+
+enum RewardCategory {
+  GIFT_CARD
+  LEARNING_CREDIT
+  MERCHANDISE
+  PTO
+  DONATION
+  EXPERIENCE
+  CUSTOM
+}
+
+enum RedemptionStatus {
+  PENDING
+  APPROVED
+  FULFILLED
+  REJECTED
+}
+
+enum RecognitionType {
+  PEER
+  MANAGER
+}
+
+enum RecognitionCategory {
+  AI_ADOPTION
+  WORKFLOW_INNOVATION
+  LEARNING
+  BUSINESS_IMPACT
+  COLLABORATION
+  AI_LEADERSHIP
+}
+
+// Company-controlled point amounts per behavior - the only thing admins can tune; which behaviors exist is fixed (see POINTS_RULE_DEFAULTS).
+model PointsRule {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  key            String // e.g. "course_completed" - matches a real trigger in the codebase
+  label          String
+  points         Int
+  enabled        Boolean      @default(true)
+  monthlyCap     Int? // max number of payouts of this rule per employee per month
+
+  @@unique([organizationId, key])
+}
+
+// Append-only ledger - an employee's point balance is always the sum of their transactions, never a separately stored (and driftable) number.
+model PointsTransaction {
+  id             String       @id @default(cuid())
+  employeeId     String
+  employee       Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  amount         Int // positive = earned, negative = redeemed
+  reason         String
+  ruleKey        String?
+  entityType     String?
+  entityId       String?
+  createdAt      DateTime     @default(now())
+
+  @@index([employeeId])
+  @@index([organizationId])
+}
+
+model RewardItem {
+  id             String         @id @default(cuid())
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  description    String
+  category       RewardCategory
+  pointCost      Int
+  active         Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+
+  redemptions RewardRedemption[]
+
+  @@index([organizationId])
+}
+
+model RewardRedemption {
+  id           String           @id @default(cuid())
+  employeeId   String
+  employee     Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  rewardItemId String
+  rewardItem   RewardItem       @relation(fields: [rewardItemId], references: [id], onDelete: Cascade)
+  pointCost    Int // snapshot at redemption time
+  status       RedemptionStatus @default(PENDING)
+  requestedAt  DateTime         @default(now())
+  resolvedAt   DateTime?
+
+  @@index([employeeId])
+}
+
+model Recognition {
+  id             String              @id @default(cuid())
+  organizationId String
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  fromUserId     String
+  fromUser       User                @relation(fields: [fromUserId], references: [id], onDelete: Cascade)
+  toEmployeeId   String
+  toEmployee     Employee            @relation(fields: [toEmployeeId], references: [id], onDelete: Cascade)
+  type           RecognitionType
+  category       RecognitionCategory
+  message        String
+  pointsAwarded  Int                 @default(0)
+  createdAt      DateTime            @default(now())
+
+  @@index([toEmployeeId])
   @@index([organizationId])
 }

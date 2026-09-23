@@ -7,8 +7,8 @@ import type { AssistantAnswer } from "@/lib/ai/assistant";
 const SUGGESTIONS = [
   "Where should we adopt AI next?",
   "Which workflows should we prioritize?",
-  "Should we hire a specialist?",
-  "Show me our highest-value AI opportunities.",
+  "What's my weakest skill?",
+  "What should I practice next?",
 ];
 
 type Turn = { question: string; answer?: AssistantAnswer };

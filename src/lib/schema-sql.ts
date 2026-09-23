@@ -994,4 +994,136 @@ ALTER TABLE "OrganizationTool" ADD COLUMN IF NOT EXISTS "restrictedUses" TEXT[] 
 -- Patch: unique simulation titles so the catalog can be topped up idempotently (idempotent, same rules).
 CREATE UNIQUE INDEX IF NOT EXISTS "Simulation_title_key" ON "Simulation"("title");
 
+-- Patch: deepened Learn/Simulation pedagogy + certifications + reward system (idempotent, same rules).
+DO $$ BEGIN CREATE TYPE "LessonType" AS ENUM ('CONCEPT', 'DEMONSTRATION', 'INTERACTIVE_EXERCISE', 'TOOL_PRACTICE', 'PROMPT_EXERCISE', 'DECISION_EXERCISE', 'KNOWLEDGE_CHECK', 'REFLECTION', 'WORKFLOW_PRACTICE'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN CREATE TYPE "RewardCategory" AS ENUM ('GIFT_CARD', 'LEARNING_CREDIT', 'MERCHANDISE', 'PTO', 'DONATION', 'EXPERIENCE', 'CUSTOM'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN CREATE TYPE "RedemptionStatus" AS ENUM ('PENDING', 'APPROVED', 'FULFILLED', 'REJECTED'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN CREATE TYPE "RecognitionType" AS ENUM ('PEER', 'MANAGER'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN CREATE TYPE "RecognitionCategory" AS ENUM ('AI_ADOPTION', 'WORKFLOW_INNOVATION', 'LEARNING', 'BUSINESS_IMPACT', 'COLLABORATION', 'AI_LEADERSHIP'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+ALTER TABLE "Course" ADD COLUMN IF NOT EXISTS "role" TEXT;
+
+ALTER TABLE "Course" ADD COLUMN IF NOT EXISTS "skills" TEXT[] NOT NULL DEFAULT '{}';
+
+ALTER TABLE "Course" ADD COLUMN IF NOT EXISTS "tools" TEXT[] NOT NULL DEFAULT '{}';
+
+ALTER TABLE "Lesson" ADD COLUMN IF NOT EXISTS "type" "LessonType" NOT NULL DEFAULT 'CONCEPT';
+
+ALTER TABLE "Lesson" ADD COLUMN IF NOT EXISTS "objective" TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE "Lesson" ADD COLUMN IF NOT EXISTS "whyItMatters" TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE "Lesson" ADD COLUMN IF NOT EXISTS "tryItPrompt" TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE "Lesson" ADD COLUMN IF NOT EXISTS "evaluatePrompt" TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE "Lesson" ADD COLUMN IF NOT EXISTS "knowledgeCheckQuestion" TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE "Lesson" ADD COLUMN IF NOT EXISTS "knowledgeCheckOptions" TEXT[] NOT NULL DEFAULT '{}';
+
+ALTER TABLE "Lesson" ADD COLUMN IF NOT EXISTS "knowledgeCheckCorrectIndex" INTEGER NOT NULL DEFAULT -1;
+
+ALTER TABLE "Lesson" ADD COLUMN IF NOT EXISTS "takeaway" TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE "Lesson" ADD COLUMN IF NOT EXISTS "skills" TEXT[] NOT NULL DEFAULT '{}';
+
+ALTER TABLE "Simulation" ADD COLUMN IF NOT EXISTS "role" TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE "Simulation" ADD COLUMN IF NOT EXISTS "objective" TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE "Simulation" ADD COLUMN IF NOT EXISTS "availableTools" TEXT[] NOT NULL DEFAULT '{}';
+
+ALTER TABLE "Simulation" ADD COLUMN IF NOT EXISTS "companyPolicy" TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE "Simulation" ADD COLUMN IF NOT EXISTS "workflowNote" TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE "Simulation" ADD COLUMN IF NOT EXISTS "constraints" TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE "Simulation" ADD COLUMN IF NOT EXISTS "successCriteria" TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE "Simulation" ADD COLUMN IF NOT EXISTS "timeLimitMinutes" INTEGER;
+
+ALTER TABLE "Simulation" ADD COLUMN IF NOT EXISTS "decisionPrompt" TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE "Simulation" ADD COLUMN IF NOT EXISTS "decisionOptions" JSONB NOT NULL DEFAULT '[]';
+
+ALTER TABLE "Simulation" ADD COLUMN IF NOT EXISTS "aiOutputSample" TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE "Simulation" ADD COLUMN IF NOT EXISTS "aiOutputIssues" JSONB NOT NULL DEFAULT '[]';
+
+ALTER TABLE "Simulation" ADD COLUMN IF NOT EXISTS "expertApproach" TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE "Simulation" ADD COLUMN IF NOT EXISTS "skills" TEXT[] NOT NULL DEFAULT '{}';
+
+ALTER TABLE "SimulationAttempt" ADD COLUMN IF NOT EXISTS "dimensions" JSONB NOT NULL DEFAULT '{}';
+
+ALTER TABLE "SimulationAttempt" ADD COLUMN IF NOT EXISTS "decisionChoiceId" TEXT;
+
+ALTER TABLE "SimulationAttempt" ADD COLUMN IF NOT EXISTS "evaluationChoices" TEXT[] NOT NULL DEFAULT '{}';
+
+ALTER TABLE "SimulationAttempt" ADD COLUMN IF NOT EXISTS "passed" BOOLEAN NOT NULL DEFAULT false;
+
+CREATE TABLE IF NOT EXISTS "Certification" ("id" TEXT NOT NULL, "key" TEXT NOT NULL, "title" TEXT NOT NULL, "description" TEXT NOT NULL, "minFluency" INTEGER, "requiredSkills" JSONB NOT NULL DEFAULT '[]', "minCoursesCompleted" INTEGER NOT NULL DEFAULT 0, "minSimulationsPassed" INTEGER NOT NULL DEFAULT 0, "pointsAwarded" INTEGER NOT NULL DEFAULT 0, "order" INTEGER NOT NULL DEFAULT 0, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT "Certification_pkey" PRIMARY KEY ("id"));
+
+CREATE UNIQUE INDEX IF NOT EXISTS "Certification_key_key" ON "Certification"("key");
+
+CREATE TABLE IF NOT EXISTS "EmployeeCertification" ("id" TEXT NOT NULL, "employeeId" TEXT NOT NULL, "certificationId" TEXT NOT NULL, "earnedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT "EmployeeCertification_pkey" PRIMARY KEY ("id"));
+
+CREATE INDEX IF NOT EXISTS "EmployeeCertification_employeeId_idx" ON "EmployeeCertification"("employeeId");
+
+CREATE UNIQUE INDEX IF NOT EXISTS "EmployeeCertification_employeeId_certificationId_key" ON "EmployeeCertification"("employeeId", "certificationId");
+
+DO $$ BEGIN ALTER TABLE "EmployeeCertification" ADD CONSTRAINT "EmployeeCertification_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "EmployeeCertification" ADD CONSTRAINT "EmployeeCertification_certificationId_fkey" FOREIGN KEY ("certificationId") REFERENCES "Certification"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+CREATE TABLE IF NOT EXISTS "PointsRule" ("id" TEXT NOT NULL, "organizationId" TEXT NOT NULL, "key" TEXT NOT NULL, "label" TEXT NOT NULL, "points" INTEGER NOT NULL, "enabled" BOOLEAN NOT NULL DEFAULT true, "monthlyCap" INTEGER, CONSTRAINT "PointsRule_pkey" PRIMARY KEY ("id"));
+
+CREATE UNIQUE INDEX IF NOT EXISTS "PointsRule_organizationId_key_key" ON "PointsRule"("organizationId", "key");
+
+DO $$ BEGIN ALTER TABLE "PointsRule" ADD CONSTRAINT "PointsRule_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+CREATE TABLE IF NOT EXISTS "PointsTransaction" ("id" TEXT NOT NULL, "employeeId" TEXT NOT NULL, "organizationId" TEXT NOT NULL, "amount" INTEGER NOT NULL, "reason" TEXT NOT NULL, "ruleKey" TEXT, "entityType" TEXT, "entityId" TEXT, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT "PointsTransaction_pkey" PRIMARY KEY ("id"));
+
+CREATE INDEX IF NOT EXISTS "PointsTransaction_employeeId_idx" ON "PointsTransaction"("employeeId");
+
+CREATE INDEX IF NOT EXISTS "PointsTransaction_organizationId_idx" ON "PointsTransaction"("organizationId");
+
+DO $$ BEGIN ALTER TABLE "PointsTransaction" ADD CONSTRAINT "PointsTransaction_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "PointsTransaction" ADD CONSTRAINT "PointsTransaction_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+CREATE TABLE IF NOT EXISTS "RewardItem" ("id" TEXT NOT NULL, "organizationId" TEXT NOT NULL, "name" TEXT NOT NULL, "description" TEXT NOT NULL, "category" "RewardCategory" NOT NULL, "pointCost" INTEGER NOT NULL, "active" BOOLEAN NOT NULL DEFAULT true, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT "RewardItem_pkey" PRIMARY KEY ("id"));
+
+CREATE INDEX IF NOT EXISTS "RewardItem_organizationId_idx" ON "RewardItem"("organizationId");
+
+DO $$ BEGIN ALTER TABLE "RewardItem" ADD CONSTRAINT "RewardItem_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+CREATE TABLE IF NOT EXISTS "RewardRedemption" ("id" TEXT NOT NULL, "employeeId" TEXT NOT NULL, "rewardItemId" TEXT NOT NULL, "pointCost" INTEGER NOT NULL, "status" "RedemptionStatus" NOT NULL DEFAULT 'PENDING', "requestedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "resolvedAt" TIMESTAMP(3), CONSTRAINT "RewardRedemption_pkey" PRIMARY KEY ("id"));
+
+CREATE INDEX IF NOT EXISTS "RewardRedemption_employeeId_idx" ON "RewardRedemption"("employeeId");
+
+DO $$ BEGIN ALTER TABLE "RewardRedemption" ADD CONSTRAINT "RewardRedemption_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "RewardRedemption" ADD CONSTRAINT "RewardRedemption_rewardItemId_fkey" FOREIGN KEY ("rewardItemId") REFERENCES "RewardItem"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+CREATE TABLE IF NOT EXISTS "Recognition" ("id" TEXT NOT NULL, "organizationId" TEXT NOT NULL, "fromUserId" TEXT NOT NULL, "toEmployeeId" TEXT NOT NULL, "type" "RecognitionType" NOT NULL, "category" "RecognitionCategory" NOT NULL, "message" TEXT NOT NULL, "pointsAwarded" INTEGER NOT NULL DEFAULT 0, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT "Recognition_pkey" PRIMARY KEY ("id"));
+
+CREATE INDEX IF NOT EXISTS "Recognition_toEmployeeId_idx" ON "Recognition"("toEmployeeId");
+
+CREATE INDEX IF NOT EXISTS "Recognition_organizationId_idx" ON "Recognition"("organizationId");
+
+DO $$ BEGIN ALTER TABLE "Recognition" ADD CONSTRAINT "Recognition_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "Recognition" ADD CONSTRAINT "Recognition_fromUserId_fkey" FOREIGN KEY ("fromUserId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "Recognition" ADD CONSTRAINT "Recognition_toEmployeeId_fkey" FOREIGN KEY ("toEmployeeId") REFERENCES "Employee"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+-- Patch: unique course titles so the catalog can be topped up idempotently (idempotent, same rules).
+CREATE UNIQUE INDEX IF NOT EXISTS "Course_title_key" ON "Course"("title");
+
 `;

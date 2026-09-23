@@ -13,7 +13,12 @@ export type AuditAction =
   | "workflow.owner_assigned"
   | "specialist.assigned"
   | "expert_help.requested"
-  | "tool.status_changed";
+  | "tool.status_changed"
+  | "reward.points_awarded"
+  | "reward.redeemed"
+  | "reward.recognition_given"
+  | "reward.rules_updated"
+  | "certification.earned";
 
 /**
  * Records a sensitive action to the audit trail. Best-effort: a failure here
@@ -57,6 +62,11 @@ const ACTION_LABELS: Record<AuditAction, string> = {
   "specialist.assigned": "Assigned a specialist",
   "expert_help.requested": "Requested expert help",
   "tool.status_changed": "Changed a tool's approval status",
+  "reward.points_awarded": "Earned AI points",
+  "reward.redeemed": "Redeemed a reward",
+  "reward.recognition_given": "Gave recognition",
+  "reward.rules_updated": "Updated reward rules",
+  "certification.earned": "Earned a certification",
 };
 
 export function describeAuditAction(action: string): string {

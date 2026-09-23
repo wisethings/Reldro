@@ -18,6 +18,7 @@ export function getNavItems(role: Role, isDepartmentAdmin = false): NavItem[] {
     { href: "/dashboard/workflows", label: "Workflows" },
     { href: "/dashboard/templates", label: "Templates" },
     { href: "/dashboard/learn", label: "Learn" },
+    { href: "/dashboard/rewards", label: "Rewards" },
     { href: "/dashboard/initiatives", label: "Initiatives" },
   ];
 

@@ -6,6 +6,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { ProgressBar } from "@/components/ui/Progress";
 import { ensureSimulationCatalog } from "@/lib/queries/simulations";
+import { ensureCourseCatalog } from "@/lib/queries/courses";
 
 const DIFFICULTY_TONE = { LOW: "green", MEDIUM: "amber", HIGH: "red" } as const;
 
@@ -13,7 +14,7 @@ export default async function LearnPage() {
   const session = await requireSession();
   if (!session.organizationId) redirect("/login");
 
-  await ensureSimulationCatalog();
+  await Promise.all([ensureSimulationCatalog(), ensureCourseCatalog()]);
 
   const employee = session.employeeId
     ? await prisma.employee.findUnique({ where: { id: session.employeeId }, include: { department: true } })
@@ -57,8 +58,21 @@ export default async function LearnPage() {
               const pct = course.lessons.length ? Math.round((done / course.lessons.length) * 100) : 0;
               return (
                 <Card key={course.id}>
-                  <CardHeader title={course.title} subtitle={course.description} />
+                  <CardHeader
+                    title={course.title}
+                    subtitle={course.description}
+                    action={
+                      course.role ? (
+                        <Badge tone="neutral" className="whitespace-normal text-left">
+                          For: {course.role}
+                        </Badge>
+                      ) : undefined
+                    }
+                  />
                   <CardBody>
+                    {course.tools.length > 0 && (
+                      <p className="mb-3 text-xs text-ink-500">Tools: {course.tools.join(", ")}</p>
+                    )}
                     {session.employeeId && (
                       <div className="mb-3">
                         <div className="flex justify-between text-xs text-ink-500">

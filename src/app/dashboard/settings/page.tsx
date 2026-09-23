@@ -7,6 +7,10 @@ import { OrgProfileForm } from "@/components/settings/OrgProfileForm";
 import { changeSubscriptionTier } from "@/lib/actions/settings";
 import { isStripeConfigured, priceIdForTier } from "@/lib/stripe";
 import { describeAuditAction } from "@/lib/audit";
+import { ensureDefaultPointsRules, ensureDefaultRewardCatalog, getRewardsDashboardStats } from "@/lib/rewards";
+import { PointsRulesTable } from "@/components/settings/PointsRulesTable";
+import { RewardCatalogAdmin } from "@/components/settings/RewardCatalogAdmin";
+import { StatTile } from "@/components/ui/StatTile";
 
 const TIERS = [
   { tier: "STARTER" as const, name: "Starter", price: 499, blurb: "For smaller teams." },
@@ -23,7 +27,9 @@ export default async function SettingsPage({
   if (!session.organizationId) redirect("/login");
   const params = await searchParams;
 
-  const [org, subscription, invoices, auditLogs] = await Promise.all([
+  await Promise.all([ensureDefaultPointsRules(session.organizationId), ensureDefaultRewardCatalog(session.organizationId)]);
+
+  const [org, subscription, invoices, auditLogs, pointsRules, rewardItems, rewardsStats] = await Promise.all([
     prisma.organization.findUnique({ where: { id: session.organizationId } }),
     prisma.subscription.findUnique({ where: { organizationId: session.organizationId } }),
     prisma.invoice.findMany({ where: { organizationId: session.organizationId }, orderBy: { issuedAt: "desc" }, take: 5 }),
@@ -33,6 +39,9 @@ export default async function SettingsPage({
       orderBy: { createdAt: "desc" },
       take: 20,
     }),
+    prisma.pointsRule.findMany({ where: { organizationId: session.organizationId }, orderBy: { key: "asc" } }),
+    prisma.rewardItem.findMany({ where: { organizationId: session.organizationId }, orderBy: { pointCost: "asc" } }),
+    getRewardsDashboardStats(session.organizationId),
   ]);
   if (!org) redirect("/login");
 
@@ -124,6 +133,36 @@ export default async function SettingsPage({
             </div>
           ))}
           {auditLogs.length === 0 && <p className="p-5 text-sm text-ink-500">No activity recorded yet.</p>}
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader title="Reward program" subtitle="Real, org-wide totals - not attributed ROI, since that needs longitudinal data this demo doesn't have" />
+        <CardBody>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <StatTile label="Total points issued" value={rewardsStats.totalPointsIssued.toLocaleString()} />
+            <StatTile label="Total points redeemed" value={rewardsStats.totalPointsRedeemed.toLocaleString()} />
+            <StatTile label="Outstanding balance" value={rewardsStats.outstandingBalance.toLocaleString()} />
+            <StatTile label="Redemptions" value={rewardsStats.redemptionCount} />
+            <StatTile label="Recognitions given" value={rewardsStats.recognitionCount} />
+            <StatTile
+              label="Participation"
+              value={`${rewardsStats.participatingEmployees} / ${rewardsStats.totalEmployees}`}
+              helpText="Employees with at least one point transaction"
+            />
+          </div>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader title="Reward rules" subtitle="Which behaviors earn points, and how much - never logins or time in the app" />
+        <PointsRulesTable rules={pointsRules} />
+      </Card>
+
+      <Card>
+        <CardHeader title="Reward catalog" subtitle="What employees can redeem points for" />
+        <CardBody>
+          <RewardCatalogAdmin items={rewardItems} />
         </CardBody>
       </Card>
 

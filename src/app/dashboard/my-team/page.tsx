@@ -8,6 +8,7 @@ import { ProgressBar } from "@/components/ui/Progress";
 import { StatTile } from "@/components/ui/StatTile";
 import { getEmployeeActivity } from "@/lib/queries/team";
 import { getTeamGaps, getEmployeesNeedingAttention } from "@/lib/queries/teamInsights";
+import { getTeamRewardsSummary } from "@/lib/rewards";
 
 function formatLastActive(date: Date | null) {
   if (!date) return "Never active";
@@ -31,10 +32,11 @@ export default async function MyTeamPage() {
     orderBy: { createdAt: "desc" },
   });
   const teammateIds = teammates.map((e) => e.id);
-  const [activity, teamGaps, attentionList] = await Promise.all([
+  const [activity, teamGaps, attentionList, rewardsSummary] = await Promise.all([
     getEmployeeActivity(teammateIds),
     getTeamGaps(teammateIds),
     getEmployeesNeedingAttention(teammateIds),
+    getTeamRewardsSummary(teammateIds),
   ]);
   const employeeById = new Map(teammates.map((e) => [e.id, e]));
 
@@ -58,6 +60,12 @@ export default async function MyTeamPage() {
         <StatTile label="Active in last 30 days" value={`${activeCount} / ${teammates.length}`} />
         <StatTile label="Lessons completed" value={totalLessons} />
         <StatTile label="Average AI fluency" value={avgFluency} />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <StatTile label="AI points earned this month" value={rewardsSummary.pointsEarnedThisMonth.toLocaleString()} />
+        <StatTile label="Certifications earned" value={rewardsSummary.certificationsEarned} />
+        <StatTile label="Recognitions received" value={rewardsSummary.recognitionsReceived} />
       </div>
 
       {teamGaps.length > 0 && (

@@ -14,6 +14,8 @@ import { DEPLOYED_STATUSES } from "@/lib/workflowLifecycle";
 import { getFluencyForEmployee, getStrongestSkill, getWeakestSkill, EMPLOYEE_SKILL_LABELS } from "@/lib/queries/fluency";
 import { getWeeklyBrief } from "@/lib/queries/weeklyBrief";
 import { getEmployeeRecommendations } from "@/lib/queries/employeeRecommendations";
+import { getPointsBalance, getRecentPointsTransactions, getNextRewardGap } from "@/lib/rewards";
+import { getAiActivityFeed } from "@/lib/activityFeed";
 import { redirect } from "next/navigation";
 
 export default async function OverviewPage() {
@@ -41,6 +43,7 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
     valueCapture,
     recommendations,
     weeklyBrief,
+    activityFeed,
   ] = await Promise.all([
     prisma.organization.findUnique({ where: { id: organizationId } }),
     getOrgTrend(organizationId),
@@ -59,6 +62,7 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
     getOrgValueCapture(organizationId),
     getOrgRecommendations(organizationId),
     getWeeklyBrief(organizationId),
+    getAiActivityFeed(organizationId),
   ]);
 
   const score = latest?.aiAdoptionScore ?? 0;
@@ -268,6 +272,20 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
           </CardBody>
         </Card>
       </div>
+
+      {activityFeed.length > 0 && (
+        <Card>
+          <CardHeader title="AI activity" subtitle="Real activity across the organization — learning, workflow adoption, and recognition" />
+          <CardBody className="divide-y divide-ink-200 p-0">
+            {activityFeed.map((item) => (
+              <div key={item.id} className="flex items-center justify-between gap-3 px-5 py-3">
+                <p className="text-sm text-ink-800">{item.text}</p>
+                <span className="shrink-0 text-xs text-ink-400">{item.createdAt.toLocaleDateString()}</span>
+              </div>
+            ))}
+          </CardBody>
+        </Card>
+      )}
     </div>
   );
 }
@@ -279,7 +297,7 @@ async function EmployeeOverview({ employeeId, name }: { employeeId: string; name
   });
   if (!employee) redirect("/login");
 
-  const [assignedLessons, workflows, opportunity, fluency, recommendations] = await Promise.all([
+  const [assignedLessons, workflows, opportunity, fluency, recommendations, pointsBalance, recentPoints, nextReward] = await Promise.all([
     prisma.lessonCompletion.findMany({ where: { employeeId }, include: { lesson: { include: { course: true } } } }),
     prisma.organizationWorkflow.findMany({
       where: { organizationId: employee.organizationId },
@@ -292,6 +310,9 @@ async function EmployeeOverview({ employeeId, name }: { employeeId: string; name
     }),
     getFluencyForEmployee(employeeId),
     getEmployeeRecommendations(employeeId),
+    getPointsBalance(employeeId),
+    getRecentPointsTransactions(employeeId, 3),
+    getNextRewardGap(employeeId, employee.organizationId),
   ]);
 
   const relevantWorkflows = workflows.filter((w) => w.workflow.department === employee.department?.name || !employee.department);
@@ -329,6 +350,39 @@ async function EmployeeOverview({ employeeId, name }: { employeeId: string; name
           </CardBody>
         </Card>
       )}
+
+      <Card>
+        <CardHeader
+          title="Your AI progress"
+          action={
+            <Link href="/dashboard/rewards" className="text-xs font-medium text-orchid-deep hover:text-oxblood">
+              View rewards →
+            </Link>
+          }
+        />
+        <CardBody className="flex flex-wrap items-center gap-6">
+          <div>
+            <p className="text-2xl font-semibold text-ink-900">{pointsBalance.toLocaleString()} pts</p>
+            {nextReward ? (
+              <p className="text-xs text-ink-500">{nextReward.pointsAway} pts away from {nextReward.name}</p>
+            ) : (
+              <p className="text-xs text-ink-500">Earned from real progress — learning paths, simulations, workflows, and recognition</p>
+            )}
+          </div>
+          {recentPoints.length > 0 && (
+            <div className="min-w-0 flex-1 space-y-1">
+              {recentPoints.map((t) => (
+                <p key={t.id} className="truncate text-xs text-ink-600">
+                  <span className={t.amount >= 0 ? "font-medium text-sage-deep" : "font-medium text-ink-500"}>
+                    {t.amount >= 0 ? "+" : ""}{t.amount}
+                  </span>{" "}
+                  {t.reason}
+                </p>
+              ))}
+            </div>
+          )}
+        </CardBody>
+      </Card>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
