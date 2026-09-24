@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   INDUSTRIES,
   COMPANY_SIZES,
@@ -12,11 +12,13 @@ import {
   INTEGRATION_CATALOG,
 } from "@/lib/data/catalog";
 import { ORG_ASSESSMENT_QUESTIONS, LIKERT_LABELS, likertToScore } from "@/lib/data/assessment-questions";
+import { PAIN_POINT_OPTIONS } from "@/lib/data/painPoints";
 import { computeOrgAdoptionScore, maturityBand, ORG_MATURITY_LABELS, type OrgMaturityCategory } from "@/lib/scoring";
-import { completeOnboarding } from "@/lib/actions/onboarding";
+import { completeOnboarding, previewOpportunityCandidates } from "@/lib/actions/onboarding";
+import type { OpportunityCandidate } from "@/lib/opportunities/generate";
 import { ScoreRing } from "@/components/ui/Progress";
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 8;
 
 function Select({
   label,
@@ -93,10 +95,23 @@ export function OnboardingWizard({ companyName }: { companyName: string }) {
   const [goals, setGoals] = useState<string[]>([]);
   const [integrationKeys, setIntegrationKeys] = useState<string[]>([]);
   const [departments, setDepartments] = useState<string[]>(["Marketing", "Sales", "Operations"]);
+  const [painPointsByDept, setPainPointsByDept] = useState<Record<string, string[]>>({});
   const [responses, setResponses] = useState<Record<string, number>>({});
+
+  const [candidates, setCandidates] = useState<OpportunityCandidate[] | null>(null);
+  const [loadingCandidates, setLoadingCandidates] = useState(false);
+  const [selectedWorkflowIds, setSelectedWorkflowIds] = useState<string[]>([]);
 
   const toggle = (list: string[], setList: (v: string[]) => void, key: string) => {
     setList(list.includes(key) ? list.filter((k) => k !== key) : [...list, key]);
+  };
+
+  const togglePainPoint = (dept: string, key: string) => {
+    setPainPointsByDept((prev) => {
+      const current = prev[dept] ?? [];
+      const next = current.includes(key) ? current.filter((k) => k !== key) : [...current, key];
+      return { ...prev, [dept]: next };
+    });
   };
 
   const breakdown = useMemo(() => {
@@ -125,6 +140,21 @@ export function OnboardingWizard({ companyName }: { companyName: string }) {
   const band = maturityBand(overallScore);
   const assessmentComplete = ORG_ASSESSMENT_QUESTIONS.every((q) => responses[q.key] !== undefined);
 
+  // Fetch candidate opportunities once we reach the confirmation step, using
+  // exactly what's been entered so far - industry, size, departments, and
+  // the pain points flagged per department.
+  useEffect(() => {
+    if (step !== 8 || candidates !== null) return;
+    setLoadingCandidates(true);
+    previewOpportunityCandidates({ industry, size, departments, painPointsByDept })
+      .then((result) => {
+        setCandidates(result);
+        setSelectedWorkflowIds(result.filter((c) => c.recommended).map((c) => c.workflowId));
+      })
+      .finally(() => setLoadingCandidates(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
+
   function next() {
     setStep((s) => Math.min(TOTAL_STEPS, s + 1));
   }
@@ -143,10 +173,18 @@ export function OnboardingWizard({ companyName }: { companyName: string }) {
         goals,
         integrationKeys,
         departments,
+        painPointsByDept,
+        selectedWorkflowIds,
         responses: Object.entries(responses).map(([key, value]) => ({ key, score: likertToScore(value) })),
       });
     });
   }
+
+  const candidatesByDept = useMemo(() => {
+    const map = new Map<string, OpportunityCandidate[]>();
+    for (const c of candidates ?? []) map.set(c.departmentName, [...(map.get(c.departmentName) ?? []), c]);
+    return map;
+  }, [candidates]);
 
   return (
     <div className="rounded-2xl border border-ink-200 bg-white p-6 shadow-card sm:p-8">
@@ -230,6 +268,33 @@ export function OnboardingWizard({ companyName }: { companyName: string }) {
       {step === 5 && (
         <div className="space-y-5">
           <div>
+            <h2 className="text-lg font-semibold text-ink-900">What's actually slowing each team down?</h2>
+            <p className="mt-1 text-sm text-ink-500">
+              This is what we'll use to recommend opportunities — not just a generic list for your industry.
+            </p>
+          </div>
+          <div className="max-h-[420px] space-y-5 overflow-y-auto pr-1 scrollbar-thin">
+            {departments.map((dept) => (
+              <div key={dept}>
+                <p className="text-sm font-medium text-ink-800">{dept}</p>
+                <div className="mt-2">
+                  <CheckGrid
+                    options={PAIN_POINT_OPTIONS.map((p) => ({ key: p.key, label: p.label }))}
+                    selected={painPointsByDept[dept] ?? []}
+                    onToggle={(k) => togglePainPoint(dept, k)}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-ink-400">Optional — skip if you're not sure yet, we'll still suggest a starting point.</p>
+          <StepNav onBack={back} onNext={next} />
+        </div>
+      )}
+
+      {step === 6 && (
+        <div className="space-y-5">
+          <div>
             <h2 className="text-lg font-semibold text-ink-900">AI maturity assessment</h2>
             <p className="mt-1 text-sm text-ink-500">Rate how much you agree with each statement for your organization today.</p>
           </div>
@@ -263,7 +328,7 @@ export function OnboardingWizard({ companyName }: { companyName: string }) {
         </div>
       )}
 
-      {step === 6 && (
+      {step === 7 && (
         <div className="space-y-6 text-center">
           <div>
             <h2 className="text-lg font-semibold text-ink-900">Your AI Adoption Score</h2>
@@ -286,12 +351,84 @@ export function OnboardingWizard({ companyName }: { companyName: string }) {
             <button onClick={back} className="rounded-lg border border-ink-300 px-5 py-2.5 text-sm font-medium text-ink-800 hover:bg-ink-50">
               Back
             </button>
+            <button onClick={next} className="rounded-full bg-brand-700 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-800">
+              See recommended opportunities
+            </button>
+          </div>
+        </div>
+      )}
+
+      {step === 8 && (
+        <div className="space-y-5">
+          <div>
+            <h2 className="text-lg font-semibold text-ink-900">Confirm your opportunities</h2>
+            <p className="mt-1 text-sm text-ink-500">
+              Based on what you told us. Pre-checked ones matched a pain point you flagged — uncheck anything that
+              isn't actually a problem for you, or add ones we missed.
+            </p>
+          </div>
+
+          {loadingCandidates && <p className="text-sm text-ink-500">Matching workflows to your priorities…</p>}
+
+          {!loadingCandidates && candidates && candidates.length === 0 && (
+            <p className="text-sm text-ink-500">
+              No catalog workflows matched your departments yet — you can always add your own later from the Workflows page.
+            </p>
+          )}
+
+          {!loadingCandidates && candidatesByDept.size > 0 && (
+            <div className="max-h-[420px] space-y-5 overflow-y-auto pr-1 scrollbar-thin">
+              {[...candidatesByDept.entries()].map(([dept, deptCandidates]) => (
+                <div key={dept}>
+                  <p className="text-sm font-medium text-ink-800">{dept}</p>
+                  <div className="mt-2 space-y-2">
+                    {deptCandidates.map((c) => {
+                      const checked = selectedWorkflowIds.includes(c.workflowId);
+                      return (
+                        <label
+                          key={c.workflowId}
+                          className={`flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${
+                            checked ? "border-brand-600 bg-brand-50" : "border-ink-200 hover:border-ink-300"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() =>
+                              setSelectedWorkflowIds((prev) =>
+                                prev.includes(c.workflowId) ? prev.filter((id) => id !== c.workflowId) : [...prev, c.workflowId]
+                              )
+                            }
+                            className="mt-0.5"
+                          />
+                          <div className="min-w-0">
+                            <span className="block font-medium text-ink-900">{c.title}</span>
+                            <span className="block text-xs text-ink-500">{c.aiOpportunity}</span>
+                            {c.matchedPainPoints.length > 0 && (
+                              <span className="mt-1 block text-[11px] font-medium text-orchid-deep">
+                                Matches: {c.matchedPainPoints.join(", ")}
+                              </span>
+                            )}
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex justify-between pt-2">
+            <button onClick={back} className="rounded-lg border border-ink-300 px-5 py-2.5 text-sm font-medium text-ink-800 hover:bg-ink-50">
+              Back
+            </button>
             <button
               onClick={finish}
-              disabled={pending}
+              disabled={pending || loadingCandidates}
               className="rounded-full bg-brand-700 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
             >
-              {pending ? "Setting up your workspace…" : "Go to my dashboard"}
+              {pending ? "Setting up your workspace…" : `Go to my dashboard${selectedWorkflowIds.length ? ` (${selectedWorkflowIds.length} selected)` : ""}`}
             </button>
           </div>
         </div>

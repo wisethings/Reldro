@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireOrganization } from "@/lib/auth/guards";
 import { computeOrgAdoptionScore, type OrgMaturityCategory } from "@/lib/scoring";
 import { ORG_ASSESSMENT_QUESTIONS } from "@/lib/data/assessment-questions";
-import { generateOpportunitiesForOrg } from "@/lib/opportunities/generate";
+import { computeOpportunityCandidates, createSelectedOpportunities, type OpportunityCandidate } from "@/lib/opportunities/generate";
 
 export type OnboardingPayload = {
   industry: string;
@@ -16,8 +16,21 @@ export type OnboardingPayload = {
   goals: string[];
   integrationKeys: string[];
   departments: string[];
+  painPointsByDept: Record<string, string[]>;
+  selectedWorkflowIds: string[];
   responses: { key: string; score: number }[];
 };
+
+/** Lets the onboarding wizard show candidate opportunities for the admin to confirm before anything is created - see src/lib/opportunities/generate.ts. */
+export async function previewOpportunityCandidates(input: {
+  industry: string;
+  size: string;
+  departments: string[];
+  painPointsByDept: Record<string, string[]>;
+}): Promise<OpportunityCandidate[]> {
+  await requireOrganization();
+  return computeOpportunityCandidates(input);
+}
 
 export async function completeOnboarding(payload: OnboardingPayload) {
   const session = await requireOrganization();
@@ -46,7 +59,14 @@ export async function completeOnboarding(payload: OnboardingPayload) {
     )
   );
 
-  await generateOpportunitiesForOrg(org.id);
+  await createSelectedOpportunities({
+    organizationId: org.id,
+    industry: payload.industry,
+    size: payload.size,
+    departments: payload.departments,
+    painPointsByDept: payload.painPointsByDept,
+    selectedWorkflowIds: payload.selectedWorkflowIds,
+  });
 
   const integrations = await prisma.integration.findMany({ where: { key: { in: payload.integrationKeys } } });
   await Promise.all(

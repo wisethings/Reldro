@@ -1171,4 +1171,7 @@ ALTER TABLE "WorkflowStep" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT;
 
 ALTER TABLE "WorkflowStep" ADD COLUMN IF NOT EXISTS "videoUrl" TEXT;
 
+-- Patch: department pain points captured during onboarding (idempotent, same rules).
+ALTER TABLE "Department" ADD COLUMN IF NOT EXISTS "painPoints" TEXT[] NOT NULL DEFAULT '{}';
+
 `;
