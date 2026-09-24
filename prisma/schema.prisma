@@ -435,6 +435,8 @@ model Lesson {
   skills      String[]   @default([]) // EmployeeSkillCategory keys this lesson develops
   order       Int        @default(0)
   durationMin Int        @default(8)
+  imageUrl    String?    // optional illustrative image (screenshot, diagram) - a data URI for team-authored lessons
+  videoUrl    String?    // optional video link (YouTube, Loom, Vimeo) - embedded on the lesson page
 
   completions LessonCompletion[]
 

@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { createCustomLesson } from "@/lib/actions/customLearning";
+import { ImageAttachField } from "./ImageAttachField";
 
 const LESSON_TYPE_OPTIONS: { value: string; label: string }[] = [
   { value: "CONCEPT", label: "Concept" },
@@ -51,6 +52,12 @@ export function CreateLessonForm({ courseId }: { courseId: string }) {
           </select>
         </Field>
       </div>
+
+      <ImageAttachField name="imageUrl" label="Image" />
+
+      <Field label="Video link" hint="Optional — paste a YouTube, Loom, or Vimeo link to embed">
+        <input name="videoUrl" type="url" placeholder="https://youtube.com/watch?v=…" className={inputClass} />
+      </Field>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Objective" hint="What you'll be able to do">

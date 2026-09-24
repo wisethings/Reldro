@@ -8,6 +8,7 @@ import { completeLesson } from "@/lib/actions/learning";
 import { AudioNarration } from "@/components/learning/AudioNarration";
 import { LessonJourney } from "@/components/learning/LessonJourney";
 import { KnowledgeCheck } from "@/components/learning/KnowledgeCheck";
+import { toEmbedUrl } from "@/lib/videoEmbed";
 
 const LESSON_TYPE_LABEL: Record<string, string> = {
   CONCEPT: "Concept",
@@ -54,6 +55,31 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
         <p className="text-xs text-ink-500">{lesson.durationMin} min</p>
         <LessonJourney activeIndex={3} />
       </div>
+
+      {lesson.imageUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={lesson.imageUrl} alt="" className="w-full rounded-lg border border-ink-200" />
+      )}
+
+      {lesson.videoUrl && (
+        (() => {
+          const embedUrl = toEmbedUrl(lesson.videoUrl);
+          return embedUrl ? (
+            <div className="aspect-video w-full overflow-hidden rounded-lg border border-ink-200">
+              <iframe src={embedUrl} className="h-full w-full" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen title={lesson.title} />
+            </div>
+          ) : (
+            <a
+              href={lesson.videoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block rounded-lg border border-ink-200 px-4 py-3 text-sm font-medium text-orchid-deep hover:bg-ink-50"
+            >
+              Watch video ↗
+            </a>
+          );
+        })()
+      )}
 
       {lesson.objective && (
         <div className="rounded-lg border border-ink-200 bg-ink-50 p-4">

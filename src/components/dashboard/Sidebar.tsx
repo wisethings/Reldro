@@ -27,6 +27,7 @@ function NavContent({ role, orgName, isDepartmentAdmin, onNavigate }: { role: Ro
               key={item.href}
               href={item.href}
               onClick={onNavigate}
+              data-tour-nav={item.href}
               className={`block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                 active ? "bg-orchid-soft text-orchid-deep" : "text-ink-600 hover:bg-surface-sunken hover:text-ink-900"
               }`}

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth/guards";
+import { toEmbedUrl } from "@/lib/videoEmbed";
 import type { LessonType } from "@prisma/client";
 
 export type CustomCourseState = { error?: string; success?: string; courseId?: string } | undefined;
@@ -97,6 +98,16 @@ export async function createCustomLesson(_prevState: CustomLessonState, formData
     ? Math.max(0, Math.min(knowledgeCheckOptions.length - 1, Number(formData.get("kcCorrectIndex")) || 0))
     : -1;
 
+  const imageDataUri = String(formData.get("imageUrl") ?? "").trim();
+  // Client compresses to a data: URI before submitting; cap it here too in case that didn't run.
+  const imageUrl = imageDataUri.startsWith("data:image/") && imageDataUri.length < 3_000_000 ? imageDataUri : null;
+
+  const videoUrlInput = String(formData.get("videoUrl") ?? "").trim();
+  if (videoUrlInput && !/^https?:\/\//i.test(videoUrlInput)) {
+    return { error: "Video link must be a full URL (starting with https://)." };
+  }
+  const videoUrl = videoUrlInput || null;
+
   const maxOrder = await prisma.lesson.aggregate({ where: { courseId }, _max: { order: true } });
 
   await prisma.lesson.create({
@@ -112,6 +123,8 @@ export async function createCustomLesson(_prevState: CustomLessonState, formData
       evaluatePrompt,
       exercise,
       takeaway,
+      imageUrl,
+      videoUrl,
       durationMin,
       knowledgeCheckQuestion: hasKnowledgeCheck ? knowledgeCheckQuestion : "",
       knowledgeCheckOptions: hasKnowledgeCheck ? knowledgeCheckOptions : [],

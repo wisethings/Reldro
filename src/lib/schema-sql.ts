@@ -1146,4 +1146,10 @@ CREATE INDEX IF NOT EXISTS "Course_organizationId_idx" ON "Course"("organization
 
 DO $$ BEGIN ALTER TABLE "Course" ADD CONSTRAINT "Course_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
 
+-- Patch: optional lesson images (idempotent, same rules).
+ALTER TABLE "Lesson" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT;
+
+-- Patch: optional lesson video links (idempotent, same rules).
+ALTER TABLE "Lesson" ADD COLUMN IF NOT EXISTS "videoUrl" TEXT;
+
 `;
