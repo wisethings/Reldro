@@ -8,6 +8,7 @@ import { ProgressBar } from "@/components/ui/Progress";
 import { adoptWorkflow, toggleWorkflowStep } from "@/lib/actions/workflows";
 import { RequestExpertHelpForm } from "@/components/specialists/RequestExpertHelpForm";
 import { CopyPromptButton } from "@/components/workflows/CopyPromptButton";
+import { StepMedia } from "@/components/workflows/StepMedia";
 import { WorkflowLifecycleControls } from "@/components/workflows/WorkflowLifecycleControls";
 import { getWorkflowDeploymentStats, getEligibleEmployeesForWorkflow } from "@/lib/queries/workflowDeployment";
 import { getWorkflowReadiness } from "@/lib/queries/workflowReadiness";
@@ -184,6 +185,7 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
                     {step.humanCheckpoint && <Badge tone="amber">Human checkpoint</Badge>}
                   </div>
                   <p className="mt-1 text-sm text-ink-600">{step.description}</p>
+                  <StepMedia imageUrl={step.imageUrl} videoUrl={step.videoUrl} title={step.title} />
                   {step.aiPrompt && (
                     <div className="mt-2 rounded-lg bg-ink-50 p-3">
                       <div className="flex items-start justify-between gap-2">

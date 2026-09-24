@@ -4,6 +4,7 @@ import { requireSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { Card, CardBody } from "@/components/ui/Card";
 import { CopyPromptButton } from "@/components/workflows/CopyPromptButton";
+import { StepMedia } from "@/components/workflows/StepMedia";
 
 export default async function TemplatesPage() {
   const session = await requireSession();
@@ -12,9 +13,20 @@ export default async function TemplatesPage() {
   const departments = await prisma.department.findMany({ where: { organizationId: session.organizationId } });
   const departmentNames = departments.map((d) => d.name);
 
+  // Templates are just prompts pulled from workflow steps - both the seeded
+  // catalog and any team-authored workflows. Department names aren't
+  // globally unique, so without the organizationId check here, a step from
+  // another org's team-authored workflow in a same-named department would
+  // leak into this list.
   const steps = departmentNames.length
     ? await prisma.workflowStep.findMany({
-        where: { aiPrompt: { not: null }, workflow: { department: { in: departmentNames } } },
+        where: {
+          aiPrompt: { not: null },
+          workflow: {
+            department: { in: departmentNames },
+            OR: [{ organizationId: null }, { organizationId: session.organizationId }],
+          },
+        },
         include: { workflow: true },
         orderBy: [{ workflow: { department: "asc" } }, { workflow: { title: "asc" } }, { order: "asc" }],
       })
@@ -55,6 +67,7 @@ export default async function TemplatesPage() {
                   <div className="mt-3 rounded-lg bg-ink-50 p-3">
                     <p className="font-mono text-xs text-ink-700">{step.aiPrompt}</p>
                   </div>
+                  <StepMedia imageUrl={step.imageUrl} videoUrl={step.videoUrl} title={step.title} />
                 </CardBody>
               </Card>
             ))}

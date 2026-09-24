@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
@@ -32,9 +33,19 @@ export default async function RewardsPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-6">
-      <div>
-        <h1 className="text-xl font-semibold text-ink-900">AI Rewards</h1>
-        <p className="text-sm text-ink-500">Earned from real learning, workflow adoption, and recognition — never from logging in.</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-ink-900">AI Rewards</h1>
+          <p className="text-sm text-ink-500">Earned from real learning, workflow adoption, and recognition — never from logging in.</p>
+        </div>
+        {session.role === "COMPANY_ADMIN" && (
+          <Link
+            href="/dashboard/settings"
+            className="rounded-full border border-ink-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-ink-50"
+          >
+            Manage reward catalog
+          </Link>
+        )}
       </div>
 
       {session.employeeId ? (

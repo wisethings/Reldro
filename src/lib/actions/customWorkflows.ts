@@ -107,6 +107,16 @@ export async function createWorkflowStep(_prevState: CustomWorkflowStepState, fo
   const aiPrompt = String(formData.get("aiPrompt") ?? "").trim() || null;
   const humanCheckpoint = formData.get("humanCheckpoint") === "on";
 
+  const imageDataUri = String(formData.get("imageUrl") ?? "").trim();
+  // Client compresses to a data: URI before submitting; cap it here too in case that didn't run.
+  const imageUrl = imageDataUri.startsWith("data:image/") && imageDataUri.length < 3_000_000 ? imageDataUri : null;
+
+  const videoUrlInput = String(formData.get("videoUrl") ?? "").trim();
+  if (videoUrlInput && !/^https?:\/\//i.test(videoUrlInput)) {
+    return { error: "Video link must be a full URL (starting with https://)." };
+  }
+  const videoUrl = videoUrlInput || null;
+
   const maxOrder = await prisma.workflowStep.aggregate({ where: { workflowId }, _max: { order: true } });
 
   await prisma.workflowStep.create({
@@ -116,6 +126,8 @@ export async function createWorkflowStep(_prevState: CustomWorkflowStepState, fo
       description,
       aiPrompt,
       humanCheckpoint,
+      imageUrl,
+      videoUrl,
       order: (maxOrder._max.order ?? 0) + 1,
     },
   });

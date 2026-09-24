@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { ProgressBar } from "@/components/ui/Progress";
+import { DeleteInitiativeButton } from "@/components/initiatives/DeleteInitiativeButton";
 
 const STATUS_TONE = { PLANNED: "neutral", IN_PROGRESS: "blue", COMPLETED: "green", ON_HOLD: "amber" } as const;
 
@@ -37,7 +38,10 @@ export default async function InitiativeDetailPage({ params }: { params: Promise
             <h1 className="text-xl font-semibold text-ink-900">{initiative.name}</h1>
             <p className="mt-1 text-sm text-ink-500">{initiative.goalDescription}</p>
           </div>
-          <Badge tone={STATUS_TONE[initiative.status]}>{initiative.status.replace("_", " ").toLowerCase()}</Badge>
+          <div className="flex shrink-0 items-center gap-2">
+            <Badge tone={STATUS_TONE[initiative.status]}>{initiative.status.replace("_", " ").toLowerCase()}</Badge>
+            {session.role === "COMPANY_ADMIN" && <DeleteInitiativeButton initiativeId={initiative.id} />}
+          </div>
         </div>
         <div className="mt-3 flex flex-wrap gap-1.5">
           {initiative.departments.map((d) => (

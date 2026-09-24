@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { createWorkflowStep } from "@/lib/actions/customWorkflows";
+import { ImageAttachField } from "@/components/learning/ImageAttachField";
 
 const inputClass =
   "w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500";
@@ -23,6 +24,12 @@ export function CreateWorkflowStepForm({ workflowId }: { workflowId: string }) {
       <div>
         <label className="block text-xs font-medium text-ink-600">Example AI prompt</label>
         <textarea name="aiPrompt" rows={2} placeholder="Optional" className={`mt-1 ${inputClass}`} />
+      </div>
+      <ImageAttachField name="imageUrl" label="Screenshot or diagram" />
+      <div>
+        <label className="block text-xs font-medium text-ink-600">Video link</label>
+        <p className="text-[11px] text-ink-400">Optional — paste a YouTube, Loom, or Vimeo link to embed</p>
+        <input name="videoUrl" type="url" placeholder="https://youtube.com/watch?v=…" className={`mt-1 ${inputClass}`} />
       </div>
       <label className="flex items-center gap-2 text-xs font-medium text-ink-700">
         <input type="checkbox" name="humanCheckpoint" />

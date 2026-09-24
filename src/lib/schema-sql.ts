@@ -1166,4 +1166,9 @@ CREATE INDEX IF NOT EXISTS "Workflow_organizationId_idx" ON "Workflow"("organiza
 
 DO $$ BEGIN ALTER TABLE "Workflow" ADD CONSTRAINT "Workflow_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
 
+-- Patch: optional workflow step images and video links (idempotent, same rules).
+ALTER TABLE "WorkflowStep" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT;
+
+ALTER TABLE "WorkflowStep" ADD COLUMN IF NOT EXISTS "videoUrl" TEXT;
+
 `;

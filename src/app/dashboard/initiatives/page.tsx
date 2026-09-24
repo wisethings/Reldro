@@ -20,9 +20,19 @@ export default async function InitiativesPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-6">
-      <div>
-        <h1 className="text-xl font-semibold text-ink-900">Initiatives</h1>
-        <p className="text-sm text-ink-500">Cross-functional AI adoption programs with owners, timelines, and KPIs.</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-ink-900">Initiatives</h1>
+          <p className="text-sm text-ink-500">Cross-functional AI adoption programs with owners, timelines, and KPIs.</p>
+        </div>
+        {session.role === "COMPANY_ADMIN" && (
+          <Link
+            href="/dashboard/initiatives/new"
+            className="rounded-full border border-ink-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-ink-50"
+          >
+            New initiative
+          </Link>
+        )}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
