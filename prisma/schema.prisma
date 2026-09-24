@@ -209,6 +209,8 @@ model User {
   updatedAt      DateTime      @updatedAt
 
   hasSeenTour    Boolean       @default(false)
+  failedLoginAttempts Int      @default(0)
+  lockedUntil         DateTime?
 
   employee      Employee?
   specialist    Specialist?
