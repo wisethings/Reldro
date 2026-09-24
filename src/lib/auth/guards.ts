@@ -3,8 +3,10 @@ import { redirect } from "next/navigation";
 import type { Role } from "@prisma/client";
 import { getSession, type SessionPayload } from "./session";
 import { destinationForRole } from "./roleHome";
+import { ensureSchemaMigrated } from "@/lib/runMigration";
 
 export async function requireSession(): Promise<SessionPayload> {
+  await ensureSchemaMigrated();
   const session = await getSession();
   if (!session) redirect("/login");
   return session;

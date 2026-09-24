@@ -26,8 +26,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
     isDepartmentAdmin = employee?.isDepartmentAdmin ?? false;
   }
 
-  const user = await prisma.user.findUnique({ where: { id: session.sub }, select: { hasSeenTour: true } });
-  const showTour = !user?.hasSeenTour && (session.role === "COMPANY_ADMIN" || session.role === "EMPLOYEE");
+  // Best-effort: the onboarding tour is a nice-to-have, never worth taking
+  // the entire dashboard down over if this lookup fails for any reason.
+  const hasSeenTour = await prisma.user
+    .findUnique({ where: { id: session.sub }, select: { hasSeenTour: true } })
+    .then((u) => u?.hasSeenTour ?? true)
+    .catch(() => true);
+  const showTour = !hasSeenTour && (session.role === "COMPANY_ADMIN" || session.role === "EMPLOYEE");
 
   return (
     <DashboardShell

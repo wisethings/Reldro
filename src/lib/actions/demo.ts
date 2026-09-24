@@ -4,12 +4,14 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { createSession } from "@/lib/auth/session";
 import { destinationForRole } from "@/lib/auth/roleHome";
+import { ensureSchemaMigrated } from "@/lib/runMigration";
 
 /**
  * Demo-only shortcut so reviewers can see the product populated with real
  * data without typing credentials. Only works for the seeded demo emails.
  */
 export async function loginAsDemo(email: string) {
+  await ensureSchemaMigrated();
   const user = await prisma.user.findUnique({
     where: { email },
     include: { employee: true, specialist: true },

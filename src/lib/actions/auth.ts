@@ -6,6 +6,7 @@ import { verifyPassword } from "@/lib/auth/password";
 import { createSession, destroySession } from "@/lib/auth/session";
 import { destinationForRole } from "@/lib/auth/roleHome";
 import { logAudit } from "@/lib/audit";
+import { ensureSchemaMigrated } from "@/lib/runMigration";
 
 export type FormState = { error?: string } | undefined;
 
@@ -13,6 +14,7 @@ const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_MINUTES = 15;
 
 export async function login(_prevState: FormState, formData: FormData): Promise<FormState> {
+  await ensureSchemaMigrated();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
 
