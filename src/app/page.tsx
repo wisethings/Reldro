@@ -29,10 +29,22 @@ const industries = [
   { name: "Technology", items: ["Support triage", "Code review", "Product research", "Sales enablement"] },
 ];
 
-const pricing = [
-  { name: "Starter", desc: "For smaller teams getting started with AI adoption.", features: ["Up to 50 employees", "AI maturity assessment", "Workflow library", "Core analytics"] },
-  { name: "Growth", desc: "For growing organizations scaling adoption across departments.", features: ["Up to 500 employees", "Opportunity engine", "Learning paths", "Expert help on demand", "ROI engine"], highlighted: true },
-  { name: "Enterprise", desc: "For large, multi-department organizations with governance needs.", features: ["Unlimited employees", "SSO & advanced permissions", "Dedicated success manager", "Custom integrations"] },
+const included = [
+  "AI maturity assessment",
+  "Opportunity engine",
+  "Workflow library",
+  "Personalized learning paths",
+  "Expert help on demand",
+  "ROI engine and analytics",
+];
+
+const screenshots = [
+  { src: "/screenshots/overview.png", alt: "Reldro Overview dashboard showing an AI Adoption Score of 54, adoption trend, and organization-wide stats", caption: "See your organization's AI Adoption Score and what's driving it" },
+  { src: "/screenshots/opportunities-matrix.png", alt: "Opportunity matrix plotting AI opportunities by impact and effort", caption: "Every AI opportunity, ranked by impact and effort" },
+  { src: "/screenshots/learn.png", alt: "Learn page showing role-specific lessons grouped by department", caption: "Short, role-specific lessons tied to real workflows" },
+  { src: "/screenshots/workflows.png", alt: "Workflow library showing AI-enabled processes grouped by department", caption: "AI-enabled workflows for every department, ready to roll out" },
+  { src: "/screenshots/analytics.png", alt: "Analytics page showing adoption over time and by department", caption: "Track adoption over time and by department" },
+  { src: "/screenshots/roi.png", alt: "ROI page showing real captured value and value by department", caption: "Real value captured, broken down by department" },
 ];
 
 export default function LandingPage() {
@@ -59,6 +71,24 @@ export default function LandingPage() {
           <Link href="#how-it-works" className="rounded-lg border border-ink-300 px-5 py-3 text-sm font-medium text-ink-800 hover:bg-ink-50">
             Explore the platform
           </Link>
+        </div>
+      </section>
+
+      {/* Screenshots */}
+      <section className="mx-auto max-w-6xl px-6 pb-20">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {screenshots.map((s) => (
+            <figure key={s.src} className="overflow-hidden rounded-xl border border-ink-200 bg-white shadow-card">
+              <div className="flex items-center gap-1.5 border-b border-ink-200 bg-ink-50 px-3 py-2">
+                <span className="h-2.5 w-2.5 rounded-full bg-ink-200" />
+                <span className="h-2.5 w-2.5 rounded-full bg-ink-200" />
+                <span className="h-2.5 w-2.5 rounded-full bg-ink-200" />
+              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={s.src} alt={s.alt} className="w-full" loading="lazy" />
+              <figcaption className="border-t border-ink-200 px-4 py-3 text-xs text-ink-500">{s.caption}</figcaption>
+            </figure>
+          ))}
         </div>
       </section>
 
@@ -236,37 +266,26 @@ export default function LandingPage() {
 
       {/* Pricing */}
       <section id="pricing" className="border-y border-ink-200 bg-ink-50/60">
-        <div className="mx-auto max-w-6xl px-6 py-20">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-2xl font-semibold text-ink-900">Plans</h2>
-            <p className="mt-3 text-sm text-ink-600">Pricing is tailored to your organization. Request a demo and we'll walk through what fits.</p>
-          </div>
-          <div className="mt-12 grid gap-5 lg:grid-cols-3">
-            {pricing.map((p) => (
-              <div
-                key={p.name}
-                className={`rounded-2xl border p-6 ${p.highlighted ? "border-brand-600 bg-white shadow-card ring-1 ring-brand-600" : "border-ink-200 bg-white"}`}
-              >
-                {p.highlighted && <Badge>Most popular</Badge>}
-                <h3 className="mt-2 text-lg font-semibold text-ink-900">{p.name}</h3>
-                <p className="mt-2 text-sm text-ink-600">{p.desc}</p>
-                <ul className="mt-5 space-y-2 text-sm text-ink-700">
-                  {p.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2">
-                      <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-600" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  href="/demo"
-                  className={`mt-6 block rounded-full px-4 py-2.5 text-center text-sm font-medium ${p.highlighted ? "bg-brand-700 text-white hover:bg-brand-800" : "border border-ink-300 text-ink-800 hover:bg-ink-50"}`}
-                >
-                  Request a demo
-                </Link>
-              </div>
+        <div className="mx-auto max-w-3xl px-6 py-20 text-center">
+          <h2 className="text-2xl font-semibold text-ink-900">Pricing for your organization</h2>
+          <p className="mt-3 text-sm text-ink-600">
+            Pricing depends on your headcount, departments, and how much of the platform you roll out. Request a demo
+            and we'll put together a plan that fits.
+          </p>
+          <Link
+            href="/demo"
+            className="mt-6 inline-block rounded-full bg-brand-700 px-5 py-3 text-sm font-medium text-white hover:bg-brand-800"
+          >
+            Request a demo
+          </Link>
+          <ul className="mx-auto mt-10 grid max-w-xl gap-3 text-left sm:grid-cols-2">
+            {included.map((f) => (
+              <li key={f} className="flex items-start gap-2 text-sm text-ink-700">
+                <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-600" />
+                {f}
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       </section>
 
@@ -283,13 +302,5 @@ export default function LandingPage() {
 
       <MarketingFooter />
     </div>
-  );
-}
-
-function Badge({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="inline-flex items-center rounded-full bg-brand-700 px-2.5 py-1 text-[11px] font-medium text-white">
-      {children}
-    </span>
   );
 }
