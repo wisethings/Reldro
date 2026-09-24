@@ -15,24 +15,47 @@ function isAuthorized(request: NextRequest): boolean {
   return header === expected || query === expected;
 }
 
+// Postgres error codes for "this already exists" (duplicate_object /
+// duplicate_table) - expected and harmless every time this endpoint re-runs
+// the full schema, since most statements were already applied by an earlier
+// run. Only failures outside this set are worth ever looking at.
+const ALREADY_EXISTS_CODES = ["42710", "42P07"];
+
+function isAlreadyExists(error: string): boolean {
+  return ALREADY_EXISTS_CODES.some((code) => error.includes(`Code: \`${code}\``));
+}
+
 async function runMigration() {
   const statements = SCHEMA_SQL.split(";\n")
     .map((s) => s.trim())
     .filter(Boolean);
 
-  const results: { statement: string; ok: boolean; error?: string }[] = [];
+  let appliedNow = 0;
+  let alreadyApplied = 0;
+  const failures: { statement: string; error: string }[] = [];
 
   for (const statement of statements) {
     try {
       await prisma.$executeRawUnsafe(statement);
-      results.push({ statement: statement.slice(0, 60), ok: true });
+      appliedNow++;
     } catch (error) {
-      results.push({ statement: statement.slice(0, 60), ok: false, error: String(error) });
+      const message = String(error);
+      if (isAlreadyExists(message)) {
+        alreadyApplied++;
+      } else {
+        failures.push({ statement: statement.slice(0, 80), error: message });
+      }
     }
   }
 
-  const failed = results.filter((r) => !r.ok);
-  return { total: results.length, failed: failed.length, results };
+  return {
+    total: statements.length,
+    appliedNow,
+    alreadyApplied,
+    failed: failures.length,
+    healthy: failures.length === 0,
+    failures,
+  };
 }
 
 export async function POST(request: NextRequest) {
