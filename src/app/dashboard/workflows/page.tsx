@@ -18,8 +18,16 @@ export default async function WorkflowsPage({
   if (!session.organizationId) redirect("/login");
   const params = await searchParams;
 
+  const employee = session.employeeId
+    ? await prisma.employee.findUnique({ where: { id: session.employeeId }, include: { department: true } })
+    : null;
+  const canAuthorWorkflows = session.role === "COMPANY_ADMIN" || Boolean(employee?.isDepartmentAdmin);
+
   const workflows = await prisma.workflow.findMany({
-    where: { department: params.department || undefined },
+    where: {
+      OR: [{ organizationId: null }, { organizationId: session.organizationId }],
+      department: params.department || undefined,
+    },
     orderBy: { title: "asc" },
     include: { steps: { select: { id: true } } },
   });
@@ -33,9 +41,19 @@ export default async function WorkflowsPage({
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-6">
-      <div>
-        <h1 className="text-xl font-semibold text-ink-900">Workflow library</h1>
-        <p className="text-sm text-ink-500">AI-enabled versions of the processes your teams run every day.</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-ink-900">Workflow library</h1>
+          <p className="text-sm text-ink-500">AI-enabled versions of the processes your teams run every day.</p>
+        </div>
+        {canAuthorWorkflows && (
+          <Link
+            href="/dashboard/workflows/manage"
+            className="rounded-full border border-ink-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-ink-50"
+          >
+            Create a workflow for your team
+          </Link>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -71,6 +89,9 @@ export default async function WorkflowsPage({
                       <div className="mt-3 flex flex-wrap gap-1.5">
                         <Badge tone={DIFFICULTY_TONE[w.difficulty]}>{w.difficulty.toLowerCase()}</Badge>
                         <Badge>{w.timeSavedMinutes} min/day saved</Badge>
+                        {w.organizationId && (
+                          <Badge tone="brand">Team-authored{w.createdByName ? ` · ${w.createdByName}` : ""}</Badge>
+                        )}
                       </div>
                       <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5 border-t border-ink-200 pt-3 text-xs">
                         <div>

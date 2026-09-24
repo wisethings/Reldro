@@ -180,6 +180,7 @@ model Organization {
   organizationTools      OrganizationTool[]
   demoRequests           DemoRequest[]
   courses                Course[]
+  workflows              Workflow[]
 
   @@index([industry])
 }
@@ -527,6 +528,10 @@ model Workflow {
   securityNotes    String?
   trainingNotes    String?
   createdAt        DateTime        @default(now())
+  // null = shared global catalog workflow (seeded); set = a team-authored workflow, visible only within that org.
+  organizationId   String?
+  organization     Organization?   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdByName    String          @default("") // denormalized display name of the admin/manager who authored it
 
   steps                 WorkflowStep[]
   opportunities         Opportunity[]
@@ -535,6 +540,7 @@ model Workflow {
   projects              Project[]
 
   @@index([department])
+  @@index([organizationId])
 }
 
 model WorkflowStep {

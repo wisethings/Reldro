@@ -1157,4 +1157,13 @@ ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "failedLoginAttempts" INTEGER NOT NU
 
 ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "lockedUntil" TIMESTAMP(3);
 
+-- Patch: team-authored custom workflows (idempotent, same rules as team-authored lessons).
+ALTER TABLE "Workflow" ADD COLUMN IF NOT EXISTS "organizationId" TEXT;
+
+ALTER TABLE "Workflow" ADD COLUMN IF NOT EXISTS "createdByName" TEXT NOT NULL DEFAULT '';
+
+CREATE INDEX IF NOT EXISTS "Workflow_organizationId_idx" ON "Workflow"("organizationId");
+
+DO $$ BEGIN ALTER TABLE "Workflow" ADD CONSTRAINT "Workflow_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
 `;
