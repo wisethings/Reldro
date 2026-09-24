@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
 import { OrgProfileForm } from "@/components/settings/OrgProfileForm";
 import { describeAuditAction } from "@/lib/audit";
 import { ensureDefaultPointsRules, ensureDefaultRewardCatalog, getRewardsDashboardStats } from "@/lib/rewards";
@@ -16,10 +15,9 @@ export default async function SettingsPage() {
 
   await Promise.all([ensureDefaultPointsRules(session.organizationId), ensureDefaultRewardCatalog(session.organizationId)]);
 
-  const [org, subscription, invoices, auditLogs, pointsRules, rewardItems, rewardsStats] = await Promise.all([
+  const [org, subscription, auditLogs, pointsRules, rewardItems, rewardsStats] = await Promise.all([
     prisma.organization.findUnique({ where: { id: session.organizationId } }),
     prisma.subscription.findUnique({ where: { organizationId: session.organizationId } }),
-    prisma.invoice.findMany({ where: { organizationId: session.organizationId }, orderBy: { issuedAt: "desc" }, take: 5 }),
     prisma.auditLog.findMany({
       where: { organizationId: session.organizationId },
       include: { user: true },
@@ -57,28 +55,10 @@ export default async function SettingsPage() {
         />
         <CardBody className="space-y-2">
           <p className="text-sm text-ink-700">
-            Reldro plans are tailored to your organization. Contact your account team to change your plan or seat count.
+            Reldro plans are tailored to your organization. Your account manager handles plan changes, seat count, and
+            invoicing directly.
           </p>
           <p className="text-xs text-ink-400">Expert-help engagements are billed separately from your subscription.</p>
-        </CardBody>
-      </Card>
-
-      <Card>
-        <CardHeader title="Recent invoices" />
-        <CardBody className="divide-y divide-ink-200 p-0">
-          {invoices.map((inv) => (
-            <div key={inv.id} className="flex items-center justify-between px-5 py-3">
-              <div>
-                <p className="text-sm text-ink-800">{inv.description}</p>
-                <p className="text-xs text-ink-500">{inv.issuedAt.toLocaleDateString()}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-ink-900">${(inv.amount / 100).toLocaleString()}</span>
-                <Badge tone={inv.status === "PAID" ? "green" : "amber"}>{inv.status.toLowerCase()}</Badge>
-              </div>
-            </div>
-          ))}
-          {invoices.length === 0 && <p className="p-5 text-sm text-ink-500">No invoices yet.</p>}
         </CardBody>
       </Card>
 
