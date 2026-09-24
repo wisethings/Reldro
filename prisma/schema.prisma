@@ -179,6 +179,7 @@ model Organization {
   customTools            Tool[]
   organizationTools      OrganizationTool[]
   demoRequests           DemoRequest[]
+  courses                Course[]
 
   @@index([industry])
 }
@@ -206,6 +207,8 @@ model User {
   organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
+
+  hasSeenTour    Boolean       @default(false)
 
   employee      Employee?
   specialist    Specialist?
@@ -389,10 +392,15 @@ model Course {
   role           String?       // e.g. "Account Executives" - who this path is for
   skills         String[]      @default([]) // EmployeeSkillCategory keys this path develops
   tools          String[]      @default([]) // real tools this path teaches (ChatGPT, Salesforce, ...)
+  // null = shared global catalog course (seeded); set = a team-authored course, visible only within that org.
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdByName  String        @default("") // denormalized display name of the admin/manager who authored it
 
   lessons Lesson[]
 
   @@index([learningPathId])
+  @@index([organizationId])
 }
 
 enum LessonType {

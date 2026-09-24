@@ -13,6 +13,7 @@ import { getSkillMasteryEvidence } from "@/lib/queries/skillMastery";
 import { getCertificationReadiness } from "@/lib/queries/certifications";
 import { getPointsBalance, getRecentPointsTransactions } from "@/lib/rewards";
 import { RecognitionForm } from "@/components/team/RecognitionForm";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
 
 export default async function EmployeeProfilePage({ params }: { params: Promise<{ employeeId: string }> }) {
   const session = await requireSession();
@@ -81,7 +82,10 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
         <CardBody className="flex flex-wrap items-center gap-6">
           <ScoreRing value={profile.fluency?.overallScore ?? 0} size={100} label="/ 100" />
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-ink-900">AI Fluency</p>
+            <p className="flex items-center gap-1.5 text-sm font-semibold text-ink-900">
+              AI Fluency
+              <InfoTooltip text="How effectively this person uses AI — from their self-assessment. This is different from AI Adoption (whether they use it at all), which you can see in their workflow and lesson activity below." />
+            </p>
             <p className="text-xs text-ink-500">
               {profile.fluency ? `Last assessed ${profile.fluency.assessedAt.toLocaleDateString()}` : "No assessment completed yet"}
             </p>

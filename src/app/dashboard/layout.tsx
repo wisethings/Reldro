@@ -26,6 +26,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
     isDepartmentAdmin = employee?.isDepartmentAdmin ?? false;
   }
 
+  const user = await prisma.user.findUnique({ where: { id: session.sub }, select: { hasSeenTour: true } });
+  const showTour = !user?.hasSeenTour && (session.role === "COMPANY_ADMIN" || session.role === "EMPLOYEE");
+
   return (
     <DashboardShell
       role={session.role}
@@ -34,6 +37,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       name={session.name}
       roleLabel={ROLE_LABELS[session.role]}
       showAssistant={Boolean(session.organizationId)}
+      showTour={showTour}
     >
       {children}
     </DashboardShell>

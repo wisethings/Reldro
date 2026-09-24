@@ -1135,4 +1135,15 @@ CREATE INDEX IF NOT EXISTS "DemoRequest_status_idx" ON "DemoRequest"("status");
 
 DO $$ BEGIN ALTER TABLE "DemoRequest" ADD CONSTRAINT "DemoRequest_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
 
+-- Patch: team-authored custom lessons + first-login product tour (idempotent, same rules).
+ALTER TABLE "Course" ADD COLUMN IF NOT EXISTS "organizationId" TEXT;
+
+ALTER TABLE "Course" ADD COLUMN IF NOT EXISTS "createdByName" TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "hasSeenTour" BOOLEAN NOT NULL DEFAULT false;
+
+CREATE INDEX IF NOT EXISTS "Course_organizationId_idx" ON "Course"("organizationId");
+
+DO $$ BEGIN ALTER TABLE "Course" ADD CONSTRAINT "Course_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
 `;

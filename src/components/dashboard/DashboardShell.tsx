@@ -5,6 +5,7 @@ import type { Role } from "@prisma/client";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { AssistantWidget } from "./AssistantWidget";
+import { WelcomeTour } from "./WelcomeTour";
 
 export function DashboardShell({
   role,
@@ -13,6 +14,7 @@ export function DashboardShell({
   name,
   roleLabel,
   showAssistant,
+  showTour,
   children,
 }: {
   role: Role;
@@ -21,6 +23,7 @@ export function DashboardShell({
   name: string;
   roleLabel: string;
   showAssistant: boolean;
+  showTour?: boolean;
   children: React.ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -39,6 +42,7 @@ export function DashboardShell({
         <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
       {showAssistant && <AssistantWidget />}
+      {showTour && <WelcomeTour role={role} />}
     </div>
   );
 }

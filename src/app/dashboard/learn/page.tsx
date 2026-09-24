@@ -19,9 +19,14 @@ export default async function LearnPage() {
   const employee = session.employeeId
     ? await prisma.employee.findUnique({ where: { id: session.employeeId }, include: { department: true } })
     : null;
+  const canAuthorLessons = session.role === "COMPANY_ADMIN" || Boolean(employee?.isDepartmentAdmin);
 
   const [courses, simulations, completions, attempts] = await Promise.all([
-    prisma.course.findMany({ include: { lessons: true }, orderBy: { department: "asc" } }),
+    prisma.course.findMany({
+      where: { OR: [{ organizationId: null }, { organizationId: session.organizationId }] },
+      include: { lessons: true },
+      orderBy: { department: "asc" },
+    }),
     prisma.simulation.findMany(),
     session.employeeId ? prisma.lessonCompletion.findMany({ where: { employeeId: session.employeeId } }) : Promise.resolve([]),
     session.employeeId ? prisma.simulationAttempt.findMany({ where: { employeeId: session.employeeId } }) : Promise.resolve([]),
@@ -42,11 +47,21 @@ export default async function LearnPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 p-6">
-      <div>
-        <h1 className="text-xl font-semibold text-ink-900">Learn</h1>
-        <p className="text-sm text-ink-500">
-          Short, practical lessons tied directly to real workflows — not generic AI training.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-ink-900">Learn</h1>
+          <p className="text-sm text-ink-500">
+            Short, practical lessons tied directly to real workflows — not generic AI training.
+          </p>
+        </div>
+        {canAuthorLessons && (
+          <Link
+            href="/dashboard/learn/manage"
+            className="rounded-full border border-ink-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-ink-50"
+          >
+            Create a lesson for your team
+          </Link>
+        )}
       </div>
 
       {[...byDepartment.entries()].map(([dept, items]) => (
@@ -62,7 +77,11 @@ export default async function LearnPage() {
                     title={course.title}
                     subtitle={course.description}
                     action={
-                      course.role ? (
+                      course.organizationId ? (
+                        <Badge tone="brand" className="whitespace-normal text-left">
+                          Team-authored{course.createdByName ? ` · ${course.createdByName}` : ""}
+                        </Badge>
+                      ) : course.role ? (
                         <Badge tone="neutral" className="whitespace-normal text-left">
                           For: {course.role}
                         </Badge>
