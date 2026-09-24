@@ -49,7 +49,11 @@ export default async function SettingsPage() {
       <Card>
         <CardHeader
           title="Billing"
-          subtitle={subscription ? `Current plan: ${subscription.tier} · $${subscription.pricePerMonth}/mo` : "No active subscription"}
+          subtitle={
+            subscription
+              ? `Current plan: ${subscription.tier.charAt(0) + subscription.tier.slice(1).toLowerCase()}`
+              : "No active subscription"
+          }
         />
         <CardBody className="space-y-2">
           <p className="text-sm text-ink-700">

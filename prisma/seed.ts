@@ -5,6 +5,72 @@ import { computeOrgAdoptionScore, computeFluencyScore } from "../src/lib/scoring
 import { INTEGRATION_CATALOG } from "../src/lib/data/catalog";
 import { SIMULATION_CATALOG } from "../src/lib/simulationCatalog";
 import { COURSE_CATALOG } from "../src/lib/courseCatalog";
+import type { EmployeeSkillCategory } from "../src/lib/scoring";
+
+// Mirrors src/lib/rewards.ts and src/lib/queries/certifications.ts. Duplicated
+// here (rather than imported) because those modules are marked "server-only"
+// for the Next.js app and can't be loaded by this standalone tsx script - see
+// seedRewardActivity below.
+const SEED_POINTS_RULES: Record<string, number> = {
+  course_completed: 50,
+  simulation_completed: 25,
+  simulation_passed: 50,
+  simulation_score_90: 50,
+  simulation_improved_15: 25,
+  certification_ai_practitioner: 100,
+  certification_ai_workflow_builder: 150,
+  certification_ai_champion: 250,
+  workflow_first_adopted: 100,
+  workflow_three_adopted: 150,
+  manager_recognition: 50,
+  peer_recognition: 25,
+};
+
+const SEED_CERTIFICATIONS: {
+  key: string;
+  title: string;
+  description: string;
+  minFluency: number | null;
+  requiredSkills: { skill: EmployeeSkillCategory; minScore: number }[];
+  minCoursesCompleted: number;
+  minSimulationsPassed: number;
+  pointsAwarded: number;
+  order: number;
+}[] = [
+  {
+    key: "ai-practitioner",
+    title: "AI Practitioner",
+    description: "Uses company-approved AI tools and workflows effectively in day-to-day work.",
+    minFluency: 55,
+    requiredSkills: [],
+    minCoursesCompleted: 1,
+    minSimulationsPassed: 1,
+    pointsAwarded: 100,
+    order: 1,
+  },
+  {
+    key: "ai-workflow-builder",
+    title: "AI Workflow Builder",
+    description: "Demonstrates strong workflow judgment and can adapt AI-enabled processes, not just follow them.",
+    minFluency: 70,
+    requiredSkills: [{ skill: "workflowDesign", minScore: 65 }],
+    minCoursesCompleted: 2,
+    minSimulationsPassed: 2,
+    pointsAwarded: 150,
+    order: 2,
+  },
+  {
+    key: "ai-champion",
+    title: "AI Champion",
+    description: "Advanced AI capability with consistently strong evaluation judgment across realistic scenarios.",
+    minFluency: 80,
+    requiredSkills: [{ skill: "evaluation", minScore: 75 }],
+    minCoursesCompleted: 3,
+    minSimulationsPassed: 3,
+    pointsAwarded: 250,
+    order: 3,
+  },
+];
 
 const DEMO_PASSWORD = "Demo1234!";
 
@@ -1536,6 +1602,298 @@ async function seedLessonProgress(employees: { id: string; departmentName: strin
   }
 }
 
+const RECOGNITION_CATEGORIES = [
+  "AI_ADOPTION",
+  "WORKFLOW_INNOVATION",
+  "LEARNING",
+  "BUSINESS_IMPACT",
+  "COLLABORATION",
+  "AI_LEADERSHIP",
+] as const;
+
+function clampScore(n: number) {
+  return Math.max(0, Math.min(100, Math.round(n)));
+}
+
+async function seedAwardPoints(params: {
+  employeeId: string;
+  organizationId: string;
+  ruleKey: string;
+  reason: string;
+  entityType?: string;
+  entityId?: string;
+  dedupeKey?: string;
+}): Promise<boolean> {
+  const points = SEED_POINTS_RULES[params.ruleKey];
+  if (!points) return false;
+  if (params.dedupeKey) {
+    const existing = await prisma.pointsTransaction.findFirst({
+      where: { employeeId: params.employeeId, ruleKey: params.ruleKey, entityType: params.entityType, entityId: params.entityId },
+      select: { id: true },
+    });
+    if (existing) return false;
+  }
+  await prisma.pointsTransaction.create({
+    data: {
+      employeeId: params.employeeId,
+      organizationId: params.organizationId,
+      amount: points,
+      reason: params.reason,
+      ruleKey: params.ruleKey,
+      entityType: params.entityType,
+      entityId: params.entityId,
+    },
+  });
+  return true;
+}
+
+async function seedCheckAndAwardCertifications(employeeId: string, organizationId: string) {
+  const [assessment, earned] = await Promise.all([
+    prisma.assessment.findFirst({
+      where: { employeeId, type: "EMPLOYEE", status: "COMPLETED" },
+      orderBy: { completedAt: "desc" },
+    }),
+    prisma.employeeCertification.findMany({ where: { employeeId }, select: { certificationId: true } }),
+  ]);
+  const earnedIds = new Set(earned.map((e) => e.certificationId));
+  const breakdown = (assessment?.scoreBreakdown as Record<EmployeeSkillCategory, number> | null) ?? null;
+
+  const courses = await prisma.course.findMany({ select: { id: true, lessons: { select: { id: true } } } });
+  const completedLessonIds = new Set(
+    (await prisma.lessonCompletion.findMany({ where: { employeeId }, select: { lessonId: true } })).map((l) => l.lessonId)
+  );
+  const coursesCompleted = courses.filter((c) => c.lessons.length > 0 && c.lessons.every((l) => completedLessonIds.has(l.id))).length;
+  const simulationsPassed = (
+    await prisma.simulationAttempt.findMany({ where: { employeeId, passed: true }, select: { simulationId: true }, distinct: ["simulationId"] })
+  ).length;
+
+  for (const cert of SEED_CERTIFICATIONS) {
+    const dbCert = await prisma.certification.findUnique({ where: { key: cert.key } });
+    if (!dbCert || earnedIds.has(dbCert.id)) continue;
+
+    const meetsFluency = !cert.minFluency || (assessment?.overallScore ?? 0) >= cert.minFluency;
+    const meetsSkills = cert.requiredSkills.every((rs) => (breakdown?.[rs.skill] ?? 0) >= rs.minScore);
+    const meetsCourses = coursesCompleted >= cert.minCoursesCompleted;
+    const meetsSims = simulationsPassed >= cert.minSimulationsPassed;
+    if (!meetsFluency || !meetsSkills || !meetsCourses || !meetsSims) continue;
+
+    await prisma.employeeCertification.create({ data: { employeeId, certificationId: dbCert.id } });
+    if (cert.pointsAwarded > 0) {
+      await seedAwardPoints({
+        employeeId,
+        organizationId,
+        ruleKey: `certification_${cert.key.replace(/-/g, "_")}`,
+        reason: `Earned ${cert.title} certification`,
+        entityType: "Certification",
+        entityId: dbCert.id,
+        dedupeKey: `certification:${dbCert.id}`,
+      });
+    }
+  }
+}
+
+/**
+ * Backfills the reward ledger, simulation attempts, per-employee workflow
+ * adoption, certifications, and recognitions from the activity already
+ * seeded above (lesson completions, department, org-adopted workflows).
+ * Without this, every points/certification/"workflows used" view is a real
+ * but permanently-empty zero, since seeding rows directly (rather than
+ * through the app's own actions) never runs the award logic those actions
+ * trigger. This mirrors that same award logic (see the note on
+ * SEED_POINTS_RULES above for why it's duplicated rather than imported), so
+ * the numbers stay honest.
+ */
+async function seedRewardActivity(org: { id: string }, employees: { id: string; userId: string; departmentName: string; isDepartmentAdmin: boolean }[]) {
+  await prisma.pointsRule.createMany({
+    data: Object.entries(SEED_POINTS_RULES).map(([key, points]) => ({ organizationId: org.id, key, label: key, points })),
+    skipDuplicates: true,
+  });
+  await prisma.certification.createMany({
+    data: SEED_CERTIFICATIONS.map((c) => ({
+      key: c.key,
+      title: c.title,
+      description: c.description,
+      minFluency: c.minFluency,
+      requiredSkills: c.requiredSkills,
+      minCoursesCompleted: c.minCoursesCompleted,
+      minSimulationsPassed: c.minSimulationsPassed,
+      pointsAwarded: c.pointsAwarded,
+      order: c.order,
+    })),
+    skipDuplicates: true,
+  });
+
+  const courses = await prisma.course.findMany({ include: { lessons: true } });
+  const simulations = await prisma.simulation.findMany();
+  const adoptedWorkflows = await prisma.organizationWorkflow.findMany({
+    where: { organizationId: org.id, status: { in: ["ADOPTED", "IN_PROGRESS"] } },
+    include: { workflow: { include: { steps: { orderBy: { order: "asc" } } } } },
+  });
+  const managerByDept = new Map(employees.filter((e) => e.isDepartmentAdmin).map((e) => [e.departmentName, e]));
+
+  for (const e of employees) {
+    // Course completion points, from the lessons already marked complete.
+    for (const course of courses.filter((c) => c.department === e.departmentName && c.lessons.length > 0)) {
+      const completedCount = await prisma.lessonCompletion.count({
+        where: { employeeId: e.id, lessonId: { in: course.lessons.map((l) => l.id) } },
+      });
+      if (completedCount === course.lessons.length) {
+        await seedAwardPoints({
+          employeeId: e.id,
+          organizationId: org.id,
+          ruleKey: "course_completed",
+          reason: `Completed learning path: ${course.title}`,
+          entityType: "Course",
+          entityId: course.id,
+          dedupeKey: `course_completed:${course.id}`,
+        });
+      }
+    }
+
+    // Simulation attempts relevant to this employee's department.
+    const deptSims = simulations.filter((s) => s.department === e.departmentName);
+    if (deptSims.length > 0 && Math.random() < 0.65) {
+      const attemptCount = 1 + Math.floor(Math.random() * Math.min(3, deptSims.length));
+      const chosenSims = [...deptSims].sort(() => Math.random() - 0.5).slice(0, attemptCount);
+      for (const sim of chosenSims) {
+        const score = clampScore(55 + Math.random() * 45);
+        const passed = score >= 70;
+        const jitter = () => clampScore(score + (Math.random() * 20 - 10));
+        await prisma.simulationAttempt.create({
+          data: {
+            employeeId: e.id,
+            simulationId: sim.id,
+            score,
+            feedback: passed ? "Solid handling of the scenario overall." : "Some gaps in approach - review the debrief for what to improve.",
+            dimensions: { reasoning: jitter(), aiUsage: jitter(), promptQuality: jitter(), accuracy: jitter(), workflowAdherence: jitter() },
+            passed,
+          },
+        });
+        await seedAwardPoints({
+          employeeId: e.id,
+          organizationId: org.id,
+          ruleKey: "simulation_completed",
+          reason: `Completed simulation: ${sim.title}`,
+          entityType: "Simulation",
+          entityId: sim.id,
+        });
+        if (passed) {
+          await seedAwardPoints({
+            employeeId: e.id,
+            organizationId: org.id,
+            ruleKey: "simulation_passed",
+            reason: `Passed simulation: ${sim.title}`,
+            entityType: "Simulation",
+            entityId: sim.id,
+            dedupeKey: `simulation_passed:${sim.id}`,
+          });
+        }
+        if (score >= 90) {
+          await seedAwardPoints({
+            employeeId: e.id,
+            organizationId: org.id,
+            ruleKey: "simulation_score_90",
+            reason: `Scored 90+ on: ${sim.title}`,
+            entityType: "Simulation",
+            entityId: sim.id,
+            dedupeKey: `simulation_score_90:${sim.id}`,
+          });
+        }
+      }
+    }
+
+    // Per-employee workflow adoption: complete every step of a realistic subset
+    // of the org's adopted/in-progress workflows relevant to this department.
+    const relevantWorkflows = adoptedWorkflows.filter((aw) => aw.workflow.department === e.departmentName && aw.workflow.steps.length > 0);
+    const toAdopt = relevantWorkflows.filter(() => Math.random() < 0.6);
+    let distinctWorkflowCount = 0;
+    for (const aw of toAdopt) {
+      await prisma.workflowStepCompletion.createMany({
+        data: aw.workflow.steps.map((step) => ({ employeeId: e.id, workflowStepId: step.id })),
+        skipDuplicates: true,
+      });
+      distinctWorkflowCount++;
+      if (distinctWorkflowCount === 1) {
+        await seedAwardPoints({
+          employeeId: e.id,
+          organizationId: org.id,
+          ruleKey: "workflow_first_adopted",
+          reason: "Used your first AI workflow",
+          entityType: "Workflow",
+          entityId: aw.workflowId,
+          dedupeKey: "workflow_first_adopted",
+        });
+      }
+      if (distinctWorkflowCount === 3) {
+        await seedAwardPoints({
+          employeeId: e.id,
+          organizationId: org.id,
+          ruleKey: "workflow_three_adopted",
+          reason: "Used 3 different AI workflows",
+          entityType: "Workflow",
+          entityId: aw.workflowId,
+          dedupeKey: "workflow_three_adopted",
+        });
+      }
+    }
+  }
+
+  // Certifications depend on fluency + course + simulation data, all now in place.
+  for (const e of employees) {
+    await seedCheckAndAwardCertifications(e.id, org.id);
+  }
+
+  // Recognitions: managers recognizing their team, and peers recognizing each other.
+  for (const e of employees) {
+    const manager = managerByDept.get(e.departmentName);
+    if (manager && manager.id !== e.id && Math.random() < 0.35) {
+      const recognition = await prisma.recognition.create({
+        data: {
+          organizationId: org.id,
+          fromUserId: manager.userId,
+          toEmployeeId: e.id,
+          type: "MANAGER",
+          category: pick(RECOGNITION_CATEGORIES),
+          message: "Great work applying AI tools to real workflows this quarter.",
+        },
+      });
+      const awarded = await seedAwardPoints({
+        employeeId: e.id,
+        organizationId: org.id,
+        ruleKey: "manager_recognition",
+        reason: "Manager recognition",
+        entityType: "Recognition",
+        entityId: recognition.id,
+      });
+      if (awarded) await prisma.recognition.update({ where: { id: recognition.id }, data: { pointsAwarded: 50 } });
+    }
+
+    const peers = employees.filter((o) => o.departmentName === e.departmentName && o.id !== e.id);
+    if (peers.length > 0 && Math.random() < 0.25) {
+      const peer = pick(peers);
+      const recognition = await prisma.recognition.create({
+        data: {
+          organizationId: org.id,
+          fromUserId: peer.userId,
+          toEmployeeId: e.id,
+          type: "PEER",
+          category: pick(RECOGNITION_CATEGORIES),
+          message: "Thanks for the help getting this workflow off the ground.",
+        },
+      });
+      const awarded = await seedAwardPoints({
+        employeeId: e.id,
+        organizationId: org.id,
+        ruleKey: "peer_recognition",
+        reason: "Peer recognition",
+        entityType: "Recognition",
+        entityId: recognition.id,
+      });
+      if (awarded) await prisma.recognition.update({ where: { id: recognition.id }, data: { pointsAwarded: 25 } });
+    }
+  }
+}
+
 async function seedSubscription(org: { id: string }) {
   await prisma.subscription.create({
     data: {
@@ -1615,6 +1973,9 @@ export async function seedDatabase() {
 
   console.log("Seeding lesson progress...");
   await seedLessonProgress(employees);
+
+  console.log("Seeding reward activity (simulations, workflow adoption, certifications, recognition)...");
+  await seedRewardActivity(org, employees);
 
   console.log("Seeding subscription & billing...");
   await seedSubscription(org);

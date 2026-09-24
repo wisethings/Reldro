@@ -4,15 +4,9 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/auth/password";
 import { createSession, destroySession } from "@/lib/auth/session";
-import type { Role } from "@prisma/client";
+import { destinationForRole } from "@/lib/auth/roleHome";
 
 export type FormState = { error?: string } | undefined;
-
-function destinationForRole(role: Role) {
-  if (role === "PLATFORM_ADMIN") return "/platform-admin";
-  if (role === "SPECIALIST") return "/dashboard/specialist";
-  return "/dashboard/overview";
-}
 
 export async function login(_prevState: FormState, formData: FormData): Promise<FormState> {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();

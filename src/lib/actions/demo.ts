@@ -3,13 +3,7 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { createSession } from "@/lib/auth/session";
-import type { Role } from "@prisma/client";
-
-function destinationForRole(role: Role) {
-  if (role === "PLATFORM_ADMIN") return "/platform-admin";
-  if (role === "SPECIALIST") return "/dashboard/specialist";
-  return "/dashboard/overview";
-}
+import { destinationForRole } from "@/lib/auth/roleHome";
 
 /**
  * Demo-only shortcut so reviewers can see the product populated with real

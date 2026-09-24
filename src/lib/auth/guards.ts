@@ -2,6 +2,7 @@ import "server-only";
 import { redirect } from "next/navigation";
 import type { Role } from "@prisma/client";
 import { getSession, type SessionPayload } from "./session";
+import { destinationForRole } from "./roleHome";
 
 export async function requireSession(): Promise<SessionPayload> {
   const session = await getSession();
@@ -11,7 +12,7 @@ export async function requireSession(): Promise<SessionPayload> {
 
 export async function requireRole(roles: Role[]): Promise<SessionPayload> {
   const session = await requireSession();
-  if (!roles.includes(session.role)) redirect("/dashboard");
+  if (!roles.includes(session.role)) redirect(destinationForRole(session.role));
   return session;
 }
 

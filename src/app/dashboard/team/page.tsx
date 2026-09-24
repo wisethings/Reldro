@@ -8,7 +8,7 @@ import { ProgressBar } from "@/components/ui/Progress";
 import { InviteEmployeeForm } from "@/components/team/InviteEmployeeForm";
 import { getEmployeeActivity } from "@/lib/queries/team";
 import { getTeamGaps, getEmployeesNeedingAttention } from "@/lib/queries/teamInsights";
-import { getTeamRewardsSummary } from "@/lib/rewards";
+import { getTeamRewardsSummary, getPointsBalances } from "@/lib/rewards";
 
 function formatLastActive(date: Date | null) {
   if (!date) return "Never active";
@@ -32,13 +32,20 @@ export default async function TeamPage() {
     prisma.department.findMany({ where: { organizationId: session.organizationId } }),
   ]);
   const employeeIds = employees.map((e) => e.id);
-  const [activity, teamGaps, attentionList, rewardsSummary] = await Promise.all([
+  const [activity, teamGaps, attentionList, rewardsSummary, pointsBalances] = await Promise.all([
     getEmployeeActivity(employeeIds),
     getTeamGaps(employeeIds),
     getEmployeesNeedingAttention(employeeIds),
     getTeamRewardsSummary(employeeIds),
+    getPointsBalances(employeeIds),
   ]);
   const employeeById = new Map(employees.map((e) => [e.id, e]));
+
+  const leaderboard = employees
+    .map((e) => ({ employee: e, points: pointsBalances.get(e.id) ?? 0 }))
+    .filter((row) => row.points > 0)
+    .sort((a, b) => b.points - a.points)
+    .slice(0, 8);
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-6">
@@ -68,6 +75,30 @@ export default async function TeamPage() {
           <p className="mt-1 text-2xl font-semibold text-ink-900">{rewardsSummary.recognitionsReceived}</p>
         </div>
       </div>
+
+      {leaderboard.length > 0 && (
+        <Card>
+          <CardHeader title="Reward leaderboard" subtitle="Top point balances across the organization, from real learning, workflow adoption, and recognition" />
+          <CardBody className="divide-y divide-ink-200 p-0">
+            {leaderboard.map((row, i) => (
+              <Link
+                key={row.employee.id}
+                href={`/dashboard/team/${row.employee.id}`}
+                className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-ink-50"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="w-5 shrink-0 text-sm font-semibold text-ink-400">{i + 1}</span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-ink-900">{row.employee.user.name}</p>
+                    <p className="text-xs text-ink-500">{row.employee.department?.name ?? "No department"}</p>
+                  </div>
+                </div>
+                <span className="shrink-0 text-sm font-semibold text-orchid-deep">{row.points.toLocaleString()} pts</span>
+              </Link>
+            ))}
+          </CardBody>
+        </Card>
+      )}
 
       {teamGaps.length > 0 && (
         <Card>
@@ -125,6 +156,7 @@ export default async function TeamPage() {
                   <span className="text-[11px] text-ink-400">{formatLastActive(stats?.lastActiveAt ?? null)}</span>
                   <Badge tone="neutral">{stats?.lessonsCompleted ?? 0} lesson{stats?.lessonsCompleted === 1 ? "" : "s"}</Badge>
                   {e.aiFluencyScore !== null && <Badge tone="brand">Fluency {e.aiFluencyScore}</Badge>}
+                  {(pointsBalances.get(e.id) ?? 0) > 0 && <Badge tone="green">{(pointsBalances.get(e.id) ?? 0).toLocaleString()} pts</Badge>}
                   {e.isDepartmentAdmin && <Badge>Dept admin</Badge>}
                 </div>
               </div>
