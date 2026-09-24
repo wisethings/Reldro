@@ -60,6 +60,7 @@ const config: Config = {
         sans: ["var(--font-inter)", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
         display: ["var(--font-inter-tight)", "var(--font-inter)", "-apple-system", "sans-serif"],
         wordmark: ["var(--font-parkinsans)", "var(--font-inter)", "sans-serif"],
+        serif: ["var(--font-fraunces)", "Georgia", "serif"],
       },
       borderRadius: {
         none: "0px",
