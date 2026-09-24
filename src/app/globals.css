@@ -38,6 +38,21 @@ body {
   letter-spacing: 0 !important;
 }
 
+/* Without this, touch browsers wait ~300ms after a tap before firing click
+   (to see if it's the start of a double-tap-to-zoom gesture), which reads
+   as buttons and links being unresponsive or needing a firmer/second tap on
+   mobile and tablet. This removes that delay on every interactive element. */
+button,
+a,
+[role="button"],
+input[type="submit"],
+input[type="button"],
+input[type="checkbox"],
+input[type="radio"],
+select {
+  touch-action: manipulation;
+}
+
 /* Every <select> in the product: replace the cramped native arrow with
    the kit's custom one and give it real breathing room from the edge.
    padding-right needs !important because a plain `select` type selector
