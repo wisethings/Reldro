@@ -84,13 +84,13 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
           <div className="min-w-0">
             <p className="flex items-center gap-1.5 text-sm font-semibold text-ink-900">
               AI Fluency
-              <InfoTooltip text="How effectively this person uses AI — from their self-assessment. This is different from AI Adoption (whether they use it at all), which you can see in their workflow and lesson activity below." />
+              <InfoTooltip text="How effectively this person uses AI, based on their self-assessment. AI Adoption, whether they use it at all, is shown separately in their workflow and lesson activity below." />
             </p>
             <p className="text-xs text-ink-500">
               {profile.fluency ? `Last assessed ${profile.fluency.assessedAt.toLocaleDateString()}` : "No assessment completed yet"}
             </p>
             <p className="mt-2 text-sm text-ink-700">
-              <span className="font-medium text-ink-900">{CAPABILITY_LEVEL_LABEL[level]}</span> — {CAPABILITY_LEVEL_DESCRIPTION[level]}
+              <span className="font-medium text-ink-900">{CAPABILITY_LEVEL_LABEL[level]}:</span> {CAPABILITY_LEVEL_DESCRIPTION[level]}
             </p>
           </div>
         </CardBody>

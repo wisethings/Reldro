@@ -13,7 +13,7 @@ export default async function AccountPage() {
       </div>
 
       <Card>
-        <CardHeader title="Password" subtitle="Set your own password instead of using a temporary one." />
+        <CardHeader title="Password" subtitle="Choose your own password to replace the temporary one." />
         <CardBody>
           <ChangePasswordForm />
         </CardBody>

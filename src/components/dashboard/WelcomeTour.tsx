@@ -8,20 +8,20 @@ import { dismissOnboardingTour } from "@/lib/actions/tour";
 type Step = { title: string; body: string; navHref?: string };
 
 const ADMIN_STEPS: Step[] = [
-  { title: "Welcome to Reldro", body: "This is your AI adoption operating system — here's a 30-second tour of where things live." },
-  { title: "Overview", body: "Your organization's real AI adoption snapshot: fluency, workflow usage, and value captured — all computed from actual activity.", navHref: "/dashboard/overview" },
+  { title: "Welcome to Reldro", body: "This is your AI adoption operating system. Here's a 30-second tour of where things live." },
+  { title: "Overview", body: "Your organization's real AI adoption snapshot: fluency, workflow usage, and value captured, all computed from actual activity.", navHref: "/dashboard/overview" },
   { title: "Team", body: "Invite employees, see who's active, spot skill gaps, and check the reward leaderboard for who's applying AI the most.", navHref: "/dashboard/team" },
   { title: "Learn", body: "Employees get bite-sized lessons tied to real workflows. You can also create your own lessons for your team here.", navHref: "/dashboard/learn" },
   { title: "Workflows", body: "Browse AI-ready workflows for your industry and see where your organization has the highest-value opportunities.", navHref: "/dashboard/workflows" },
-  { title: "You're set", body: "Explore at your own pace — every number you see is real, computed from your organization's actual data." },
+  { title: "You're set", body: "Explore at your own pace. Every number you see is real, computed from your organization's actual data." },
 ];
 
 const EMPLOYEE_STEPS: Step[] = [
-  { title: "Welcome to Reldro", body: "This is where you build and show your AI skills at work — here's a quick tour." },
+  { title: "Welcome to Reldro", body: "This is where you build and show your AI skills at work. Here's a quick tour." },
   { title: "AI Assessment", body: "Start here to see your AI fluency and get a personalized starting point.", navHref: "/dashboard/assessment" },
-  { title: "Learn", body: "Short, practical lessons tied to your actual job — not generic AI training. Your manager may have added lessons made just for your team.", navHref: "/dashboard/learn" },
+  { title: "Learn", body: "Short, practical lessons tied to your actual job. Your manager may have also added lessons made just for your team.", navHref: "/dashboard/learn" },
   { title: "Workflows", body: "Step-by-step AI processes for your role. Adopting one and checking off its steps is how you build a real track record.", navHref: "/dashboard/workflows" },
-  { title: "Rewards", body: "You earn real points for learning, adopting workflows, and being recognized — redeemable for actual rewards, never for just logging in.", navHref: "/dashboard/rewards" },
+  { title: "Rewards", body: "You earn real points for learning, adopting workflows, and being recognized. Redeem them for actual rewards. Points are never awarded just for logging in.", navHref: "/dashboard/rewards" },
 ];
 
 function useHighlightRect(navHref: string | undefined, active: boolean) {

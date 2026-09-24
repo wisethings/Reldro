@@ -237,7 +237,7 @@ export function OnboardingWizard({ companyName }: { companyName: string }) {
           <div>
             <h2 className="text-lg font-semibold text-ink-900">What tools does your company use?</h2>
             <p className="mt-1 text-sm text-ink-500">
-              For your MVP workspace these connect as demo integrations — no live data is pulled yet.
+              For now these connect as demo integrations in your workspace, and no live data is pulled yet.
             </p>
           </div>
           <CheckGrid
@@ -270,7 +270,7 @@ export function OnboardingWizard({ companyName }: { companyName: string }) {
           <div>
             <h2 className="text-lg font-semibold text-ink-900">What's actually slowing each team down?</h2>
             <p className="mt-1 text-sm text-ink-500">
-              This is what we'll use to recommend opportunities — not just a generic list for your industry.
+              We'll use this to recommend opportunities specific to your team's actual priorities.
             </p>
           </div>
           <div className="max-h-[420px] space-y-5 overflow-y-auto pr-1 scrollbar-thin">
@@ -287,7 +287,7 @@ export function OnboardingWizard({ companyName }: { companyName: string }) {
               </div>
             ))}
           </div>
-          <p className="text-xs text-ink-400">Optional — skip if you're not sure yet, we'll still suggest a starting point.</p>
+          <p className="text-xs text-ink-400">Optional. Skip if you're not sure yet, we'll still suggest a starting point.</p>
           <StepNav onBack={back} onNext={next} />
         </div>
       )}
@@ -332,7 +332,7 @@ export function OnboardingWizard({ companyName }: { companyName: string }) {
         <div className="space-y-6 text-center">
           <div>
             <h2 className="text-lg font-semibold text-ink-900">Your AI Adoption Score</h2>
-            <p className="mt-1 text-sm text-ink-500">This is your starting point — Reldro will help you move it.</p>
+            <p className="mt-1 text-sm text-ink-500">This is your starting point. Reldro will help you move it.</p>
           </div>
           <div className="flex flex-col items-center gap-2">
             <ScoreRing value={overallScore} size={120} label="/ 100" />
@@ -363,7 +363,7 @@ export function OnboardingWizard({ companyName }: { companyName: string }) {
           <div>
             <h2 className="text-lg font-semibold text-ink-900">Confirm your opportunities</h2>
             <p className="mt-1 text-sm text-ink-500">
-              Based on what you told us. Pre-checked ones matched a pain point you flagged — uncheck anything that
+              Based on what you told us. Pre-checked ones matched a pain point you flagged. Uncheck anything that
               isn't actually a problem for you, or add ones we missed.
             </p>
           </div>
@@ -372,7 +372,7 @@ export function OnboardingWizard({ companyName }: { companyName: string }) {
 
           {!loadingCandidates && candidates && candidates.length === 0 && (
             <p className="text-sm text-ink-500">
-              No catalog workflows matched your departments yet — you can always add your own later from the Workflows page.
+              No catalog workflows matched your departments yet. You can always add your own later from the Workflows page.
             </p>
           )}
 

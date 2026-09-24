@@ -45,7 +45,7 @@ export default async function ManageWorkflowPage({ params }: { params: Promise<{
           {workflow.steps.map((step) => (
             <WorkflowStepManageRow key={step.id} step={step} workflowId={workflow.id} />
           ))}
-          {workflow.steps.length === 0 && <p className="p-5 text-sm text-ink-500">No steps yet — add one below.</p>}
+          {workflow.steps.length === 0 && <p className="p-5 text-sm text-ink-500">No steps yet. Add one below.</p>}
         </CardBody>
       </Card>
 

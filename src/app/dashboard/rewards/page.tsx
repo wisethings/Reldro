@@ -36,7 +36,7 @@ export default async function RewardsPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-ink-900">AI Rewards</h1>
-          <p className="text-sm text-ink-500">Earned from real learning, workflow adoption, and recognition — never from logging in.</p>
+          <p className="text-sm text-ink-500">Earned from real learning, workflow adoption, and recognition. Never from just logging in.</p>
         </div>
         {session.role === "COMPANY_ADMIN" && (
           <Link
@@ -75,7 +75,7 @@ export default async function RewardsPage() {
               {session.employeeId && <RedeemButton rewardItemId={item.id} pointCost={item.pointCost} balance={balance} />}
             </div>
           ))}
-          {catalog.length === 0 && <p className="p-5 text-sm text-ink-500">No rewards are available yet — check with your admin.</p>}
+          {catalog.length === 0 && <p className="p-5 text-sm text-ink-500">No rewards are available yet. Check with your admin.</p>}
         </CardBody>
       </Card>
 
@@ -94,7 +94,7 @@ export default async function RewardsPage() {
               </span>
             </div>
           ))}
-          {history.length === 0 && <p className="p-5 text-sm text-ink-500">No point activity yet — complete a learning path or simulation to get started.</p>}
+          {history.length === 0 && <p className="p-5 text-sm text-ink-500">No point activity yet. Complete a learning path or simulation to get started.</p>}
         </CardBody>
       </Card>
     </div>

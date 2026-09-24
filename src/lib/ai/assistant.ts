@@ -137,14 +137,14 @@ async function answerNextOpportunity(organizationId: string): Promise<AssistantA
     .slice(0, 3);
 
   if (ranked.length === 0) {
-    return { answer: "There are no unaddressed opportunities right now — nice work. Check Initiatives to see what's in flight." };
+    return { answer: "There are no unaddressed opportunities right now. Nice work. Check Initiatives to see what's in flight." };
   }
 
   return {
     answer: `Based on impact, effort, and adoption potential, these are the highest-priority opportunities to tackle next:`,
     bullets: ranked.map(
       ({ o, score }) =>
-        `${o.title} (${o.department?.name ?? "Cross-functional"}) — priority score ${score}/100, est. $${(o.estAnnualValue / 1000).toFixed(0)}k/yr`
+        `${o.title} (${o.department?.name ?? "Cross-functional"}), priority score ${score}/100, est. $${(o.estAnnualValue / 1000).toFixed(0)}k/yr`
     ),
     citedIds: ranked.map((r) => r.o.id),
   };
@@ -196,8 +196,8 @@ async function answerLearningRecommendation(organizationId: string, question: st
   }
 
   return {
-    answer: `For ${dept.name}, start with these practical, workflow-tied lessons rather than generic AI training:`,
-    bullets: courses.map((c) => `${c.title} — ${c.lessons.length} lessons`),
+    answer: `For ${dept.name}, start with these practical, workflow-tied lessons:`,
+    bullets: courses.map((c) => `${c.title} (${c.lessons.length} lessons)`),
     citedIds: courses.map((c) => c.id),
   };
 }
@@ -216,12 +216,12 @@ async function answerPrioritizeWorkflows(organizationId: string): Promise<Assist
   );
 
   if (quickWins.length === 0) {
-    return { answer: "No high-impact, low-effort opportunities are open right now — check the full opportunity matrix for major projects worth scoping." };
+    return { answer: "No high-impact, low-effort opportunities are open right now. Check the full opportunity matrix for major projects worth scoping." };
   }
 
   return {
-    answer: `Start with your "high impact, low effort" quadrant — ${quickWins.length} opportunities can likely be adopted with training alone, no specialist required:`,
-    bullets: quickWins.slice(0, 5).map((o) => `${o.title} — ${o.estHoursSavedMonthly} hrs/mo saved`),
+    answer: `Start with your "high impact, low effort" quadrant. These ${quickWins.length} opportunities can likely be adopted with training alone, with no specialist required:`,
+    bullets: quickWins.slice(0, 5).map((o) => `${o.title} (${o.estHoursSavedMonthly} hrs/mo saved)`),
     citedIds: quickWins.map((o) => o.id),
   };
 }
@@ -234,12 +234,12 @@ async function answerHireSpecialist(organizationId: string): Promise<AssistantAn
   });
 
   if (candidates.length === 0) {
-    return { answer: "Nothing in your current backlog is flagged as needing outside expertise — your team can likely implement the open opportunities with training and the workflow library." };
+    return { answer: "Nothing in your current backlog is flagged as needing outside expertise. Your team can likely implement the open opportunities with training and the workflow library." };
   }
 
   return {
     answer: `${candidates.length} open opportunities are complex enough that a specialist would materially speed up implementation:`,
-    bullets: candidates.map((o) => `${o.title} — complexity ${o.complexity.toLowerCase()}, est. $${(o.estAnnualValue / 1000).toFixed(0)}k/yr value`),
+    bullets: candidates.map((o) => `${o.title} (complexity ${o.complexity.toLowerCase()}, est. $${(o.estAnnualValue / 1000).toFixed(0)}k/yr value)`),
     citedIds: candidates.map((o) => o.id),
   };
 }
@@ -274,7 +274,7 @@ async function answerTopValue(organizationId: string): Promise<AssistantAnswer> 
 
   return {
     answer: "Here are your highest-value AI opportunities by estimated annual impact:",
-    bullets: top.map((o) => `${o.title} (${o.department?.name ?? "Cross-functional"}) — $${(o.estAnnualValue / 1000).toFixed(0)}k/yr`),
+    bullets: top.map((o) => `${o.title} (${o.department?.name ?? "Cross-functional"}), $${(o.estAnnualValue / 1000).toFixed(0)}k/yr`),
     citedIds: top.map((o) => o.id),
   };
 }
@@ -325,7 +325,7 @@ async function answerGeneral(organizationId: string, question: string): Promise<
     prisma.opportunity.count({ where: { organizationId } }),
   ]);
   const orgName = org?.name ?? "Your organization";
-  const adoptionScore = latestSnapshot?.aiAdoptionScore ?? "—";
+  const adoptionScore = latestSnapshot?.aiAdoptionScore ?? "not yet available";
 
   const provider = getAIProvider();
   if (provider.name === "mock") return fallbackGeneralAnswer(orgName, adoptionScore, opportunityCount);
@@ -363,9 +363,9 @@ async function answerGeneral(organizationId: string, question: string): Promise<
 
     const system = [
       "You are the Reldro AI Adoption Assistant, embedded in a B2B SaaS platform that helps companies roll out AI tools.",
-      "Answer the user's question using ONLY the organization data provided below — never invent numbers, names, or facts that aren't in it.",
+      "Answer the user's question using ONLY the organization data provided below. Never invent numbers, names, or facts that aren't in it.",
       "If the data doesn't cover what's being asked, say so plainly and suggest what to check in the platform instead of guessing.",
-      "Keep the answer to 2-4 short sentences, in a direct, practical tone — no filler, no generic AI advice.",
+      "Keep the answer to 2-4 short sentences, in a direct, practical tone with no filler and no generic AI advice.",
       "",
       "Organization data:",
       context,

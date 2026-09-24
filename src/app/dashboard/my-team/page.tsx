@@ -87,7 +87,7 @@ export default async function MyTeamPage() {
 
       {attentionList.length > 0 && (
         <Card>
-          <CardHeader title="Employees needing attention" subtitle="Flagged from real activity, not a guess" />
+          <CardHeader title="Employees needing attention" subtitle="Flagged automatically based on real activity" />
           <CardBody className="divide-y divide-ink-200 p-0">
             {attentionList.map((a) => {
               const emp = employeeById.get(a.employeeId);
@@ -109,7 +109,7 @@ export default async function MyTeamPage() {
       )}
 
       <Card>
-        <CardHeader title="Team roster" subtitle="Real activity, not a snapshot from onboarding" />
+        <CardHeader title="Team roster" subtitle="Updated continuously from real activity" />
         <CardBody className="divide-y divide-ink-200 p-0">
           {teammates.map((e) => {
             const stats = activity.get(e.id);

@@ -100,7 +100,7 @@ export default async function AnalyticsPage() {
       <Card>
         <CardHeader
           title="AI waste"
-          subtitle="AI usage that isn't happening through a repeatable workflow — where the company isn't capturing the value"
+          subtitle="AI usage that isn't happening through a repeatable workflow, so the company isn't capturing the value"
         />
         <CardBody className="space-y-4">
           {waste.totalActivity30d === 0 ? (

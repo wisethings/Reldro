@@ -11,8 +11,8 @@ export default function DemoPage() {
           <div>
             <h1 className="text-3xl font-semibold text-ink-900">See Reldro in action</h1>
             <p className="mt-4 text-sm text-ink-600">
-              Tell us about your organization and we'll set up a walkthrough tailored to where your teams actually
-              are with AI adoption — then get your workspace ready.
+              Tell us about your organization. We'll set up a walkthrough tailored to where your teams actually are
+              with AI adoption, then get your workspace ready.
             </p>
             <ul className="mt-8 space-y-3 text-sm text-ink-700">
               {[

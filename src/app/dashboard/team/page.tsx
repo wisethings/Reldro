@@ -119,7 +119,7 @@ export default async function TeamPage() {
 
       {attentionList.length > 0 && (
         <Card>
-          <CardHeader title="Employees needing attention" subtitle="Flagged from real activity, not a guess" />
+          <CardHeader title="Employees needing attention" subtitle="Flagged automatically based on real activity" />
           <CardBody className="divide-y divide-ink-200 p-0">
             {attentionList.map((a) => {
               const emp = employeeById.get(a.employeeId);

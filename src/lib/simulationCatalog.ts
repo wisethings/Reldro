@@ -263,9 +263,9 @@ export const SIMULATION_CATALOG: SimulationSeed[] = [
     decisionOptions: [
       {
         id: "supply-context",
-        label: "Write out what you actually know — target audience, budget ballpark, renewal-season timeline, prior campaign performance — then ask AI to structure it into a brief.",
+        label: "Write out what you actually know: target audience, budget ballpark, renewal-season timeline, and prior campaign performance. Then ask AI to structure it into a brief.",
         quality: "strong",
-        consequence: "The brief AI produces reflects your team's real constraints and reads like something your VP would recognize, not a generic template.",
+        consequence: "The brief AI produces reflects your team's real constraints and reads like something your VP would recognize.",
       },
       {
         id: "one-liner-prompt",
@@ -437,7 +437,7 @@ export const SIMULATION_CATALOG: SimulationSeed[] = [
       { id: "cites-years-experience", label: "Years of claims experience is a reasonable, job-relevant factor to cite", present: false },
     ],
     expertApproach:
-      "The moment AI's stated reasoning includes a factor not on your written job requirements — which specific carrier someone worked at, rather than the skills that role actually requires — treat it as a red flag requiring a human override, not a tiebreaker to accept. Spot-check a random sample of the resumes AI screened OUT, not just the ones it kept, since that's where unfair filtering hides.",
+      "If AI's stated reasoning includes a factor outside your written job requirements, such as which specific carrier someone worked at rather than the skills the role actually requires, treat it as a red flag that needs a human override. Spot-check a random sample of the resumes AI screened out, not just the ones it kept, since that's where unfair filtering hides.",
     skills: ["evaluation", "fundamentals"],
   },
   {

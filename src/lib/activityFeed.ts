@@ -49,7 +49,7 @@ function describeActivityFeedEntry(action: string, metaRaw: Record<string, unkno
 
   switch (action) {
     case "reward.points_awarded":
-      return `${nameFor("employeeId")} earned ${meta.points ?? ""} AI points — ${meta.reason ?? ""}`;
+      return `${nameFor("employeeId")} earned ${meta.points ?? ""} AI points for ${meta.reason ?? ""}`;
     case "reward.redeemed":
       return `${nameFor("employeeId")} redeemed ${meta.pointCost ?? ""} points for ${meta.name ?? "a reward"}`;
     case "reward.recognition_given": {

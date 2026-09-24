@@ -11,7 +11,7 @@ export function DemoRequestForm() {
   if (state?.success) {
     return (
       <div className="rounded-2xl border border-ink-200 bg-white p-6 text-center shadow-card">
-        <h2 className="text-lg font-semibold text-ink-900">Thanks — we'll be in touch</h2>
+        <h2 className="text-lg font-semibold text-ink-900">Thanks. We'll be in touch.</h2>
         <p className="mt-2 text-sm text-ink-600">
           A member of our team will reach out by email shortly to schedule a walkthrough and get your workspace set up.
         </p>

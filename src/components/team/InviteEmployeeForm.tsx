@@ -25,7 +25,7 @@ export function InviteEmployeeForm({ departments }: { departments: { id: string;
       {state?.error && <p className="sm:col-span-5 text-sm text-danger">{state.error}</p>}
       {state?.emailSent && (
         <p className="sm:col-span-5 rounded-lg bg-sage px-3 py-2 text-sm text-sage-deep">
-          Invited — an email with their login details was sent.
+          Invited. An email with their login details was sent.
         </p>
       )}
       {state?.tempPassword && (

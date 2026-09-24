@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "sw
 const interTight = Inter_Tight({ subsets: ["latin"], variable: "--font-inter-tight", display: "swap", weight: ["500", "600"] });
 
 export const metadata: Metadata = {
-  title: "Reldro — Make AI adoption actually happen",
+  title: "Reldro | Make AI adoption actually happen",
   description:
     "Reldro helps companies discover where AI can improve work, equip employees with the skills to use it, and connect teams with specialists to implement it.",
 };

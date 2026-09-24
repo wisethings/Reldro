@@ -79,7 +79,7 @@ export async function createCustomWorkflow(_prevState: CustomWorkflowState, form
 
   revalidatePath("/dashboard/workflows");
   revalidatePath("/dashboard/workflows/manage");
-  return { success: "Workflow created — now add its steps below.", workflowId: workflow.id };
+  return { success: "Workflow created. Now add its steps below.", workflowId: workflow.id };
 }
 
 export async function deleteCustomWorkflow(workflowId: string) {

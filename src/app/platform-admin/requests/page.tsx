@@ -56,7 +56,7 @@ export default async function PlatformRequestsPage() {
                   </div>
                   <div className="mt-3 grid gap-2 sm:grid-cols-3">
                     {suggestions.length === 0 && (
-                      <p className="text-xs text-ink-400 sm:col-span-3">No auto-matched suggestions — assign manually in the Specialists tab.</p>
+                      <p className="text-xs text-ink-400 sm:col-span-3">No auto-matched suggestions. Assign manually in the Specialists tab.</p>
                     )}
                     {suggestions.map(({ specialist, reasons }) => (
                       <div key={specialist.id} className="rounded-lg border border-ink-200 p-3">

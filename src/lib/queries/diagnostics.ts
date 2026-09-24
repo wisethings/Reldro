@@ -19,8 +19,8 @@ const MEANING: Record<OrgMaturityCategory, Record<DimensionStatus, string>> = {
   literacy: {
     strong: "Employees understand AI fundamentals and are comfortable evaluating AI output.",
     developing: "Most employees have basic AI literacy, but deeper skills like evaluation and prompting vary widely.",
-    "needs-attention": "AI literacy is inconsistent across the organization — many employees are still building fundamental skills.",
-    critical: "AI literacy is a significant gap — most employees haven't built the fundamental skills needed to use AI effectively.",
+    "needs-attention": "AI literacy is inconsistent across the organization. Many employees are still building fundamental skills.",
+    critical: "AI literacy is a significant gap. Most employees haven't built the fundamental skills needed to use AI effectively.",
   },
   usage: {
     strong: "AI is used consistently across most of the organization.",
@@ -32,12 +32,12 @@ const MEANING: Record<OrgMaturityCategory, Record<DimensionStatus, string>> = {
     strong: "AI usage is embedded in repeatable workflows across teams.",
     developing: "Some AI usage has been converted into repeatable workflows, but most is still ad hoc.",
     "needs-attention": "Employees are actively experimenting with AI, but most usage is still occurring in standalone tools rather than repeatable workflows.",
-    critical: "AI usage is almost entirely ad hoc — very little of it has been turned into a repeatable workflow.",
+    critical: "AI usage is almost entirely ad hoc. Very little of it has been turned into a repeatable workflow.",
   },
   governance: {
     strong: "AI tool usage is well governed, with clear policies and approved tools.",
     developing: "Governance is in place but coverage is incomplete across tools and teams.",
-    "needs-attention": "AI governance is limited — tool usage and data-handling policies need attention.",
+    "needs-attention": "AI governance is limited. Tool usage and data-handling policies need attention.",
     critical: "There is little to no formal governance over how AI tools are used.",
   },
   measurement: {

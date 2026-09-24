@@ -51,7 +51,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat label="Budget" value={project.budget ? `$${project.budget.toLocaleString()}` : "Not set"} />
-        <Stat label="Target completion" value={project.targetEndDate?.toLocaleDateString() ?? "—"} />
+        <Stat label="Target completion" value={project.targetEndDate?.toLocaleDateString() ?? "Not set"} />
         <Stat label="Linked workflow" value={project.workflow?.title ?? "None"} />
       </div>
 

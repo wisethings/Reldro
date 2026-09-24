@@ -117,8 +117,8 @@ export default function LandingPage() {
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-2xl font-semibold text-ink-900">The Reldro loop</h2>
           <p className="mt-3 text-sm text-ink-600">
-            Every major screen in Reldro reinforces one loop — because AI adoption isn't a course you finish, it's an
-            operating rhythm.
+            Every major screen in Reldro reinforces the same loop, so teams keep coming back to it as part of their
+            regular work.
           </p>
         </div>
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -141,8 +141,8 @@ export default function LandingPage() {
                 When implementation gets complex, bring in a vetted specialist.
               </h2>
               <p className="mt-3 text-sm text-ink-600">
-                Request expert help directly from any opportunity or workflow, and our team matches you with a vetted
-                AI specialist based on your industry, tech stack, and budget — no browsing required.
+                Request expert help directly from any opportunity or workflow. Our team matches you with a vetted AI
+                specialist based on your industry, tech stack, and budget.
               </p>
               <Link href="/demo" className="mt-6 inline-block text-sm font-medium text-orchid-deep hover:text-oxblood">
                 See how it works →
@@ -171,8 +171,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-2xl font-semibold text-ink-900">Works across every industry</h2>
           <p className="mt-3 text-sm text-ink-600">
-            Reldro is industry-agnostic at the infrastructure level, with workflows, learning, and specialists
-            tailored to your vertical.
+            Reldro works the same way across industries. Workflows, learning, and specialists are tailored to yours.
           </p>
         </div>
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -192,10 +191,10 @@ export default function LandingPage() {
       {/* ROI */}
       <section className="border-y border-ink-200 bg-ink-50/60">
         <div className="mx-auto max-w-6xl px-6 py-20 text-center">
-          <h2 className="text-2xl font-semibold text-ink-900">Prove the business case, not just the training</h2>
+          <h2 className="text-2xl font-semibold text-ink-900">Measure the return on your AI investment</h2>
           <p className="mx-auto mt-3 max-w-2xl text-sm text-ink-600">
-            Every workflow and initiative rolls up into a configurable ROI model — investment, estimated annual
-            value, and return — broken down by department and workflow.
+            Every workflow and initiative rolls up into a configurable ROI model that tracks investment, estimated
+            annual value, and return, broken down by department and workflow.
           </p>
           <div className="mx-auto mt-10 grid max-w-3xl grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="rounded-xl border border-ink-200 bg-white p-5">

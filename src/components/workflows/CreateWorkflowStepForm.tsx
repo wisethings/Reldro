@@ -28,7 +28,7 @@ export function CreateWorkflowStepForm({ workflowId }: { workflowId: string }) {
       <ImageAttachField name="imageUrl" label="Screenshot or diagram" />
       <div>
         <label className="block text-xs font-medium text-ink-600">Video link</label>
-        <p className="text-[11px] text-ink-400">Optional — paste a YouTube, Loom, or Vimeo link to embed</p>
+        <p className="text-[11px] text-ink-400">Optional. Paste a YouTube, Loom, or Vimeo link to embed.</p>
         <input name="videoUrl" type="url" placeholder="https://youtube.com/watch?v=…" className={`mt-1 ${inputClass}`} />
       </div>
       <label className="flex items-center gap-2 text-xs font-medium text-ink-700">

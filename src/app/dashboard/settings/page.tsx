@@ -111,7 +111,7 @@ export default async function SettingsPage() {
         <CardHeader title="Permissions" />
         <CardBody className="space-y-2 text-sm text-ink-700">
           <p>Company admins have full organization access. Employees see only their own profile, learning, and assigned workflows.</p>
-          <p>Each organization's data is fully isolated — no user can access another organization's records.</p>
+          <p>Each organization's data is fully isolated. No user can access another organization's records.</p>
         </CardBody>
       </Card>
     </div>

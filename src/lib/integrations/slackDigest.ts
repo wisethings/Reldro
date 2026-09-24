@@ -55,7 +55,7 @@ export async function sendWeeklyDigestForOrg(organizationId: string): Promise<Di
   ]);
 
   const lines = [
-    `*${org.name} — weekly AI adoption digest*`,
+    `*${org.name}: weekly AI adoption digest*`,
     `Est. monthly hours saved: *${metrics.hoursSavedMonthly.toLocaleString()}*`,
     `Active this month: *${metrics.activeUsers}/${metrics.totalUsers}* employees (${metrics.adoptionPct}%)`,
     `This week: *${lessonsThisWeek}* lessons completed, *${usageEventsThisWeek}* AI actions logged`,

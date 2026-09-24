@@ -55,7 +55,7 @@ export function CreateLessonForm({ courseId }: { courseId: string }) {
 
       <ImageAttachField name="imageUrl" label="Image" />
 
-      <Field label="Video link" hint="Optional — paste a YouTube, Loom, or Vimeo link to embed">
+      <Field label="Video link" hint="Optional. Paste a YouTube, Loom, or Vimeo link to embed.">
         <input name="videoUrl" type="url" placeholder="https://youtube.com/watch?v=…" className={inputClass} />
       </Field>
 

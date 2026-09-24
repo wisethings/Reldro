@@ -34,8 +34,8 @@ export default async function ManageLearnPage() {
         <h1 className="mt-2 text-xl font-semibold text-ink-900">Team lessons</h1>
         <p className="text-sm text-ink-500">
           {isCompanyAdmin
-            ? "Create lessons for any department — your own team's real workflows, tools, and edge cases."
-            : `Create lessons for ${employee?.department?.name ?? "your team"} — only your department's employees will see these.`}
+            ? "Create lessons for any department, using your own team's real workflows, tools, and edge cases."
+            : `Create lessons for ${employee?.department?.name ?? "your team"}. Only your department's employees will see these.`}
         </p>
       </div>
 
@@ -65,7 +65,7 @@ export default async function ManageLearnPage() {
               <span className="shrink-0 text-xs font-medium text-orchid-deep">Manage →</span>
             </Link>
           ))}
-          {courses.length === 0 && <p className="p-6 text-sm text-ink-500">No team-authored courses yet — create one above.</p>}
+          {courses.length === 0 && <p className="p-6 text-sm text-ink-500">No team-authored courses yet. Create one above.</p>}
         </CardBody>
       </Card>
     </div>

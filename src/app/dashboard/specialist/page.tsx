@@ -31,7 +31,7 @@ export default async function SpecialistHomePage() {
         <StatTile label="Active projects" value={active.length} />
         <StatTile label="New requests" value={proposed.length} />
         <StatTile label="Completed projects" value={specialist?.completedProjects ?? 0} />
-        <StatTile label="Rating" value={specialist ? `★ ${specialist.ratingAvg.toFixed(1)}` : "—"} />
+        <StatTile label="Rating" value={specialist ? `★ ${specialist.ratingAvg.toFixed(1)}` : "-"} />
       </div>
 
       {proposed.length > 0 && (

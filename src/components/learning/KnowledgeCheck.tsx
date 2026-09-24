@@ -62,7 +62,7 @@ export function KnowledgeCheck({
         </button>
       ) : (
         <p className={`text-sm font-medium ${correct ? "text-sage-deep" : "text-danger"}`}>
-          {correct ? "Correct." : "Not quite — review the concept above and try the next lesson with this in mind."}
+          {correct ? "Correct." : "Not quite. Review the concept above and try the next lesson with this in mind."}
           {done && " Lesson marked complete."}
         </p>
       )}

@@ -116,7 +116,7 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
         <StatTile label="AI opportunities identified" value={opportunitiesCount} />
         <StatTile label="Active AI initiatives" value={activeInitiatives} />
         <StatTile label="Specialist projects" value={activeProjects} />
-        <StatTile label="Company size" value={org?.size ?? "—"} />
+        <StatTile label="Company size" value={org?.size ?? "-"} />
       </div>
 
       <Card>
@@ -133,7 +133,7 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
             />
             <StatTile
               label="AI fluency"
-              value={weeklyBrief.fluencyNow ?? "—"}
+              value={weeklyBrief.fluencyNow ?? "-"}
               helpText={
                 weeklyBrief.fluencyNow !== null && weeklyBrief.fluencyLastWeek !== null
                   ? `${weeklyBrief.fluencyNow >= weeklyBrief.fluencyLastWeek ? "+" : ""}${weeklyBrief.fluencyNow - weeklyBrief.fluencyLastWeek} vs last week`
@@ -275,7 +275,7 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
 
       {activityFeed.length > 0 && (
         <Card>
-          <CardHeader title="AI activity" subtitle="Real activity across the organization — learning, workflow adoption, and recognition" />
+          <CardHeader title="AI activity" subtitle="Real activity across the organization: learning, workflow adoption, and recognition" />
           <CardBody className="divide-y divide-ink-200 p-0">
             {activityFeed.map((item) => (
               <div key={item.id} className="flex items-center justify-between gap-3 px-5 py-3">
@@ -366,7 +366,7 @@ async function EmployeeOverview({ employeeId, name }: { employeeId: string; name
             {nextReward ? (
               <p className="text-xs text-ink-500">{nextReward.pointsAway} pts away from {nextReward.name}</p>
             ) : (
-              <p className="text-xs text-ink-500">Earned from real progress — learning paths, simulations, workflows, and recognition</p>
+              <p className="text-xs text-ink-500">Earned from real progress: learning paths, simulations, workflows, and recognition</p>
             )}
           </div>
           {recentPoints.length > 0 && (
@@ -390,7 +390,7 @@ async function EmployeeOverview({ employeeId, name }: { employeeId: string; name
             <ScoreRing value={employee.aiFluencyScore ?? 0} size={72} label="/ 100" />
             <div>
               <p className="text-xs font-medium text-ink-500">Your AI Fluency</p>
-              <p className="text-[11px] text-ink-400">Not the same as AI adoption — this is how effectively you use it.</p>
+              <p className="text-[11px] text-ink-400">This measures how effectively you use AI. AI adoption measures how much you use it.</p>
               {fluency && (
                 <p className="mt-1 text-[11px] text-ink-600">
                   Strongest: {EMPLOYEE_SKILL_LABELS[getStrongestSkill(fluency.breakdown)]} · Focus area: {EMPLOYEE_SKILL_LABELS[getWeakestSkill(fluency.breakdown)]}

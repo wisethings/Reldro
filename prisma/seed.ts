@@ -175,7 +175,7 @@ const WORKFLOW_SEEDS: WorkflowSeed[] = [
     skillLevel: "Intermediate",
     toolsRequired: ["Claims Portal", "ChatGPT"],
     skillsRequired: ["Prompting", "Evaluation"],
-    securityNotes: "Claim documents contain policyholder medical and financial details — only use the Claims Portal's built-in assistant, which is covered by Havenbrook's data processing agreement.",
+    securityNotes: "Claim documents contain policyholder medical and financial details. Only use the Claims Portal's built-in assistant, which is covered by Havenbrook's data processing agreement.",
     trainingNotes: "Adjusters need a session on requiring AI to flag discrepancies explicitly rather than silently resolving them.",
     steps: [
       { title: "Claim file received", description: "A new claim file with supporting documents is assigned to an adjuster." },
@@ -427,7 +427,7 @@ const WORKFLOW_SEEDS: WorkflowSeed[] = [
     skillLevel: "Advanced",
     toolsRequired: ["ChatGPT"],
     skillsRequired: ["Evaluation", "AI safety"],
-    securityNotes: "AI may only flag potential issues — a licensed compliance officer must make the final release decision, especially across multiple states.",
+    securityNotes: "AI may only flag potential issues. A licensed compliance officer must make the final release decision, especially across multiple states.",
     steps: [
       { title: "Copy submitted for review", description: "Marketing or communications submits copy ahead of a multi-state launch." },
       { title: "AI flags potential issues", description: "AI compares the copy against state-specific regulatory guidelines and flags risky language.", aiPrompt: "Flag any language in this copy that may conflict with our state insurance marketing guidelines." },
@@ -446,7 +446,7 @@ const WORKFLOW_SEEDS: WorkflowSeed[] = [
     skillLevel: "Advanced",
     toolsRequired: ["ChatGPT"],
     skillsRequired: ["Evaluation", "AI safety"],
-    securityNotes: "Vendor contracts (especially claims-data vendors) contain confidential terms — only use AI tools covered by a signed data processing agreement.",
+    securityNotes: "Vendor contracts, especially claims-data vendors, contain confidential terms. Only use AI tools covered by a signed data processing agreement.",
     steps: [
       { title: "Contract received", description: "A new vendor contract arrives for review." },
       { title: "AI flags non-standard clauses", description: "AI compares clauses against the approved playbook.", aiPrompt: "Flag any clauses in this contract that deviate from our standard playbook." },
@@ -555,7 +555,7 @@ const SPECIALIST_SEEDS = [
     email: "maya@reldro-specialists.com",
     name: "Maya Johnson",
     headline: "AI Marketing & Automation Specialist",
-    bio: "I help consumer brands and agencies fold AI into their marketing operations — from campaign briefs to lifecycle automation — without losing brand voice. 8 years in marketing ops, the last 4 focused entirely on AI-assisted workflows.",
+    bio: "I help consumer brands and agencies fold AI into their marketing operations, from campaign briefs to lifecycle automation, without losing brand voice. 8 years in marketing ops, the last 4 focused entirely on AI-assisted workflows.",
     yearsExperience: 8,
     hourlyRate: 175,
     availability: "Available now",
@@ -600,7 +600,7 @@ const SPECIALIST_SEEDS = [
     email: "amara@reldro-specialists.com",
     name: "Amara Okafor",
     headline: "AI Automation & Workflow Consultant",
-    bio: "I design and implement AI-powered automation across operations — from demand forecasting to procurement — for manufacturing and retail companies with complex supply chains.",
+    bio: "I design and implement AI-powered automation across operations, from demand forecasting to procurement, for manufacturing and retail companies with complex supply chains.",
     yearsExperience: 10,
     hourlyRate: 195,
     availability: "Available now",
@@ -644,7 +644,7 @@ const SPECIALIST_SEEDS = [
     email: "tom.reilly@reldro-specialists.com",
     name: "Tom Reilly",
     headline: "AI Finance & Data Specialist",
-    bio: "I bring AI into FP&A workflows — reporting narratives, anomaly detection, and forecasting — for mid-market finance teams.",
+    bio: "I bring AI into FP&A workflows, including reporting narratives, anomaly detection, and forecasting, for mid-market finance teams.",
     yearsExperience: 7,
     hourlyRate: 165,
     availability: "Booked",
@@ -1908,9 +1908,9 @@ async function seedSubscription(org: { id: string }) {
 
   await prisma.invoice.createMany({
     data: [
-      { organizationId: org.id, amount: 150000, status: "PAID", issuedAt: monthsAgo(2), dueAt: monthsAgo(2), description: "Growth plan — monthly subscription" },
-      { organizationId: org.id, amount: 150000, status: "PAID", issuedAt: monthsAgo(1), dueAt: monthsAgo(1), description: "Growth plan — monthly subscription" },
-      { organizationId: org.id, amount: 150000, status: "OPEN", issuedAt: monthsAgo(0), dueAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 10), description: "Growth plan — monthly subscription" },
+      { organizationId: org.id, amount: 150000, status: "PAID", issuedAt: monthsAgo(2), dueAt: monthsAgo(2), description: "Growth plan: monthly subscription" },
+      { organizationId: org.id, amount: 150000, status: "PAID", issuedAt: monthsAgo(1), dueAt: monthsAgo(1), description: "Growth plan: monthly subscription" },
+      { organizationId: org.id, amount: 150000, status: "OPEN", issuedAt: monthsAgo(0), dueAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 10), description: "Growth plan: monthly subscription" },
     ],
   });
 }

@@ -45,7 +45,7 @@ export default async function ManageCoursePage({ params }: { params: Promise<{ c
           {course.lessons.map((lesson) => (
             <LessonManageRow key={lesson.id} lesson={lesson} courseId={course.id} />
           ))}
-          {course.lessons.length === 0 && <p className="p-5 text-sm text-ink-500">No lessons yet — add one below.</p>}
+          {course.lessons.length === 0 && <p className="p-5 text-sm text-ink-500">No lessons yet. Add one below.</p>}
         </CardBody>
       </Card>
 

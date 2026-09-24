@@ -11,7 +11,7 @@ const ENGAGEMENT_MODELS = [
 ];
 
 const URGENCY_LEVELS = [
-  { value: "exploratory", label: "Exploratory — just scoping" },
+  { value: "exploratory", label: "Exploratory: just scoping" },
   { value: "planned", label: "Planned initiative (next quarter)" },
   { value: "time_sensitive", label: "Time-sensitive (this month)" },
   { value: "urgent", label: "Urgent" },
@@ -174,7 +174,7 @@ export function RequestExpertHelpForm({
 
       <div>
         <label className="block text-xs font-medium text-ink-600">Who else should we loop in?</label>
-        <p className="mt-0.5 text-xs text-ink-400">We'll email you when we're ready to talk — add teammates or stakeholders to CC on that thread.</p>
+        <p className="mt-0.5 text-xs text-ink-400">We'll email you when we're ready to talk. Add teammates or stakeholders to CC on that thread.</p>
         <div className="mt-2 flex gap-2">
           <input
             type="email"

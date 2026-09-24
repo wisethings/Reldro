@@ -45,7 +45,7 @@ export default async function RoiPage() {
       <Card>
         <CardHeader
           title="Real value capture"
-          subtitle="Computed from your actual opportunities and adopted workflows — not an estimate"
+          subtitle="Computed directly from your actual opportunities and adopted workflows"
         />
         <CardBody>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -105,7 +105,7 @@ export default async function RoiPage() {
       <div>
         <h2 className="text-sm font-semibold text-ink-900">Scenario model</h2>
         <p className="text-xs text-ink-500">
-          Illustrative planning tool — adjust assumptions to stress-test a business case, not a measurement of real captured value.
+          A planning tool for stress-testing assumptions and a business case. It doesn't measure real captured value.
         </p>
         <div className="mt-3">
           <RoiExplorer workflows={metrics.map((m) => ({ label: m.workflowLabel, investment: m.investment, annualValue: m.annualValue }))} />

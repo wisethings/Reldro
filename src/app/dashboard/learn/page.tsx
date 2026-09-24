@@ -51,7 +51,7 @@ export default async function LearnPage() {
         <div>
           <h1 className="text-xl font-semibold text-ink-900">Learn</h1>
           <p className="text-sm text-ink-500">
-            Short, practical lessons tied directly to real workflows — not generic AI training.
+            Short, practical lessons built around the real workflows your team uses every day.
           </p>
         </div>
         {canAuthorLessons && (
@@ -126,7 +126,7 @@ export default async function LearnPage() {
 
       <div>
         <h2 className="mb-3 text-sm font-semibold text-ink-800">AI simulations</h2>
-        <p className="mb-3 text-xs text-ink-500">Realistic professional scenarios, not games — practice before you implement.</p>
+        <p className="mb-3 text-xs text-ink-500">Realistic professional scenarios for practicing before you implement changes at work.</p>
         <div className="grid gap-4 sm:grid-cols-2">
           {simulations.map((sim) => (
             <Link key={sim.id} href={`/dashboard/learn/simulations/${sim.id}`}>

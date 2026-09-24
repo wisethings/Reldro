@@ -23,7 +23,7 @@ const ENGAGEMENT_MODEL_LABEL: Record<string, string> = {
 };
 
 const URGENCY_LABEL: Record<string, string> = {
-  exploratory: "Exploratory — just scoping",
+  exploratory: "Exploratory: just scoping",
   planned: "Planned initiative (next quarter)",
   time_sensitive: "Time-sensitive (this month)",
   urgent: "Urgent",

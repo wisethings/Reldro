@@ -117,7 +117,7 @@ export function OrgAssessmentPanel({
                 {getBiggestConstraints(diagnostics, 2).map((d, i) => (
                   <div key={d.category} className="rounded-lg bg-surface-sunken p-3">
                     <p className="text-sm font-medium text-ink-900">
-                      {i + 1}. {d.label} — {d.score}/100
+                      {i + 1}. {d.label}: {d.score}/100
                     </p>
                     <p className="mt-1 text-sm text-ink-600">{d.meaning}</p>
                   </div>

@@ -40,9 +40,9 @@ export default function PricingPage() {
       <MarketingNav />
       <section className="mx-auto max-w-6xl px-6 py-20">
         <div className="mx-auto max-w-2xl text-center">
-          <h1 className="text-3xl font-semibold text-ink-900">Plans built around your organization</h1>
+          <h1 className="text-3xl font-semibold text-ink-900">Plans for your organization</h1>
           <p className="mt-3 text-sm text-ink-600">
-            Pricing is tailored to your headcount and rollout — request a demo and we'll figure out what fits.
+            Pricing is tailored to your headcount and rollout. Request a demo and we'll figure out what fits.
             Expert-help engagements are billed separately from your subscription.
           </p>
         </div>

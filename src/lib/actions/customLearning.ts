@@ -45,7 +45,7 @@ export async function createCustomCourse(_prevState: CustomCourseState, formData
   }
 
   const existing = await prisma.course.findUnique({ where: { title } });
-  if (existing) return { error: "A course with that title already exists — pick a different title." };
+  if (existing) return { error: "A course with that title already exists. Pick a different title." };
 
   const course = await prisma.course.create({
     data: { title, description, department, organizationId: session.organizationId!, createdByName: session.name },
@@ -53,7 +53,7 @@ export async function createCustomCourse(_prevState: CustomCourseState, formData
 
   revalidatePath("/dashboard/learn");
   revalidatePath("/dashboard/learn/manage");
-  return { success: "Course created — now add a lesson to it below.", courseId: course.id };
+  return { success: "Course created. Now add a lesson to it below.", courseId: course.id };
 }
 
 export async function deleteCustomCourse(courseId: string) {

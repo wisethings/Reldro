@@ -9,7 +9,7 @@ export function MarketingFooter() {
           <div>
             <Logo height={22} />
             <p className="mt-2 max-w-xs text-xs text-ink-500">
-              The AI adoption operating system for the modern workforce.
+              The operating system for AI adoption.
             </p>
           </div>
           <div className="grid grid-cols-3 gap-8 text-sm">

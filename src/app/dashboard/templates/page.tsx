@@ -79,7 +79,7 @@ export default async function TemplatesPage() {
         <Card>
           <CardBody>
             <p className="text-sm text-ink-500">
-              No templates yet for your departments — check back once your organization's workflows have prompts attached, or{" "}
+              No templates yet for your departments. Check back once your organization's workflows have prompts attached, or{" "}
               <Link href="/dashboard/workflows" className="text-orchid-deep hover:text-oxblood">
                 browse the workflow library
               </Link>

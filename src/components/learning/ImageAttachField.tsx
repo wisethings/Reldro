@@ -54,7 +54,7 @@ export function ImageAttachField({ name, label }: { name: string; label: string 
   return (
     <div>
       <label className="block text-xs font-medium text-ink-600">{label}</label>
-      <p className="text-[11px] text-ink-400">Optional — a screenshot or diagram to illustrate this lesson.</p>
+      <p className="text-[11px] text-ink-400">Optional. A screenshot or diagram to illustrate this lesson.</p>
       <div className="mt-1 space-y-2">
         <input type="hidden" name={name} value={preview ?? ""} />
         {preview ? (
