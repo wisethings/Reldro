@@ -121,6 +121,26 @@ export async function getMatchedTools(organizationId: string, toolNames: string[
   return result;
 }
 
+export type WorkflowUsingTool = { id: string; title: string; department: string; organizationId: string | null };
+
+/**
+ * Reverse lookup for the tool detail page - "how does my team actually use
+ * this tool?" Matches case-insensitively against Workflow.toolsRequired
+ * since that's free text, not a real relation, and scoped to the global
+ * catalog plus this org's own team-authored workflows.
+ */
+export async function getWorkflowsUsingTool(organizationId: string, toolName: string): Promise<WorkflowUsingTool[]> {
+  const workflows = await prisma.workflow.findMany({
+    where: { OR: [{ organizationId: null }, { organizationId }] },
+    select: { id: true, title: true, department: true, organizationId: true, toolsRequired: true },
+    orderBy: { title: "asc" },
+  });
+  const needle = toolName.toLowerCase();
+  return workflows
+    .filter((w) => w.toolsRequired.some((t) => t.toLowerCase() === needle))
+    .map(({ id, title, department, organizationId: orgId }) => ({ id, title, department, organizationId: orgId }));
+}
+
 export async function getToolProfile(organizationId: string, toolId: string) {
   await ensureGlobalToolCatalog();
   const [tool, orgTool] = await Promise.all([

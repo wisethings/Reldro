@@ -10,12 +10,14 @@ export function ToolPlaybookEditor({
   guidance,
   approvedUses,
   restrictedUses,
+  readOnly = false,
 }: {
   toolId: string;
   toolName: string;
   guidance: string | null;
   approvedUses: string[];
   restrictedUses: string[];
+  readOnly?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [guidanceText, setGuidanceText] = useState(guidance ?? "");
@@ -56,12 +58,14 @@ export function ToolPlaybookEditor({
         ) : (
           <p className="text-sm text-ink-500">No playbook defined yet for how {toolName} should be used here.</p>
         )}
-        <button
-          onClick={() => setEditing(true)}
-          className="rounded-full border border-ink-300 px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-ink-50"
-        >
-          {hasPlaybook ? "Edit playbook" : "+ Add playbook"}
-        </button>
+        {!readOnly && (
+          <button
+            onClick={() => setEditing(true)}
+            className="rounded-full border border-ink-300 px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-ink-50"
+          >
+            {hasPlaybook ? "Edit playbook" : "+ Add playbook"}
+          </button>
+        )}
       </div>
     );
   }

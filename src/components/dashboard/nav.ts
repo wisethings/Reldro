@@ -16,6 +16,7 @@ export function getNavItems(role: Role, isDepartmentAdmin = false): NavItem[] {
     { href: "/dashboard/assessment", label: "AI Assessment" },
     { href: "/dashboard/opportunities", label: "Opportunities" },
     { href: "/dashboard/workflows", label: "Workflows" },
+    { href: "/dashboard/integrations/tools", label: "Tool Library" },
     { href: "/dashboard/templates", label: "Templates" },
     { href: "/dashboard/learn", label: "Learn" },
     { href: "/dashboard/rewards", label: "Rewards" },

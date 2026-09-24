@@ -1,22 +1,24 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { requireRole } from "@/lib/auth/guards";
+import { requireSession } from "@/lib/auth/guards";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { StatTile } from "@/components/ui/StatTile";
-import { getToolProfile } from "@/lib/queries/tools";
+import { getToolProfile, getWorkflowsUsingTool } from "@/lib/queries/tools";
 import { TOOL_CATEGORY_LABEL, TOOL_STATUS_LABEL, TOOL_STATUS_TONE } from "@/lib/toolCatalog";
 import { ToolStatusSelect } from "@/components/tools/ToolStatusSelect";
 import { ToolPlaybookEditor } from "@/components/tools/ToolPlaybookEditor";
 
 export default async function ToolProfilePage({ params }: { params: Promise<{ id: string }> }) {
-  const session = await requireRole(["COMPANY_ADMIN"]);
+  const session = await requireSession();
   if (!session.organizationId) redirect("/login");
+  const isAdmin = session.role === "COMPANY_ADMIN";
   const { id } = await params;
 
   const profile = await getToolProfile(session.organizationId, id);
   if (!profile) notFound();
   const { tool, status, usage, adoptionPct, addedAt, guidance, approvedUses, restrictedUses } = profile;
+  const workflowsUsingTool = await getWorkflowsUsingTool(session.organizationId, tool.name);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-6">
@@ -33,7 +35,7 @@ export default async function ToolProfilePage({ params }: { params: Promise<{ id
           </div>
           <div className="flex items-center gap-2">
             {status && <Badge tone={TOOL_STATUS_TONE[status]}>{TOOL_STATUS_LABEL[status]}</Badge>}
-            <ToolStatusSelect toolId={tool.id} currentStatus={status} />
+            {isAdmin && <ToolStatusSelect toolId={tool.id} currentStatus={status} />}
           </div>
         </div>
         {addedAt && <p className="mt-1 text-xs text-ink-400">Added to your library {addedAt.toLocaleDateString()}</p>}
@@ -73,10 +75,36 @@ export default async function ToolProfilePage({ params }: { params: Promise<{ id
               guidance={guidance}
               approvedUses={approvedUses}
               restrictedUses={restrictedUses}
+              readOnly={!isAdmin}
             />
           </CardBody>
         </Card>
       )}
+
+      <Card>
+        <CardHeader
+          title="Workflows using this tool"
+          subtitle={`How your team actually puts ${tool.name} to work, step by step`}
+        />
+        <CardBody className="divide-y divide-ink-200 p-0">
+          {workflowsUsingTool.map((w) => (
+            <Link
+              key={w.id}
+              href={`/dashboard/workflows/${w.id}`}
+              className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-ink-50"
+            >
+              <span className="text-sm font-medium text-ink-900">{w.title}</span>
+              <div className="flex shrink-0 items-center gap-2">
+                <Badge>{w.department}</Badge>
+                {w.organizationId && <Badge tone="brand">Team-authored</Badge>}
+              </div>
+            </Link>
+          ))}
+          {workflowsUsingTool.length === 0 && (
+            <p className="p-5 text-sm text-ink-500">No workflows reference {tool.name} yet.</p>
+          )}
+        </CardBody>
+      </Card>
     </div>
   );
 }

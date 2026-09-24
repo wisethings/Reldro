@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { requireRole } from "@/lib/auth/guards";
+import { requireSession } from "@/lib/auth/guards";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { getToolLibrary, getUnmanagedTools, ensureGlobalToolCatalog } from "@/lib/queries/tools";
@@ -13,8 +13,9 @@ export default async function ToolLibraryPage({
 }: {
   searchParams: Promise<{ category?: string }>;
 }) {
-  const session = await requireRole(["COMPANY_ADMIN"]);
+  const session = await requireSession();
   if (!session.organizationId) redirect("/login");
+  const isAdmin = session.role === "COMPANY_ADMIN";
   const params = await searchParams;
 
   await ensureGlobalToolCatalog();
@@ -36,11 +37,11 @@ export default async function ToolLibraryPage({
           <div>
             <h1 className="text-xl font-semibold text-ink-900">Tool library</h1>
             <p className="mt-1 text-sm text-ink-500">
-              What AI tools and platforms are approved, how employees are actually using them, and where usage has
-              sprawled beyond review.
+              What AI tools and platforms are approved, how employees are actually using them, and which workflows use
+              each one.
             </p>
           </div>
-          <AddCustomToolForm />
+          {isAdmin && <AddCustomToolForm />}
         </div>
       </div>
 
@@ -95,7 +96,7 @@ export default async function ToolLibraryPage({
               <p className="mt-1.5 line-clamp-2 text-xs text-ink-500">{tool.description}</p>
               <div className="mt-3 flex items-center justify-between text-xs text-ink-500">
                 <span>{tool.usage.distinctUsers} user{tool.usage.distinctUsers === 1 ? "" : "s"} · {tool.usage.actionCount} actions</span>
-                <ToolStatusSelect toolId={tool.id} currentStatus={tool.status} />
+                {isAdmin && <ToolStatusSelect toolId={tool.id} currentStatus={tool.status} />}
               </div>
             </CardBody>
           </Card>
