@@ -22,7 +22,7 @@ export function MarketingNav() {
           ))}
         </nav>
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-          <Link href="/login" className="hidden text-sm font-medium text-ink-700 hover:text-ink-900 sm:inline">
+          <Link href="/login" className="whitespace-nowrap text-xs font-medium text-ink-700 hover:text-ink-900 sm:text-sm">
             Log in
           </Link>
           <Link
