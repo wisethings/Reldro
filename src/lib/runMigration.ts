@@ -1,6 +1,9 @@
 import "server-only";
+import crypto from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { SCHEMA_SQL } from "@/lib/schema-sql";
+
+const SCHEMA_SQL_HASH = crypto.createHash("sha256").update(SCHEMA_SQL).digest("hex");
 
 // Postgres error codes for "this already exists" (duplicate_object /
 // duplicate_table) - expected and harmless every time this re-runs the full
@@ -53,6 +56,37 @@ export async function runMigration() {
 // the real, deployed runtime still runs it on the first real request.
 const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
 
+/**
+ * Runs the ~270-statement schema patch only when it hasn't already been
+ * applied. Without this, every fresh serverless instance would pay for a
+ * full sequential scan of every statement ever added to schema-sql.ts -
+ * each one its own network round trip to the database - before it could
+ * serve its first request. On a cold start that's easily several seconds of
+ * a login button silently doing nothing, which reads as "broken" and gets
+ * clicked repeatedly. A one-row marker keyed by a hash of the SQL turns the
+ * steady-state case (nothing changed since the schema last synced) into two
+ * fast queries instead of hundreds.
+ */
+async function syncIfNeeded(): Promise<void> {
+  await prisma.$executeRaw`CREATE TABLE IF NOT EXISTS "_SchemaSyncState" ("id" INTEGER PRIMARY KEY DEFAULT 1, "appliedHash" TEXT NOT NULL, "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP)`;
+
+  const rows = await prisma.$queryRaw<
+    { appliedHash: string }[]
+  >`SELECT "appliedHash" FROM "_SchemaSyncState" WHERE id = 1`;
+  if (rows[0]?.appliedHash === SCHEMA_SQL_HASH) return;
+
+  const result = await runMigration();
+  if (!result.healthy) {
+    console.error("Auto schema sync had failures:", result.failures);
+    return; // don't record success - the next request will retry the full sync
+  }
+
+  await prisma.$executeRaw`
+    INSERT INTO "_SchemaSyncState" (id, "appliedHash", "updatedAt") VALUES (1, ${SCHEMA_SQL_HASH}, CURRENT_TIMESTAMP)
+    ON CONFLICT (id) DO UPDATE SET "appliedHash" = EXCLUDED."appliedHash", "updatedAt" = CURRENT_TIMESTAMP
+  `;
+}
+
 let migrationPromise: Promise<void> | null = null;
 
 /**
@@ -73,16 +107,10 @@ let migrationPromise: Promise<void> | null = null;
 export async function ensureSchemaMigrated(): Promise<void> {
   if (isBuildPhase) return;
   if (!migrationPromise) {
-    migrationPromise = runMigration()
-      .then((result) => {
-        if (!result.healthy) {
-          console.error("Auto schema sync had failures:", result.failures);
-        }
-      })
-      .catch((error) => {
-        console.error("Auto schema sync failed:", error);
-        migrationPromise = null;
-      });
+    migrationPromise = syncIfNeeded().catch((error) => {
+      console.error("Auto schema sync failed:", error);
+      migrationPromise = null;
+    });
   }
   await migrationPromise;
 }
