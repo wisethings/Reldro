@@ -3,7 +3,6 @@ import { loginAsDemo } from "@/lib/actions/demo";
 const demoAccounts = [
   { email: "admin@havenbrook.com", label: "Company admin", desc: "CIO, Havenbrook" },
   { email: "priya.shah@havenbrook.com", label: "Employee", desc: "Marketing manager" },
-  { email: "maya@reldro-specialists.com", label: "AI specialist", desc: "Expert-help specialist" },
 ];
 
 export function DemoLoginPanel() {
