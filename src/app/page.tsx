@@ -70,7 +70,7 @@ export default function LandingPage() {
         <div className="relative mx-auto max-w-6xl px-6 pb-6 pt-20 sm:pt-28">
           <div className="grid gap-10 lg:grid-cols-12 lg:gap-6">
             <div className="lg:col-span-7">
-              <p className="font-serif text-lg italic text-orchid-deep">AI adoption operating system</p>
+              <p className="font-serif text-lg text-orchid-deep">AI adoption operating system</p>
               <h1 className="mt-3 max-w-2xl text-6xl font-semibold leading-[0.98] text-ink-900 sm:text-7xl">
                 Make AI adoption <span className="bg-orchid-soft px-2 text-oxblood">actually happen</span>.
               </h1>
@@ -88,7 +88,7 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="relative hidden lg:col-span-5 lg:block">
-              <span aria-hidden className="pointer-events-none absolute -right-6 -top-14 select-none font-serif text-[13rem] italic leading-none text-oxblood/[0.06]">
+              <span aria-hidden className="pointer-events-none absolute -right-6 -top-14 select-none font-serif text-[13rem] leading-none text-oxblood/[0.06]">
                 01
               </span>
             </div>
@@ -121,7 +121,7 @@ export default function LandingPage() {
           <div className="grid gap-12 lg:grid-cols-12 lg:gap-8">
             <div className="lg:col-span-6">
               <h2 className="text-3xl font-semibold tracking-tight text-ink-900 sm:text-4xl">
-                Everyone knows they need AI. <span className="font-serif italic text-orchid-deep">Almost nobody</span>{" "}
+                Everyone knows they need AI. <span className="font-serif text-orchid-deep">Almost nobody</span>{" "}
                 knows how to adopt it.
               </h2>
               <p className="mt-4 max-w-md text-sm text-ink-600">
@@ -131,7 +131,7 @@ export default function LandingPage() {
               <ol className="mt-8 space-y-5 border-t border-ink-200 pt-6">
                 {problems.map((p, i) => (
                   <li key={p} className="flex gap-4 text-sm text-ink-700">
-                    <span className="shrink-0 font-serif italic text-ink-300">{String(i + 1).padStart(2, "0")}</span>
+                    <span className="shrink-0 font-serif text-ink-300">{String(i + 1).padStart(2, "0")}</span>
                     <span>{p}</span>
                   </li>
                 ))}
@@ -171,7 +171,7 @@ export default function LandingPage() {
       {/* How it works / loop */}
       <section id="how-it-works" className="mx-auto max-w-6xl px-6 py-24">
         <div className="max-w-xl">
-          <p className="font-serif italic text-orchid-deep">How it works</p>
+          <p className="font-serif text-orchid-deep">How it works</p>
           <h2 className="mt-2 text-3xl font-semibold tracking-tight text-ink-900 sm:text-4xl">The Reldro loop</h2>
           <p className="mt-4 text-sm text-ink-600">
             Every major screen in Reldro reinforces the same loop, so teams keep coming back to it as part of their
@@ -181,7 +181,7 @@ export default function LandingPage() {
         <div className="mt-16 space-y-10">
           {loopSteps.map((s, i) => (
             <div key={s.step} className={`flex gap-6 border-b border-ink-200 pb-8 last:border-0 last:pb-0 sm:gap-10 ${i % 2 === 1 ? "sm:ml-16" : ""}`}>
-              <span className="shrink-0 font-serif text-3xl italic text-oxblood sm:text-4xl">{String(i + 1).padStart(2, "0")}</span>
+              <span className="shrink-0 font-serif text-3xl text-oxblood sm:text-4xl">{String(i + 1).padStart(2, "0")}</span>
               <div>
                 <h3 className="text-lg font-semibold text-ink-900">{s.step}</h3>
                 <p className="mt-1.5 max-w-md text-sm text-ink-600">{s.desc}</p>
@@ -193,13 +193,13 @@ export default function LandingPage() {
 
       {/* Bold statement band */}
       <section className="relative overflow-hidden bg-oxblood">
-        <span aria-hidden className="pointer-events-none absolute -left-6 -top-20 select-none font-serif text-[16rem] italic leading-none text-bone/[0.06]">
+        <span aria-hidden className="pointer-events-none absolute -left-6 -top-20 select-none font-serif text-[16rem] leading-none text-bone/[0.06]">
           "
         </span>
         <div className="relative mx-auto max-w-4xl px-6 py-24">
           <p className="text-3xl font-semibold leading-tight text-bone sm:text-4xl">
             AI adoption fails when nobody owns it. Reldro gives every team{" "}
-            <span className="font-serif italic text-orchid">a plan</span>, a way to learn it, and a number that
+            <span className="font-serif text-orchid">a plan</span>, a way to learn it, and a number that
             proves it worked.
           </p>
         </div>
@@ -209,7 +209,7 @@ export default function LandingPage() {
       <section className="bg-bone/40 py-24">
         <div className="mx-auto max-w-6xl px-6">
           <div className="max-w-xl">
-            <p className="font-serif italic text-orchid-deep">Inside Reldro</p>
+            <p className="font-serif text-orchid-deep">Inside Reldro</p>
             <h2 className="mt-2 text-3xl font-semibold tracking-tight text-ink-900 sm:text-4xl">
               The whole loop, in one platform
             </h2>
@@ -262,7 +262,7 @@ export default function LandingPage() {
                     "Track stages, tasks, and deliverables from Discovery through Optimization",
                   ].map((step, i) => (
                     <div key={step} className="flex gap-3 text-xs text-ink-700">
-                      <span className="shrink-0 font-serif italic text-ink-500">{String(i + 1).padStart(2, "0")}</span>
+                      <span className="shrink-0 font-serif text-ink-500">{String(i + 1).padStart(2, "0")}</span>
                       <span>{step}</span>
                     </div>
                   ))}
@@ -276,7 +276,7 @@ export default function LandingPage() {
       {/* Industries, as an index list instead of a card grid */}
       <section className="mx-auto max-w-6xl px-6 py-24">
         <div className="max-w-xl">
-          <p className="font-serif italic text-orchid-deep">Everywhere AI shows up</p>
+          <p className="font-serif text-orchid-deep">Everywhere AI shows up</p>
           <h2 className="mt-2 text-3xl font-semibold tracking-tight text-ink-900 sm:text-4xl">
             Works across every industry
           </h2>
@@ -288,7 +288,7 @@ export default function LandingPage() {
         <div className="mt-14 divide-y divide-ink-200 border-t border-ink-200">
           {industries.map((ind) => (
             <div key={ind.name} className="grid gap-2 py-6 sm:grid-cols-12 sm:items-baseline sm:gap-6">
-              <h3 className="font-serif text-lg italic text-ink-900 sm:col-span-3">{ind.name}</h3>
+              <h3 className="font-serif text-lg text-ink-900 sm:col-span-3">{ind.name}</h3>
               <p className="text-sm text-ink-600 sm:col-span-9">{ind.items.join(" · ")}</p>
             </div>
           ))}
@@ -299,7 +299,7 @@ export default function LandingPage() {
       <section className="border-y border-ink-200 bg-oxblood/[0.03]">
         <div className="mx-auto max-w-5xl px-6 py-24">
           <div className="max-w-2xl">
-            <p className="font-serif italic text-orchid-deep">Prove it</p>
+            <p className="font-serif text-orchid-deep">Prove it</p>
             <h2 className="mt-2 text-3xl font-semibold tracking-tight text-ink-900 sm:text-4xl">
               Measure the return on your AI investment
             </h2>
@@ -313,12 +313,12 @@ export default function LandingPage() {
               <p className="text-xs uppercase text-ink-500">AI investment</p>
               <p className="mt-1 text-4xl font-semibold text-ink-900 sm:text-5xl">$84,000</p>
             </div>
-            <span className="pb-2 font-serif text-3xl italic text-ink-300">becomes</span>
+            <span className="pb-2 font-serif text-3xl text-ink-300">becomes</span>
             <div>
               <p className="text-xs uppercase text-ink-500">Est. annual value</p>
               <p className="mt-1 text-4xl font-semibold text-ink-900 sm:text-5xl">$620,000</p>
             </div>
-            <span className="pb-2 font-serif text-3xl italic text-ink-300">·</span>
+            <span className="pb-2 font-serif text-3xl text-ink-300">·</span>
             <div>
               <p className="text-xs uppercase text-oxblood">Estimated ROI</p>
               <p className="mt-1 text-4xl font-semibold text-oxblood sm:text-5xl">638%</p>
@@ -338,7 +338,7 @@ export default function LandingPage() {
         <div className="mt-14 grid gap-10 sm:grid-cols-3">
           {testimonials.map((t, i) => (
             <div key={t.role} className={i === 1 ? "sm:mt-10" : ""}>
-              <span className="font-serif text-5xl italic text-orchid-deep">"</span>
+              <span className="font-serif text-5xl text-orchid-deep">"</span>
               <p className="-mt-4 text-base text-ink-800">{t.quote}</p>
               <div className="mt-5 border-t border-ink-200 pt-3">
                 <p className="text-xs font-medium text-ink-700">{t.role}</p>
@@ -354,7 +354,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-6xl px-6 py-24">
           <div className="grid gap-10 lg:grid-cols-12 lg:gap-8">
             <div className="lg:col-span-5">
-              <p className="font-serif italic text-orchid-deep">Sales-led, not tiered</p>
+              <p className="font-serif text-orchid-deep">Sales-led, not tiered</p>
               <h2 className="mt-2 text-3xl font-semibold tracking-tight text-ink-900 sm:text-4xl">
                 Pricing for your organization
               </h2>
@@ -384,13 +384,13 @@ export default function LandingPage() {
 
       {/* Final CTA */}
       <section className="relative overflow-hidden bg-oxblood">
-        <span aria-hidden className="pointer-events-none absolute -bottom-16 -right-10 select-none font-serif text-[14rem] italic leading-none text-bone/[0.06] sm:text-[18rem]">
+        <span aria-hidden className="pointer-events-none absolute -bottom-16 -right-10 select-none font-serif text-[14rem] leading-none text-bone/[0.06] sm:text-[18rem]">
           02
         </span>
         <div className="relative mx-auto max-w-6xl px-6 py-24">
           <div className="flex flex-col items-start justify-between gap-8 lg:flex-row lg:items-end">
             <div>
-              <p className="font-serif italic text-orchid">Get started</p>
+              <p className="font-serif text-orchid">Get started</p>
               <h2 className="mt-2 max-w-lg text-3xl font-semibold tracking-tight text-bone sm:text-5xl">
                 Ready to see where your organization stands?
               </h2>
