@@ -24,12 +24,16 @@ export async function sendEmail({
   cc?: string[];
   subject: string;
   html: string;
-}): Promise<{ sent: boolean }> {
+}): Promise<{ sent: boolean; error?: string }> {
   const resend = getResend();
-  if (!resend) return { sent: false };
+  if (!resend) return { sent: false, error: "RESEND_API_KEY is not set" };
 
   const from = process.env.EMAIL_FROM || "Reldro <onboarding@resend.dev>";
-  await resend.emails.send({ from, to, cc: cc && cc.length > 0 ? cc : undefined, subject, html });
+  const { error } = await resend.emails.send({ from, to, cc: cc && cc.length > 0 ? cc : undefined, subject, html });
+  if (error) {
+    console.error(`sendEmail failed (to=${to}, from=${from}):`, error);
+    return { sent: false, error: error.message };
+  }
   return { sent: true };
 }
 
