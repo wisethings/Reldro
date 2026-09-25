@@ -144,6 +144,56 @@ export function orgProvisionedEmailHtml({ name, orgName, loginUrl, tempPassword 
   `;
 }
 
+/**
+ * Sends one email per recipient (each only sees their own address) via
+ * Resend's batch endpoint, chunked to its 100-per-call limit. Used for
+ * one-to-many sends (product update announcements) where sendEmail's
+ * single `to` would mean one call per recipient.
+ */
+export async function sendBulkEmail({
+  recipients,
+  subject,
+  html,
+}: {
+  recipients: string[];
+  subject: string;
+  html: string;
+}): Promise<{ sent: number; failed: number; errors: string[] }> {
+  const resend = getResend();
+  if (!resend) return { sent: 0, failed: recipients.length, errors: ["RESEND_API_KEY is not set"] };
+  if (recipients.length === 0) return { sent: 0, failed: 0, errors: [] };
+
+  const from = process.env.EMAIL_FROM || "Reldro <onboarding@resend.dev>";
+  let sent = 0;
+  let failed = 0;
+  const errors: string[] = [];
+
+  for (let i = 0; i < recipients.length; i += 100) {
+    const chunk = recipients.slice(i, i + 100);
+    const { data, error } = await resend.batch.send(chunk.map((to) => ({ from, to, subject, html })));
+    if (error) {
+      failed += chunk.length;
+      errors.push(error.message);
+      console.error(`sendBulkEmail batch failed (${chunk.length} recipients):`, error);
+    } else {
+      sent += data?.data.length ?? chunk.length;
+    }
+  }
+
+  return { sent, failed, errors };
+}
+
+export function productUpdateEmailHtml({ subject, bodyHtml }: { subject: string; bodyHtml: string }) {
+  return `
+    <div style="font-family: -apple-system, sans-serif; max-width: 560px; margin: 0 auto; color: #2A0A0C;">
+      <h2 style="margin-bottom: 4px;">${subject}</h2>
+      <p style="color: #6B5A55; font-size: 13px;">An update from the Reldro team</p>
+      <div style="margin-top: 16px; font-size: 14px; line-height: 1.6;">${bodyHtml}</div>
+      <p style="color: #8C7F6C; font-size: 12px; margin-top: 32px;">You're receiving this because you have a Reldro account.</p>
+    </div>
+  `;
+}
+
 export function inviteEmailHtml({ name, orgName, loginUrl, tempPassword }: { name: string; orgName: string; loginUrl: string; tempPassword: string }) {
   return `
     <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; color: #2A0A0C;">

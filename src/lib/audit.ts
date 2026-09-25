@@ -20,7 +20,8 @@ export type AuditAction =
   | "reward.redeemed"
   | "reward.recognition_given"
   | "reward.rules_updated"
-  | "certification.earned";
+  | "certification.earned"
+  | "product_update.sent";
 
 /**
  * Records a sensitive action to the audit trail. Best-effort: a failure here
@@ -71,6 +72,7 @@ const ACTION_LABELS: Record<AuditAction, string> = {
   "reward.recognition_given": "Gave recognition",
   "reward.rules_updated": "Updated reward rules",
   "certification.earned": "Earned a certification",
+  "product_update.sent": "Sent a product update email",
 };
 
 export function describeAuditAction(action: string): string {
