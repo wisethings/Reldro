@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { COURSE_CATALOG } from "@/lib/courseCatalog";
+import { pickIllustration } from "@/lib/data/illustrations";
 
 /**
  * Idempotent - safe to call on every page load. Only creates courses that
@@ -25,7 +26,11 @@ export async function ensureCourseCatalog() {
         skills: c.skills,
         tools: c.tools,
         lessons: {
-          create: c.lessons.map((l, i) => ({ order: i + 1, ...l })),
+          create: c.lessons.map((l, i) => ({
+            order: i + 1,
+            ...l,
+            imageUrl: pickIllustration(`${l.title} ${c.skills.join(" ")}`),
+          })),
         },
       },
     });

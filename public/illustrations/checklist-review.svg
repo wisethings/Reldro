@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="800" height="450" role="img" aria-label="Checklist and review illustration">
+  <rect width="800" height="450" fill="#E4EDD3"/>
+  <g transform="translate(370,225)">
+    <rect x="-190" y="-190" width="380" height="380" rx="20" fill="#FFFFFF" stroke="#3D5A3A" stroke-width="5"/>
+    <g stroke="#3D5A3A" stroke-width="9" stroke-linecap="round" fill="none">
+      <path d="M -150 -115 l 24 24 l 44 -44"/>
+      <path d="M -150 -20 l 24 24 l 44 -44"/>
+      <path d="M -150 75 l 24 24 l 44 -44"/>
+    </g>
+    <rect x="-55" y="-133" width="200" height="16" rx="8" fill="#3D5A3A"/>
+    <rect x="-55" y="-38" width="200" height="16" rx="8" fill="#3D5A3A"/>
+    <rect x="-55" y="57" width="150" height="16" rx="8" fill="#3D5A3A"/>
+  </g>
+  <g transform="translate(590,300)">
+    <circle r="70" fill="#F3DDEE" stroke="#8A4A7E" stroke-width="6"/>
+    <path d="M -28 0 l 18 18 l 40 -40" fill="none" stroke="#8A4A7E" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

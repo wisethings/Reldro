@@ -5,6 +5,7 @@ import { computeOrgAdoptionScore, computeFluencyScore } from "../src/lib/scoring
 import { INTEGRATION_CATALOG } from "../src/lib/data/catalog";
 import { SIMULATION_CATALOG } from "../src/lib/simulationCatalog";
 import { COURSE_CATALOG } from "../src/lib/courseCatalog";
+import { pickIllustration } from "../src/lib/data/illustrations";
 import type { EmployeeSkillCategory } from "../src/lib/scoring";
 
 // Mirrors src/lib/rewards.ts and src/lib/queries/certifications.ts. Duplicated
@@ -517,6 +518,7 @@ async function seedWorkflows() {
               description: s.description,
               aiPrompt: s.aiPrompt,
               humanCheckpoint: s.humanCheckpoint ?? false,
+              imageUrl: pickIllustration(`${s.title} ${s.description}`),
             })),
           },
         },
@@ -539,7 +541,11 @@ async function seedCoursesAndLessons(workflows: Awaited<ReturnType<typeof seedWo
         skills: c.skills,
         tools: c.tools,
         lessons: {
-          create: c.lessons.map((l, i) => ({ order: i + 1, ...l })),
+          create: c.lessons.map((l, i) => ({
+            order: i + 1,
+            ...l,
+            imageUrl: pickIllustration(`${l.title} ${c.skills.join(" ")}`),
+          })),
         },
       },
     });

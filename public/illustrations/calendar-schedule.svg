@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="800" height="450" role="img" aria-label="Scheduling illustration">
+  <rect width="800" height="450" fill="#EDE3C9"/>
+  <g transform="translate(400,235)">
+    <rect x="-210" y="-155" width="420" height="320" rx="18" fill="#FFFFFF" stroke="#755F2F" stroke-width="5"/>
+    <rect x="-210" y="-155" width="420" height="75" rx="18" fill="#755F2F"/>
+    <rect x="-155" y="-180" width="20" height="55" rx="8" fill="#755F2F"/>
+    <rect x="135" y="-180" width="20" height="55" rx="8" fill="#755F2F"/>
+    <g fill="#EDE3C9">
+      <circle cx="-147" cy="-20" r="17"/><circle cx="-77" cy="-20" r="17"/><circle cx="-7" cy="-20" r="17"/><circle cx="63" cy="-20" r="17"/><circle cx="133" cy="-20" r="17"/>
+      <circle cx="-147" cy="45" r="17"/><circle cx="-77" cy="45" r="17"/><circle cx="63" cy="45" r="17"/><circle cx="133" cy="45" r="17"/>
+      <circle cx="-147" cy="110" r="17"/><circle cx="-77" cy="110" r="17"/><circle cx="-7" cy="110" r="17"/><circle cx="133" cy="110" r="17"/>
+    </g>
+    <circle cx="-7" cy="45" r="22" fill="#8A4A7E"/>
+    <circle cx="63" cy="110" r="22" fill="#3D5A3A"/>
+  </g>
+</svg>

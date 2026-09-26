@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="800" height="450" role="img" aria-label="AI automation illustration">
+  <rect width="800" height="450" fill="#F3DDEE"/>
+  <g transform="translate(400,225)" fill="#8A4A7E">
+    <path d="M 0 -170 C 18 -62 62 -18 170 0 C 62 18 18 62 0 170 C -18 62 -62 18 -170 0 C -62 -18 -18 -62 0 -170 Z"/>
+    <path d="M 200 -110 C 209 -70 231 -53 271 -44 C 231 -35 209 -17 200 22 C 191 -17 169 -35 129 -44 C 169 -53 191 -70 200 -110 Z" fill="#D896CC"/>
+    <path d="M -215 45 C -209 66 -195 78 -170 84 C -195 90 -209 102 -215 124 C -221 102 -235 90 -260 84 C -235 78 -221 66 -215 45 Z" fill="#755F2F"/>
+  </g>
+</svg>
