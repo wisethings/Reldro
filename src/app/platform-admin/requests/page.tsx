@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -26,9 +27,17 @@ export default async function PlatformRequestsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-ink-900">Expert help requests</h1>
-        <p className="text-sm text-ink-500">Match open requests with a specialist to turn them into active engagements.</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-ink-900">Expert help requests</h1>
+          <p className="text-sm text-ink-500">Match open requests with a specialist to turn them into active engagements.</p>
+        </div>
+        <Link
+          href="/api/platform-admin/export/projects"
+          className="rounded-full border border-ink-300 px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-ink-50"
+        >
+          Export CSV
+        </Link>
       </div>
 
       <Card>
@@ -39,11 +48,20 @@ export default async function PlatformRequestsPage() {
           {openRequests.length === 0 && <p className="p-6 text-sm text-ink-500">No open requests right now.</p>}
           {await Promise.all(
             openRequests.map(async (request) => {
+              const department = request.opportunity?.department?.name ?? request.workflow?.department;
+              const tools = request.opportunity?.toolsRequired ?? request.workflow?.toolsRequired ?? [];
+              const complexity = request.opportunity?.complexity ?? request.workflow?.difficulty;
+              const linkedTo = request.opportunity
+                ? { kind: "Opportunity", title: request.opportunity.title }
+                : request.workflow
+                  ? { kind: "Workflow", title: request.workflow.title }
+                  : null;
+
               const suggestions = await matchSpecialists({
                 industry: request.organization.industry,
-                department: request.opportunity?.department?.name ?? request.workflow?.department,
-                tools: request.opportunity?.toolsRequired ?? request.workflow?.toolsRequired,
-                complexity: request.opportunity?.complexity ?? request.workflow?.difficulty,
+                department,
+                tools,
+                complexity,
               });
 
               return (
@@ -51,9 +69,19 @@ export default async function PlatformRequestsPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-medium text-ink-900">{request.title}</p>
-                      <p className="text-xs text-ink-500">{request.organization.name}</p>
+                      <p className="text-xs text-ink-500">
+                        {request.organization.name} · {request.organization.industry} · {request.organization.size} employees
+                      </p>
                       {request.description && <p className="mt-1 whitespace-pre-line text-xs text-ink-600">{request.description}</p>}
-                      {request.budget && <p className="mt-1 text-xs text-ink-500">Budget: ${request.budget.toLocaleString()}</p>}
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        {linkedTo && <Badge tone="blue">{linkedTo.kind}: {linkedTo.title}</Badge>}
+                        {department && <Badge tone="neutral">{department}</Badge>}
+                        {complexity && <Badge tone="neutral">{complexity.toLowerCase()} complexity</Badge>}
+                        {tools.map((t) => (
+                          <Badge key={t} tone="neutral">{t}</Badge>
+                        ))}
+                      </div>
+                      {request.budget && <p className="mt-2 text-xs text-ink-500">Budget: ${request.budget.toLocaleString()}</p>}
                       {request.ccEmails.length > 0 && (
                         <p className="mt-1 text-xs text-ink-500">Also looped in: {request.ccEmails.join(", ")}</p>
                       )}

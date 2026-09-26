@@ -26,6 +26,7 @@ export function MarketingFooter() {
               <ul className="mt-2 space-y-1.5 text-ink-500">
                 <li><Link href="/login" className="hover:text-ink-800">Log in</Link></li>
                 <li><Link href="/demo" className="hover:text-ink-800">Request a demo</Link></li>
+                <li><Link href="/specialists/apply" className="hover:text-ink-800">Become a specialist</Link></li>
               </ul>
             </div>
             <div>

@@ -27,6 +27,18 @@ export default async function SpecialistHomePage() {
         <p className="text-sm text-ink-500">Your activity and active engagements.</p>
       </div>
 
+      {specialist && !specialist.approved && (
+        <Card>
+          <CardBody className="text-sm text-ink-700">
+            Your application is still under review. You can{" "}
+            <Link href="/dashboard/specialist/profile" className="font-medium text-brand-700 hover:underline">
+              review and complete your profile
+            </Link>{" "}
+            now - you'll start showing up as a match once a Reldro admin approves it.
+          </CardBody>
+        </Card>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-4">
         <StatTile label="Active projects" value={active.length} />
         <StatTile label="New requests" value={proposed.length} />

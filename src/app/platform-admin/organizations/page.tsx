@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -16,7 +17,15 @@ export default async function PlatformOrganizationsPage() {
           <h1 className="text-xl font-semibold text-ink-900">Organizations</h1>
           <p className="text-sm text-ink-500">{organizations.length} organizations on Reldro.</p>
         </div>
-        <CreateOrgToggle />
+        <div className="flex items-center gap-2">
+          <Link
+            href="/api/platform-admin/export/organizations"
+            className="rounded-full border border-ink-300 px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-ink-50"
+          >
+            Export CSV
+          </Link>
+          <CreateOrgToggle />
+        </div>
       </div>
       <Card>
         <CardBody className="divide-y divide-ink-200 p-0">

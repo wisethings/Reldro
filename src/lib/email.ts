@@ -157,6 +157,68 @@ export function orgProvisionedEmailHtml({ name, orgName, loginUrl, tempPassword 
   `;
 }
 
+export function specialistApplicationNotificationHtml({
+  name,
+  email,
+  headline,
+  yearsExperience,
+  industries,
+  functions,
+}: {
+  name: string;
+  email: string;
+  headline: string;
+  yearsExperience: number;
+  industries: string[];
+  functions: string[];
+}) {
+  // Public and unauthenticated, same as demoRequestNotificationHtml - escape
+  // every applicant-typed field before it reaches an internal inbox.
+  const row = (label: string, value?: string) =>
+    value ? `<tr><td style="padding: 6px 16px 6px 0; color: #6B5A55; font-size: 13px; white-space: nowrap;">${label}</td><td style="padding: 6px 0; font-size: 13px; color: #2A0A0C;">${escapeHtml(value)}</td></tr>` : "";
+
+  return `
+    <div style="font-family: -apple-system, sans-serif; max-width: 520px; margin: 0 auto; color: #2A0A0C;">
+      <h2 style="margin-bottom: 4px;">New specialist application</h2>
+      <p style="color: #6B5A55;">${escapeHtml(name)}</p>
+      <table style="width: 100%; background: #F7F4EC; border-radius: 12px; padding: 16px; margin: 16px 0; border-collapse: collapse;">
+        ${row("Name", name)}
+        ${row("Email", email)}
+        ${row("Headline", headline)}
+        ${row("Experience", `${yearsExperience} years`)}
+        ${row("Industries", industries.length > 0 ? industries.join(", ") : undefined)}
+        ${row("Functions", functions.length > 0 ? functions.join(", ") : undefined)}
+      </table>
+      <p style="color: #8C7F6C; font-size: 12px; margin-top: 24px;">Review and approve this application from Platform Admin > Specialists.</p>
+    </div>
+  `;
+}
+
+export function specialistApplicationReceivedHtml({
+  name,
+  loginUrl,
+  tempPassword,
+}: {
+  name: string;
+  loginUrl: string;
+  tempPassword: string;
+}) {
+  return `
+    <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; color: #2A0A0C;">
+      <h2 style="margin-bottom: 4px;">Thanks for applying to Reldro</h2>
+      <p>Hi ${escapeHtml(name)},</p>
+      <p>We've received your specialist application. Our team reviews every application by hand - once approved, you'll start showing up as a match for expert-help requests.</p>
+      <p>Your account is already set up, so you can log in now to review or edit your profile while we take a look:</p>
+      <table style="width: 100%; background: #F7F4EC; border-radius: 12px; padding: 16px; margin: 16px 0;">
+        <tr><td style="padding: 4px 16px; color: #6B5A55; font-size: 13px;">Temporary password</td></tr>
+        <tr><td style="padding: 0 16px 12px; font-family: monospace; font-size: 16px; font-weight: 600;">${tempPassword}</td></tr>
+      </table>
+      <a href="${loginUrl}" style="display: inline-block; background: #2A0A0C; color: #EFEBE0; padding: 10px 20px; border-radius: 999px; text-decoration: none; font-weight: 500;">Log in to Reldro</a>
+      <p style="color: #8C7F6C; font-size: 12px; margin-top: 24px;">If you weren't expecting this, you can ignore this email.</p>
+    </div>
+  `;
+}
+
 /**
  * Sends one email per recipient (each only sees their own address) via
  * Resend's batch endpoint, chunked to its 100-per-call limit. Used for
