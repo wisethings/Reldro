@@ -1,12 +1,37 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="800" height="450" role="img" aria-label="AI chat assistant illustration">
-  <rect width="800" height="450" fill="#EDE3C9"/>
-  <g transform="translate(400,225)">
-    <path d="M -230 -95 h 300 a 28 28 0 0 1 28 28 v 95 a 28 28 0 0 1 -28 28 h -220 l -60 55 v -55 h -20 a 28 28 0 0 1 -28 -28 v -95 a 28 28 0 0 1 28 -28 z" fill="#FFFFFF" stroke="#755F2F" stroke-width="5"/>
-    <circle cx="-155" cy="-10" r="11" fill="#755F2F"/>
-    <circle cx="-95" cy="-10" r="11" fill="#755F2F"/>
-    <circle cx="-35" cy="-10" r="11" fill="#755F2F"/>
-    <path d="M 15 20 h 300 a 28 28 0 0 1 28 28 v 95 a 28 28 0 0 1 -28 28 h -20 v 55 l -60 -55 h -220 a 28 28 0 0 1 -28 -28 v -95 a 28 28 0 0 1 28 -28 z" fill="#F3DDEE" stroke="#8A4A7E" stroke-width="5"/>
-    <rect x="80" y="110" width="200" height="14" rx="7" fill="#8A4A7E"/>
-    <rect x="80" y="140" width="150" height="14" rx="7" fill="#D896CC"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="800" height="450" role="img" aria-label="Screenshot mockup: AI chat assistant drafting a reply">
+  <rect width="800" height="450" fill="#F7F4EC"/>
+  <defs><clipPath id="win2"><rect x="20" y="20" width="760" height="410" rx="14"/></clipPath></defs>
+  <rect x="20" y="20" width="760" height="410" rx="14" fill="#FFFFFF" stroke="#DCD5C6" stroke-width="2"/>
+  <g clip-path="url(#win2)" font-family="system-ui, -apple-system, Segoe UI, sans-serif">
+    <rect x="20" y="20" width="760" height="44" fill="#F7F4EC"/>
+    <circle cx="44" cy="42" r="6" fill="#E8827A"/><circle cx="64" cy="42" r="6" fill="#EDE3C9"/><circle cx="84" cy="42" r="6" fill="#E4EDD3"/>
+    <text x="400" y="47" text-anchor="middle" font-size="14" fill="#6B5A55">AI Assistant</text>
+
+    <!-- sidebar -->
+    <rect x="20" y="64" width="170" height="366" fill="#F7F4EC"/>
+    <rect x="40" y="90" width="130" height="10" rx="3" fill="#402525"/>
+    <rect x="40" y="126" width="130" height="9" rx="3" fill="#DCD5C6"/>
+    <rect x="40" y="156" width="110" height="9" rx="3" fill="#DCD5C6"/>
+    <rect x="40" y="186" width="120" height="9" rx="3" fill="#DCD5C6"/>
+
+    <!-- user bubble -->
+    <rect x="430" y="86" width="330" height="46" rx="16" fill="#EFEBE0"/>
+    <text x="450" y="114" font-size="13" fill="#402525">Draft a reply to this policyholder</text>
+
+    <!-- AI bubble -->
+    <rect x="210" y="148" width="420" height="132" rx="16" fill="#F3DDEE"/>
+    <circle cx="234" cy="172" r="12" fill="#8A4A7E"/>
+    <rect x="256" y="166" width="340" height="10" rx="3" fill="#8A4A7E"/>
+    <rect x="234" y="196" width="360" height="9" rx="3" fill="#D896CC"/>
+    <rect x="234" y="216" width="360" height="9" rx="3" fill="#D896CC"/>
+    <rect x="234" y="236" width="260" height="9" rx="3" fill="#D896CC"/>
+
+    <!-- input bar -->
+    <rect x="210" y="350" width="550" height="46" rx="23" fill="#FFFFFF" stroke="#DCD5C6" stroke-width="2"/>
+    <text x="234" y="378" font-size="13" fill="#8C7F6C">Ask anything…</text>
+    <circle cx="726" cy="373" r="16" fill="#E8827A"/>
+
+    <!-- annotation -->
+    <rect x="202" y="140" width="436" height="148" rx="18" fill="none" stroke="#A33828" stroke-width="3" stroke-dasharray="7 6"/>
   </g>
 </svg>
