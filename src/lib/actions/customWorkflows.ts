@@ -83,9 +83,13 @@ export async function createCustomWorkflow(_prevState: CustomWorkflowState, form
 }
 
 export async function deleteCustomWorkflow(workflowId: string) {
-  const { session } = await requireWorkflowAuthor();
+  const { session, isCompanyAdmin, department: myDepartment } = await requireWorkflowAuthor();
   const workflow = await prisma.workflow.findUnique({ where: { id: workflowId } });
   if (!workflow || workflow.organizationId !== session.organizationId) throw new Error("Workflow not found.");
+  // Creation already restricts a department admin to their own department -
+  // delete has to enforce the same boundary, or any department admin could
+  // delete another team's workflow just by knowing its id.
+  if (!isCompanyAdmin && workflow.department !== myDepartment) throw new Error("Workflow not found.");
 
   await prisma.workflow.delete({ where: { id: workflowId } });
   revalidatePath("/dashboard/workflows");
@@ -93,11 +97,12 @@ export async function deleteCustomWorkflow(workflowId: string) {
 }
 
 export async function createWorkflowStep(_prevState: CustomWorkflowStepState, formData: FormData): Promise<CustomWorkflowStepState> {
-  const { session } = await requireWorkflowAuthor();
+  const { session, isCompanyAdmin, department: myDepartment } = await requireWorkflowAuthor();
 
   const workflowId = String(formData.get("workflowId") ?? "");
   const workflow = await prisma.workflow.findUnique({ where: { id: workflowId } });
   if (!workflow || workflow.organizationId !== session.organizationId) return { error: "Workflow not found." };
+  if (!isCompanyAdmin && workflow.department !== myDepartment) return { error: "Workflow not found." };
 
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
@@ -138,9 +143,10 @@ export async function createWorkflowStep(_prevState: CustomWorkflowStepState, fo
 }
 
 export async function deleteWorkflowStep(stepId: string, workflowId: string) {
-  const { session } = await requireWorkflowAuthor();
+  const { session, isCompanyAdmin, department: myDepartment } = await requireWorkflowAuthor();
   const workflow = await prisma.workflow.findUnique({ where: { id: workflowId } });
   if (!workflow || workflow.organizationId !== session.organizationId) throw new Error("Workflow not found.");
+  if (!isCompanyAdmin && workflow.department !== myDepartment) throw new Error("Workflow not found.");
 
   await prisma.workflowStep.delete({ where: { id: stepId } });
   revalidatePath(`/dashboard/workflows/manage/${workflowId}`);

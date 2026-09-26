@@ -143,8 +143,12 @@ export async function getWorkflowsUsingTool(organizationId: string, toolName: st
 
 export async function getToolProfile(organizationId: string, toolId: string) {
   await ensureGlobalToolCatalog();
+  // A tool is either the shared global catalog (organizationId null) or a
+  // specific org's private custom tool - without this filter, any org could
+  // load (and via setToolStatus, silently adopt) another org's private tool
+  // just by knowing its id.
   const [tool, orgTool] = await Promise.all([
-    prisma.tool.findUnique({ where: { id: toolId } }),
+    prisma.tool.findFirst({ where: { id: toolId, OR: [{ organizationId: null }, { organizationId }] } }),
     prisma.organizationTool.findUnique({ where: { organizationId_toolId: { organizationId, toolId } } }),
   ]);
   if (!tool) return null;

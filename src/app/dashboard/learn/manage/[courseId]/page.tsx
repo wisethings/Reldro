@@ -15,7 +15,8 @@ export default async function ManageCoursePage({ params }: { params: Promise<{ c
   const employee = session.employeeId
     ? await prisma.employee.findUnique({ where: { id: session.employeeId }, include: { department: true } })
     : null;
-  const canAuthorLessons = session.role === "COMPANY_ADMIN" || Boolean(employee?.isDepartmentAdmin);
+  const isCompanyAdmin = session.role === "COMPANY_ADMIN";
+  const canAuthorLessons = isCompanyAdmin || Boolean(employee?.isDepartmentAdmin);
   if (!canAuthorLessons) redirect("/dashboard/learn");
 
   const course = await prisma.course.findUnique({
@@ -23,6 +24,10 @@ export default async function ManageCoursePage({ params }: { params: Promise<{ c
     include: { lessons: { orderBy: { order: "asc" } } },
   });
   if (!course || course.organizationId !== session.organizationId) notFound();
+  // A department admin manages only their own team's courses - without this,
+  // they could open (and, before the action-level fix, edit/delete) another
+  // department's course just by knowing its id.
+  if (!isCompanyAdmin && course.department !== employee?.department?.name) notFound();
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-6">

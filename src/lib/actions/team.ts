@@ -23,6 +23,16 @@ export async function inviteEmployee(_prevState: FormState, formData: FormData):
 
   if (!name || !email || !jobTitle) return { error: "Name, email, and job title are required." };
 
+  // The <select> only ever lists this admin's own departments, but the
+  // server action has to enforce that too - otherwise a crafted request with
+  // another org's departmentId would corrupt that org's department roster.
+  if (departmentId) {
+    const department = await prisma.department.findUnique({ where: { id: departmentId } });
+    if (!department || department.organizationId !== session.organizationId) {
+      return { error: "That department wasn't found." };
+    }
+  }
+
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return { error: "An account with that email already exists." };
 

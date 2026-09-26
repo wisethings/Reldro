@@ -18,7 +18,10 @@ export default async function ManageLearnPage() {
 
   const [courses, departments] = await Promise.all([
     prisma.course.findMany({
-      where: { organizationId: session.organizationId },
+      // A department admin only manages their own team's courses - without
+      // this, the list (and the "Manage" link into each one) exposed every
+      // department's team-authored content, not just their own.
+      where: { organizationId: session.organizationId, ...(isCompanyAdmin ? {} : { department: employee?.department?.name ?? "__none__" }) },
       include: { lessons: true },
       orderBy: { department: "asc" },
     }),

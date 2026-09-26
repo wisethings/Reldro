@@ -57,9 +57,13 @@ export async function createCustomCourse(_prevState: CustomCourseState, formData
 }
 
 export async function deleteCustomCourse(courseId: string) {
-  const { session } = await requireLearningAuthor();
+  const { session, isCompanyAdmin, department: myDepartment } = await requireLearningAuthor();
   const course = await prisma.course.findUnique({ where: { id: courseId } });
   if (!course || course.organizationId !== session.organizationId) throw new Error("Course not found.");
+  // Creation already restricts a department admin to their own department -
+  // delete has to enforce the same boundary, or any department admin could
+  // delete another team's course just by knowing its id.
+  if (!isCompanyAdmin && course.department !== myDepartment) throw new Error("Course not found.");
 
   await prisma.course.delete({ where: { id: courseId } });
   revalidatePath("/dashboard/learn");
@@ -67,11 +71,12 @@ export async function deleteCustomCourse(courseId: string) {
 }
 
 export async function createCustomLesson(_prevState: CustomLessonState, formData: FormData): Promise<CustomLessonState> {
-  const { session } = await requireLearningAuthor();
+  const { session, isCompanyAdmin, department: myDepartment } = await requireLearningAuthor();
 
   const courseId = String(formData.get("courseId") ?? "");
   const course = await prisma.course.findUnique({ where: { id: courseId } });
   if (!course || course.organizationId !== session.organizationId) return { error: "Course not found." };
+  if (!isCompanyAdmin && course.department !== myDepartment) return { error: "Course not found." };
 
   const title = String(formData.get("title") ?? "").trim();
   const concept = String(formData.get("concept") ?? "").trim();
@@ -139,9 +144,10 @@ export async function createCustomLesson(_prevState: CustomLessonState, formData
 }
 
 export async function deleteCustomLesson(lessonId: string, courseId: string) {
-  const { session } = await requireLearningAuthor();
+  const { session, isCompanyAdmin, department: myDepartment } = await requireLearningAuthor();
   const course = await prisma.course.findUnique({ where: { id: courseId } });
   if (!course || course.organizationId !== session.organizationId) throw new Error("Course not found.");
+  if (!isCompanyAdmin && course.department !== myDepartment) throw new Error("Course not found.");
 
   await prisma.lesson.delete({ where: { id: lessonId } });
   revalidatePath(`/dashboard/learn/manage/${courseId}`);

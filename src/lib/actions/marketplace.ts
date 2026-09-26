@@ -224,6 +224,13 @@ export async function assignSpecialistToProject(projectId: string, specialistId:
   revalidatePath(`/dashboard/projects/${projectId}`);
 }
 
+/** Form-action wrapper for the manual-assign picker: pulls specialistId out of the submitted <select> and delegates to the real, auth-checked action above. */
+export async function assignSpecialistManually(projectId: string, formData: FormData) {
+  const specialistId = String(formData.get("specialistId") ?? "");
+  if (!specialistId) return;
+  await assignSpecialistToProject(projectId, specialistId);
+}
+
 export async function postProjectMessage(projectId: string, body: string) {
   const { session } = await requireProjectAccess(projectId);
   if (!body.trim()) return;

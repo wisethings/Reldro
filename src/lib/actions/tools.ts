@@ -11,6 +11,13 @@ export async function setToolStatus(toolId: string, status: ToolApprovalStatus) 
   const session = await requireRole(["COMPANY_ADMIN"]);
   const organizationId = session.organizationId!;
 
+  // A tool is either the shared global catalog (organizationId null) or a
+  // specific org's private custom tool - without this check, any org could
+  // "adopt" another org's private tool into their own library just by
+  // knowing its id.
+  const tool = await prisma.tool.findFirst({ where: { id: toolId, OR: [{ organizationId: null }, { organizationId }] } });
+  if (!tool) throw new Error("Tool not found");
+
   await prisma.organizationTool.upsert({
     where: { organizationId_toolId: { organizationId, toolId } },
     update: { status },

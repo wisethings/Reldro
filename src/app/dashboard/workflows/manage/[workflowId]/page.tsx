@@ -15,7 +15,8 @@ export default async function ManageWorkflowPage({ params }: { params: Promise<{
   const employee = session.employeeId
     ? await prisma.employee.findUnique({ where: { id: session.employeeId }, include: { department: true } })
     : null;
-  const canAuthorWorkflows = session.role === "COMPANY_ADMIN" || Boolean(employee?.isDepartmentAdmin);
+  const isCompanyAdmin = session.role === "COMPANY_ADMIN";
+  const canAuthorWorkflows = isCompanyAdmin || Boolean(employee?.isDepartmentAdmin);
   if (!canAuthorWorkflows) redirect("/dashboard/workflows");
 
   const workflow = await prisma.workflow.findUnique({
@@ -23,6 +24,8 @@ export default async function ManageWorkflowPage({ params }: { params: Promise<{
     include: { steps: { orderBy: { order: "asc" } } },
   });
   if (!workflow || workflow.organizationId !== session.organizationId) notFound();
+  // A department admin manages only their own team's workflows.
+  if (!isCompanyAdmin && workflow.department !== employee?.department?.name) notFound();
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-6">

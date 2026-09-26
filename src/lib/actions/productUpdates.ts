@@ -2,22 +2,13 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/guards";
-import { sendBulkEmail, productUpdateEmailHtml } from "@/lib/email";
+import { sendBulkEmail, productUpdateEmailHtml, escapeHtml } from "@/lib/email";
 import { logAudit } from "@/lib/audit";
 
 export type ProductUpdateState = { error?: string; sent?: number; failed?: number; total?: number } | undefined;
 
 const AUDIENCES = ["employees", "admins", "leads"] as const;
 type Audience = (typeof AUDIENCES)[number];
-
-function escapeHtml(input: string) {
-  return input
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
 
 function textToHtml(input: string) {
   return input

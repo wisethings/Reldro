@@ -2,13 +2,19 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { matchSpecialists } from "@/lib/matching";
-import { assignSpecialistToProject } from "@/lib/actions/marketplace";
+import { assignSpecialistToProject, assignSpecialistManually } from "@/lib/actions/marketplace";
 
 export default async function PlatformRequestsPage() {
   const openRequests = await prisma.project.findMany({
     where: { status: "OPEN", specialistId: null },
     include: { organization: true, opportunity: { include: { department: true } }, workflow: true },
     orderBy: { createdAt: "desc" },
+  });
+
+  const approvedSpecialists = await prisma.specialist.findMany({
+    where: { approved: true },
+    include: { user: true },
+    orderBy: { user: { name: "asc" } },
   });
 
   const assignedRequests = await prisma.project.findMany({
@@ -56,7 +62,33 @@ export default async function PlatformRequestsPage() {
                   </div>
                   <div className="mt-3 grid gap-2 sm:grid-cols-3">
                     {suggestions.length === 0 && (
-                      <p className="text-xs text-ink-400 sm:col-span-3">No auto-matched suggestions. Assign manually in the Specialists tab.</p>
+                      <div className="text-xs text-ink-400 sm:col-span-3">
+                        <p className="mb-2">No auto-matched suggestions.</p>
+                        {approvedSpecialists.length === 0 ? (
+                          <p>No approved specialists yet - approve one in the Specialists tab first.</p>
+                        ) : (
+                          <form action={assignSpecialistManually.bind(null, request.id)} className="flex flex-wrap items-center gap-2">
+                            <select
+                              name="specialistId"
+                              required
+                              defaultValue=""
+                              className="rounded-lg border border-ink-300 px-2 py-1.5 text-xs text-ink-700"
+                            >
+                              <option value="" disabled>
+                                Choose a specialist
+                              </option>
+                              {approvedSpecialists.map((s) => (
+                                <option key={s.id} value={s.id}>
+                                  {s.user.name}
+                                </option>
+                              ))}
+                            </select>
+                            <button className="rounded-full bg-brand-700 px-3 py-1.5 text-[11px] font-medium text-white hover:bg-brand-800">
+                              Assign manually
+                            </button>
+                          </form>
+                        )}
+                      </div>
                     )}
                     {suggestions.map(({ specialist, reasons }) => (
                       <div key={specialist.id} className="rounded-lg border border-ink-200 p-3">

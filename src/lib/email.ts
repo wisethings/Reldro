@@ -5,6 +5,16 @@ export function isEmailConfigured(): boolean {
   return Boolean(process.env.RESEND_API_KEY);
 }
 
+/** Escapes text interpolated into an HTML email template - required for any field a user (especially an unauthenticated one) typed themselves. */
+export function escapeHtml(input: string): string {
+  return input
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 let client: Resend | null = null;
 function getResend(): Resend | null {
   const key = process.env.RESEND_API_KEY;
@@ -97,13 +107,16 @@ export function demoRequestNotificationHtml({
   companySize?: string;
   message?: string;
 }) {
+  // This form is public and unauthenticated - every field here is escaped
+  // before going into an internal inbox, or anyone could inject arbitrary
+  // HTML (fake links, spoofed banners) into staff email.
   const row = (label: string, value?: string) =>
-    value ? `<tr><td style="padding: 6px 16px 6px 0; color: #6B5A55; font-size: 13px; white-space: nowrap;">${label}</td><td style="padding: 6px 0; font-size: 13px; color: #2A0A0C;">${value}</td></tr>` : "";
+    value ? `<tr><td style="padding: 6px 16px 6px 0; color: #6B5A55; font-size: 13px; white-space: nowrap;">${label}</td><td style="padding: 6px 0; font-size: 13px; color: #2A0A0C;">${escapeHtml(value)}</td></tr>` : "";
 
   return `
     <div style="font-family: -apple-system, sans-serif; max-width: 520px; margin: 0 auto; color: #2A0A0C;">
       <h2 style="margin-bottom: 4px;">New demo request</h2>
-      <p style="color: #6B5A55;">${companyName}</p>
+      <p style="color: #6B5A55;">${escapeHtml(companyName)}</p>
       <table style="width: 100%; background: #F7F4EC; border-radius: 12px; padding: 16px; margin: 16px 0; border-collapse: collapse;">
         ${row("Name", name)}
         ${row("Email", email)}
@@ -120,8 +133,8 @@ export function demoRequestConfirmationHtml({ name, companyName }: { name: strin
   return `
     <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; color: #2A0A0C;">
       <h2 style="margin-bottom: 4px;">Thanks for your interest in Reldro</h2>
-      <p>Hi ${name},</p>
-      <p>We received your request on behalf of ${companyName}. A member of our team will reach out by email shortly to schedule a walkthrough and get your workspace set up.</p>
+      <p>Hi ${escapeHtml(name)},</p>
+      <p>We received your request on behalf of ${escapeHtml(companyName)}. A member of our team will reach out by email shortly to schedule a walkthrough and get your workspace set up.</p>
       <p style="color: #8C7F6C; font-size: 12px; margin-top: 24px;">If you weren't expecting this, you can ignore this email.</p>
     </div>
   `;
@@ -170,13 +183,24 @@ export async function sendBulkEmail({
 
   for (let i = 0; i < recipients.length; i += 100) {
     const chunk = recipients.slice(i, i + 100);
-    const { data, error } = await resend.batch.send(chunk.map((to) => ({ from, to, subject, html })));
+    // Resend's batch send defaults to "strict" validation: one malformed
+    // address (e.g. from an unauthenticated form's loose email check) fails
+    // the *entire* chunk of up to 100, silently dropping every valid
+    // recipient in it. "permissive" sends the valid ones and reports only
+    // the bad indices, so one bad row doesn't cost 99 good sends.
+    const { data, error } = await resend.batch.send(
+      chunk.map((to) => ({ from, to, subject, html })),
+      { batchValidation: "permissive" }
+    );
     if (error) {
       failed += chunk.length;
       errors.push(error.message);
       console.error(`sendBulkEmail batch failed (${chunk.length} recipients):`, error);
     } else {
-      sent += data?.data.length ?? chunk.length;
+      const chunkErrors = data?.errors ?? [];
+      sent += chunk.length - chunkErrors.length;
+      failed += chunkErrors.length;
+      for (const e of chunkErrors) errors.push(`${chunk[e.index]}: ${e.message}`);
     }
   }
 

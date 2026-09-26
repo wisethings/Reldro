@@ -18,7 +18,10 @@ export default async function ManageWorkflowsPage() {
 
   const [workflows, departments] = await Promise.all([
     prisma.workflow.findMany({
-      where: { organizationId: session.organizationId },
+      // A department admin only manages their own team's workflows - without
+      // this, the list (and the "Manage" link into each one) exposed every
+      // department's team-authored content, not just their own.
+      where: { organizationId: session.organizationId, ...(isCompanyAdmin ? {} : { department: employee?.department?.name ?? "__none__" }) },
       include: { steps: { select: { id: true } } },
       orderBy: { department: "asc" },
     }),

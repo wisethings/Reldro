@@ -86,6 +86,7 @@ export async function completeLesson(lessonId: string, knowledgeCheckCorrect?: b
  * would leak the "right answer" to the client before the employee decides.
  */
 export async function revealDecisionConsequence(simulationId: string, optionId: string): Promise<{ consequence: string } | null> {
+  await requireSession();
   const simulation = await prisma.simulation.findUnique({ where: { id: simulationId }, select: { decisionOptions: true } });
   if (!simulation) return null;
   const options = simulation.decisionOptions as unknown as DecisionOption[];
@@ -95,6 +96,7 @@ export async function revealDecisionConsequence(simulationId: string, optionId: 
 
 /** Never sends the correct index to the client - same reasoning as revealDecisionConsequence. */
 export async function checkKnowledgeAnswer(lessonId: string, selectedIndex: number): Promise<boolean> {
+  await requireSession();
   const lesson = await prisma.lesson.findUnique({ where: { id: lessonId }, select: { knowledgeCheckCorrectIndex: true } });
   return lesson?.knowledgeCheckCorrectIndex === selectedIndex;
 }

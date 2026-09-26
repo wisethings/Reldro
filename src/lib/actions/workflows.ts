@@ -108,6 +108,14 @@ export async function toggleWorkflowStep(workflowStepId: string, workflowId: str
   if (existing) {
     await prisma.workflowStepCompletion.delete({ where: { id: existing.id } });
   } else {
+    // The caller also passes a workflowId alongside workflowStepId, but
+    // never verified to actually be the step's own workflow - trust the
+    // step's real relation instead for anything that affects points or
+    // dedupe, so a mismatched pair can't misattribute an award to a
+    // workflow the employee never touched.
+    const step = await prisma.workflowStep.findUniqueOrThrow({ where: { id: workflowStepId }, include: { workflow: true } });
+    const actualWorkflowId = step.workflowId;
+
     const priorWorkflowIds = new Set(
       (
         await prisma.workflowStepCompletion.findMany({
@@ -116,12 +124,9 @@ export async function toggleWorkflowStep(workflowStepId: string, workflowId: str
         })
       ).map((s) => s.workflowStep.workflowId)
     );
-    const isNewWorkflowForEmployee = !priorWorkflowIds.has(workflowId);
+    const isNewWorkflowForEmployee = !priorWorkflowIds.has(actualWorkflowId);
 
-    const [step] = await Promise.all([
-      prisma.workflowStep.findUniqueOrThrow({ where: { id: workflowStepId }, include: { workflow: true } }),
-      prisma.workflowStepCompletion.create({ data: { employeeId: session.employeeId, workflowStepId } }),
-    ]);
+    await prisma.workflowStepCompletion.create({ data: { employeeId: session.employeeId, workflowStepId } });
     await prisma.aIUsageEvent.create({
       data: {
         organizationId: session.organizationId!,
@@ -140,7 +145,7 @@ export async function toggleWorkflowStep(workflowStepId: string, workflowId: str
         ruleKey: "workflow_first_adopted",
         reason: "Used your first AI workflow",
         entityType: "Workflow",
-        entityId: workflowId,
+        entityId: actualWorkflowId,
         dedupeKey: "workflow_first_adopted",
       });
       if (distinctWorkflowCount === 3) {
@@ -150,7 +155,7 @@ export async function toggleWorkflowStep(workflowStepId: string, workflowId: str
           ruleKey: "workflow_three_adopted",
           reason: "Used 3 different AI workflows",
           entityType: "Workflow",
-          entityId: workflowId,
+          entityId: actualWorkflowId,
           dedupeKey: "workflow_three_adopted",
         });
       }
