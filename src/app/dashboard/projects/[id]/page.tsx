@@ -37,7 +37,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   const isPlatformAdmin = session.role === "PLATFORM_ADMIN";
   if (!isOrgMember && !isAssignedSpecialist && !isPlatformAdmin) redirect("/dashboard/overview");
 
-  const canEdit = Boolean(isOrgMember || isAssignedSpecialist);
+  const canEdit = Boolean(isOrgMember || isAssignedSpecialist || isPlatformAdmin);
   const canManageTeam = isPlatformAdmin || (session.role === "COMPANY_ADMIN" && isOrgMember);
 
   const candidates = canManageTeam
@@ -65,7 +65,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
 
       <Card>
         <CardBody>
-          <ProjectStageStepper projectId={project.id} currentStage={project.stage} canAdvance={Boolean(isAssignedSpecialist || isOrgMember)} />
+          <ProjectStageStepper projectId={project.id} currentStage={project.stage} canAdvance={canEdit} />
         </CardBody>
       </Card>
 
