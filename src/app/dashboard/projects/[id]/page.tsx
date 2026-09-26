@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
@@ -72,7 +73,11 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat label="Budget" value={project.budget ? `$${project.budget.toLocaleString()}` : "Not set"} />
         <Stat label="Target completion" value={project.targetEndDate?.toLocaleDateString() ?? "Not set"} />
-        <Stat label="Linked workflow" value={project.workflow?.title ?? "None"} />
+        <Stat
+          label="Linked workflow"
+          value={project.workflow?.title ?? "None"}
+          href={project.workflow && isOrgMember ? `/dashboard/workflows/${project.workflow.id}` : undefined}
+        />
       </div>
 
       <Card>
@@ -143,11 +148,17 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, href }: { label: string; value: string; href?: string }) {
   return (
     <div className="rounded-xl border border-ink-200 bg-white p-4">
       <p className="text-xs text-ink-500">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-ink-900">{value}</p>
+      {href ? (
+        <Link href={href} className="mt-1 block text-sm font-semibold text-orchid-deep hover:text-oxblood hover:underline">
+          {value}
+        </Link>
+      ) : (
+        <p className="mt-1 text-sm font-semibold text-ink-900">{value}</p>
+      )}
     </div>
   );
 }
