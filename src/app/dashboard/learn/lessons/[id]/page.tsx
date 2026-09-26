@@ -27,7 +27,14 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
   if (!session.organizationId) redirect("/login");
   const { id } = await params;
 
-  const lesson = await prisma.lesson.findUnique({ where: { id }, include: { course: true } });
+  // A lesson's course is either the shared global catalog (organizationId
+  // null) or a team-authored one scoped to its own org - without this, any
+  // org could load another org's private lesson content just by knowing an
+  // id, including via a leaked recommendation link.
+  const lesson = await prisma.lesson.findFirst({
+    where: { id, course: { OR: [{ organizationId: null }, { organizationId: session.organizationId }] } },
+    include: { course: true },
+  });
   if (!lesson) notFound();
 
   const [completed, nextLesson] = await Promise.all([

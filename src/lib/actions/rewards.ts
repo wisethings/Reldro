@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireRole, requireSession } from "@/lib/auth/guards";
 import { logAudit } from "@/lib/audit";
-import { awardPoints, ensureDefaultPointsRules, getPointsBalance } from "@/lib/rewards";
-import type { RecognitionCategory, RewardCategory } from "@prisma/client";
+import { awardPoints, ensureDefaultPointsRules } from "@/lib/rewards";
+import { Prisma, type RecognitionCategory, type RewardCategory } from "@prisma/client";
 
 export async function updatePointsRule(ruleId: string, input: { points: number; enabled: boolean; monthlyCap: number | null }) {
   const session = await requireRole(["COMPANY_ADMIN"]);
@@ -69,24 +69,47 @@ export async function redeemReward(rewardItemId: string) {
     throw new Error("This reward is no longer available.");
   }
 
-  const balance = await getPointsBalance(session.employeeId);
-  if (balance < item.pointCost) throw new Error("Not enough points for this reward yet.");
+  const employeeId = session.employeeId;
+  const organizationId = session.organizationId;
 
-  await prisma.$transaction([
-    prisma.rewardRedemption.create({
-      data: { employeeId: session.employeeId, rewardItemId: item.id, pointCost: item.pointCost },
-    }),
-    prisma.pointsTransaction.create({
-      data: {
-        employeeId: session.employeeId,
-        organizationId: session.organizationId,
-        amount: -item.pointCost,
-        reason: `Redeemed: ${item.name}`,
-        entityType: "RewardItem",
-        entityId: item.id,
+  // The balance is a derived sum, not a locked column, so checking it before
+  // the transaction leaves a window where two concurrent redemptions (a
+  // double-click, or two requests racing) can both read the same
+  // pre-redemption balance and both pass the check before either commits,
+  // overdrawing the employee's points. Serializable isolation makes Postgres
+  // detect that write skew and abort the loser instead of letting both
+  // through.
+  try {
+    await prisma.$transaction(
+      async (tx) => {
+        const agg = await tx.pointsTransaction.aggregate({ where: { employeeId }, _sum: { amount: true } });
+        const balance = agg._sum.amount ?? 0;
+        if (balance < item.pointCost) throw new Error("Not enough points for this reward yet.");
+
+        await tx.rewardRedemption.create({
+          data: { employeeId, rewardItemId: item.id, pointCost: item.pointCost },
+        });
+        await tx.pointsTransaction.create({
+          data: {
+            employeeId,
+            organizationId,
+            amount: -item.pointCost,
+            reason: `Redeemed: ${item.name}`,
+            entityType: "RewardItem",
+            entityId: item.id,
+          },
+        });
       },
-    }),
-  ]);
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+    );
+  } catch (error) {
+    if (error instanceof Error && error.message === "Not enough points for this reward yet.") throw error;
+    // A serialization failure means this redemption lost a race with a
+    // concurrent one - the honest response is the same "not enough points"
+    // framing (their balance was in fact spent by the other request) rather
+    // than a generic crash.
+    throw new Error("Not enough points for this reward yet.");
+  }
 
   await logAudit({
     organizationId: session.organizationId,
@@ -110,13 +133,16 @@ const RECOGNITION_CATEGORIES: RecognitionCategory[] = [
 ];
 
 async function canManage(session: { employeeId?: string | null; role: string; organizationId?: string | null }, toEmployeeId: string) {
+  // The org check has to happen before the role branch, not inside it - a
+  // COMPANY_ADMIN of one org has no standing over an employee at another,
+  // but the old code returned true for any COMPANY_ADMIN without ever
+  // looking at which org toEmployeeId belonged to.
+  const them = await prisma.employee.findUnique({ where: { id: toEmployeeId } });
+  if (!them || them.organizationId !== session.organizationId) return false;
   if (session.role === "COMPANY_ADMIN") return true;
   if (!session.employeeId) return false;
-  const [me, them] = await Promise.all([
-    prisma.employee.findUnique({ where: { id: session.employeeId } }),
-    prisma.employee.findUnique({ where: { id: toEmployeeId } }),
-  ]);
-  return Boolean(me?.isDepartmentAdmin && them && me.departmentId === them.departmentId);
+  const me = await prisma.employee.findUnique({ where: { id: session.employeeId } });
+  return Boolean(me?.isDepartmentAdmin && me.departmentId === them.departmentId);
 }
 
 export async function recognizeEmployee(input: {

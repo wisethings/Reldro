@@ -38,7 +38,7 @@ export async function getEmployeeRecommendations(employeeId: string): Promise<Em
       (await prisma.lessonCompletion.findMany({ where: { employeeId }, select: { lessonId: true } })).map((l) => l.lessonId)
     );
     const courses = await prisma.course.findMany({
-      where: { department: employee.department.name },
+      where: { department: employee.department.name, OR: [{ organizationId: null }, { organizationId: employee.organizationId }] },
       include: { lessons: { orderBy: { order: "asc" } } },
     });
     const nextLesson = courses.flatMap((c) => c.lessons).find((l) => !completedLessonIds.has(l.id));

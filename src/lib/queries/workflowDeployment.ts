@@ -46,8 +46,12 @@ export async function getWorkflowDeploymentStatsForOrg(
       include: { _count: { select: { employees: true } } },
     }),
     prisma.employee.count({ where: { organizationId } }),
+    // Workflows are frequently the shared global catalog, so without the
+    // employee.organizationId filter this pulled every org's completions of
+    // a shared workflow, diluting/inflating this org's adoption and
+    // per-employee value-attribution numbers with other orgs' activity.
     prisma.workflowStepCompletion.findMany({
-      where: { workflowStep: { workflowId: { in: workflowIds } } },
+      where: { workflowStep: { workflowId: { in: workflowIds } }, employee: { organizationId } },
       select: { employeeId: true, completedAt: true, workflowStep: { select: { workflowId: true } } },
     }),
   ]);

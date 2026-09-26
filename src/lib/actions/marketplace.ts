@@ -87,11 +87,19 @@ export async function requestExpertHelp(params: {
   const session = await requireRole(["COMPANY_ADMIN"]);
   const org = await prisma.organization.findUnique({ where: { id: session.organizationId! } });
 
+  // Both ids come from the client, so re-verify ownership server-side rather
+  // than trusting them: Opportunity is always org-scoped, and a Workflow is
+  // either the shared global catalog (organizationId null) or a team-authored
+  // one scoped to its own org - either way, an id from another org must not
+  // resolve here, or its title/content would leak into this org's project
+  // and confirmation email.
   const opportunity = params.opportunityId
-    ? await prisma.opportunity.findUnique({ where: { id: params.opportunityId } })
+    ? await prisma.opportunity.findFirst({ where: { id: params.opportunityId, organizationId: session.organizationId! } })
     : null;
   const workflow = params.workflowId
-    ? await prisma.workflow.findUnique({ where: { id: params.workflowId } })
+    ? await prisma.workflow.findFirst({
+        where: { id: params.workflowId, OR: [{ organizationId: null }, { organizationId: session.organizationId! }] },
+      })
     : null;
 
   const title = opportunity?.title ?? workflow?.title ?? "AI implementation request";
@@ -112,8 +120,8 @@ export async function requestExpertHelp(params: {
   const project = await prisma.project.create({
     data: {
       organizationId: session.organizationId!,
-      opportunityId: params.opportunityId ?? undefined,
-      workflowId: params.workflowId ?? opportunity?.workflowId ?? undefined,
+      opportunityId: opportunity?.id,
+      workflowId: workflow?.id ?? opportunity?.workflowId ?? undefined,
       title,
       description: description || "New AI implementation request.",
       stage: "DISCOVERY",
@@ -164,13 +172,27 @@ export async function assignSpecialistToProject(projectId: string, specialistId:
   const session = await requireRole(["PLATFORM_ADMIN"]);
   const now = new Date();
 
-  const project = await prisma.project.update({
-    where: { id: projectId },
+  // updateMany's where clause is checked atomically by Postgres, so a double
+  // click or two admins racing to assign the same open request only ever
+  // lets the first one through - the loser matches zero rows and no-ops
+  // instead of both succeeding and doubling up the seeded milestones/tasks.
+  const { count } = await prisma.project.updateMany({
+    where: { id: projectId, status: "OPEN", specialistId: null },
     data: {
       specialistId,
       status: "PROPOSED",
       startDate: now,
       targetEndDate: new Date(now.getTime() + 1000 * 60 * 60 * 24 * 60),
+    },
+  });
+  if (count === 0) {
+    revalidatePath("/platform-admin/requests");
+    return;
+  }
+
+  const project = await prisma.project.update({
+    where: { id: projectId },
+    data: {
       milestones: {
         create: STAGE_ORDER.map((stage, i) => ({
           title: stage.replace("_", " "),

@@ -22,12 +22,24 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
   if (!session.organizationId) redirect("/login");
   const { id } = await params;
 
+  // A workflow is either the shared global catalog (organizationId null) or
+  // a team-authored one scoped to its own org (see workflows/page.tsx's own
+  // list query for the same rule) - without this filter, any org could load
+  // any other org's private workflow (and its courses) just by guessing an
+  // id, which is exactly what happened via the "linked workflow" link from a
+  // project page.
   const [workflow, orgWorkflow, courses, completions] = await Promise.all([
-    prisma.workflow.findUnique({ where: { id }, include: { steps: { orderBy: { order: "asc" } } } }),
+    prisma.workflow.findFirst({
+      where: { id, OR: [{ organizationId: null }, { organizationId: session.organizationId }] },
+      include: { steps: { orderBy: { order: "asc" } } },
+    }),
     prisma.organizationWorkflow.findUnique({
       where: { organizationId_workflowId: { organizationId: session.organizationId, workflowId: id } },
     }),
-    prisma.course.findMany({ where: { workflowId: id }, include: { lessons: true } }),
+    prisma.course.findMany({
+      where: { workflowId: id, OR: [{ organizationId: null }, { organizationId: session.organizationId }] },
+      include: { lessons: true },
+    }),
     session.employeeId
       ? prisma.workflowStepCompletion.findMany({ where: { employeeId: session.employeeId, workflowStep: { workflowId: id } } })
       : Promise.resolve([]),

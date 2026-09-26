@@ -186,7 +186,7 @@ async function answerLearningRecommendation(organizationId: string, question: st
   if (!dept) return answerGeneral(organizationId, question);
 
   const courses = await prisma.course.findMany({
-    where: { department: dept.name },
+    where: { department: dept.name, OR: [{ organizationId: null }, { organizationId }] },
     include: { lessons: true },
     take: 3,
   });

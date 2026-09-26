@@ -18,7 +18,7 @@ export type WorkflowReadiness = {
  */
 export async function getWorkflowReadiness(organizationId: string, workflowId: string, department: string): Promise<WorkflowReadiness> {
   const [courses, eligibleEmployees] = await Promise.all([
-    prisma.course.findMany({ where: { workflowId }, include: { lessons: true } }),
+    prisma.course.findMany({ where: { workflowId, OR: [{ organizationId: null }, { organizationId }] }, include: { lessons: true } }),
     getEligibleEmployeesForWorkflow(organizationId, department),
   ]);
 

@@ -24,7 +24,11 @@ export async function getWorkflowAdoptionBreakdown(organizationId: string) {
 export async function getTrainingCompletionRate(organizationId: string) {
   const [employeesByDept, coursesByDept, completions] = await Promise.all([
     prisma.employee.groupBy({ by: ["departmentId"], where: { organizationId }, _count: { _all: true } }),
-    prisma.course.findMany({ include: { lessons: true } }),
+    // A course is either the shared global catalog (organizationId null) or
+    // a team-authored one scoped to its own org - without this filter every
+    // org's private course lessons were counted into every other org's
+    // "possible" denominator, permanently deflating their completion rate.
+    prisma.course.findMany({ where: { OR: [{ organizationId: null }, { organizationId }] }, include: { lessons: true } }),
     prisma.lessonCompletion.count({ where: { employee: { organizationId } } }),
   ]);
 
