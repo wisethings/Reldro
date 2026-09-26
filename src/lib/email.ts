@@ -194,6 +194,25 @@ export function productUpdateEmailHtml({ subject, bodyHtml }: { subject: string;
   `;
 }
 
+export function projectMemberAddedEmailHtml({
+  name,
+  projectTitle,
+  projectUrl,
+}: {
+  name: string;
+  projectTitle: string;
+  projectUrl: string;
+}) {
+  return `
+    <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; color: #2A0A0C;">
+      <h2 style="margin-bottom: 4px;">You've been added to a project</h2>
+      <p>Hi ${name},</p>
+      <p>You've been added to <strong>${projectTitle}</strong>, an expert-help engagement in Reldro. You can see the plan, tasks, and message the specialist directly from there.</p>
+      <a href="${projectUrl}" style="display: inline-block; background: #2A0A0C; color: #EFEBE0; padding: 10px 20px; border-radius: 999px; text-decoration: none; font-weight: 500;">Open the project</a>
+    </div>
+  `;
+}
+
 export function inviteEmailHtml({ name, orgName, loginUrl, tempPassword }: { name: string; orgName: string; loginUrl: string; tempPassword: string }) {
   return `
     <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; color: #2A0A0C;">

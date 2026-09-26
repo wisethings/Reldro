@@ -253,6 +253,7 @@ model Employee {
   pointsTransactions    PointsTransaction[]
   rewardRedemptions     RewardRedemption[]
   recognitionsReceived  Recognition[]
+  projectMemberships    ProjectMember[]
 
   @@index([organizationId])
   @@index([departmentId])
@@ -697,9 +698,24 @@ model Project {
   messages     Message[]
   reviews      Review[]
   transactions MarketplaceTransaction[]
+  members      ProjectMember[]
 
   @@index([organizationId])
   @@index([specialistId])
+}
+
+model ProjectMember {
+  id            String   @id @default(cuid())
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  employeeId    String
+  employee      Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  roleOnProject String   @default("Contributor")
+  addedAt       DateTime @default(now())
+
+  @@unique([projectId, employeeId])
+  @@index([projectId])
+  @@index([employeeId])
 }
 
 model ProjectTask {

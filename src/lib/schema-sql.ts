@@ -1174,4 +1174,17 @@ ALTER TABLE "WorkflowStep" ADD COLUMN IF NOT EXISTS "videoUrl" TEXT;
 -- Patch: department pain points captured during onboarding (idempotent, same rules).
 ALTER TABLE "Department" ADD COLUMN IF NOT EXISTS "painPoints" TEXT[] NOT NULL DEFAULT '{}';
 
+-- Patch: project team members, so a company admin can loop internal colleagues into an expert-help engagement alongside the assigned specialist (idempotent, same rules).
+CREATE TABLE IF NOT EXISTS "ProjectMember" ("id" TEXT NOT NULL, "projectId" TEXT NOT NULL, "employeeId" TEXT NOT NULL, "roleOnProject" TEXT NOT NULL DEFAULT 'Contributor', "addedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT "ProjectMember_pkey" PRIMARY KEY ("id"));
+
+CREATE UNIQUE INDEX IF NOT EXISTS "ProjectMember_projectId_employeeId_key" ON "ProjectMember"("projectId", "employeeId");
+
+CREATE INDEX IF NOT EXISTS "ProjectMember_projectId_idx" ON "ProjectMember"("projectId");
+
+CREATE INDEX IF NOT EXISTS "ProjectMember_employeeId_idx" ON "ProjectMember"("employeeId");
+
+DO $$ BEGIN ALTER TABLE "ProjectMember" ADD CONSTRAINT "ProjectMember_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "ProjectMember" ADD CONSTRAINT "ProjectMember_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
 `;

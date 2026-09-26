@@ -1,12 +1,46 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { requireRole, requireSession } from "@/lib/auth/guards";
 import { logAudit } from "@/lib/audit";
-import { sendEmail, expertHelpRequestEmailHtml } from "@/lib/email";
+import { sendEmail, expertHelpRequestEmailHtml, projectMemberAddedEmailHtml } from "@/lib/email";
+import type { ProjectStage } from "@prisma/client";
 
 const STAGE_ORDER = ["DISCOVERY", "WORKFLOW_DESIGN", "IMPLEMENTATION", "TRAINING", "LAUNCH", "MEASUREMENT", "OPTIMIZATION"] as const;
+
+/**
+ * Every project action below touches one specific project, so this is the
+ * one place that decides who's allowed near it: the org it belongs to, the
+ * specialist assigned to it, or a platform admin. Without this, any signed-in
+ * user could message, retask, or advance the stage of any project in the
+ * system just by knowing its id.
+ */
+async function requireProjectAccess(projectId: string) {
+  const session = await requireSession();
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { organizationId: true, specialistId: true },
+  });
+  if (!project) redirect("/dashboard/overview");
+
+  const isOrgMember = session.organizationId === project.organizationId;
+  const isAssignedSpecialist = Boolean(session.specialistId) && session.specialistId === project.specialistId;
+  const isPlatformAdmin = session.role === "PLATFORM_ADMIN";
+  if (!isOrgMember && !isAssignedSpecialist && !isPlatformAdmin) redirect("/dashboard/overview");
+
+  return { session, project, isOrgMember, isPlatformAdmin };
+}
+
+/** Adding/removing project team members is a company-admin action, not something any project participant can do. */
+async function requireProjectAdmin(projectId: string) {
+  const { session, project, isPlatformAdmin } = await requireProjectAccess(projectId);
+  const isOrgAdmin = session.role === "COMPANY_ADMIN" && session.organizationId === project.organizationId;
+  if (!isOrgAdmin && !isPlatformAdmin) redirect("/dashboard/overview");
+  return { session, project };
+}
 
 /**
  * Company-facing "get expert help" request. No specialist is chosen by the
@@ -169,7 +203,7 @@ export async function assignSpecialistToProject(projectId: string, specialistId:
 }
 
 export async function postProjectMessage(projectId: string, body: string) {
-  const session = await requireSession();
+  const { session } = await requireProjectAccess(projectId);
   if (!body.trim()) return;
 
   await prisma.message.create({
@@ -180,19 +214,111 @@ export async function postProjectMessage(projectId: string, body: string) {
 }
 
 export async function updateTaskStatus(taskId: string, status: "TODO" | "IN_PROGRESS" | "BLOCKED" | "DONE") {
-  await requireSession();
+  const existing = await prisma.projectTask.findUniqueOrThrow({ where: { id: taskId }, select: { projectId: true } });
+  await requireProjectAccess(existing.projectId);
   const task = await prisma.projectTask.update({ where: { id: taskId }, data: { status } });
   revalidatePath(`/dashboard/projects/${task.projectId}`);
 }
 
 export async function advanceProjectStage(projectId: string, stage: (typeof STAGE_ORDER)[number]) {
-  await requireSession();
+  await requireProjectAccess(projectId);
   await prisma.project.update({ where: { id: projectId }, data: { stage } });
   revalidatePath(`/dashboard/projects/${projectId}`);
 }
 
 export async function toggleMilestone(milestoneId: string, completed: boolean) {
-  await requireSession();
+  const existing = await prisma.projectMilestone.findUniqueOrThrow({ where: { id: milestoneId }, select: { projectId: true } });
+  await requireProjectAccess(existing.projectId);
   const milestone = await prisma.projectMilestone.update({ where: { id: milestoneId }, data: { completed } });
   revalidatePath(`/dashboard/projects/${milestone.projectId}`);
+}
+
+export async function addProjectTask(projectId: string, title: string) {
+  await requireProjectAccess(projectId);
+  const trimmed = title.trim();
+  if (!trimmed) return;
+
+  const count = await prisma.projectTask.count({ where: { projectId } });
+  await prisma.projectTask.create({ data: { projectId, title: trimmed, status: "TODO", order: count + 1 } });
+  revalidatePath(`/dashboard/projects/${projectId}`);
+}
+
+export async function addProjectMilestone(projectId: string, title: string, dueDate: string, stage: ProjectStage) {
+  await requireProjectAccess(projectId);
+  const trimmed = title.trim();
+  if (!trimmed || !dueDate) return;
+
+  await prisma.projectMilestone.create({
+    data: { projectId, title: trimmed, dueDate: new Date(dueDate), stage, completed: false },
+  });
+  revalidatePath(`/dashboard/projects/${projectId}`);
+}
+
+export async function addProjectDeliverable(projectId: string, name: string, url: string) {
+  await requireProjectAccess(projectId);
+  const trimmedName = name.trim();
+  const trimmedUrl = url.trim();
+  if (!trimmedName || !trimmedUrl) return;
+
+  await prisma.projectDeliverable.create({ data: { projectId, name: trimmedName, url: trimmedUrl } });
+  revalidatePath(`/dashboard/projects/${projectId}`);
+}
+
+/**
+ * Loops an internal colleague into an expert-help engagement alongside the
+ * assigned specialist. Company-admin only, and only for employees at the
+ * project's own organization.
+ */
+export async function addProjectMember(projectId: string, employeeId: string) {
+  const { session, project } = await requireProjectAdmin(projectId);
+
+  const employee = await prisma.employee.findUnique({ where: { id: employeeId }, include: { user: true } });
+  if (!employee || employee.organizationId !== project.organizationId) return;
+
+  const existing = await prisma.projectMember.findUnique({
+    where: { projectId_employeeId: { projectId, employeeId } },
+  });
+  if (existing) return;
+
+  await prisma.projectMember.create({ data: { projectId, employeeId } });
+
+  await logAudit({
+    organizationId: project.organizationId,
+    userId: session.sub,
+    action: "project.member_added",
+    entityType: "Project",
+    entityId: projectId,
+    metadata: { employeeId },
+  });
+
+  const fullProject = await prisma.project.findUnique({ where: { id: projectId }, select: { title: true } });
+  const host = (await headers()).get("host");
+  await sendEmail({
+    to: employee.user.email,
+    subject: `You've been added to a project: ${fullProject?.title ?? "Reldro project"}`,
+    html: projectMemberAddedEmailHtml({
+      name: employee.user.name,
+      projectTitle: fullProject?.title ?? "a Reldro project",
+      projectUrl: `https://${host}/dashboard/projects/${projectId}`,
+    }),
+  });
+
+  revalidatePath(`/dashboard/projects/${projectId}`);
+}
+
+export async function removeProjectMember(projectId: string, employeeId: string) {
+  const { session, project } = await requireProjectAdmin(projectId);
+
+  await prisma.projectMember.deleteMany({ where: { projectId, employeeId } });
+
+  await logAudit({
+    organizationId: project.organizationId,
+    userId: session.sub,
+    action: "project.member_removed",
+    entityType: "Project",
+    entityId: projectId,
+    metadata: { employeeId },
+  });
+
+  revalidatePath(`/dashboard/projects/${projectId}`);
 }
