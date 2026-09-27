@@ -6,6 +6,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { ProgressBar } from "@/components/ui/Progress";
 import { InviteEmployeeForm } from "@/components/team/InviteEmployeeForm";
+import { DepartmentAdminToggle } from "@/components/team/DepartmentAdminToggle";
 import { getEmployeeActivity } from "@/lib/queries/team";
 import { getTeamGaps, getEmployeesNeedingAttention } from "@/lib/queries/teamInsights";
 import { getTeamRewardsSummary, getPointsBalances } from "@/lib/rewards";
@@ -158,6 +159,7 @@ export default async function TeamPage() {
                   {e.aiFluencyScore !== null && <Badge tone="brand">Fluency {e.aiFluencyScore}</Badge>}
                   {(pointsBalances.get(e.id) ?? 0) > 0 && <Badge tone="green">{(pointsBalances.get(e.id) ?? 0).toLocaleString()} pts</Badge>}
                   {e.isDepartmentAdmin && <Badge>Dept admin</Badge>}
+                  {e.departmentId && <DepartmentAdminToggle employeeId={e.id} isDepartmentAdmin={e.isDepartmentAdmin} />}
                 </div>
               </div>
             );

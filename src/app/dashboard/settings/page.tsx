@@ -3,6 +3,9 @@ import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { OrgProfileForm } from "@/components/settings/OrgProfileForm";
+import { AddDepartmentForm } from "@/components/settings/AddDepartmentForm";
+import { InviteAdminForm } from "@/components/settings/InviteAdminForm";
+import { DepartmentIsolationToggle } from "@/components/settings/DepartmentIsolationToggle";
 import { describeAuditAction } from "@/lib/audit";
 import { ensureDefaultPointsRules, ensureDefaultRewardCatalog, getRewardsDashboardStats } from "@/lib/rewards";
 import { PointsRulesTable } from "@/components/settings/PointsRulesTable";
@@ -15,9 +18,8 @@ export default async function SettingsPage() {
 
   await Promise.all([ensureDefaultPointsRules(session.organizationId), ensureDefaultRewardCatalog(session.organizationId)]);
 
-  const [org, subscription, auditLogs, pointsRules, rewardItems, rewardsStats] = await Promise.all([
+  const [org, auditLogs, pointsRules, rewardItems, rewardsStats, departments, admins] = await Promise.all([
     prisma.organization.findUnique({ where: { id: session.organizationId } }),
-    prisma.subscription.findUnique({ where: { organizationId: session.organizationId } }),
     prisma.auditLog.findMany({
       where: { organizationId: session.organizationId },
       include: { user: true },
@@ -27,6 +29,8 @@ export default async function SettingsPage() {
     prisma.pointsRule.findMany({ where: { organizationId: session.organizationId }, orderBy: { key: "asc" } }),
     prisma.rewardItem.findMany({ where: { organizationId: session.organizationId }, orderBy: { pointCost: "asc" } }),
     getRewardsDashboardStats(session.organizationId),
+    prisma.department.findMany({ where: { organizationId: session.organizationId }, orderBy: { name: "asc" } }),
+    prisma.user.findMany({ where: { organizationId: session.organizationId, role: "COMPANY_ADMIN" }, orderBy: { createdAt: "asc" } }),
   ]);
   if (!org) redirect("/login");
 
@@ -45,14 +49,7 @@ export default async function SettingsPage() {
       </Card>
 
       <Card>
-        <CardHeader
-          title="Billing"
-          subtitle={
-            subscription
-              ? `Current plan: ${subscription.tier.charAt(0) + subscription.tier.slice(1).toLowerCase()}`
-              : "No active subscription"
-          }
-        />
+        <CardHeader title="Billing" />
         <CardBody className="space-y-2">
           <p className="text-sm text-ink-700">
             Reldro plans are tailored to your organization. Your account manager handles plan changes, seat count, and
@@ -108,9 +105,49 @@ export default async function SettingsPage() {
       </Card>
 
       <Card>
+        <CardHeader title="Departments" subtitle="Add a department so you can invite employees into it and scope workflows and lessons to it." />
+        <CardBody className="space-y-4">
+          <div className="flex flex-wrap gap-1.5">
+            {departments.map((d) => (
+              <span key={d.id} className="rounded-full bg-ink-100 px-3 py-1 text-xs font-medium text-ink-700">
+                {d.name}
+              </span>
+            ))}
+            {departments.length === 0 && <p className="text-sm text-ink-500">No departments yet.</p>}
+          </div>
+          <AddDepartmentForm />
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader title="Department visibility" subtitle="Control whether one department's employees can see another department's workflows and lessons." />
+        <CardBody>
+          <DepartmentIsolationToggle enabled={org.departmentIsolationEnabled} />
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader title="Admins" subtitle="Company admins have full organization access. Add more so no single account is a bottleneck." />
+        <CardBody className="space-y-4">
+          <div className="divide-y divide-ink-200">
+            {admins.map((a) => (
+              <div key={a.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
+                <div className="min-w-0">
+                  <p className="truncate font-medium text-ink-900">{a.name}</p>
+                  <p className="text-xs text-ink-500">{a.email}</p>
+                </div>
+                {a.id === session.sub && <span className="shrink-0 text-xs text-ink-400">You</span>}
+              </div>
+            ))}
+          </div>
+          <InviteAdminForm />
+        </CardBody>
+      </Card>
+
+      <Card>
         <CardHeader title="Permissions" />
         <CardBody className="space-y-2 text-sm text-ink-700">
-          <p>Company admins have full organization access. Employees see only their own profile, learning, and assigned workflows.</p>
+          <p>Company admins have full organization access. Department leads manage and can view their own department's team-authored workflows and lessons - a department can have more than one lead. Employees see only their own profile, learning, and assigned workflows.</p>
           <p>Each organization's data is fully isolated. No user can access another organization's records.</p>
         </CardBody>
       </Card>

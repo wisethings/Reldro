@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { ProgressBar } from "@/components/ui/Progress";
 import { ensureSimulationCatalog } from "@/lib/queries/simulations";
 import { ensureCourseCatalog } from "@/lib/queries/courses";
+import { departmentVisibilityFilter } from "@/lib/departmentVisibility";
 
 const DIFFICULTY_TONE = { LOW: "green", MEDIUM: "amber", HIGH: "red" } as const;
 
@@ -16,14 +17,21 @@ export default async function LearnPage() {
 
   await Promise.all([ensureSimulationCatalog(), ensureCourseCatalog()]);
 
-  const employee = session.employeeId
-    ? await prisma.employee.findUnique({ where: { id: session.employeeId }, include: { department: true } })
-    : null;
+  const [employee, org] = await Promise.all([
+    session.employeeId
+      ? prisma.employee.findUnique({ where: { id: session.employeeId }, include: { department: true } })
+      : Promise.resolve(null),
+    prisma.organization.findUnique({ where: { id: session.organizationId }, select: { departmentIsolationEnabled: true } }),
+  ]);
   const canAuthorLessons = session.role === "COMPANY_ADMIN" || Boolean(employee?.isDepartmentAdmin);
+  const visibleDepartment = departmentVisibilityFilter(session, Boolean(org?.departmentIsolationEnabled), employee);
 
   const [courses, simulations, completions, attempts] = await Promise.all([
     prisma.course.findMany({
-      where: { OR: [{ organizationId: null }, { organizationId: session.organizationId }] },
+      where: {
+        OR: [{ organizationId: null }, { organizationId: session.organizationId }],
+        department: visibleDepartment,
+      },
       include: { lessons: true },
       orderBy: { department: "asc" },
     }),

@@ -5,13 +5,21 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardBody } from "@/components/ui/Card";
 import { CopyPromptButton } from "@/components/workflows/CopyPromptButton";
 import { StepMedia } from "@/components/workflows/StepMedia";
+import { departmentVisibilityFilter } from "@/lib/departmentVisibility";
 
 export default async function TemplatesPage() {
   const session = await requireSession();
   if (!session.organizationId) redirect("/login");
 
-  const departments = await prisma.department.findMany({ where: { organizationId: session.organizationId } });
-  const departmentNames = departments.map((d) => d.name);
+  const [departments, employee, org] = await Promise.all([
+    prisma.department.findMany({ where: { organizationId: session.organizationId } }),
+    session.employeeId
+      ? prisma.employee.findUnique({ where: { id: session.employeeId }, include: { department: true } })
+      : Promise.resolve(null),
+    prisma.organization.findUnique({ where: { id: session.organizationId }, select: { departmentIsolationEnabled: true } }),
+  ]);
+  const visibleDepartment = departmentVisibilityFilter(session, Boolean(org?.departmentIsolationEnabled), employee);
+  const departmentNames = visibleDepartment ? [visibleDepartment] : departments.map((d) => d.name);
 
   // Templates are just prompts pulled from workflow steps - both the seeded
   // catalog and any team-authored workflows. Department names aren't

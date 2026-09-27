@@ -6,6 +6,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { getWorkflowDeploymentStatsForOrg } from "@/lib/queries/workflowDeployment";
 import { WORKFLOW_STATUS_LABEL, WORKFLOW_STATUS_TONE } from "@/lib/workflowLifecycle";
+import { departmentVisibilityFilter } from "@/lib/departmentVisibility";
 
 const DIFFICULTY_TONE = { LOW: "green", MEDIUM: "amber", HIGH: "red" } as const;
 
@@ -18,19 +19,21 @@ export default async function WorkflowsPage({
   if (!session.organizationId) redirect("/login");
   const params = await searchParams;
 
-  const [employee, workflows] = await Promise.all([
+  const [employee, org] = await Promise.all([
     session.employeeId
       ? prisma.employee.findUnique({ where: { id: session.employeeId }, include: { department: true } })
       : Promise.resolve(null),
-    prisma.workflow.findMany({
-      where: {
-        OR: [{ organizationId: null }, { organizationId: session.organizationId }],
-        department: params.department || undefined,
-      },
-      orderBy: { title: "asc" },
-      include: { steps: { select: { id: true } } },
-    }),
+    prisma.organization.findUnique({ where: { id: session.organizationId }, select: { departmentIsolationEnabled: true } }),
   ]);
+  const visibleDepartment = departmentVisibilityFilter(session, Boolean(org?.departmentIsolationEnabled), employee);
+  const workflows = await prisma.workflow.findMany({
+    where: {
+      OR: [{ organizationId: null }, { organizationId: session.organizationId }],
+      department: visibleDepartment ?? (params.department || undefined),
+    },
+    orderBy: { title: "asc" },
+    include: { steps: { select: { id: true } } },
+  });
   const canAuthorWorkflows = session.role === "COMPANY_ADMIN" || Boolean(employee?.isDepartmentAdmin);
   const statsByWorkflow = await getWorkflowDeploymentStatsForOrg(session.organizationId, workflows);
 

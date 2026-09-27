@@ -23,7 +23,12 @@ export type AuditAction =
   | "certification.earned"
   | "product_update.sent"
   | "project.member_added"
-  | "project.member_removed";
+  | "project.member_removed"
+  | "admin.invited"
+  | "employee.made_department_lead"
+  | "employee.removed_department_lead"
+  | "settings.department_isolation_enabled"
+  | "settings.department_isolation_disabled";
 
 /**
  * Records a sensitive action to the audit trail. Best-effort: a failure here
@@ -77,6 +82,11 @@ const ACTION_LABELS: Record<AuditAction, string> = {
   "product_update.sent": "Sent a product update email",
   "project.member_added": "Added a team member to a project",
   "project.member_removed": "Removed a team member from a project",
+  "admin.invited": "Invited a company admin",
+  "employee.made_department_lead": "Made an employee a department lead",
+  "employee.removed_department_lead": "Removed an employee as department lead",
+  "settings.department_isolation_enabled": "Turned on department isolation",
+  "settings.department_isolation_disabled": "Turned off department isolation",
 };
 
 export function describeAuditAction(action: string): string {

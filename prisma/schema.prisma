@@ -152,6 +152,11 @@ model Organization {
   logoUrl        String?
   onboardingStep Int      @default(0)
   onboardingDone Boolean  @default(false)
+  // When true, an employee only sees their own department's workflows and
+  // lessons (both the shared global catalog and other departments' team-
+  // authored content are filtered out for them) - a company admin always
+  // sees everything regardless of this setting.
+  departmentIsolationEnabled Boolean @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

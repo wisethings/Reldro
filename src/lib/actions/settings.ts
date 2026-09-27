@@ -1,8 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/guards";
+import { hashPassword } from "@/lib/auth/password";
+import { sendEmail, inviteEmailHtml } from "@/lib/email";
+import { logAudit } from "@/lib/audit";
 
 export type FormState = { success?: boolean; error?: string } | undefined;
 
@@ -23,4 +27,92 @@ export async function updateOrgProfile(_prevState: FormState, formData: FormData
 
   revalidatePath("/dashboard/settings");
   return { success: true };
+}
+
+export async function setDepartmentIsolation(enabled: boolean) {
+  const session = await requireRole(["COMPANY_ADMIN"]);
+  await prisma.organization.update({
+    where: { id: session.organizationId! },
+    data: { departmentIsolationEnabled: enabled },
+  });
+  await logAudit({
+    organizationId: session.organizationId,
+    userId: session.sub,
+    action: enabled ? "settings.department_isolation_enabled" : "settings.department_isolation_disabled",
+    entityType: "Organization",
+    entityId: session.organizationId,
+  });
+  revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard/workflows");
+  revalidatePath("/dashboard/learn");
+  revalidatePath("/dashboard/templates");
+}
+
+export type CreateDepartmentState = { error?: string; success?: boolean } | undefined;
+
+export async function createDepartment(_prevState: CreateDepartmentState, formData: FormData): Promise<CreateDepartmentState> {
+  const session = await requireRole(["COMPANY_ADMIN"]);
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) return { error: "Department name is required." };
+
+  const existing = await prisma.department.findUnique({
+    where: { organizationId_name: { organizationId: session.organizationId!, name } },
+  });
+  if (existing) return { error: "A department with that name already exists." };
+
+  await prisma.department.create({ data: { organizationId: session.organizationId!, name } });
+
+  revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard/team");
+  return { success: true };
+}
+
+export type InviteAdminState = { error?: string; tempPassword?: string; emailSent?: boolean } | undefined;
+
+function generateTempPassword() {
+  return `Reldro-${Math.random().toString(36).slice(2, 8)}!`;
+}
+
+/**
+ * Invites another company admin for the same organization - a plain User
+ * with role COMPANY_ADMIN, no Employee record, mirroring how the org's
+ * first admin is provisioned. Lets an org run with more than one admin
+ * instead of a single account being a bottleneck (or single point of loss).
+ */
+export async function inviteCompanyAdmin(_prevState: InviteAdminState, formData: FormData): Promise<InviteAdminState> {
+  const session = await requireRole(["COMPANY_ADMIN"]);
+  const name = String(formData.get("name") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  if (!name || !email) return { error: "Name and email are required." };
+  if (!email.includes("@")) return { error: "Enter a valid email address." };
+
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) return { error: "An account with that email already exists." };
+
+  const tempPassword = generateTempPassword();
+  const passwordHash = await hashPassword(tempPassword);
+  const org = await prisma.organization.findUnique({ where: { id: session.organizationId! } });
+
+  const newUser = await prisma.user.create({
+    data: { name, email, passwordHash, role: "COMPANY_ADMIN", organizationId: session.organizationId },
+  });
+
+  await logAudit({
+    organizationId: session.organizationId,
+    userId: session.sub,
+    action: "admin.invited",
+    entityType: "User",
+    entityId: newUser.id,
+    metadata: { name, email },
+  });
+
+  const host = (await headers()).get("host");
+  const { sent } = await sendEmail({
+    to: email,
+    subject: `You're invited to administer ${org?.name ?? "your organization"} on Reldro`,
+    html: inviteEmailHtml({ name, orgName: org?.name ?? "Reldro", loginUrl: `https://${host}/login`, tempPassword }),
+  });
+
+  revalidatePath("/dashboard/settings");
+  return sent ? { emailSent: true } : { tempPassword };
 }

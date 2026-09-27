@@ -1201,4 +1201,7 @@ CREATE TABLE IF NOT EXISTS "RateLimitHit" ("id" TEXT NOT NULL, "key" TEXT NOT NU
 
 CREATE INDEX IF NOT EXISTS "RateLimitHit_key_createdAt_idx" ON "RateLimitHit"("key", "createdAt");
 
+-- Patch: per-org department isolation toggle for workflow/learning visibility (idempotent, same rules).
+ALTER TABLE "Organization" ADD COLUMN IF NOT EXISTS "departmentIsolationEnabled" BOOLEAN NOT NULL DEFAULT false;
+
 `;

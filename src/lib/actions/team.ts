@@ -77,3 +77,28 @@ export async function inviteEmployee(_prevState: FormState, formData: FormData):
   revalidatePath("/dashboard/team");
   return sent ? { emailSent: true } : { tempPassword };
 }
+
+/**
+ * Toggles department-lead status for an employee. Nothing stops more than
+ * one employee in the same department from holding this at once - the ask
+ * was for multiple team leads per department, and isDepartmentAdmin was
+ * already a per-employee boolean with no such constraint, so this just adds
+ * the missing control surface rather than a new capability.
+ */
+export async function setDepartmentAdmin(employeeId: string, isDepartmentAdmin: boolean) {
+  const session = await requireRole(["COMPANY_ADMIN"]);
+  const employee = await prisma.employee.findUnique({ where: { id: employeeId } });
+  if (!employee || employee.organizationId !== session.organizationId) throw new Error("Employee not found.");
+
+  await prisma.employee.update({ where: { id: employeeId }, data: { isDepartmentAdmin } });
+
+  await logAudit({
+    organizationId: session.organizationId,
+    userId: session.sub,
+    action: isDepartmentAdmin ? "employee.made_department_lead" : "employee.removed_department_lead",
+    entityType: "Employee",
+    entityId: employeeId,
+  });
+
+  revalidatePath("/dashboard/team");
+}
