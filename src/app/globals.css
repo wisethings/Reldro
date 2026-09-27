@@ -77,4 +77,36 @@ select {
     background-color: #dcd5c6;
     border-radius: 9999px;
   }
+
+  /* Torn-paper edges for the marketing site's collage-style photography -
+     a jagged clip-path stands in for a physical torn edge without needing
+     a texture asset. One side per utility; combine with rotate-* for the
+     "placed on a page, not rendered in a card" feel. */
+  .torn-right {
+    clip-path: polygon(
+      0% 0%, 95% 0%, 100% 3%, 93% 6%, 100% 10%, 94% 14%, 100% 18%,
+      92% 22%, 100% 26%, 95% 30%, 100% 34%, 93% 38%, 100% 42%,
+      94% 46%, 100% 50%, 92% 54%, 100% 58%, 95% 62%, 100% 66%,
+      93% 70%, 100% 74%, 94% 78%, 100% 82%, 92% 86%, 100% 90%,
+      95% 94%, 100% 97%, 93% 100%, 0% 100%
+    );
+  }
+  .torn-bottom {
+    clip-path: polygon(
+      0% 0%, 100% 0%, 100% 95%, 97% 100%, 93% 94%, 89% 100%,
+      85% 95%, 81% 100%, 77% 94%, 73% 100%, 69% 95%, 65% 100%,
+      61% 94%, 57% 100%, 53% 95%, 49% 100%, 45% 94%, 41% 100%,
+      37% 95%, 33% 100%, 29% 94%, 25% 100%, 21% 95%, 17% 100%,
+      13% 94%, 9% 100%, 5% 95%, 0% 100%
+    );
+  }
+  .torn-left {
+    clip-path: polygon(
+      5% 0%, 100% 0%, 100% 100%, 5% 100%, 0% 97%, 7% 94%,
+      0% 90%, 8% 86%, 0% 82%, 6% 78%, 0% 74%, 7% 70%,
+      0% 66%, 5% 62%, 0% 58%, 8% 54%, 0% 50%, 6% 46%,
+      0% 42%, 7% 38%, 0% 34%, 5% 30%, 0% 26%, 8% 22%,
+      0% 18%, 6% 14%, 0% 10%, 7% 6%, 0% 3%
+    );
+  }
 }
