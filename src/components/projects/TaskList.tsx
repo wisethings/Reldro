@@ -15,7 +15,7 @@ const NEXT_STATUS: Record<Task["status"], Task["status"]> = {
 const STATUS_STYLE: Record<Task["status"], string> = {
   TODO: "border-ink-300",
   IN_PROGRESS: "border-olive bg-olive-soft",
-  DONE: "border-sage-deep bg-sage0",
+  DONE: "border-sage-deep bg-sage-deep",
   BLOCKED: "border-danger bg-coral-soft",
 };
 

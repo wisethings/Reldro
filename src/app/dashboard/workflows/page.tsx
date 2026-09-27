@@ -18,19 +18,20 @@ export default async function WorkflowsPage({
   if (!session.organizationId) redirect("/login");
   const params = await searchParams;
 
-  const employee = session.employeeId
-    ? await prisma.employee.findUnique({ where: { id: session.employeeId }, include: { department: true } })
-    : null;
+  const [employee, workflows] = await Promise.all([
+    session.employeeId
+      ? prisma.employee.findUnique({ where: { id: session.employeeId }, include: { department: true } })
+      : Promise.resolve(null),
+    prisma.workflow.findMany({
+      where: {
+        OR: [{ organizationId: null }, { organizationId: session.organizationId }],
+        department: params.department || undefined,
+      },
+      orderBy: { title: "asc" },
+      include: { steps: { select: { id: true } } },
+    }),
+  ]);
   const canAuthorWorkflows = session.role === "COMPANY_ADMIN" || Boolean(employee?.isDepartmentAdmin);
-
-  const workflows = await prisma.workflow.findMany({
-    where: {
-      OR: [{ organizationId: null }, { organizationId: session.organizationId }],
-      department: params.department || undefined,
-    },
-    orderBy: { title: "asc" },
-    include: { steps: { select: { id: true } } },
-  });
   const statsByWorkflow = await getWorkflowDeploymentStatsForOrg(session.organizationId, workflows);
 
   const departments = Array.from(new Set(workflows.map((w) => w.department)));

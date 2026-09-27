@@ -6,24 +6,24 @@ import { matchSpecialists } from "@/lib/matching";
 import { assignSpecialistToProject, assignSpecialistManually } from "@/lib/actions/marketplace";
 
 export default async function PlatformRequestsPage() {
-  const openRequests = await prisma.project.findMany({
-    where: { status: "OPEN", specialistId: null },
-    include: { organization: true, opportunity: { include: { department: true } }, workflow: true },
-    orderBy: { createdAt: "desc" },
-  });
-
-  const approvedSpecialists = await prisma.specialist.findMany({
-    where: { approved: true },
-    include: { user: true },
-    orderBy: { user: { name: "asc" } },
-  });
-
-  const assignedRequests = await prisma.project.findMany({
-    where: { status: { not: "OPEN" } },
-    include: { organization: true, specialist: { include: { user: true } } },
-    orderBy: { createdAt: "desc" },
-    take: 10,
-  });
+  const [openRequests, approvedSpecialists, assignedRequests] = await Promise.all([
+    prisma.project.findMany({
+      where: { status: "OPEN", specialistId: null },
+      include: { organization: true, opportunity: { include: { department: true } }, workflow: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.specialist.findMany({
+      where: { approved: true },
+      include: { user: true },
+      orderBy: { user: { name: "asc" } },
+    }),
+    prisma.project.findMany({
+      where: { status: { not: "OPEN" } },
+      include: { organization: true, specialist: { include: { user: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    }),
+  ]);
 
   return (
     <div className="space-y-6">

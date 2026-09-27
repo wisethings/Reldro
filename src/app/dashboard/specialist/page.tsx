@@ -10,12 +10,14 @@ export default async function SpecialistHomePage() {
   const session = await requireSession();
   if (!session.specialistId) redirect("/dashboard/overview");
 
-  const specialist = await prisma.specialist.findUnique({ where: { id: session.specialistId } });
-  const projects = await prisma.project.findMany({
-    where: { specialistId: session.specialistId },
-    include: { organization: true },
-    orderBy: { createdAt: "desc" },
-  });
+  const [specialist, projects] = await Promise.all([
+    prisma.specialist.findUnique({ where: { id: session.specialistId } }),
+    prisma.project.findMany({
+      where: { specialistId: session.specialistId },
+      include: { organization: true },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
 
   const active = projects.filter((p) => p.status === "ACTIVE");
   const proposed = projects.filter((p) => p.status === "PROPOSED");
