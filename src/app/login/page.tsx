@@ -11,7 +11,6 @@ export default function LoginPage() {
         </Link>
         <div className="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
           <h1 className="text-lg font-semibold text-ink-900">Log in</h1>
-          <p className="mt-1 text-sm text-ink-500">Welcome back to your AI adoption workspace.</p>
           <div className="mt-5">
             <LoginForm />
           </div>
