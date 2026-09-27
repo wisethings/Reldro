@@ -16,12 +16,6 @@ export default function LoginPage() {
           <div className="mt-5">
             <LoginForm />
           </div>
-          <p className="mt-4 text-center text-xs text-ink-500">
-            No account?{" "}
-            <Link href="/demo" className="font-medium text-orchid-deep hover:text-oxblood">
-              Request a demo
-            </Link>
-          </p>
         </div>
         <div className="mt-4">
           <DemoLoginPanel />
