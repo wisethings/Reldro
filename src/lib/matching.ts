@@ -1,4 +1,5 @@
 import "server-only";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export type MatchContext = {
@@ -8,18 +9,22 @@ export type MatchContext = {
   complexity?: "LOW" | "MEDIUM" | "HIGH";
 };
 
-/**
- * Ranks approved specialists against a workflow/opportunity context. This is
- * the same scoring the marketplace's "smart match" and opportunity detail
- * "recommended specialist" panel both call, so recommendations stay
- * consistent across the product.
- */
-export async function matchSpecialists(context: MatchContext, limit = 3) {
-  const specialists = await prisma.specialist.findMany({
-    where: { approved: true },
-    include: { tags: true, user: true },
-  });
+const SPECIALIST_WITH_TAGS_INCLUDE = { tags: true, user: true } satisfies Prisma.SpecialistInclude;
 
+export type SpecialistWithTags = Prisma.SpecialistGetPayload<{ include: typeof SPECIALIST_WITH_TAGS_INCLUDE }>;
+
+/** Approved specialists with the tags/user data matching needs - fetch once, rank many times against it. */
+export async function fetchApprovedSpecialistsForMatching(): Promise<SpecialistWithTags[]> {
+  return prisma.specialist.findMany({ where: { approved: true }, include: SPECIALIST_WITH_TAGS_INCLUDE });
+}
+
+/**
+ * Ranks a set of already-fetched specialists against a workflow/opportunity
+ * context. Pure and query-free, so a caller ranking many requests against
+ * the same specialist pool (e.g. the platform admin matching queue) fetches
+ * that pool once instead of re-querying it per request.
+ */
+export function rankSpecialists(specialists: SpecialistWithTags[], context: MatchContext, limit = 3) {
   const scored = specialists.map((specialist) => {
     let score = 0;
     const reasons: string[] = [];
@@ -67,4 +72,10 @@ export async function matchSpecialists(context: MatchContext, limit = 3) {
     .slice(0, limit);
 }
 
-export type SpecialistMatch = Awaited<ReturnType<typeof matchSpecialists>>[number];
+export type SpecialistMatch = ReturnType<typeof rankSpecialists>[number];
+
+/** Convenience wrapper for a single ad-hoc match (fetches, then ranks). Prefer rankSpecialists + fetchApprovedSpecialistsForMatching when ranking more than one context against the same pool. */
+export async function matchSpecialists(context: MatchContext, limit = 3) {
+  const specialists = await fetchApprovedSpecialistsForMatching();
+  return rankSpecialists(specialists, context, limit);
+}

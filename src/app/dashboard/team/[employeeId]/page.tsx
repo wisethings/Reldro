@@ -38,21 +38,21 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
   if (!isSelf && !isCompanyAdmin && !isDeptAdminOfThem && !isSameDepartmentPeer) redirect("/dashboard/overview");
   const canManage = isCompanyAdmin || isDeptAdminOfThem;
 
-  const [profile, milestones, skillEvidence, certifications, pointsBalance, recentPoints] = await Promise.all([
+  const [profile, milestones, skillEvidence, certifications, pointsBalance, recentPoints, recognitions] = await Promise.all([
     getEmployeeAiProfile(session.organizationId, employeeId),
     getEmployeeMilestones(employeeId),
     getSkillMasteryEvidence(employeeId),
     getCertificationReadiness(employeeId),
     getPointsBalance(employeeId),
     getRecentPointsTransactions(employeeId, 5),
+    prisma.recognition.findMany({
+      where: { toEmployeeId: employeeId },
+      include: { fromUser: true },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+    }),
   ]);
   const earnedCertifications = certifications.filter((c) => c.earned).length;
-  const recognitions = await prisma.recognition.findMany({
-    where: { toEmployeeId: employeeId },
-    include: { fromUser: true },
-    orderBy: { createdAt: "desc" },
-    take: 5,
-  });
 
   const level = profile.capabilityLevel;
 

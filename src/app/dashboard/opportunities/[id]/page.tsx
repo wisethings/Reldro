@@ -18,13 +18,11 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
 
   const opportunity = await prisma.opportunity.findFirst({
     where: { id, organizationId: session.organizationId },
-    include: { department: true, workflow: { include: { steps: true } } },
+    include: { department: true, workflow: { include: { steps: true, courses: { include: { lessons: true } } } } },
   });
   if (!opportunity) notFound();
 
-  const courses = opportunity.workflow
-    ? await prisma.course.findMany({ where: { workflowId: opportunity.workflow.id }, include: { lessons: true } })
-    : [];
+  const courses = opportunity.workflow?.courses ?? [];
 
   const priority = computePriorityScore(opportunity);
   const effort = computeEffortScore(opportunity.complexity, opportunity.riskScore);

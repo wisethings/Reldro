@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { matchSpecialists } from "@/lib/matching";
+import { rankSpecialists, fetchApprovedSpecialistsForMatching } from "@/lib/matching";
 import { assignSpecialistToProject, assignSpecialistManually } from "@/lib/actions/marketplace";
 
 export default async function PlatformRequestsPage() {
@@ -12,11 +12,9 @@ export default async function PlatformRequestsPage() {
       include: { organization: true, opportunity: { include: { department: true } }, workflow: true },
       orderBy: { createdAt: "desc" },
     }),
-    prisma.specialist.findMany({
-      where: { approved: true },
-      include: { user: true },
-      orderBy: { user: { name: "asc" } },
-    }),
+    // Fetched once (with tags) and ranked in memory per request below, rather
+    // than re-querying every approved specialist for every open request.
+    fetchApprovedSpecialistsForMatching(),
     prisma.project.findMany({
       where: { status: { not: "OPEN" } },
       include: { organization: true, specialist: { include: { user: true } } },
@@ -24,6 +22,7 @@ export default async function PlatformRequestsPage() {
       take: 10,
     }),
   ]);
+  const approvedSpecialistsByName = [...approvedSpecialists].sort((a, b) => a.user.name.localeCompare(b.user.name));
 
   return (
     <div className="space-y-6">
@@ -46,8 +45,7 @@ export default async function PlatformRequestsPage() {
         </div>
         <CardBody className="divide-y divide-ink-200 p-0">
           {openRequests.length === 0 && <p className="p-6 text-sm text-ink-500">No open requests right now.</p>}
-          {await Promise.all(
-            openRequests.map(async (request) => {
+          {openRequests.map((request) => {
               const department = request.opportunity?.department?.name ?? request.workflow?.department;
               const tools = request.opportunity?.toolsRequired ?? request.workflow?.toolsRequired ?? [];
               const complexity = request.opportunity?.complexity ?? request.workflow?.difficulty;
@@ -57,7 +55,7 @@ export default async function PlatformRequestsPage() {
                   ? { kind: "Workflow", title: request.workflow.title }
                   : null;
 
-              const suggestions = await matchSpecialists({
+              const suggestions = rankSpecialists(approvedSpecialists, {
                 industry: request.organization.industry,
                 department,
                 tools,
@@ -105,7 +103,7 @@ export default async function PlatformRequestsPage() {
                               <option value="" disabled>
                                 Choose a specialist
                               </option>
-                              {approvedSpecialists.map((s) => (
+                              {approvedSpecialistsByName.map((s) => (
                                 <option key={s.id} value={s.id}>
                                   {s.user.name}
                                 </option>
@@ -137,8 +135,7 @@ export default async function PlatformRequestsPage() {
                   </div>
                 </div>
               );
-            })
-          )}
+            })}
         </CardBody>
       </Card>
 

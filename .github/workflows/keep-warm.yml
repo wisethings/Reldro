@@ -1,0 +1,27 @@
+name: Keep database warm
+
+# Netlify DB (Neon) suspends its compute after a few minutes of idle time;
+# the next query after that pays a multi-second cold-start penalty, which is
+# the single biggest cause of "the app feels slow" on a low-traffic site.
+# This pings /api/cron/keep-warm often enough to stay ahead of that
+# autosuspend window so real visitors never pay for it. See the route's own
+# comment (src/app/api/cron/keep-warm/route.ts) for the full rationale.
+on:
+  schedule:
+    # GitHub Actions won't run a schedule more often than every 5 minutes
+    # (and can delay it further under load) - the closest we can get to the
+    # "every 4 minutes or so" the route's own comment recommends.
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping keep-warm endpoint
+        run: |
+          if [ -z "${{ secrets.SEED_SECRET }}" ]; then
+            echo "SEED_SECRET repo secret is not set - add it in Settings > Secrets and variables > Actions (same value as the SEED_SECRET Netlify environment variable) so this job can authenticate." >&2
+            exit 1
+          fi
+          curl -sf --max-time 20 -H "x-seed-secret: ${{ secrets.SEED_SECRET }}" "https://app.reldro.com/api/cron/keep-warm"

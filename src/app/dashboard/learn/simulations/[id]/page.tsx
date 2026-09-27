@@ -19,15 +19,16 @@ export default async function SimulationPage({ params }: { params: Promise<{ id:
 
   await ensureSimulationCatalog();
 
-  const simulation = await prisma.simulation.findUnique({ where: { id } });
+  const [simulation, pastAttempts] = await Promise.all([
+    prisma.simulation.findUnique({ where: { id } }),
+    session.employeeId
+      ? prisma.simulationAttempt.findMany({
+          where: { employeeId: session.employeeId, simulationId: id },
+          orderBy: { completedAt: "asc" },
+        })
+      : Promise.resolve([]),
+  ]);
   if (!simulation) notFound();
-
-  const pastAttempts = session.employeeId
-    ? await prisma.simulationAttempt.findMany({
-        where: { employeeId: session.employeeId, simulationId: id },
-        orderBy: { completedAt: "asc" },
-      })
-    : [];
 
   const decisionOptions = simulation.decisionOptions as unknown as DecisionOption[];
   const aiOutputIssues = simulation.aiOutputIssues as unknown as AiOutputIssue[];
