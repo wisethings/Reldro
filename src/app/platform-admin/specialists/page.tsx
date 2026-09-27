@@ -27,12 +27,74 @@ export default async function PlatformSpecialistsPage() {
       <Card>
         <CardBody className="divide-y divide-ink-200 p-0">
           {specialists.map((s) => (
-            <div key={s.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-              <div className="min-w-0">
+            <div key={s.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+              <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-ink-900">{s.user.name}</p>
                 <p className="text-xs text-ink-500">{s.headline}</p>
+                <p className="mt-1 text-xs text-ink-500">{s.user.email}</p>
+                <p className="mt-2 max-w-2xl whitespace-pre-line text-xs text-ink-600">{s.bio}</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {s.tags.map((t) => (
+                    <span key={t.id} className="rounded-full bg-ink-100 px-2 py-0.5 text-[11px] text-ink-700">
+                      {t.value}
+                    </span>
+                  ))}
+                </div>
+                <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-ink-500 sm:grid-cols-3">
+                  {s.yearsExperience != null && (
+                    <div>
+                      <dt className="inline text-ink-400">Experience: </dt>
+                      <dd className="inline">{s.yearsExperience} yrs</dd>
+                    </div>
+                  )}
+                  {s.hourlyRate != null && (
+                    <div>
+                      <dt className="inline text-ink-400">Hourly: </dt>
+                      <dd className="inline">${s.hourlyRate}</dd>
+                    </div>
+                  )}
+                  {(s.projectRateMin != null || s.projectRateMax != null) && (
+                    <div>
+                      <dt className="inline text-ink-400">Project: </dt>
+                      <dd className="inline">
+                        ${s.projectRateMin ?? "?"}-${s.projectRateMax ?? "?"}
+                      </dd>
+                    </div>
+                  )}
+                  {s.location && (
+                    <div>
+                      <dt className="inline text-ink-400">Location: </dt>
+                      <dd className="inline">{s.location}</dd>
+                    </div>
+                  )}
+                  {s.preferredEngagementTypes.length > 0 && (
+                    <div className="col-span-2 sm:col-span-3">
+                      <dt className="inline text-ink-400">Engagement: </dt>
+                      <dd className="inline">{s.preferredEngagementTypes.join(", ")}</dd>
+                    </div>
+                  )}
+                </dl>
+                {(s.linkedinUrl || s.portfolioUrl) && (
+                  <p className="mt-2 flex flex-wrap gap-3 text-[11px]">
+                    {s.linkedinUrl && (
+                      <a href={s.linkedinUrl} target="_blank" rel="noopener noreferrer" className="text-orchid-deep hover:underline">
+                        LinkedIn ↗
+                      </a>
+                    )}
+                    {s.portfolioUrl && (
+                      <a href={s.portfolioUrl} target="_blank" rel="noopener noreferrer" className="text-orchid-deep hover:underline">
+                        Portfolio ↗
+                      </a>
+                    )}
+                  </p>
+                )}
+                {s.notableProjects && (
+                  <p className="mt-2 max-w-2xl whitespace-pre-line rounded-lg bg-ink-50 px-3 py-2 text-xs text-ink-600">
+                    {s.notableProjects}
+                  </p>
+                )}
               </div>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
                 <Badge tone={s.approved ? "green" : "amber"}>{s.approved ? "Approved" : "Pending"}</Badge>
                 {s.featured && <Badge tone="brand">Featured</Badge>}
                 {s.approved ? (

@@ -1187,4 +1187,13 @@ DO $$ BEGIN ALTER TABLE "ProjectMember" ADD CONSTRAINT "ProjectMember_projectId_
 
 DO $$ BEGIN ALTER TABLE "ProjectMember" ADD CONSTRAINT "ProjectMember_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
 
+-- Patch: deeper specialist intake fields - link/portfolio, notable past work, and preferred engagement types (idempotent, same rules).
+ALTER TABLE "Specialist" ADD COLUMN IF NOT EXISTS "linkedinUrl" TEXT;
+
+ALTER TABLE "Specialist" ADD COLUMN IF NOT EXISTS "portfolioUrl" TEXT;
+
+ALTER TABLE "Specialist" ADD COLUMN IF NOT EXISTS "notableProjects" TEXT;
+
+ALTER TABLE "Specialist" ADD COLUMN IF NOT EXISTS "preferredEngagementTypes" TEXT[] NOT NULL DEFAULT '{}';
+
 `;

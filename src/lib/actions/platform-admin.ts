@@ -6,7 +6,6 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/guards";
 import { hashPassword } from "@/lib/auth/password";
 import { sendEmail, orgProvisionedEmailHtml } from "@/lib/email";
-import type { DemoRequestStatus } from "@prisma/client";
 
 function generateTempPassword() {
   return `Reldro-${Math.random().toString(36).slice(2, 8)}!`;
@@ -23,7 +22,6 @@ export type ProvisionOrgState = { error?: string; emailSent?: boolean; tempPassw
 export async function provisionOrganization(_prevState: ProvisionOrgState, formData: FormData): Promise<ProvisionOrgState> {
   await requireRole(["PLATFORM_ADMIN"]);
 
-  const demoRequestId = String(formData.get("demoRequestId") ?? "").trim() || undefined;
   const companyName = String(formData.get("companyName") ?? "").trim();
   const industry = String(formData.get("industry") ?? "").trim();
   const size = String(formData.get("size") ?? "").trim();
@@ -48,10 +46,6 @@ export async function provisionOrganization(_prevState: ProvisionOrgState, formD
     data: { name: adminName, email: adminEmail, passwordHash, role: "COMPANY_ADMIN", organizationId: org.id },
   });
 
-  if (demoRequestId) {
-    await prisma.demoRequest.update({ where: { id: demoRequestId }, data: { status: "CONVERTED", organizationId: org.id } });
-  }
-
   const host = (await headers()).get("host");
   const { sent } = await sendEmail({
     to: adminEmail,
@@ -60,14 +54,7 @@ export async function provisionOrganization(_prevState: ProvisionOrgState, formD
   });
 
   revalidatePath("/platform-admin/organizations");
-  revalidatePath("/platform-admin/demo-requests");
   return sent ? { emailSent: true } : { tempPassword };
-}
-
-export async function setDemoRequestStatus(demoRequestId: string, status: DemoRequestStatus) {
-  await requireRole(["PLATFORM_ADMIN"]);
-  await prisma.demoRequest.update({ where: { id: demoRequestId }, data: { status } });
-  revalidatePath("/platform-admin/demo-requests");
 }
 
 export async function approveSpecialist(specialistId: string) {

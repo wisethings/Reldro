@@ -281,6 +281,10 @@ model Specialist {
   approved          Boolean  @default(false)
   featured          Boolean  @default(false)
   location          String?
+  linkedinUrl       String?
+  portfolioUrl      String?
+  notableProjects   String?
+  preferredEngagementTypes String[] @default([])
   createdAt         DateTime @default(now())
 
   tags     SpecialistTag[]

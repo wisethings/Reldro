@@ -5,19 +5,7 @@ import { provisionOrganization } from "@/lib/actions/platform-admin";
 
 const SIZES = ["1-50", "51-200", "201-1000", "1000+"];
 
-export function ProvisionOrgForm({
-  demoRequestId,
-  defaultCompanyName,
-  defaultAdminEmail,
-  defaultAdminName,
-  onDone,
-}: {
-  demoRequestId?: string;
-  defaultCompanyName?: string;
-  defaultAdminEmail?: string;
-  defaultAdminName?: string;
-  onDone?: () => void;
-}) {
+export function ProvisionOrgForm({ onDone }: { onDone?: () => void }) {
   const [state, formAction, pending] = useActionState(provisionOrganization, undefined);
 
   if (state?.emailSent || state?.tempPassword) {
@@ -42,7 +30,6 @@ export function ProvisionOrgForm({
 
   return (
     <form action={formAction} className="space-y-3">
-      {demoRequestId && <input type="hidden" name="demoRequestId" value={demoRequestId} />}
       {state?.error && <p className="rounded-lg bg-coral-soft px-3 py-2 text-sm text-danger">{state.error}</p>}
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
@@ -50,7 +37,6 @@ export function ProvisionOrgForm({
           <input
             name="companyName"
             required
-            defaultValue={defaultCompanyName}
             className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
         </div>
@@ -90,7 +76,6 @@ export function ProvisionOrgForm({
           <input
             name="adminName"
             required
-            defaultValue={defaultAdminName}
             className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
         </div>
@@ -100,7 +85,6 @@ export function ProvisionOrgForm({
             name="adminEmail"
             type="email"
             required
-            defaultValue={defaultAdminEmail}
             className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
         </div>
