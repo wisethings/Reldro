@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { LoginForm } from "@/components/auth/LoginForm";
-import { DemoLoginPanel } from "@/components/auth/DemoLoginPanel";
 import { Logo } from "@/components/ui/Logo";
 
 export default function LoginPage() {
@@ -16,9 +15,6 @@ export default function LoginPage() {
           <div className="mt-5">
             <LoginForm />
           </div>
-        </div>
-        <div className="mt-4">
-          <DemoLoginPanel />
         </div>
       </div>
     </div>
