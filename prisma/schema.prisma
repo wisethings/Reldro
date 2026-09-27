@@ -1163,6 +1163,17 @@ model DemoRequest {
   @@index([status])
 }
 
+// Fixed-window rate limiting for unauthenticated endpoints (e.g. the public
+// specialist application form). No Redis/queue in this stack, so this is a
+// deliberately simple DB-backed counter - see src/lib/rateLimit.ts.
+model RateLimitHit {
+  id        String   @id @default(cuid())
+  key       String
+  createdAt DateTime @default(now())
+
+  @@index([key, createdAt])
+}
+
 model Recognition {
   id             String              @id @default(cuid())
   organizationId String

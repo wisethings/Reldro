@@ -4,10 +4,18 @@ import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth/password";
 import { sendEmail, specialistApplicationNotificationHtml, specialistApplicationReceivedHtml } from "@/lib/email";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { INDUSTRIES, DEPARTMENT_OPTIONS } from "@/lib/data/catalog";
 
 export type SpecialistApplicationState = { success?: boolean; error?: string; tempPassword?: string } | undefined;
 
 const ENGAGEMENT_TYPES = ["advisory", "implementation", "augmentation"] as const;
+
+const MAX_HEADLINE_LENGTH = 150;
+const MAX_BIO_LENGTH = 4000;
+const MAX_NOTABLE_PROJECTS_LENGTH = 4000;
+const MAX_LIST_ENTRIES = 20;
+const MAX_LIST_ENTRY_LENGTH = 60;
 
 function generateTempPassword() {
   return `Reldro-${Math.random().toString(36).slice(2, 8)}!`;
@@ -19,6 +27,17 @@ function parseUrl(raw: string): string | undefined {
   return /^https?:\/\//i.test(value) ? value : `https://${value}`;
 }
 
+function parseBoundedList(raw: string): string[] {
+  return Array.from(
+    new Set(
+      raw
+        .split(",")
+        .map((t) => t.trim().slice(0, MAX_LIST_ENTRY_LENGTH))
+        .filter(Boolean),
+    ),
+  ).slice(0, MAX_LIST_ENTRIES);
+}
+
 /**
  * Public, unauthenticated intake form for prospective specialists. Creates
  * the User + Specialist right away (a platform admin only flips `approved`
@@ -27,13 +46,19 @@ function parseUrl(raw: string): string | undefined {
  * surface as a match until approved.
  */
 export async function applyAsSpecialist(_prevState: SpecialistApplicationState, formData: FormData): Promise<SpecialistApplicationState> {
+  const ip = await getClientIp();
+  const allowed = await checkRateLimit(`specialist_apply:${ip}`, 5, 60);
+  if (!allowed) {
+    return { error: "Too many applications submitted from this device recently. Please try again later or contact us directly." };
+  }
+
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const headline = String(formData.get("headline") ?? "").trim();
-  const bio = String(formData.get("bio") ?? "").trim();
+  const headline = String(formData.get("headline") ?? "").trim().slice(0, MAX_HEADLINE_LENGTH);
+  const bio = String(formData.get("bio") ?? "").trim().slice(0, MAX_BIO_LENGTH);
   const yearsExperience = Number(formData.get("yearsExperience") ?? "");
-  const location = String(formData.get("location") ?? "").trim() || undefined;
-  const availability = String(formData.get("availability") ?? "").trim() || "Pending review";
+  const location = String(formData.get("location") ?? "").trim().slice(0, MAX_LIST_ENTRY_LENGTH) || undefined;
+  const availability = String(formData.get("availability") ?? "").trim().slice(0, MAX_LIST_ENTRY_LENGTH) || "Pending review";
   const hourlyRateRaw = String(formData.get("hourlyRate") ?? "").trim();
   const hourlyRate = hourlyRateRaw ? Number(hourlyRateRaw) : undefined;
   const projectRateMinRaw = String(formData.get("projectRateMin") ?? "").trim();
@@ -42,21 +67,21 @@ export async function applyAsSpecialist(_prevState: SpecialistApplicationState, 
   const projectRateMax = projectRateMaxRaw ? Number(projectRateMaxRaw) : undefined;
   const linkedinUrl = parseUrl(String(formData.get("linkedinUrl") ?? ""));
   const portfolioUrl = parseUrl(String(formData.get("portfolioUrl") ?? ""));
-  const notableProjects = String(formData.get("notableProjects") ?? "").trim() || undefined;
-  const industries = formData.getAll("industries").map(String).filter(Boolean);
-  const functions = formData.getAll("functions").map(String).filter(Boolean);
+  const notableProjects = String(formData.get("notableProjects") ?? "").trim().slice(0, MAX_NOTABLE_PROJECTS_LENGTH) || undefined;
+  const industries = formData
+    .getAll("industries")
+    .map(String)
+    .filter((v): v is string => (INDUSTRIES as readonly string[]).includes(v));
+  const functions = formData
+    .getAll("functions")
+    .map(String)
+    .filter((v): v is string => (DEPARTMENT_OPTIONS as readonly string[]).includes(v));
   const preferredEngagementTypes = formData
     .getAll("engagementTypes")
     .map(String)
     .filter((v): v is (typeof ENGAGEMENT_TYPES)[number] => (ENGAGEMENT_TYPES as readonly string[]).includes(v));
-  const tools = String(formData.get("tools") ?? "")
-    .split(",")
-    .map((t) => t.trim())
-    .filter(Boolean);
-  const certifications = String(formData.get("certifications") ?? "")
-    .split(",")
-    .map((c) => c.trim())
-    .filter(Boolean);
+  const tools = parseBoundedList(String(formData.get("tools") ?? ""));
+  const certifications = parseBoundedList(String(formData.get("certifications") ?? ""));
 
   if (!name || !email || !headline || !bio) return { error: "Name, email, headline, and bio are required." };
   if (!email.includes("@")) return { error: "Enter a valid email address." };

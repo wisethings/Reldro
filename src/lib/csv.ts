@@ -1,9 +1,18 @@
 import "server-only";
 
-/** Escapes a single CSV field per RFC 4180: quote it if it contains a comma, quote, or newline, doubling any inner quotes. */
+/**
+ * Escapes a single CSV field per RFC 4180 (quote it if it contains a comma,
+ * quote, or newline, doubling any inner quotes), and neutralizes formula
+ * injection: a value starting with =, +, -, @, tab, or CR gets a leading
+ * single quote, since spreadsheet apps (Excel, Google Sheets) otherwise
+ * treat that leading character as a live formula when the CSV is opened -
+ * a real risk here because several exported fields (bio, notableProjects,
+ * headline) are free text from the public, unauthenticated apply form.
+ */
 function escapeCsvField(value: unknown): string {
   if (value === null || value === undefined) return "";
-  const str = Array.isArray(value) ? value.join("; ") : String(value);
+  let str = Array.isArray(value) ? value.join("; ") : String(value);
+  if (/^[=+\-@\t\r]/.test(str)) str = `'${str}`;
   if (/[",\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
   return str;
 }
