@@ -2,8 +2,17 @@
 
 import { useActionState } from "react";
 import { createTemplate } from "@/lib/actions/templates";
+import { ToolMultiSelect } from "@/components/ui/ToolMultiSelect";
 
-export function CreateTemplateForm({ lockDepartment, departmentOptions }: { lockDepartment: string | null; departmentOptions: string[] }) {
+export function CreateTemplateForm({
+  lockDepartment,
+  departmentOptions,
+  toolOptions,
+}: {
+  lockDepartment: string | null;
+  departmentOptions: string[];
+  toolOptions: string[];
+}) {
   const [state, formAction, pending] = useActionState(createTemplate, undefined);
 
   return (
@@ -35,6 +44,12 @@ export function CreateTemplateForm({ lockDepartment, departmentOptions }: { lock
         rows={4}
         className="w-full rounded-lg border border-ink-300 px-3 py-2 font-mono text-xs"
       />
+      <div>
+        <label className="block text-xs font-medium text-ink-600">Tool this prompt is for</label>
+        <div className="mt-1">
+          <ToolMultiSelect name="tools" options={toolOptions} />
+        </div>
+      </div>
       <button disabled={pending} className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60">
         {pending ? "Adding…" : "Add template"}
       </button>

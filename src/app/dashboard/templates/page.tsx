@@ -7,11 +7,13 @@ import { CopyPromptButton } from "@/components/workflows/CopyPromptButton";
 import { StepMedia } from "@/components/workflows/StepMedia";
 import { CreateTemplateForm } from "@/components/workflows/CreateTemplateForm";
 import { DeleteTemplateButton } from "@/components/workflows/DeleteTemplateButton";
+import { Badge } from "@/components/ui/Badge";
 import { ownDepartmentFilter } from "@/lib/departmentVisibility";
+import { getMatchedTools } from "@/lib/queries/tools";
 
 type TemplateRow =
-  | { kind: "step"; id: string; title: string; prompt: string; department: string; imageUrl: string | null; videoUrl: string | null; workflowId: string; workflowTitle: string }
-  | { kind: "custom"; id: string; title: string; prompt: string; department: string; createdByName: string };
+  | { kind: "step"; id: string; title: string; prompt: string; department: string; imageUrl: string | null; videoUrl: string | null; workflowId: string; workflowTitle: string; tools: string[] }
+  | { kind: "custom"; id: string; title: string; prompt: string; department: string; createdByName: string; tools: string[] };
 
 export default async function TemplatesPage() {
   const session = await requireSession();
@@ -24,7 +26,14 @@ export default async function TemplatesPage() {
   const canAuthorTemplates = isCompanyAdmin || Boolean(employee?.isDepartmentAdmin);
   const ownDepartment = ownDepartmentFilter(session, employee);
 
-  const departments = await prisma.department.findMany({ where: { organizationId: session.organizationId }, orderBy: { name: "asc" } });
+  const [departments, toolLibrary] = await Promise.all([
+    prisma.department.findMany({ where: { organizationId: session.organizationId }, orderBy: { name: "asc" } }),
+    prisma.tool.findMany({
+      where: { OR: [{ organizationId: null }, { organizationId: session.organizationId }] },
+      orderBy: { name: "asc" },
+      select: { name: true },
+    }),
+  ]);
   // Non-admins only ever see their own department's templates - see
   // ownDepartmentFilter's doc comment for why this isn't gated behind the
   // department-isolation toggle the way the Workflow library is.
@@ -57,6 +66,10 @@ export default async function TemplatesPage() {
     : [[], []];
 
   const rows: TemplateRow[] = [
+    // A step-derived template doesn't have its own tool tag - it inherits
+    // the tools its parent workflow already declares as required, which is
+    // real context (that's the tool the step's AI prompt is meant for)
+    // rather than a guess.
     ...steps.map((step): TemplateRow => ({
       kind: "step",
       id: step.id,
@@ -67,6 +80,7 @@ export default async function TemplatesPage() {
       videoUrl: step.videoUrl,
       workflowId: step.workflow.id,
       workflowTitle: step.workflow.title,
+      tools: step.workflow.toolsRequired,
     })),
     ...customTemplates.map((t): TemplateRow => ({
       kind: "custom",
@@ -75,8 +89,12 @@ export default async function TemplatesPage() {
       prompt: t.prompt,
       department: t.department,
       createdByName: t.createdByName,
+      tools: t.tools,
     })),
   ];
+
+  const allToolNames = Array.from(new Set(rows.flatMap((r) => r.tools)));
+  const matchedTools = session.organizationId ? await getMatchedTools(session.organizationId, allToolNames) : new Map<string, string>();
 
   const byDepartment = new Map<string, TemplateRow[]>();
   for (const row of rows) {
@@ -101,6 +119,7 @@ export default async function TemplatesPage() {
             <CreateTemplateForm
               lockDepartment={isCompanyAdmin ? null : employee?.department?.name ?? null}
               departmentOptions={departments.map((d) => d.name)}
+              toolOptions={toolLibrary.map((t) => t.name)}
             />
           </CardBody>
         </Card>
@@ -122,6 +141,19 @@ export default async function TemplatesPage() {
                         </Link>
                       ) : (
                         <p className="text-xs text-ink-500">{row.createdByName ? `Added by ${row.createdByName}` : "Team template"}</p>
+                      )}
+                      {row.tools.length > 0 && (
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          {row.tools.map((toolName) =>
+                            matchedTools.has(toolName) ? (
+                              <Link key={toolName} href={`/dashboard/integrations/tools/${matchedTools.get(toolName)}`}>
+                                <Badge tone="brand">{toolName}</Badge>
+                              </Link>
+                            ) : (
+                              <Badge key={toolName}>{toolName}</Badge>
+                            )
+                          )}
+                        </div>
                       )}
                     </div>
                     <div className="flex shrink-0 items-center gap-1.5">

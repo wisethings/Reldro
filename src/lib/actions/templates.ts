@@ -50,13 +50,15 @@ export async function createTemplate(_prevState: TemplateState, formData: FormDa
   const title = String(formData.get("title") ?? "").trim();
   const prompt = String(formData.get("prompt") ?? "").trim();
   const department = isCompanyAdmin ? String(formData.get("department") ?? "").trim() : myDepartment ?? "";
+  // Multi-select chips from the Tool Library (ToolMultiSelect), one hidden input per tool.
+  const tools = formData.getAll("tools").map(String).filter(Boolean);
 
   if (!title || !prompt || !department) {
     return { error: "Title, prompt, and department are required." };
   }
 
   await prisma.template.create({
-    data: { organizationId: session.organizationId!, department, title, prompt, createdByName: session.name },
+    data: { organizationId: session.organizationId!, department, title, prompt, tools, createdByName: session.name },
   });
 
   revalidatePath("/dashboard/templates");
