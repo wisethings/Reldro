@@ -3,6 +3,7 @@
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createCustomWorkflow } from "@/lib/actions/customWorkflows";
+import { ToolMultiSelect } from "@/components/ui/ToolMultiSelect";
 
 const inputClass =
   "w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500";
@@ -20,9 +21,11 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 export function CreateWorkflowForm({
   lockDepartment,
   departmentOptions,
+  toolOptions,
 }: {
   lockDepartment: string | null;
   departmentOptions: string[];
+  toolOptions: string[];
 }) {
   const [state, formAction, pending] = useActionState(createCustomWorkflow, undefined);
   const router = useRouter();
@@ -84,8 +87,8 @@ export function CreateWorkflowForm({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Tools required" hint="Comma-separated, e.g. ChatGPT, Salesforce">
-          <input name="toolsRequired" placeholder="Optional" className={inputClass} />
+        <Field label="Tools required" hint="From your Tool Library">
+          <ToolMultiSelect name="toolsRequired" options={toolOptions} />
         </Field>
         <Field label="Skills required" hint="Comma-separated">
           <input name="skillsRequired" placeholder="Optional" className={inputClass} />

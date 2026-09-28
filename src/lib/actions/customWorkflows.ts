@@ -53,7 +53,8 @@ export async function createCustomWorkflow(_prevState: CustomWorkflowState, form
   const difficulty = String(formData.get("difficulty") ?? "MEDIUM") as ComplexityLevel;
   const skillLevel = String(formData.get("skillLevel") ?? "Intermediate").trim() || "Intermediate";
   const timeSavedMinutes = Math.max(0, Math.round(Number(formData.get("timeSavedMinutes")) || 0));
-  const toolsRequired = splitList(formData.get("toolsRequired"));
+  // Multi-select chips from the Tool Library (ToolMultiSelect), one hidden input per tool - not comma-split free text.
+  const toolsRequired = formData.getAll("toolsRequired").map(String).filter(Boolean);
   const skillsRequired = splitList(formData.get("skillsRequired"));
   const securityNotes = String(formData.get("securityNotes") ?? "").trim() || null;
   const trainingNotes = String(formData.get("trainingNotes") ?? "").trim() || null;

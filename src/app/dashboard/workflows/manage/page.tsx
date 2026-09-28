@@ -16,7 +16,7 @@ export default async function ManageWorkflowsPage() {
   const canAuthorWorkflows = isCompanyAdmin || Boolean(employee?.isDepartmentAdmin);
   if (!canAuthorWorkflows) redirect("/dashboard/workflows");
 
-  const [workflows, departments] = await Promise.all([
+  const [workflows, departments, tools] = await Promise.all([
     prisma.workflow.findMany({
       // A department admin only manages their own team's workflows - without
       // this, the list (and the "Manage" link into each one) exposed every
@@ -26,6 +26,11 @@ export default async function ManageWorkflowsPage() {
       orderBy: { department: "asc" },
     }),
     prisma.department.findMany({ where: { organizationId: session.organizationId }, orderBy: { name: "asc" } }),
+    prisma.tool.findMany({
+      where: { OR: [{ organizationId: null }, { organizationId: session.organizationId }] },
+      orderBy: { name: "asc" },
+      select: { name: true },
+    }),
   ]);
 
   return (
@@ -48,6 +53,7 @@ export default async function ManageWorkflowsPage() {
           <CreateWorkflowForm
             lockDepartment={isCompanyAdmin ? null : employee?.department?.name ?? null}
             departmentOptions={departments.map((d) => d.name)}
+            toolOptions={tools.map((t) => t.name)}
           />
         </CardBody>
       </Card>
