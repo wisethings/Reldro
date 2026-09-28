@@ -102,3 +102,28 @@ export async function setDepartmentAdmin(employeeId: string, isDepartmentAdmin: 
 
   revalidatePath("/dashboard/team");
 }
+
+/**
+ * Cross-department content visibility override - see
+ * Employee.viewAllDepartments's doc comment. Not a real permission tier,
+ * just a per-employee toggle for someone (typically a demo persona) who
+ * needs to see every department's opportunities/templates/workflows/
+ * lessons instead of only their own.
+ */
+export async function setViewAllDepartments(employeeId: string, viewAllDepartments: boolean) {
+  const session = await requireRole(["COMPANY_ADMIN"]);
+  const employee = await prisma.employee.findUnique({ where: { id: employeeId } });
+  if (!employee || employee.organizationId !== session.organizationId) throw new Error("Employee not found.");
+
+  await prisma.employee.update({ where: { id: employeeId }, data: { viewAllDepartments } });
+
+  await logAudit({
+    organizationId: session.organizationId,
+    userId: session.sub,
+    action: viewAllDepartments ? "employee.granted_all_department_access" : "employee.revoked_all_department_access",
+    entityType: "Employee",
+    entityId: employeeId,
+  });
+
+  revalidatePath("/dashboard/team");
+}

@@ -33,7 +33,8 @@ export default async function OpportunitiesPage({
   // Non-admins only see opportunities for their own department, plus
   // cross-functional ones (no department) that apply to everyone - a
   // company admin still sees and can filter across the whole org.
-  const ownDepartmentId = !isCompanyAdmin ? (employee?.departmentId ?? "__none__") : undefined;
+  const seesAllDepartments = isCompanyAdmin || Boolean(employee?.viewAllDepartments);
+  const ownDepartmentId = !seesAllDepartments ? (employee?.departmentId ?? "__none__") : undefined;
 
   const [opportunities, departments] = await Promise.all([
     prisma.opportunity.findMany({
@@ -65,7 +66,7 @@ export default async function OpportunitiesPage({
         <div>
           <h1 className="text-xl font-semibold text-ink-900">Opportunities</h1>
           <p className="text-sm text-ink-500">
-            {enriched.length} AI opportunities identified{isCompanyAdmin ? " across your organization" : " for your department"}.
+            {enriched.length} AI opportunities identified{seesAllDepartments ? " across your organization" : " for your department"}.
           </p>
         </div>
         <div className="flex rounded-lg border border-ink-200 p-0.5 text-xs font-medium">
@@ -80,7 +81,7 @@ export default async function OpportunitiesPage({
 
       <form className="flex flex-wrap gap-3">
         <input type="hidden" name="view" value={view} />
-        {isCompanyAdmin && (
+        {seesAllDepartments && (
           <select name="department" defaultValue={params.department ?? ""} className="rounded-lg border border-ink-300 px-3 py-2 text-sm">
             <option value="">All departments</option>
             {departments.map((d) => (
