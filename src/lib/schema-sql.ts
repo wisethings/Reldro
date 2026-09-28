@@ -1211,4 +1211,27 @@ CREATE INDEX IF NOT EXISTS "Template_organizationId_idx" ON "Template"("organiza
 
 DO $$ BEGIN ALTER TABLE "Template" ADD CONSTRAINT "Template_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
 
+-- Patch: workflow assignee (distinct from owner) and real implementation-checklist completion tracking (idempotent, same rules).
+ALTER TABLE "OrganizationWorkflow" ADD COLUMN IF NOT EXISTS "assigneeId" TEXT;
+
+CREATE INDEX IF NOT EXISTS "OrganizationWorkflow_assigneeId_idx" ON "OrganizationWorkflow"("assigneeId");
+
+DO $$ BEGIN ALTER TABLE "OrganizationWorkflow" ADD CONSTRAINT "OrganizationWorkflow_assigneeId_fkey" FOREIGN KEY ("assigneeId") REFERENCES "Employee"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+CREATE TABLE IF NOT EXISTS "WorkflowChecklistCompletion" ("id" TEXT NOT NULL, "organizationId" TEXT NOT NULL, "workflowId" TEXT NOT NULL, "itemIndex" INTEGER NOT NULL, "completedByName" TEXT NOT NULL, "completedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT "WorkflowChecklistCompletion_pkey" PRIMARY KEY ("id"));
+
+CREATE UNIQUE INDEX IF NOT EXISTS "WorkflowChecklistCompletion_organizationId_workflowId_item_key" ON "WorkflowChecklistCompletion"("organizationId", "workflowId", "itemIndex");
+
+CREATE INDEX IF NOT EXISTS "WorkflowChecklistCompletion_organizationId_workflowId_idx" ON "WorkflowChecklistCompletion"("organizationId", "workflowId");
+
+DO $$ BEGIN ALTER TABLE "WorkflowChecklistCompletion" ADD CONSTRAINT "WorkflowChecklistCompletion_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "WorkflowChecklistCompletion" ADD CONSTRAINT "WorkflowChecklistCompletion_workflowId_fkey" FOREIGN KEY ("workflowId") REFERENCES "Workflow"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+-- Patch: per-employee cross-department content visibility override (idempotent, same rules).
+ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "viewAllDepartments" BOOLEAN NOT NULL DEFAULT false;
+
+-- Patch: tool-in-context tagging for standalone templates (idempotent, same rules).
+ALTER TABLE "Template" ADD COLUMN IF NOT EXISTS "tools" TEXT[] NOT NULL DEFAULT '{}';
+
 `;

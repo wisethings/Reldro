@@ -10,6 +10,8 @@ import { RequestExpertHelpForm } from "@/components/specialists/RequestExpertHel
 import { CopyPromptButton } from "@/components/workflows/CopyPromptButton";
 import { StepMedia } from "@/components/workflows/StepMedia";
 import { WorkflowLifecycleControls } from "@/components/workflows/WorkflowLifecycleControls";
+import { WorkflowAssigneeControl } from "@/components/workflows/WorkflowAssigneeControl";
+import { ChecklistItemCheckbox } from "@/components/workflows/ChecklistItemCheckbox";
 import { getWorkflowDeploymentStats, getEligibleEmployeesForWorkflow } from "@/lib/queries/workflowDeployment";
 import { getWorkflowReadiness } from "@/lib/queries/workflowReadiness";
 import { getMatchedTools } from "@/lib/queries/tools";
@@ -43,21 +45,39 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
     session.employeeId
       ? prisma.workflowStepCompletion.findMany({ where: { employeeId: session.employeeId, workflowStep: { workflowId: id } } })
       : Promise.resolve([]),
-    session.employeeId ? prisma.employee.findUnique({ where: { id: session.employeeId } }) : Promise.resolve(null),
+    session.employeeId
+      ? prisma.employee.findUnique({ where: { id: session.employeeId }, include: { department: true } })
+      : Promise.resolve(null),
   ]);
   if (!workflow) notFound();
   const canRequestExpertHelp = session.role === "COMPANY_ADMIN" || Boolean(employee?.isDepartmentAdmin);
+  const isDepartmentLeadHere = Boolean(employee?.isDepartmentAdmin && employee.department?.name === workflow.department);
+  const isCompanyAdmin = session.role === "COMPANY_ADMIN";
 
   const status = orgWorkflow?.status ?? "NOT_ADOPTED";
   const completedStepIds = new Set(completions.map((c) => c.workflowStepId));
   const completedCount = workflow.steps.filter((s) => completedStepIds.has(s.id)).length;
 
-  const [stats, eligibleEmployees, readiness, matchedTools] = await Promise.all([
+  const canManageOthersHere = isCompanyAdmin || isDepartmentLeadHere;
+  const canManageChecklist =
+    canManageOthersHere ||
+    (session.employeeId !== null && (orgWorkflow?.ownerId === session.employeeId || orgWorkflow?.assigneeId === session.employeeId));
+
+  const [stats, eligibleEmployees, readiness, matchedTools, checklistCompletions] = await Promise.all([
     getWorkflowDeploymentStats(session.organizationId, workflow),
-    session.role === "COMPANY_ADMIN" ? getEligibleEmployeesForWorkflow(session.organizationId, workflow.department) : Promise.resolve([]),
+    canManageOthersHere ? getEligibleEmployeesForWorkflow(session.organizationId, workflow.department) : Promise.resolve([]),
     getWorkflowReadiness(session.organizationId, workflow.id, workflow.department),
     getMatchedTools(session.organizationId, workflow.toolsRequired),
+    prisma.workflowChecklistCompletion.findMany({ where: { organizationId: session.organizationId, workflowId: workflow.id } }),
   ]);
+  const checklistCompletionByIndex = new Map(checklistCompletions.map((c) => [c.itemIndex, c]));
+  const checklistItems = [
+    "Review current process with the team",
+    "Confirm access to required tools",
+    "Assign an owner for rollout",
+    ...workflow.steps.slice(0, 3).map((s) => `Train employees on: ${s.title}`),
+    "Measure adoption after 30 days",
+  ];
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 p-6">
@@ -107,7 +127,10 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
       </div>
 
       <Card>
-        <CardHeader title="Deployment" subtitle={stats.ownerName ? `Owned by ${stats.ownerName}` : "No owner assigned yet"} />
+        <CardHeader
+          title="Deployment"
+          subtitle={stats.ownerName ? `Owned by ${stats.ownerName}` : "No owner assigned yet"}
+        />
         <CardBody className="space-y-4">
           {session.role === "COMPANY_ADMIN" && (
             <WorkflowLifecycleControls
@@ -117,6 +140,14 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
               eligibleEmployees={eligibleEmployees.map((e) => ({ id: e.id, name: e.user.name }))}
             />
           )}
+          <WorkflowAssigneeControl
+            workflowId={workflow.id}
+            currentAssigneeId={orgWorkflow?.assigneeId ?? null}
+            currentAssigneeName={stats.assigneeName}
+            myEmployeeId={session.employeeId ?? null}
+            canManageOthers={canManageOthersHere}
+            eligibleEmployees={eligibleEmployees.map((e) => ({ id: e.id, name: e.user.name }))}
+          />
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <Stat label="Adoption" value={`${stats.adoptionPct}% (${stats.activeAdopters}/${stats.eligibleEmployees})`} />
             <Stat label="Completion rate" value={`${stats.completionRatePct}%`} />
@@ -243,15 +274,27 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
       )}
 
       <Card>
-        <CardHeader title="Implementation checklist" />
+        <CardHeader
+          title="Implementation checklist"
+          subtitle={`${checklistCompletionByIndex.size} of ${checklistItems.length} done`}
+        />
         <CardBody>
           <ul className="space-y-2">
-            {["Review current process with the team", "Confirm access to required tools", "Assign an owner for rollout", ...workflow.steps.slice(0, 3).map((s) => `Train employees on: ${s.title}`), "Measure adoption after 30 days"].map((item) => (
-              <li key={item} className="flex items-start gap-2 text-sm text-ink-700">
-                <span className="mt-0.5 h-4 w-4 shrink-0 rounded border border-ink-300" />
-                {item}
-              </li>
-            ))}
+            {checklistItems.map((item, i) => {
+              const completion = checklistCompletionByIndex.get(i);
+              return (
+                <li key={item} className="flex items-start gap-2 text-sm text-ink-700">
+                  <ChecklistItemCheckbox
+                    workflowId={workflow.id}
+                    itemIndex={i}
+                    completed={Boolean(completion)}
+                    completedByName={completion?.completedByName ?? null}
+                    canToggle={canManageChecklist}
+                  />
+                  <span className={completion ? "text-ink-400 line-through" : undefined}>{item}</span>
+                </li>
+              );
+            })}
           </ul>
         </CardBody>
       </Card>

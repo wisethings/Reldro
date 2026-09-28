@@ -28,7 +28,10 @@ export type AuditAction =
   | "employee.made_department_lead"
   | "employee.removed_department_lead"
   | "settings.department_isolation_enabled"
-  | "settings.department_isolation_disabled";
+  | "settings.department_isolation_disabled"
+  | "workflow.assignee_changed"
+  | "employee.granted_all_department_access"
+  | "employee.revoked_all_department_access";
 
 /**
  * Records a sensitive action to the audit trail. Best-effort: a failure here
@@ -87,6 +90,9 @@ const ACTION_LABELS: Record<AuditAction, string> = {
   "employee.removed_department_lead": "Removed an employee as department lead",
   "settings.department_isolation_enabled": "Turned on department isolation",
   "settings.department_isolation_disabled": "Turned off department isolation",
+  "workflow.assignee_changed": "Changed a workflow's assignee",
+  "employee.granted_all_department_access": "Gave an employee cross-department visibility",
+  "employee.revoked_all_department_access": "Removed an employee's cross-department visibility",
 };
 
 export function describeAuditAction(action: string): string {

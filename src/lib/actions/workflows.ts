@@ -1,12 +1,42 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireOrganization, requireRole, requireSession } from "@/lib/auth/guards";
+import type { SessionPayload } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit";
 import { awardPoints } from "@/lib/rewards";
 import { checkAndAwardCertifications } from "@/lib/queries/certifications";
 import type { WorkflowAdoptionStatus } from "@prisma/client";
+
+/**
+ * Who's allowed to touch a specific workflow's deployment (owner/assignee/
+ * checklist), beyond the company-admin-can-do-anything baseline: a
+ * department lead for that workflow's own department, or whoever is
+ * already its owner or assignee - the people actually accountable for or
+ * doing the rollout, not just anyone in the company.
+ */
+async function canManageWorkflowDeployment(session: SessionPayload, workflowId: string): Promise<boolean> {
+  if (session.role === "COMPANY_ADMIN") return true;
+  if (!session.employeeId || !session.organizationId) return false;
+
+  const [employee, orgWorkflow] = await Promise.all([
+    prisma.employee.findUnique({ where: { id: session.employeeId }, include: { department: true } }),
+    prisma.organizationWorkflow.findUnique({
+      where: { organizationId_workflowId: { organizationId: session.organizationId, workflowId } },
+    }),
+  ]);
+
+  if (orgWorkflow?.ownerId === session.employeeId || orgWorkflow?.assigneeId === session.employeeId) return true;
+
+  if (employee?.isDepartmentAdmin) {
+    const workflow = await prisma.workflow.findUnique({ where: { id: workflowId }, select: { department: true } });
+    if (workflow?.department === employee.department?.name) return true;
+  }
+
+  return false;
+}
 
 export async function adoptWorkflow(workflowId: string) {
   const session = await requireOrganization();
@@ -88,6 +118,76 @@ export async function setWorkflowOwner(workflowId: string, ownerId: string | nul
 
   revalidatePath(`/dashboard/workflows/${workflowId}`);
   revalidatePath("/dashboard/workflows");
+}
+
+/**
+ * Assignee is distinct from owner - owner is who's accountable for the
+ * rollout overall (company-admin/department-lead assigned), assignee is
+ * whoever's actively doing the implementation work right now, the same
+ * split Jira draws between a ticket's owner and assignee. Anyone can
+ * assign this to themselves or un-assign themselves; assigning someone
+ * else (or removing someone else's assignment) needs the same access as
+ * managing the rest of that workflow's deployment.
+ */
+export async function setWorkflowAssignee(workflowId: string, assigneeId: string | null) {
+  const session = await requireSession();
+  if (!session.organizationId) redirect("/login");
+  const organizationId = session.organizationId;
+
+  const current = await prisma.organizationWorkflow.findUnique({
+    where: { organizationId_workflowId: { organizationId, workflowId } },
+    select: { assigneeId: true },
+  });
+
+  const isSelfChange = session.employeeId !== null && (assigneeId === session.employeeId || (assigneeId === null && current?.assigneeId === session.employeeId));
+  if (!isSelfChange && !(await canManageWorkflowDeployment(session, workflowId))) {
+    throw new Error("Only a company admin, this workflow's department lead, or its current assignee can change this.");
+  }
+
+  await prisma.organizationWorkflow.upsert({
+    where: { organizationId_workflowId: { organizationId, workflowId } },
+    update: { assigneeId },
+    create: { organizationId, workflowId, assigneeId },
+  });
+
+  await logAudit({
+    organizationId,
+    userId: session.sub,
+    action: "workflow.assignee_changed",
+    entityType: "Workflow",
+    entityId: workflowId,
+    metadata: { assigneeId },
+  });
+
+  revalidatePath(`/dashboard/workflows/${workflowId}`);
+  revalidatePath("/dashboard/workflows");
+}
+
+/**
+ * The Implementation checklist's real completion state - see
+ * WorkflowChecklistCompletion. itemIndex is the item's position in the
+ * fixed checklist array rendered on the workflow detail page.
+ */
+export async function toggleChecklistItem(workflowId: string, itemIndex: number, completed: boolean) {
+  const session = await requireSession();
+  if (!session.organizationId) redirect("/login");
+  const organizationId = session.organizationId;
+
+  if (!(await canManageWorkflowDeployment(session, workflowId))) {
+    throw new Error("Only a company admin, this workflow's department lead, its owner, or its assignee can update this checklist.");
+  }
+
+  if (completed) {
+    await prisma.workflowChecklistCompletion.upsert({
+      where: { organizationId_workflowId_itemIndex: { organizationId, workflowId, itemIndex } },
+      update: {},
+      create: { organizationId, workflowId, itemIndex, completedByName: session.name },
+    });
+  } else {
+    await prisma.workflowChecklistCompletion.deleteMany({ where: { organizationId, workflowId, itemIndex } });
+  }
+
+  revalidatePath(`/dashboard/workflows/${workflowId}`);
 }
 
 /**

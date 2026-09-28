@@ -6,6 +6,9 @@ import { DEPLOYED_STATUSES } from "@/lib/workflowLifecycle";
 export type WorkflowDeploymentStats = {
   status: WorkflowAdoptionStatus;
   ownerName: string | null;
+  ownerId: string | null;
+  assigneeName: string | null;
+  assigneeId: string | null;
   eligibleEmployees: number;
   activeAdopters: number;
   adoptionPct: number;
@@ -35,7 +38,7 @@ export async function getWorkflowDeploymentStatsForOrg(
   const [orgWorkflows, opportunities, departments, totalOrgEmployees, stepCompletions] = await Promise.all([
     prisma.organizationWorkflow.findMany({
       where: { organizationId, workflowId: { in: workflowIds } },
-      include: { owner: { include: { user: true } } },
+      include: { owner: { include: { user: true } }, assignee: { include: { user: true } } },
     }),
     prisma.opportunity.findMany({
       where: { organizationId, workflowId: { in: workflowIds } },
@@ -91,6 +94,9 @@ export async function getWorkflowDeploymentStatsForOrg(
     result.set(w.id, {
       status,
       ownerName: orgWorkflow?.owner?.user.name ?? null,
+      ownerId: orgWorkflow?.ownerId ?? null,
+      assigneeName: orgWorkflow?.assignee?.user.name ?? null,
+      assigneeId: orgWorkflow?.assigneeId ?? null,
       eligibleEmployees,
       activeAdopters,
       adoptionPct,
@@ -114,6 +120,9 @@ export async function getWorkflowDeploymentStats(
     map.get(workflow.id) ?? {
       status: "NOT_ADOPTED",
       ownerName: null,
+      ownerId: null,
+      assigneeName: null,
+      assigneeId: null,
       eligibleEmployees: 0,
       activeAdopters: 0,
       adoptionPct: 0,
@@ -126,7 +135,7 @@ export async function getWorkflowDeploymentStats(
   );
 }
 
-/** Eligible employees for a workflow (COMPANY_ADMIN owner picker). */
+/** Eligible employees for a workflow's owner/assignee picker. */
 export async function getEligibleEmployeesForWorkflow(organizationId: string, department: string) {
   const dept = await prisma.department.findFirst({ where: { organizationId, name: department } });
   return prisma.employee.findMany({

@@ -187,6 +187,7 @@ model Organization {
   courses                Course[]
   workflows              Workflow[]
   templates              Template[]
+  workflowChecklistCompletions WorkflowChecklistCompletion[]
 
   @@index([industry])
 }
@@ -243,6 +244,12 @@ model Employee {
   department        Department?  @relation(fields: [departmentId], references: [id])
   jobTitle          String
   isDepartmentAdmin Boolean      @default(false)
+  // Cross-department content visibility, independent of role/department
+  // admin status - same effect department isolation gives a company admin
+  // (sees every department's opportunities/templates/workflows/lessons),
+  // granted to a specific employee instead. Meant for a demo persona who
+  // needs to show breadth across departments, not a real permission tier.
+  viewAllDepartments Boolean     @default(false)
   aiFluencyScore    Int?
   hireDate          DateTime     @default(now())
   createdAt         DateTime     @default(now())
@@ -254,7 +261,8 @@ model Employee {
   initiativeMembers  InitiativeMember[]
   aiUsageEvents      AIUsageEvent[]
   workflowStepCompletions WorkflowStepCompletion[]
-  ownedWorkflows     OrganizationWorkflow[]
+  ownedWorkflows     OrganizationWorkflow[] @relation("WorkflowOwner")
+  assignedWorkflows  OrganizationWorkflow[] @relation("WorkflowAssignee")
   certifications        EmployeeCertification[]
   pointsTransactions    PointsTransaction[]
   rewardRedemptions     RewardRedemption[]
@@ -553,6 +561,7 @@ model Workflow {
   organizationWorkflows OrganizationWorkflow[]
   courses               Course[]
   projects              Project[]
+  checklistCompletions  WorkflowChecklistCompletion[]
 
   @@index([department])
   @@index([organizationId])
@@ -597,10 +606,37 @@ model OrganizationWorkflow {
   adoptedAt      DateTime?
   usersAdopted   Int                    @default(0)
   ownerId        String?
-  owner          Employee?              @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  owner          Employee?              @relation("WorkflowOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  // Distinct from owner: who's actively doing the implementation work right
+  // now, vs. who's accountable for the rollout overall - the same
+  // owner/assignee split Jira draws between a ticket's owner and assignee.
+  // Anyone can assign this to themselves; assigning someone else is a
+  // company-admin/department-lead action, same boundary as owner.
+  assigneeId     String?
+  assignee       Employee?              @relation("WorkflowAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
 
   @@unique([organizationId, workflowId])
   @@index([ownerId])
+  @@index([assigneeId])
+}
+
+// Tracks real completion of the Workflow detail page's "Implementation
+// checklist" - itemIndex is the item's position in that page's fixed
+// checklist array (see workflows/[id]/page.tsx), not a separate catalog,
+// since the checklist itself is generated from the workflow rather than
+// author-defined.
+model WorkflowChecklistCompletion {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workflowId      String
+  workflow        Workflow     @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  itemIndex       Int
+  completedByName String
+  completedAt     DateTime     @default(now())
+
+  @@unique([organizationId, workflowId, itemIndex])
+  @@index([organizationId, workflowId])
 }
 
 // ---------------------------------------------------------------------------
@@ -1180,6 +1216,7 @@ model Template {
   department     String
   title          String
   prompt         String
+  tools          String[]     @default([])
   createdByName  String       @default("")
   createdAt      DateTime     @default(now())
 
