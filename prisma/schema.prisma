@@ -186,6 +186,7 @@ model Organization {
   demoRequests           DemoRequest[]
   courses                Course[]
   workflows              Workflow[]
+  templates              Template[]
 
   @@index([industry])
 }
@@ -1166,6 +1167,23 @@ model DemoRequest {
   createdAt      DateTime          @default(now())
 
   @@index([status])
+}
+
+// A standalone AI prompt an admin/department lead writes directly, distinct
+// from a Template that's really just a WorkflowStep's aiPrompt surfaced on
+// the Templates page - this exists for a prompt worth sharing with the team
+// that isn't naturally part of a documented step-by-step workflow.
+model Template {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  department     String
+  title          String
+  prompt         String
+  createdByName  String       @default("")
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId])
 }
 
 // Fixed-window rate limiting for unauthenticated endpoints (e.g. the public

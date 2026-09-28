@@ -25,12 +25,23 @@ export default async function OpportunitiesPage({
   if (!session.organizationId) redirect("/login");
   const params = await searchParams;
   const view = params.view === "matrix" ? "matrix" : "list";
+  const isCompanyAdmin = session.role === "COMPANY_ADMIN";
+
+  const employee = session.employeeId
+    ? await prisma.employee.findUnique({ where: { id: session.employeeId } })
+    : null;
+  // Non-admins only see opportunities for their own department, plus
+  // cross-functional ones (no department) that apply to everyone - a
+  // company admin still sees and can filter across the whole org.
+  const ownDepartmentId = !isCompanyAdmin ? (employee?.departmentId ?? "__none__") : undefined;
 
   const [opportunities, departments] = await Promise.all([
     prisma.opportunity.findMany({
       where: {
         organizationId: session.organizationId,
-        departmentId: params.department || undefined,
+        ...(ownDepartmentId
+          ? { OR: [{ departmentId: ownDepartmentId }, { departmentId: null }] }
+          : { departmentId: params.department || undefined }),
         impact: (params.impact as "LOW" | "MEDIUM" | "HIGH") || undefined,
         complexity: (params.complexity as "LOW" | "MEDIUM" | "HIGH") || undefined,
       },
@@ -53,7 +64,9 @@ export default async function OpportunitiesPage({
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-ink-900">Opportunities</h1>
-          <p className="text-sm text-ink-500">{enriched.length} AI opportunities identified across your organization.</p>
+          <p className="text-sm text-ink-500">
+            {enriched.length} AI opportunities identified{isCompanyAdmin ? " across your organization" : " for your department"}.
+          </p>
         </div>
         <div className="flex rounded-lg border border-ink-200 p-0.5 text-xs font-medium">
           <Link href={`?${new URLSearchParams({ ...params, view: "list" }).toString()}`} className={`rounded-md px-3 py-1.5 ${view === "list" ? "bg-ink-900 text-white" : "text-ink-600"}`}>
@@ -67,14 +80,16 @@ export default async function OpportunitiesPage({
 
       <form className="flex flex-wrap gap-3">
         <input type="hidden" name="view" value={view} />
-        <select name="department" defaultValue={params.department ?? ""} className="rounded-lg border border-ink-300 px-3 py-2 text-sm">
-          <option value="">All departments</option>
-          {departments.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.name}
-            </option>
-          ))}
-        </select>
+        {isCompanyAdmin && (
+          <select name="department" defaultValue={params.department ?? ""} className="rounded-lg border border-ink-300 px-3 py-2 text-sm">
+            <option value="">All departments</option>
+            {departments.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
+            ))}
+          </select>
+        )}
         <select name="impact" defaultValue={params.impact ?? ""} className="rounded-lg border border-ink-300 px-3 py-2 text-sm">
           <option value="">All impact levels</option>
           <option value="HIGH">High impact</option>

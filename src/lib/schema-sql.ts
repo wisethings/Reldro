@@ -1204,4 +1204,11 @@ CREATE INDEX IF NOT EXISTS "RateLimitHit_key_createdAt_idx" ON "RateLimitHit"("k
 -- Patch: per-org department isolation toggle for workflow/learning visibility (idempotent, same rules).
 ALTER TABLE "Organization" ADD COLUMN IF NOT EXISTS "departmentIsolationEnabled" BOOLEAN NOT NULL DEFAULT false;
 
+-- Patch: standalone admin/lead-authored prompt templates (idempotent, same rules).
+CREATE TABLE IF NOT EXISTS "Template" ("id" TEXT NOT NULL, "organizationId" TEXT NOT NULL, "department" TEXT NOT NULL, "title" TEXT NOT NULL, "prompt" TEXT NOT NULL, "createdByName" TEXT NOT NULL DEFAULT '', "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT "Template_pkey" PRIMARY KEY ("id"));
+
+CREATE INDEX IF NOT EXISTS "Template_organizationId_idx" ON "Template"("organizationId");
+
+DO $$ BEGIN ALTER TABLE "Template" ADD CONSTRAINT "Template_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
 `;

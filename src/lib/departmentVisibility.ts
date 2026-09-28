@@ -22,3 +22,18 @@ export function departmentVisibilityFilter(
   if (!isolationEnabled || session.role === "COMPANY_ADMIN") return undefined;
   return employee?.department?.name ?? "__none__";
 }
+
+/**
+ * Unconditional department relevance, independent of the org's
+ * departmentIsolationEnabled toggle (which only governs the Workflow
+ * library). Opportunities, templates, and courses are always scoped to a
+ * non-admin's own department - there's no "see every department's
+ * opportunities" mode for a plain employee or department lead, only for a
+ * company admin who administers the whole org. Returns the employee's
+ * department name (by convention "__none__" when they have no department,
+ * so the filter matches nothing rather than falling back to "everything").
+ */
+export function ownDepartmentFilter(session: SessionPayload, employee: EmployeeForVisibility): string | undefined {
+  if (session.role === "COMPANY_ADMIN") return undefined;
+  return employee?.department?.name ?? "__none__";
+}

@@ -2,48 +2,85 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { requireSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
-import { Card, CardBody } from "@/components/ui/Card";
+import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { CopyPromptButton } from "@/components/workflows/CopyPromptButton";
 import { StepMedia } from "@/components/workflows/StepMedia";
-import { departmentVisibilityFilter } from "@/lib/departmentVisibility";
+import { CreateTemplateForm } from "@/components/workflows/CreateTemplateForm";
+import { DeleteTemplateButton } from "@/components/workflows/DeleteTemplateButton";
+import { ownDepartmentFilter } from "@/lib/departmentVisibility";
+
+type TemplateRow =
+  | { kind: "step"; id: string; title: string; prompt: string; department: string; imageUrl: string | null; videoUrl: string | null; workflowId: string; workflowTitle: string }
+  | { kind: "custom"; id: string; title: string; prompt: string; department: string; createdByName: string };
 
 export default async function TemplatesPage() {
   const session = await requireSession();
   if (!session.organizationId) redirect("/login");
 
-  const [departments, employee, org] = await Promise.all([
-    prisma.department.findMany({ where: { organizationId: session.organizationId } }),
-    session.employeeId
-      ? prisma.employee.findUnique({ where: { id: session.employeeId }, include: { department: true } })
-      : Promise.resolve(null),
-    prisma.organization.findUnique({ where: { id: session.organizationId }, select: { departmentIsolationEnabled: true } }),
-  ]);
-  const visibleDepartment = departmentVisibilityFilter(session, Boolean(org?.departmentIsolationEnabled), employee);
-  const departmentNames = visibleDepartment ? [visibleDepartment] : departments.map((d) => d.name);
+  const employee = session.employeeId
+    ? await prisma.employee.findUnique({ where: { id: session.employeeId }, include: { department: true } })
+    : null;
+  const isCompanyAdmin = session.role === "COMPANY_ADMIN";
+  const canAuthorTemplates = isCompanyAdmin || Boolean(employee?.isDepartmentAdmin);
+  const ownDepartment = ownDepartmentFilter(session, employee);
 
-  // Templates are just prompts pulled from workflow steps - both the seeded
-  // catalog and any team-authored workflows. Department names aren't
-  // globally unique, so without the organizationId check here, a step from
-  // another org's team-authored workflow in a same-named department would
-  // leak into this list.
-  const steps = departmentNames.length
-    ? await prisma.workflowStep.findMany({
-        where: {
-          aiPrompt: { not: null },
-          workflow: {
-            department: { in: departmentNames },
-            OR: [{ organizationId: null }, { organizationId: session.organizationId }],
+  const departments = await prisma.department.findMany({ where: { organizationId: session.organizationId }, orderBy: { name: "asc" } });
+  // Non-admins only ever see their own department's templates - see
+  // ownDepartmentFilter's doc comment for why this isn't gated behind the
+  // department-isolation toggle the way the Workflow library is.
+  const departmentNames = ownDepartment ? [ownDepartment] : departments.map((d) => d.name);
+
+  // Templates come from two sources: prompts attached to workflow steps
+  // (both the seeded catalog and team-authored workflows), and standalone
+  // Template rows an admin/lead writes directly without a whole workflow
+  // behind them. Department names aren't globally unique, so without the
+  // organizationId check here, a step from another org's team-authored
+  // workflow in a same-named department would leak into this list.
+  const [steps, customTemplates] = departmentNames.length
+    ? await Promise.all([
+        prisma.workflowStep.findMany({
+          where: {
+            aiPrompt: { not: null },
+            workflow: {
+              department: { in: departmentNames },
+              OR: [{ organizationId: null }, { organizationId: session.organizationId }],
+            },
           },
-        },
-        include: { workflow: true },
-        orderBy: [{ workflow: { department: "asc" } }, { workflow: { title: "asc" } }, { order: "asc" }],
-      })
-    : [];
+          include: { workflow: true },
+          orderBy: [{ workflow: { department: "asc" } }, { workflow: { title: "asc" } }, { order: "asc" }],
+        }),
+        prisma.template.findMany({
+          where: { organizationId: session.organizationId, department: { in: departmentNames } },
+          orderBy: [{ department: "asc" }, { createdAt: "desc" }],
+        }),
+      ])
+    : [[], []];
 
-  const byDepartment = new Map<string, typeof steps>();
-  for (const step of steps) {
-    const key = step.workflow.department;
-    byDepartment.set(key, [...(byDepartment.get(key) ?? []), step]);
+  const rows: TemplateRow[] = [
+    ...steps.map((step): TemplateRow => ({
+      kind: "step",
+      id: step.id,
+      title: step.title,
+      prompt: step.aiPrompt!,
+      department: step.workflow.department,
+      imageUrl: step.imageUrl,
+      videoUrl: step.videoUrl,
+      workflowId: step.workflow.id,
+      workflowTitle: step.workflow.title,
+    })),
+    ...customTemplates.map((t): TemplateRow => ({
+      kind: "custom",
+      id: t.id,
+      title: t.title,
+      prompt: t.prompt,
+      department: t.department,
+      createdByName: t.createdByName,
+    })),
+  ];
+
+  const byDepartment = new Map<string, TemplateRow[]>();
+  for (const row of rows) {
+    byDepartment.set(row.department, [...(byDepartment.get(row.department) ?? []), row]);
   }
 
   return (
@@ -51,31 +88,53 @@ export default async function TemplatesPage() {
       <div>
         <h1 className="text-xl font-semibold text-ink-900">Templates</h1>
         <p className="text-sm text-ink-500">
-          Ready-to-use AI prompts, pulled from the workflows relevant to your departments. Copy one straight into
-          whatever tool you're using.
+          {ownDepartment
+            ? `Ready-to-use AI prompts for ${employee?.department?.name ?? "your team"}. Copy one straight into whatever tool you're using.`
+            : "Ready-to-use AI prompts, pulled from the workflows relevant to your departments. Copy one straight into whatever tool you're using."}
         </p>
       </div>
 
-      {[...byDepartment.entries()].map(([department, deptSteps]) => (
+      {canAuthorTemplates && (
+        <Card>
+          <CardHeader title="New template" subtitle="A standalone prompt worth sharing, without needing a whole workflow behind it." />
+          <CardBody>
+            <CreateTemplateForm
+              lockDepartment={isCompanyAdmin ? null : employee?.department?.name ?? null}
+              departmentOptions={departments.map((d) => d.name)}
+            />
+          </CardBody>
+        </Card>
+      )}
+
+      {[...byDepartment.entries()].map(([department, deptRows]) => (
         <div key={department}>
           <h2 className="mb-3 text-sm font-semibold text-ink-800">{department}</h2>
           <div className="space-y-3">
-            {deptSteps.map((step) => (
-              <Card key={step.id}>
+            {deptRows.map((row) => (
+              <Card key={`${row.kind}-${row.id}`}>
                 <CardBody>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-ink-900">{step.title}</p>
-                      <Link href={`/dashboard/workflows/${step.workflow.id}`} className="text-xs text-orchid-deep hover:text-oxblood">
-                        {step.workflow.title}
-                      </Link>
+                      <p className="text-sm font-semibold text-ink-900">{row.title}</p>
+                      {row.kind === "step" ? (
+                        <Link href={`/dashboard/workflows/${row.workflowId}`} className="text-xs text-orchid-deep hover:text-oxblood">
+                          {row.workflowTitle}
+                        </Link>
+                      ) : (
+                        <p className="text-xs text-ink-500">{row.createdByName ? `Added by ${row.createdByName}` : "Team template"}</p>
+                      )}
                     </div>
-                    <CopyPromptButton prompt={step.aiPrompt!} workflowStepId={step.id} />
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <CopyPromptButton prompt={row.prompt} workflowStepId={row.id} />
+                      {row.kind === "custom" && canAuthorTemplates && (isCompanyAdmin || row.department === employee?.department?.name) && (
+                        <DeleteTemplateButton templateId={row.id} />
+                      )}
+                    </div>
                   </div>
                   <div className="mt-3 rounded-lg bg-ink-50 p-3">
-                    <p className="font-mono text-xs text-ink-700">{step.aiPrompt}</p>
+                    <p className="font-mono text-xs text-ink-700">{row.prompt}</p>
                   </div>
-                  <StepMedia imageUrl={step.imageUrl} videoUrl={step.videoUrl} title={step.title} />
+                  {row.kind === "step" && <StepMedia imageUrl={row.imageUrl} videoUrl={row.videoUrl} title={row.title} />}
                 </CardBody>
               </Card>
             ))}
@@ -83,11 +142,12 @@ export default async function TemplatesPage() {
         </div>
       ))}
 
-      {steps.length === 0 && (
+      {rows.length === 0 && (
         <Card>
           <CardBody>
             <p className="text-sm text-ink-500">
-              No templates yet for your departments. Check back once your organization's workflows have prompts attached, or{" "}
+              No templates yet for your department{ownDepartment ? "" : "s"}. Check back once your organization's workflows have
+              prompts attached, or{" "}
               <Link href="/dashboard/workflows" className="text-orchid-deep hover:text-oxblood">
                 browse the workflow library
               </Link>

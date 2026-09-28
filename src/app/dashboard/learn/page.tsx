@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { ProgressBar } from "@/components/ui/Progress";
 import { ensureSimulationCatalog } from "@/lib/queries/simulations";
 import { ensureCourseCatalog } from "@/lib/queries/courses";
-import { departmentVisibilityFilter } from "@/lib/departmentVisibility";
+import { ownDepartmentFilter } from "@/lib/departmentVisibility";
 
 const DIFFICULTY_TONE = { LOW: "green", MEDIUM: "amber", HIGH: "red" } as const;
 
@@ -17,20 +17,19 @@ export default async function LearnPage() {
 
   await Promise.all([ensureSimulationCatalog(), ensureCourseCatalog()]);
 
-  const [employee, org] = await Promise.all([
-    session.employeeId
-      ? prisma.employee.findUnique({ where: { id: session.employeeId }, include: { department: true } })
-      : Promise.resolve(null),
-    prisma.organization.findUnique({ where: { id: session.organizationId }, select: { departmentIsolationEnabled: true } }),
-  ]);
+  const employee = session.employeeId
+    ? await prisma.employee.findUnique({ where: { id: session.employeeId }, include: { department: true } })
+    : null;
   const canAuthorLessons = session.role === "COMPANY_ADMIN" || Boolean(employee?.isDepartmentAdmin);
-  const visibleDepartment = departmentVisibilityFilter(session, Boolean(org?.departmentIsolationEnabled), employee);
+  // Courses are always scoped to the viewer's own department - see
+  // ownDepartmentFilter's doc comment for why this isn't behind a toggle.
+  const ownDepartment = ownDepartmentFilter(session, employee);
 
   const [courses, simulations, completions, attempts] = await Promise.all([
     prisma.course.findMany({
       where: {
         OR: [{ organizationId: null }, { organizationId: session.organizationId }],
-        department: visibleDepartment,
+        department: ownDepartment,
       },
       include: { lessons: true },
       orderBy: { department: "asc" },
@@ -46,12 +45,8 @@ export default async function LearnPage() {
     bestAttemptBySim.set(a.simulationId, Math.max(bestAttemptBySim.get(a.simulationId) ?? 0, a.score));
   }
 
-  const relevant = employee?.department
-    ? [...courses].sort((a, b) => (a.department === employee.department!.name ? -1 : 1) - (b.department === employee.department!.name ? -1 : 1))
-    : courses;
-
   const byDepartment = new Map<string, typeof courses>();
-  for (const c of relevant) byDepartment.set(c.department, [...(byDepartment.get(c.department) ?? []), c]);
+  for (const c of courses) byDepartment.set(c.department, [...(byDepartment.get(c.department) ?? []), c]);
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 p-6">
