@@ -43,9 +43,17 @@ export default async function AnalyticsPage() {
           <h1 className="text-xl font-semibold text-ink-900">AI Adoption Analytics</h1>
           <p className="text-sm text-ink-500">Are employees actually adopting AI?</p>
         </div>
-        <Link href="/dashboard/roi" className="text-xs font-medium text-orchid-deep hover:text-oxblood">
-          View ROI →
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link
+            href="/reports/ai-transformation"
+            className="rounded-full border border-ink-300 px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-ink-50"
+          >
+            Download transformation report
+          </Link>
+          <Link href="/dashboard/roi" className="text-xs font-medium text-orchid-deep hover:text-oxblood">
+            View ROI →
+          </Link>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
