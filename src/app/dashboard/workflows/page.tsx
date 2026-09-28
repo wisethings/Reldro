@@ -26,18 +26,33 @@ export default async function WorkflowsPage({
     prisma.organization.findUnique({ where: { id: session.organizationId }, select: { departmentIsolationEnabled: true } }),
   ]);
   const visibleDepartment = departmentVisibilityFilter(session, Boolean(org?.departmentIsolationEnabled), employee);
-  const workflows = await prisma.workflow.findMany({
-    where: {
-      OR: [{ organizationId: null }, { organizationId: session.organizationId }],
-      department: visibleDepartment ?? (params.department || undefined),
-    },
-    orderBy: { title: "asc" },
-    include: { steps: { select: { id: true } } },
-  });
+  // The chip row has to list every department regardless of which one is
+  // currently selected, so it stays clickable between departments - querying
+  // it from the already department-filtered `workflows` below (the previous
+  // bug) meant selecting a department collapsed the row down to just that
+  // one department, since it was the only one left in that filtered list.
+  const [workflows, allDepartmentRows] = await Promise.all([
+    prisma.workflow.findMany({
+      where: {
+        OR: [{ organizationId: null }, { organizationId: session.organizationId }],
+        department: visibleDepartment ?? (params.department || undefined),
+      },
+      orderBy: { title: "asc" },
+      include: { steps: { select: { id: true } } },
+    }),
+    prisma.workflow.findMany({
+      where: {
+        OR: [{ organizationId: null }, { organizationId: session.organizationId }],
+        department: visibleDepartment,
+      },
+      select: { department: true },
+      distinct: ["department"],
+    }),
+  ]);
   const canAuthorWorkflows = session.role === "COMPANY_ADMIN" || Boolean(employee?.isDepartmentAdmin);
   const statsByWorkflow = await getWorkflowDeploymentStatsForOrg(session.organizationId, workflows);
 
-  const departments = Array.from(new Set(workflows.map((w) => w.department)));
+  const departments = allDepartmentRows.map((d) => d.department).sort();
   const byDepartment = new Map<string, typeof workflows>();
   for (const w of workflows) {
     byDepartment.set(w.department, [...(byDepartment.get(w.department) ?? []), w]);
