@@ -8,6 +8,8 @@ import type { SessionPayload } from "@/lib/auth/session";
 import { logAudit } from "@/lib/audit";
 import { awardPoints } from "@/lib/rewards";
 import { checkAndAwardCertifications } from "@/lib/queries/certifications";
+import { hasUnmetDependencies } from "@/lib/queries/workflowRelations";
+import { DEPLOYED_STATUSES } from "@/lib/workflowLifecycle";
 import type { WorkflowAdoptionStatus } from "@prisma/client";
 
 /**
@@ -40,6 +42,14 @@ async function canManageWorkflowDeployment(session: SessionPayload, workflowId: 
 
 export async function adoptWorkflow(workflowId: string) {
   const session = await requireOrganization();
+
+  // The detail page already hides the "Adopt workflow" button while a
+  // prerequisite is unmet, but a stale page (or a direct resubmit) could
+  // still post this - checking here too keeps the guarantee real rather than
+  // just a UI nicety.
+  if (await hasUnmetDependencies(session.organizationId, workflowId)) {
+    throw new Error("This workflow has a prerequisite that hasn't been adopted yet.");
+  }
 
   await prisma.organizationWorkflow.upsert({
     where: { organizationId_workflowId: { organizationId: session.organizationId, workflowId } },
@@ -76,6 +86,10 @@ export async function adoptWorkflow(workflowId: string) {
 export async function setWorkflowStage(workflowId: string, status: WorkflowAdoptionStatus) {
   const session = await requireRole(["COMPANY_ADMIN"]);
   const organizationId = session.organizationId!;
+
+  if (DEPLOYED_STATUSES.includes(status) && (await hasUnmetDependencies(organizationId, workflowId))) {
+    throw new Error("This workflow has a prerequisite that hasn't been adopted yet.");
+  }
 
   await prisma.organizationWorkflow.upsert({
     where: { organizationId_workflowId: { organizationId, workflowId } },

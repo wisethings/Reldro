@@ -31,7 +31,11 @@ export type AuditAction =
   | "settings.department_isolation_disabled"
   | "workflow.assignee_changed"
   | "employee.granted_all_department_access"
-  | "employee.revoked_all_department_access";
+  | "employee.revoked_all_department_access"
+  | "workflow.linked"
+  | "workflow.unlinked"
+  | "workflow.dependency_added"
+  | "workflow.dependency_removed";
 
 /**
  * Records a sensitive action to the audit trail. Best-effort: a failure here
@@ -93,6 +97,10 @@ const ACTION_LABELS: Record<AuditAction, string> = {
   "workflow.assignee_changed": "Changed a workflow's assignee",
   "employee.granted_all_department_access": "Gave an employee cross-department visibility",
   "employee.revoked_all_department_access": "Removed an employee's cross-department visibility",
+  "workflow.linked": "Linked two workflows together",
+  "workflow.unlinked": "Removed a link between two workflows",
+  "workflow.dependency_added": "Added a workflow prerequisite",
+  "workflow.dependency_removed": "Removed a workflow prerequisite",
 };
 
 export function describeAuditAction(action: string): string {

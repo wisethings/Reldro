@@ -141,53 +141,55 @@ enum TransactionStatus {
 // ---------------------------------------------------------------------------
 
 model Organization {
-  id             String   @id @default(cuid())
-  name           String
-  industry       String
-  size           String // e.g. "1-50", "51-200", "201-1000", "1000+"
-  revenueRange   String
-  geography      String
-  businessModel  String
-  goals          String[] // selected AI goals from onboarding
-  logoUrl        String?
-  onboardingStep Int      @default(0)
-  onboardingDone Boolean  @default(false)
+  id                         String   @id @default(cuid())
+  name                       String
+  industry                   String
+  size                       String // e.g. "1-50", "51-200", "201-1000", "1000+"
+  revenueRange               String
+  geography                  String
+  businessModel              String
+  goals                      String[] // selected AI goals from onboarding
+  logoUrl                    String?
+  onboardingStep             Int      @default(0)
+  onboardingDone             Boolean  @default(false)
   // When true, an employee only sees their own department's workflows and
   // lessons (both the shared global catalog and other departments' team-
   // authored content are filtered out for them) - a company admin always
   // sees everything regardless of this setting.
-  departmentIsolationEnabled Boolean @default(false)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  departmentIsolationEnabled Boolean  @default(false)
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
 
-  departments            Department[]
-  employees              Employee[]
-  users                  User[]
-  assessments            Assessment[]
-  learningPaths          LearningPath[]
-  opportunities          Opportunity[]
-  initiatives            Initiative[]
-  organizationWorkflows  OrganizationWorkflow[]
-  projects               Project[]
-  integrationConnections IntegrationConnection[]
-  aiUsageEvents          AIUsageEvent[]
-  adoptionSnapshots      AdoptionMetricSnapshot[]
-  roiMetrics             ROIMetric[]
-  subscription           Subscription?
-  invoices               Invoice[]
-  auditLogs              AuditLog[]
-  pointsRules            PointsRule[]
-  pointsTransactions     PointsTransaction[]
-  rewardItems            RewardItem[]
-  recognitions           Recognition[]
-  reviews                Review[]
-  customTools            Tool[]
-  organizationTools      OrganizationTool[]
-  demoRequests           DemoRequest[]
-  courses                Course[]
-  workflows              Workflow[]
-  templates              Template[]
+  departments                  Department[]
+  employees                    Employee[]
+  users                        User[]
+  assessments                  Assessment[]
+  learningPaths                LearningPath[]
+  opportunities                Opportunity[]
+  initiatives                  Initiative[]
+  organizationWorkflows        OrganizationWorkflow[]
+  projects                     Project[]
+  integrationConnections       IntegrationConnection[]
+  aiUsageEvents                AIUsageEvent[]
+  adoptionSnapshots            AdoptionMetricSnapshot[]
+  roiMetrics                   ROIMetric[]
+  subscription                 Subscription?
+  invoices                     Invoice[]
+  auditLogs                    AuditLog[]
+  pointsRules                  PointsRule[]
+  pointsTransactions           PointsTransaction[]
+  rewardItems                  RewardItem[]
+  recognitions                 Recognition[]
+  reviews                      Review[]
+  customTools                  Tool[]
+  organizationTools            OrganizationTool[]
+  demoRequests                 DemoRequest[]
+  courses                      Course[]
+  workflows                    Workflow[]
+  templates                    Template[]
   workflowChecklistCompletions WorkflowChecklistCompletion[]
+  workflowLinks                WorkflowLink[]
+  workflowDependencies         WorkflowDependency[]
 
   @@index([industry])
 }
@@ -220,54 +222,54 @@ model User {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
-  hasSeenTour    Boolean       @default(false)
-  failedLoginAttempts Int      @default(0)
+  hasSeenTour         Boolean   @default(false)
+  failedLoginAttempts Int       @default(0)
   lockedUntil         DateTime?
 
-  employee      Employee?
-  specialist    Specialist?
-  notifications Notification[]
-  sentMessages  Message[]
-  auditLogs     AuditLog[]
+  employee          Employee?
+  specialist        Specialist?
+  notifications     Notification[]
+  sentMessages      Message[]
+  auditLogs         AuditLog[]
   recognitionsGiven Recognition[]
 
   @@index([organizationId])
 }
 
 model Employee {
-  id                String       @id @default(cuid())
-  userId            String       @unique
-  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organizationId    String
-  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  departmentId      String?
-  department        Department?  @relation(fields: [departmentId], references: [id])
-  jobTitle          String
-  isDepartmentAdmin Boolean      @default(false)
+  id                 String       @id @default(cuid())
+  userId             String       @unique
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId     String
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  departmentId       String?
+  department         Department?  @relation(fields: [departmentId], references: [id])
+  jobTitle           String
+  isDepartmentAdmin  Boolean      @default(false)
   // Cross-department content visibility, independent of role/department
   // admin status - same effect department isolation gives a company admin
   // (sees every department's opportunities/templates/workflows/lessons),
   // granted to a specific employee instead. Meant for a demo persona who
   // needs to show breadth across departments, not a real permission tier.
-  viewAllDepartments Boolean     @default(false)
-  aiFluencyScore    Int?
-  hireDate          DateTime     @default(now())
-  createdAt         DateTime     @default(now())
+  viewAllDepartments Boolean      @default(false)
+  aiFluencyScore     Int?
+  hireDate           DateTime     @default(now())
+  createdAt          DateTime     @default(now())
 
-  assessments        Assessment[]
-  employeeSkills     EmployeeSkill[]
-  lessonCompletions  LessonCompletion[]
-  simulationAttempts SimulationAttempt[]
-  initiativeMembers  InitiativeMember[]
-  aiUsageEvents      AIUsageEvent[]
+  assessments             Assessment[]
+  employeeSkills          EmployeeSkill[]
+  lessonCompletions       LessonCompletion[]
+  simulationAttempts      SimulationAttempt[]
+  initiativeMembers       InitiativeMember[]
+  aiUsageEvents           AIUsageEvent[]
   workflowStepCompletions WorkflowStepCompletion[]
-  ownedWorkflows     OrganizationWorkflow[] @relation("WorkflowOwner")
-  assignedWorkflows  OrganizationWorkflow[] @relation("WorkflowAssignee")
-  certifications        EmployeeCertification[]
-  pointsTransactions    PointsTransaction[]
-  rewardRedemptions     RewardRedemption[]
-  recognitionsReceived  Recognition[]
-  projectMemberships    ProjectMember[]
+  ownedWorkflows          OrganizationWorkflow[]   @relation("WorkflowOwner")
+  assignedWorkflows       OrganizationWorkflow[]   @relation("WorkflowAssignee")
+  certifications          EmployeeCertification[]
+  pointsTransactions      PointsTransaction[]
+  rewardRedemptions       RewardRedemption[]
+  recognitionsReceived    Recognition[]
+  projectMemberships      ProjectMember[]
 
   @@index([organizationId])
   @@index([departmentId])
@@ -278,28 +280,28 @@ model Employee {
 // ---------------------------------------------------------------------------
 
 model Specialist {
-  id                String   @id @default(cuid())
-  userId            String   @unique
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  headline          String
-  bio               String
-  photoUrl          String?
-  yearsExperience   Int
-  hourlyRate        Int?
-  projectRateMin    Int?
-  projectRateMax    Int?
-  availability      String // e.g. "Available now", "2 weeks out", "Booked"
-  ratingAvg         Float    @default(0)
-  ratingCount       Int      @default(0)
-  completedProjects Int      @default(0)
-  approved          Boolean  @default(false)
-  featured          Boolean  @default(false)
-  location          String?
-  linkedinUrl       String?
-  portfolioUrl      String?
-  notableProjects   String?
+  id                       String   @id @default(cuid())
+  userId                   String   @unique
+  user                     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  headline                 String
+  bio                      String
+  photoUrl                 String?
+  yearsExperience          Int
+  hourlyRate               Int?
+  projectRateMin           Int?
+  projectRateMax           Int?
+  availability             String // e.g. "Available now", "2 weeks out", "Booked"
+  ratingAvg                Float    @default(0)
+  ratingCount              Int      @default(0)
+  completedProjects        Int      @default(0)
+  approved                 Boolean  @default(false)
+  featured                 Boolean  @default(false)
+  location                 String?
+  linkedinUrl              String?
+  portfolioUrl             String?
+  notableProjects          String?
   preferredEngagementTypes String[] @default([])
-  createdAt         DateTime @default(now())
+  createdAt                DateTime @default(now())
 
   tags     SpecialistTag[]
   services SpecialistService[]
@@ -415,7 +417,7 @@ model Course {
   workflowId     String?
   workflow       Workflow?     @relation(fields: [workflowId], references: [id])
   order          Int           @default(0)
-  role           String?       // e.g. "Account Executives" - who this path is for
+  role           String? // e.g. "Account Executives" - who this path is for
   skills         String[]      @default([]) // EmployeeSkillCategory keys this path develops
   tools          String[]      @default([]) // real tools this path teaches (ChatGPT, Salesforce, ...)
   // null = shared global catalog course (seeded); set = a team-authored course, visible only within that org.
@@ -442,27 +444,27 @@ enum LessonType {
 }
 
 model Lesson {
-  id          String     @id @default(cuid())
-  courseId    String
-  course      Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  title       String
-  type        LessonType @default(CONCEPT)
-  objective   String     @default("") // "What you'll be able to do"
-  whyItMatters String    @default("") // connects the skill to the employee's actual work
-  concept     String // "Learn": short practical explanation
-  example     String // "See it": an expert applying the skill
-  tryItPrompt String     @default("") // "Try it": instructions for the employee to perform the task
-  evaluatePrompt String  @default("") // "Evaluate": an AI output or decision to assess
-  exercise    String // "Apply": connect the skill to the employee's actual workflow
-  knowledgeCheckQuestion String   @default("")
-  knowledgeCheckOptions  String[] @default([])
-  knowledgeCheckCorrectIndex Int  @default(-1)
-  takeaway    String     @default("") // one concise principle to remember
-  skills      String[]   @default([]) // EmployeeSkillCategory keys this lesson develops
-  order       Int        @default(0)
-  durationMin Int        @default(8)
-  imageUrl    String?    // optional illustrative image (screenshot, diagram) - a data URI for team-authored lessons
-  videoUrl    String?    // optional video link (YouTube, Loom, Vimeo) - embedded on the lesson page
+  id                         String     @id @default(cuid())
+  courseId                   String
+  course                     Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title                      String
+  type                       LessonType @default(CONCEPT)
+  objective                  String     @default("") // "What you'll be able to do"
+  whyItMatters               String     @default("") // connects the skill to the employee's actual work
+  concept                    String // "Learn": short practical explanation
+  example                    String // "See it": an expert applying the skill
+  tryItPrompt                String     @default("") // "Try it": instructions for the employee to perform the task
+  evaluatePrompt             String     @default("") // "Evaluate": an AI output or decision to assess
+  exercise                   String // "Apply": connect the skill to the employee's actual workflow
+  knowledgeCheckQuestion     String     @default("")
+  knowledgeCheckOptions      String[]   @default([])
+  knowledgeCheckCorrectIndex Int        @default(-1)
+  takeaway                   String     @default("") // one concise principle to remember
+  skills                     String[]   @default([]) // EmployeeSkillCategory keys this lesson develops
+  order                      Int        @default(0)
+  durationMin                Int        @default(8)
+  imageUrl                   String? // optional illustrative image (screenshot, diagram) - a data URI for team-authored lessons
+  videoUrl                   String? // optional video link (YouTube, Loom, Vimeo) - embedded on the lesson page
 
   completions LessonCompletion[]
 
@@ -515,18 +517,18 @@ model Simulation {
 }
 
 model SimulationAttempt {
-  id           String     @id @default(cuid())
-  employeeId   String
-  employee     Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  simulationId String
-  simulation   Simulation @relation(fields: [simulationId], references: [id], onDelete: Cascade)
-  score        Int
-  feedback     String
-  dimensions   Json     @default("{}") // {reasoning,aiUsage,promptQuality,accuracy,workflowAdherence}
+  id                String     @id @default(cuid())
+  employeeId        String
+  employee          Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  simulationId      String
+  simulation        Simulation @relation(fields: [simulationId], references: [id], onDelete: Cascade)
+  score             Int
+  feedback          String
+  dimensions        Json       @default("{}") // {reasoning,aiUsage,promptQuality,accuracy,workflowAdherence}
   decisionChoiceId  String?
-  evaluationChoices String[] @default([])
-  passed            Boolean  @default(false)
-  completedAt  DateTime   @default(now())
+  evaluationChoices String[]   @default([])
+  passed            Boolean    @default(false)
+  completedAt       DateTime   @default(now())
 
   @@index([employeeId])
 }
@@ -562,6 +564,10 @@ model Workflow {
   courses               Course[]
   projects              Project[]
   checklistCompletions  WorkflowChecklistCompletion[]
+  linksAsSource         WorkflowLink[]                @relation("WorkflowLinkSource")
+  linksAsTarget         WorkflowLink[]                @relation("WorkflowLinkTarget")
+  dependenciesRequired  WorkflowDependency[]          @relation("DependentWorkflow")
+  dependenciesBlocking  WorkflowDependency[]          @relation("PrerequisiteWorkflow")
 
   @@index([department])
   @@index([organizationId])
@@ -637,6 +643,48 @@ model WorkflowChecklistCompletion {
 
   @@unique([organizationId, workflowId, itemIndex])
   @@index([organizationId, workflowId])
+}
+
+// An org-defined association between two workflows, shown on both workflows'
+// detail pages for context/discovery (e.g. an intake workflow linked to the
+// triage workflow it usually feeds into). Purely informational - unlike
+// WorkflowDependency, it never gates adoption. Org-scoped like
+// OrganizationWorkflow, since the underlying Workflow rows can be shared
+// global-catalog content that no single org owns. Undirected: creating a
+// link stores both directions so it shows up from either workflow's page
+// without an OR query, and removing one side removes both.
+model WorkflowLink {
+  id               String       @id @default(cuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workflowId       String
+  workflow         Workflow     @relation("WorkflowLinkSource", fields: [workflowId], references: [id], onDelete: Cascade)
+  linkedWorkflowId String
+  linkedWorkflow   Workflow     @relation("WorkflowLinkTarget", fields: [linkedWorkflowId], references: [id], onDelete: Cascade)
+  createdAt        DateTime     @default(now())
+
+  @@unique([organizationId, workflowId, linkedWorkflowId])
+  @@index([organizationId, workflowId])
+}
+
+// A prerequisite: for this org, `workflow` shouldn't be marked adopted until
+// `dependsOnWorkflow` already is. Directed and org-scoped, since the same
+// global-catalog workflow can have different real-world prerequisites at
+// different companies (e.g. one company's CRM rollout gates its sales-email
+// workflow, another's doesn't).
+model WorkflowDependency {
+  id                  String       @id @default(cuid())
+  organizationId      String
+  organization        Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workflowId          String
+  workflow            Workflow     @relation("DependentWorkflow", fields: [workflowId], references: [id], onDelete: Cascade)
+  dependsOnWorkflowId String
+  dependsOnWorkflow   Workflow     @relation("PrerequisiteWorkflow", fields: [dependsOnWorkflowId], references: [id], onDelete: Cascade)
+  createdAt           DateTime     @default(now())
+
+  @@unique([organizationId, workflowId, dependsOnWorkflowId])
+  @@index([organizationId, workflowId])
+  @@index([organizationId, dependsOnWorkflowId])
 }
 
 // ---------------------------------------------------------------------------
@@ -909,16 +957,16 @@ model Tool {
 }
 
 model OrganizationTool {
-  id             String              @id @default(cuid())
+  id             String             @id @default(cuid())
   organizationId String
-  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   toolId         String
-  tool           Tool                @relation(fields: [toolId], references: [id], onDelete: Cascade)
-  status         ToolApprovalStatus  @default(UNDER_REVIEW)
-  addedAt        DateTime            @default(now())
+  tool           Tool               @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  status         ToolApprovalStatus @default(UNDER_REVIEW)
+  addedAt        DateTime           @default(now())
   guidance       String?
-  approvedUses   String[]            @default([])
-  restrictedUses String[]            @default([])
+  approvedUses   String[]           @default([])
+  restrictedUses String[]           @default([])
 
   @@unique([organizationId, toolId])
 }
@@ -1056,17 +1104,17 @@ model AuditLog {
 
 // Global certification definitions (like the global Tool/Simulation catalogs) - real, checkable requirements against data already tracked elsewhere.
 model Certification {
-  id                    String   @id @default(cuid())
-  key                   String   @unique
-  title                 String
-  description           String
-  minFluency            Int? // required overall AI fluency score
-  requiredSkills        Json     @default("[]") // {skill: EmployeeSkillCategory, minScore: number}[]
-  minCoursesCompleted   Int      @default(0) // fully-completed learning paths, any department
-  minSimulationsPassed  Int      @default(0) // distinct simulations with at least one passed attempt
-  pointsAwarded         Int      @default(0)
-  order                 Int      @default(0)
-  createdAt             DateTime @default(now())
+  id                   String   @id @default(cuid())
+  key                  String   @unique
+  title                String
+  description          String
+  minFluency           Int? // required overall AI fluency score
+  requiredSkills       Json     @default("[]") // {skill: EmployeeSkillCategory, minScore: number}[]
+  minCoursesCompleted  Int      @default(0) // fully-completed learning paths, any department
+  minSimulationsPassed Int      @default(0) // distinct simulations with at least one passed attempt
+  pointsAwarded        Int      @default(0)
+  order                Int      @default(0)
+  createdAt            DateTime @default(now())
 
   employeeCertifications EmployeeCertification[]
 }

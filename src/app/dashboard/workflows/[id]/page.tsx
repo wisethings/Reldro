@@ -15,6 +15,8 @@ import { ChecklistItemCheckbox } from "@/components/workflows/ChecklistItemCheck
 import { getWorkflowDeploymentStats, getEligibleEmployeesForWorkflow } from "@/lib/queries/workflowDeployment";
 import { getWorkflowReadiness } from "@/lib/queries/workflowReadiness";
 import { getMatchedTools } from "@/lib/queries/tools";
+import { getLinkedWorkflows, getWorkflowDependencies, getDependentWorkflows, getWorkflowChoices } from "@/lib/queries/workflowRelations";
+import { WorkflowRelationManager } from "@/components/workflows/WorkflowRelationManager";
 import { WORKFLOW_STATUS_LABEL, WORKFLOW_STATUS_TONE } from "@/lib/workflowLifecycle";
 
 const DIFFICULTY_TONE = { LOW: "green", MEDIUM: "amber", HIGH: "red" } as const;
@@ -63,14 +65,23 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
     canManageOthersHere ||
     (session.employeeId !== null && (orgWorkflow?.ownerId === session.employeeId || orgWorkflow?.assigneeId === session.employeeId));
 
-  const [stats, eligibleEmployees, readiness, matchedTools, checklistCompletions] = await Promise.all([
-    getWorkflowDeploymentStats(session.organizationId, workflow),
-    canManageOthersHere ? getEligibleEmployeesForWorkflow(session.organizationId, workflow.department) : Promise.resolve([]),
-    getWorkflowReadiness(session.organizationId, workflow.id, workflow.department),
-    getMatchedTools(session.organizationId, workflow.toolsRequired),
-    prisma.workflowChecklistCompletion.findMany({ where: { organizationId: session.organizationId, workflowId: workflow.id } }),
-  ]);
+  const [stats, eligibleEmployees, readiness, matchedTools, checklistCompletions, linkedWorkflows, dependencies, dependentWorkflows, workflowChoices] =
+    await Promise.all([
+      getWorkflowDeploymentStats(session.organizationId, workflow),
+      canManageOthersHere ? getEligibleEmployeesForWorkflow(session.organizationId, workflow.department) : Promise.resolve([]),
+      getWorkflowReadiness(session.organizationId, workflow.id, workflow.department),
+      getMatchedTools(session.organizationId, workflow.toolsRequired),
+      prisma.workflowChecklistCompletion.findMany({ where: { organizationId: session.organizationId, workflowId: workflow.id } }),
+      getLinkedWorkflows(session.organizationId, workflow.id),
+      getWorkflowDependencies(session.organizationId, workflow.id),
+      getDependentWorkflows(session.organizationId, workflow.id),
+      getWorkflowChoices(session.organizationId, workflow.id),
+    ]);
   const checklistCompletionByIndex = new Map(checklistCompletions.map((c) => [c.itemIndex, c]));
+  const unmetDependencies = dependencies.filter((d) => !d.met);
+  const dependenciesMet = unmetDependencies.length === 0;
+  const linkChoices = workflowChoices.filter((w) => !linkedWorkflows.some((l) => l.id === w.id));
+  const dependencyChoices = workflowChoices.filter((w) => !dependencies.some((d) => d.id === w.id));
   const checklistItems = [
     "Review current process with the team",
     "Confirm access to required tools",
@@ -90,11 +101,20 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
             <h1 className="text-xl font-semibold text-ink-900">{workflow.title}</h1>
             <p className="mt-1 text-sm text-ink-500">{workflow.department}</p>
           </div>
-          <form action={adoptWorkflow.bind(null, workflow.id)}>
-            <button className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800">
-              {status === "ADOPTED" ? "Re-confirm adoption" : "Adopt workflow"}
-            </button>
-          </form>
+          {dependenciesMet ? (
+            <form action={adoptWorkflow.bind(null, workflow.id)}>
+              <button className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800">
+                {status === "ADOPTED" ? "Re-confirm adoption" : "Adopt workflow"}
+              </button>
+            </form>
+          ) : (
+            <div className="text-right">
+              <button disabled className="cursor-not-allowed rounded-full bg-ink-200 px-4 py-2 text-sm font-medium text-ink-500">
+                Adopt workflow
+              </button>
+              <p className="mt-1 text-xs text-ink-500">Requires first: {unmetDependencies.map((d) => d.title).join(", ")}</p>
+            </div>
+          )}
         </div>
         <div className="mt-3 flex flex-wrap gap-1.5">
           <Badge tone={DIFFICULTY_TONE[workflow.difficulty]}>{workflow.difficulty.toLowerCase()} difficulty</Badge>
@@ -138,6 +158,8 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
               currentStatus={status}
               currentOwnerId={orgWorkflow?.ownerId ?? null}
               eligibleEmployees={eligibleEmployees.map((e) => ({ id: e.id, name: e.user.name }))}
+              dependenciesMet={dependenciesMet}
+              unmetDependencyTitles={unmetDependencies.map((d) => d.title)}
             />
           )}
           <WorkflowAssigneeControl
@@ -158,6 +180,29 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
           </div>
         </CardBody>
       </Card>
+
+      {(dependencies.length > 0 || canManageOthersHere) && (
+        <Card>
+          <CardHeader
+            title="Prerequisites"
+            subtitle={dependencies.length > 0 ? "This workflow shouldn't be adopted until these are." : "Workflows that must be adopted first, if any."}
+          />
+          <CardBody>
+            <WorkflowRelationManager
+              mode="dependency"
+              workflowId={workflow.id}
+              items={dependencies}
+              choices={dependencyChoices}
+              canManage={canManageOthersHere}
+            />
+            {canManageOthersHere && dependentWorkflows.length > 0 && (
+              <p className="mt-3 text-xs text-ink-500">
+                Blocks: {dependentWorkflows.map((d) => d.title).join(", ")}
+              </p>
+            )}
+          </CardBody>
+        </Card>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
@@ -188,6 +233,21 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
                 </div>
               ))}
             </div>
+          </CardBody>
+        </Card>
+      )}
+
+      {(linkedWorkflows.length > 0 || canManageOthersHere) && (
+        <Card>
+          <CardHeader title="Related workflows" subtitle="Other workflows worth knowing about alongside this one." />
+          <CardBody>
+            <WorkflowRelationManager
+              mode="link"
+              workflowId={workflow.id}
+              items={linkedWorkflows}
+              choices={linkChoices}
+              canManage={canManageOthersHere}
+            />
           </CardBody>
         </Card>
       )}

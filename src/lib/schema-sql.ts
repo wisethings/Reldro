@@ -1234,4 +1234,31 @@ ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "viewAllDepartments" BOOLEAN NOT
 -- Patch: tool-in-context tagging for standalone templates (idempotent, same rules).
 ALTER TABLE "Template" ADD COLUMN IF NOT EXISTS "tools" TEXT[] NOT NULL DEFAULT '{}';
 
+-- Patch: org-defined related-workflow links and prerequisite (dependency) workflows (idempotent, same rules).
+CREATE TABLE IF NOT EXISTS "WorkflowLink" ("id" TEXT NOT NULL, "organizationId" TEXT NOT NULL, "workflowId" TEXT NOT NULL, "linkedWorkflowId" TEXT NOT NULL, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT "WorkflowLink_pkey" PRIMARY KEY ("id"));
+
+CREATE UNIQUE INDEX IF NOT EXISTS "WorkflowLink_organizationId_workflowId_linkedWorkflowId_key" ON "WorkflowLink"("organizationId", "workflowId", "linkedWorkflowId");
+
+CREATE INDEX IF NOT EXISTS "WorkflowLink_organizationId_workflowId_idx" ON "WorkflowLink"("organizationId", "workflowId");
+
+DO $$ BEGIN ALTER TABLE "WorkflowLink" ADD CONSTRAINT "WorkflowLink_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "WorkflowLink" ADD CONSTRAINT "WorkflowLink_workflowId_fkey" FOREIGN KEY ("workflowId") REFERENCES "Workflow"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "WorkflowLink" ADD CONSTRAINT "WorkflowLink_linkedWorkflowId_fkey" FOREIGN KEY ("linkedWorkflowId") REFERENCES "Workflow"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+CREATE TABLE IF NOT EXISTS "WorkflowDependency" ("id" TEXT NOT NULL, "organizationId" TEXT NOT NULL, "workflowId" TEXT NOT NULL, "dependsOnWorkflowId" TEXT NOT NULL, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT "WorkflowDependency_pkey" PRIMARY KEY ("id"));
+
+CREATE UNIQUE INDEX IF NOT EXISTS "WorkflowDependency_organizationId_workflowId_dependsOnWork_key" ON "WorkflowDependency"("organizationId", "workflowId", "dependsOnWorkflowId");
+
+CREATE INDEX IF NOT EXISTS "WorkflowDependency_organizationId_workflowId_idx" ON "WorkflowDependency"("organizationId", "workflowId");
+
+CREATE INDEX IF NOT EXISTS "WorkflowDependency_organizationId_dependsOnWorkflowId_idx" ON "WorkflowDependency"("organizationId", "dependsOnWorkflowId");
+
+DO $$ BEGIN ALTER TABLE "WorkflowDependency" ADD CONSTRAINT "WorkflowDependency_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "WorkflowDependency" ADD CONSTRAINT "WorkflowDependency_workflowId_fkey" FOREIGN KEY ("workflowId") REFERENCES "Workflow"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "WorkflowDependency" ADD CONSTRAINT "WorkflowDependency_dependsOnWorkflowId_fkey" FOREIGN KEY ("dependsOnWorkflowId") REFERENCES "Workflow"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
 `;
