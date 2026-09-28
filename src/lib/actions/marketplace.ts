@@ -84,7 +84,18 @@ export async function requestExpertHelp(params: {
   timeline?: string;
   ccEmails?: string[];
 }) {
-  const session = await requireRole(["COMPANY_ADMIN"]);
+  const session = await requireSession();
+  if (!session.organizationId) redirect("/login");
+  // Only a company admin or a department lead ("team lead") can request
+  // expert help - not every employee, since this commits the org to a paid
+  // engagement. A department lead can still only request it for their own
+  // department's work, enforced the same way workflow/course authoring is.
+  let isDepartmentAdmin = false;
+  if (session.role !== "COMPANY_ADMIN") {
+    const employee = session.employeeId ? await prisma.employee.findUnique({ where: { id: session.employeeId } }) : null;
+    isDepartmentAdmin = Boolean(employee?.isDepartmentAdmin);
+    if (!isDepartmentAdmin) throw new Error("Only company admins and team leads can request expert help.");
+  }
   const org = await prisma.organization.findUnique({ where: { id: session.organizationId! } });
 
   // Both ids come from the client, so re-verify ownership server-side rather

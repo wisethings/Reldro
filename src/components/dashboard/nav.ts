@@ -34,7 +34,10 @@ export function getNavItems(role: Role, isDepartmentAdmin = false): NavItem[] {
     ];
   }
 
-  // Employee: personalized, lighter-weight nav, plus a team rollup for
-  // department admins (a manager-level view without full company-admin access).
-  return isDepartmentAdmin ? [...base, { href: "/dashboard/my-team", label: "My Team" }] : base;
+  // Employee: personalized, lighter-weight nav, plus a team rollup and expert
+  // help (department leads, not plain employees, can request/see it) for
+  // department admins - a manager-level view without full company-admin access.
+  return isDepartmentAdmin
+    ? [...base, { href: "/dashboard/my-team", label: "My Team" }, { href: "/dashboard/expert-help", label: "Expert Help" }]
+    : base;
 }

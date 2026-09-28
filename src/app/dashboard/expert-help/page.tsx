@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { requireRole } from "@/lib/auth/guards";
+import { requireSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -15,11 +15,27 @@ const STATUS_LABEL = {
 } as const;
 
 export default async function ExpertHelpPage() {
-  const session = await requireRole(["COMPANY_ADMIN"]);
+  const session = await requireSession();
   if (!session.organizationId) redirect("/login");
+  const isCompanyAdmin = session.role === "COMPANY_ADMIN";
+  const employee = session.employeeId ? await prisma.employee.findUnique({ where: { id: session.employeeId }, include: { department: true } }) : null;
+  if (!isCompanyAdmin && !employee?.isDepartmentAdmin) redirect("/dashboard/overview");
 
   const requests = await prisma.project.findMany({
-    where: { organizationId: session.organizationId },
+    where: {
+      organizationId: session.organizationId,
+      // A department lead only sees expert-help requests tied to their own
+      // department's opportunity/workflow - a company admin sees every
+      // request across the org, same boundary as authoring workflows/lessons.
+      ...(isCompanyAdmin
+        ? {}
+        : {
+            OR: [
+              { opportunity: { department: { name: employee?.department?.name ?? "__none__" } } },
+              { workflow: { department: employee?.department?.name ?? "__none__" } },
+            ],
+          }),
+    },
     include: { specialist: { include: { user: true } }, opportunity: true, workflow: true },
     orderBy: { createdAt: "desc" },
   });

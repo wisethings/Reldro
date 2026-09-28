@@ -28,7 +28,7 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
   // any other org's private workflow (and its courses) just by guessing an
   // id, which is exactly what happened via the "linked workflow" link from a
   // project page.
-  const [workflow, orgWorkflow, courses, completions] = await Promise.all([
+  const [workflow, orgWorkflow, courses, completions, employee] = await Promise.all([
     prisma.workflow.findFirst({
       where: { id, OR: [{ organizationId: null }, { organizationId: session.organizationId }] },
       include: { steps: { orderBy: { order: "asc" } } },
@@ -43,8 +43,10 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
     session.employeeId
       ? prisma.workflowStepCompletion.findMany({ where: { employeeId: session.employeeId, workflowStep: { workflowId: id } } })
       : Promise.resolve([]),
+    session.employeeId ? prisma.employee.findUnique({ where: { id: session.employeeId } }) : Promise.resolve(null),
   ]);
   if (!workflow) notFound();
+  const canRequestExpertHelp = session.role === "COMPANY_ADMIN" || Boolean(employee?.isDepartmentAdmin);
 
   const status = orgWorkflow?.status ?? "NOT_ADOPTED";
   const completedStepIds = new Set(completions.map((c) => c.workflowStepId));
@@ -300,7 +302,7 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
         </Card>
       )}
 
-      {workflow.difficulty === "HIGH" && (
+      {workflow.difficulty === "HIGH" && canRequestExpertHelp && (
         <Card>
           <CardHeader title="Consider expert help" subtitle="High-complexity workflows implement faster with outside expertise" />
           <CardBody>

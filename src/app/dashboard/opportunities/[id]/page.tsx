@@ -16,11 +16,15 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
   if (!session.organizationId) redirect("/login");
   const { id } = await params;
 
-  const opportunity = await prisma.opportunity.findFirst({
-    where: { id, organizationId: session.organizationId },
-    include: { department: true, workflow: { include: { steps: true, courses: { include: { lessons: true } } } } },
-  });
+  const [opportunity, employee] = await Promise.all([
+    prisma.opportunity.findFirst({
+      where: { id, organizationId: session.organizationId },
+      include: { department: true, workflow: { include: { steps: true, courses: { include: { lessons: true } } } } },
+    }),
+    session.employeeId ? prisma.employee.findUnique({ where: { id: session.employeeId } }) : Promise.resolve(null),
+  ]);
   if (!opportunity) notFound();
+  const canRequestExpertHelp = session.role === "COMPANY_ADMIN" || Boolean(employee?.isDepartmentAdmin);
 
   const courses = opportunity.workflow?.courses ?? [];
 
@@ -118,7 +122,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
         </Card>
       )}
 
-      {opportunity.recommendedSpecialist && (
+      {opportunity.recommendedSpecialist && canRequestExpertHelp && (
         <Card>
           <CardHeader title="Specialist recommended" subtitle="This opportunity is complex enough to benefit from outside expertise" />
           <CardBody>
