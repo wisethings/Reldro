@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { createTemplate } from "@/lib/actions/templates";
 import { ToolMultiSelect } from "@/components/ui/ToolMultiSelect";
+import { Field, FieldGrid, Input, Select, Textarea } from "@/components/ui/Field";
 
 export function CreateTemplateForm({
   lockDepartment,
@@ -19,37 +20,38 @@ export function CreateTemplateForm({
     <form action={formAction} className="space-y-3">
       {state?.error && <p className="rounded-lg bg-coral-soft px-3 py-2 text-sm text-danger">{state.error}</p>}
       {state?.success && <p className="rounded-lg bg-sage px-3 py-2 text-sm text-sage-deep">{state.success}</p>}
-      <div className="grid gap-3 sm:grid-cols-2">
-        <input name="title" placeholder="Template title" required className="rounded-lg border border-ink-300 px-3 py-2 text-sm" />
+      <FieldGrid columns={2}>
+        <Field label="Template title" required>
+          <Input name="title" placeholder="e.g. Draft a renewal outreach email" required />
+        </Field>
         {lockDepartment ? (
-          <input type="hidden" name="department" value={lockDepartment} />
+          <>
+            <input type="hidden" name="department" value={lockDepartment} />
+            <Field label="Department" hint={`For ${lockDepartment}`}>
+              <Input value={lockDepartment} disabled />
+            </Field>
+          </>
         ) : (
-          <select name="department" required defaultValue="" className="rounded-lg border border-ink-300 bg-white px-3 py-2 text-sm">
-            <option value="" disabled>
-              Choose a department
-            </option>
-            {departmentOptions.map((d) => (
-              <option key={d} value={d}>
-                {d}
+          <Field label="Department" required>
+            <Select name="department" required defaultValue="">
+              <option value="" disabled>
+                Choose a department
               </option>
-            ))}
-          </select>
+              {departmentOptions.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </Select>
+          </Field>
         )}
-      </div>
-      {lockDepartment && <p className="text-xs text-ink-500">For {lockDepartment}.</p>}
-      <textarea
-        name="prompt"
-        placeholder="The AI prompt itself..."
-        required
-        rows={4}
-        className="w-full rounded-lg border border-ink-300 px-3 py-2 font-mono text-xs"
-      />
-      <div>
-        <label className="block text-xs font-medium text-ink-600">Tool this prompt is for</label>
-        <div className="mt-1">
-          <ToolMultiSelect name="tools" options={toolOptions} />
-        </div>
-      </div>
+      </FieldGrid>
+      <Field label="Prompt" required>
+        <Textarea name="prompt" placeholder="The AI prompt itself..." required rows={4} className="font-mono text-xs" />
+      </Field>
+      <Field label="Tool this prompt is for" optional>
+        <ToolMultiSelect name="tools" options={toolOptions} />
+      </Field>
       <button disabled={pending} className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60">
         {pending ? "Adding…" : "Add template"}
       </button>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { addProjectMember, removeProjectMember } from "@/lib/actions/marketplace";
+import { Select } from "@/components/ui/Field";
 
 type Member = { employeeId: string; name: string; jobTitle: string };
 type Candidate = { id: string; name: string; jobTitle: string };
@@ -79,17 +80,13 @@ export function ProjectTeamCard({
           }}
           className="flex gap-2 p-3"
         >
-          <select
-            value={selected}
-            onChange={(e) => setSelected(e.target.value)}
-            className="flex-1 rounded-lg border border-ink-300 bg-white px-3 py-2 text-sm"
-          >
+          <Select value={selected} onChange={(e) => setSelected(e.target.value)} className="flex-1">
             {candidates.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name} · {c.jobTitle}
               </option>
             ))}
-          </select>
+          </Select>
           <button
             disabled={pending}
             className="rounded-full bg-brand-700 px-4 py-2 text-xs font-medium text-white hover:bg-brand-800 disabled:opacity-50"

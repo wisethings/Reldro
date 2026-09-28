@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { sendProductUpdate } from "@/lib/actions/productUpdates";
+import { Field, Input, Textarea } from "@/components/ui/Field";
 
 const AUDIENCES = [
   { value: "employees", label: "All employees at customer orgs", desc: "Every user with an organization, both admins and employees." },
@@ -22,26 +23,13 @@ export function ProductUpdateForm() {
         </p>
       )}
 
-      <div>
-        <label className="block text-xs font-medium text-ink-600">Subject</label>
-        <input
-          name="subject"
-          required
-          placeholder="New in Reldro: workflow chaining"
-          className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-        />
-      </div>
+      <Field label="Subject" required>
+        <Input name="subject" required placeholder="New in Reldro: workflow chaining" />
+      </Field>
 
-      <div>
-        <label className="block text-xs font-medium text-ink-600">Message</label>
-        <textarea
-          name="message"
-          required
-          rows={8}
-          placeholder="Plain text. Blank lines start a new paragraph."
-          className="mt-1 w-full rounded-lg border border-ink-300 p-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-        />
-      </div>
+      <Field label="Message" hint="Plain text. Blank lines start a new paragraph." required>
+        <Textarea name="message" required rows={8} />
+      </Field>
 
       <div>
         <label className="block text-xs font-medium text-ink-600">Send to</label>

@@ -11,6 +11,7 @@ import {
   type MatrixQuadrant,
 } from "@/lib/scoring";
 import { redirect } from "next/navigation";
+import { Select } from "@/components/ui/Field";
 
 const IMPACT_TONE = { LOW: "neutral", MEDIUM: "amber", HIGH: "green" } as const;
 const COMPLEXITY_TONE = { LOW: "green", MEDIUM: "amber", HIGH: "red" } as const;
@@ -82,27 +83,27 @@ export default async function OpportunitiesPage({
       <form className="flex flex-wrap gap-3">
         <input type="hidden" name="view" value={view} />
         {seesAllDepartments && (
-          <select name="department" defaultValue={params.department ?? ""} className="rounded-lg border border-ink-300 px-3 py-2 text-sm">
+          <Select name="department" defaultValue={params.department ?? ""} className="w-auto">
             <option value="">All departments</option>
             {departments.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.name}
               </option>
             ))}
-          </select>
+          </Select>
         )}
-        <select name="impact" defaultValue={params.impact ?? ""} className="rounded-lg border border-ink-300 px-3 py-2 text-sm">
+        <Select name="impact" defaultValue={params.impact ?? ""} className="w-auto">
           <option value="">All impact levels</option>
           <option value="HIGH">High impact</option>
           <option value="MEDIUM">Medium impact</option>
           <option value="LOW">Low impact</option>
-        </select>
-        <select name="complexity" defaultValue={params.complexity ?? ""} className="rounded-lg border border-ink-300 px-3 py-2 text-sm">
+        </Select>
+        <Select name="complexity" defaultValue={params.complexity ?? ""} className="w-auto">
           <option value="">All complexity</option>
           <option value="LOW">Low complexity</option>
           <option value="MEDIUM">Medium complexity</option>
           <option value="HIGH">High complexity</option>
-        </select>
+        </Select>
         <button className="rounded-lg bg-ink-900 px-4 py-2 text-sm font-medium text-white hover:bg-ink-800">Filter</button>
       </form>
 

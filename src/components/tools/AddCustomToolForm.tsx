@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { addCustomTool } from "@/lib/actions/tools";
 import { TOOL_CATEGORY_LABEL } from "@/lib/toolCatalog";
 import type { ToolCategory } from "@prisma/client";
+import { Field, FieldGrid, Input, Select, Textarea } from "@/components/ui/Field";
 
 const CATEGORIES = Object.keys(TOOL_CATEGORY_LABEL) as ToolCategory[];
 
@@ -52,57 +53,29 @@ export function AddCustomToolForm() {
       className="space-y-3 rounded-lg border border-ink-200 p-4"
     >
       <p className="text-sm font-medium text-ink-900">Add a custom or internal tool</p>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <label className="block text-xs font-medium text-ink-600">Tool name</label>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            placeholder="e.g. Havenbrook Claims Portal"
-            className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-ink-600">Category</label>
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value as ToolCategory)}
-            className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          >
+      <FieldGrid columns={2}>
+        <Field label="Tool name" required>
+          <Input value={name} onChange={(e) => setName(e.target.value)} required placeholder="e.g. Havenbrook Claims Portal" />
+        </Field>
+        <Field label="Category">
+          <Select value={category} onChange={(e) => setCategory(e.target.value as ToolCategory)}>
             {CATEGORIES.map((c) => (
               <option key={c} value={c}>{TOOL_CATEGORY_LABEL[c]}</option>
             ))}
-          </select>
-        </div>
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-ink-600">Vendor (optional)</label>
-        <input
-          value={vendor}
-          onChange={(e) => setVendor(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-ink-600">Description</label>
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          required
-          rows={2}
-          className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-ink-600">Capabilities (comma-separated, optional)</label>
-        <input
-          value={capabilities}
-          onChange={(e) => setCapabilities(e.target.value)}
-          placeholder="e.g. Document search, Case notes"
-          className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-        />
-      </div>
+          </Select>
+        </Field>
+      </FieldGrid>
+      <FieldGrid columns={2}>
+        <Field label="Vendor" optional>
+          <Input value={vendor} onChange={(e) => setVendor(e.target.value)} />
+        </Field>
+        <Field label="Capabilities" hint="Comma-separated" optional>
+          <Input value={capabilities} onChange={(e) => setCapabilities(e.target.value)} placeholder="e.g. Document search, Case notes" />
+        </Field>
+      </FieldGrid>
+      <Field label="Description" required>
+        <Textarea value={description} onChange={(e) => setDescription(e.target.value)} required rows={2} />
+      </Field>
       <div className="flex gap-2">
         <button
           type="submit"

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { requestExpertHelp } from "@/lib/actions/marketplace";
+import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 
 const ENGAGEMENT_MODELS = [
   { value: "unsure", label: "Not sure yet" },
@@ -100,83 +101,54 @@ export function RequestExpertHelpForm({
       }}
       className="space-y-4 rounded-lg border border-ink-200 p-4"
     >
-      <div>
-        <label className="block text-xs font-medium text-ink-600">What outcome are you trying to achieve?</label>
-        <textarea
+      <Field label="What outcome are you trying to achieve?" required>
+        <Textarea
           value={objective}
           onChange={(e) => setObjective(e.target.value)}
           required
           rows={2}
           placeholder="e.g. Cut proposal turnaround from 5 days to 1 without adding headcount"
-          className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
         />
-      </div>
+      </Field>
 
-      <div>
-        <label className="block text-xs font-medium text-ink-600">What's the current situation, and what's blocking you?</label>
-        <textarea
+      <Field label="What's the current situation, and what's blocking you?" required>
+        <Textarea
           value={challenges}
           onChange={(e) => setChallenges(e.target.value)}
           required
           rows={3}
           placeholder="Describe today's process, why it's not working, and any constraints (data, tools, stakeholders)…"
-          className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
         />
-      </div>
+      </Field>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <label className="block text-xs font-medium text-ink-600">Preferred engagement model</label>
-          <select
-            value={engagementModel}
-            onChange={(e) => setEngagementModel(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          >
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Field label="Engagement model">
+          <Select value={engagementModel} onChange={(e) => setEngagementModel(e.target.value)}>
             {ENGAGEMENT_MODELS.map((m) => (
               <option key={m.value} value={m.value}>{m.label}</option>
             ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-ink-600">Urgency</label>
-          <select
-            value={urgency}
-            onChange={(e) => setUrgency(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          >
+          </Select>
+        </Field>
+        <Field label="Urgency">
+          <Select value={urgency} onChange={(e) => setUrgency(e.target.value)}>
             {URGENCY_LEVELS.map((u) => (
               <option key={u.value} value={u.value}>{u.label}</option>
             ))}
-          </select>
-        </div>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <label className="block text-xs font-medium text-ink-600">Target timeline (optional)</label>
-          <input
-            value={timeline}
-            onChange={(e) => setTimeline(e.target.value)}
-            placeholder="e.g. 6 weeks"
-            className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-ink-600">Estimated budget (optional)</label>
-          <input
-            value={budget}
-            onChange={(e) => setBudget(e.target.value.replace(/[^0-9]/g, ""))}
-            placeholder="e.g. 10000"
-            className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          />
-        </div>
+          </Select>
+        </Field>
+        <Field label="Target timeline" optional>
+          <Input value={timeline} onChange={(e) => setTimeline(e.target.value)} placeholder="e.g. 6 weeks" />
+        </Field>
+        <Field label="Estimated budget" optional>
+          <Input value={budget} onChange={(e) => setBudget(e.target.value.replace(/[^0-9]/g, ""))} placeholder="e.g. 10000" />
+        </Field>
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-ink-600">Who else should we loop in?</label>
-        <p className="mt-0.5 text-xs text-ink-400">We'll email you when we're ready to talk. Add teammates or stakeholders to CC on that thread.</p>
+        <label className="text-xs font-medium text-ink-700">Who else should we loop in? <span className="text-[11px] font-normal text-ink-400">Optional</span></label>
+        <p className="mt-0.5 text-[11px] text-ink-400">We'll email you when we're ready to talk. Add teammates or stakeholders to CC on that thread.</p>
         <div className="mt-2 flex gap-2">
-          <input
+          <Input
             type="email"
             value={ccDraft}
             onChange={(e) => { setCcDraft(e.target.value); setCcError(null); }}
@@ -184,7 +156,7 @@ export function RequestExpertHelpForm({
               if (e.key === "Enter") { e.preventDefault(); addCcEmail(); }
             }}
             placeholder="name@company.com"
-            className="flex-1 rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="flex-1"
           />
           <button
             type="button"

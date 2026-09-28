@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { login } from "@/lib/actions/auth";
+import { Field, Input } from "@/components/ui/Field";
 
 export function LoginForm() {
   const [state, formAction, pending] = useActionState(login, undefined);
@@ -11,26 +12,12 @@ export function LoginForm() {
       {state?.error && (
         <p className="rounded-lg bg-coral-soft px-3 py-2 text-sm text-danger">{state.error}</p>
       )}
-      <div>
-        <label className="block text-xs font-medium text-ink-600">Work email</label>
-        <input
-          name="email"
-          type="email"
-          required
-          className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          placeholder="you@company.com"
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-ink-600">Password</label>
-        <input
-          name="password"
-          type="password"
-          required
-          className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          placeholder="••••••••"
-        />
-      </div>
+      <Field label="Work email">
+        <Input name="email" type="email" required placeholder="you@company.com" />
+      </Field>
+      <Field label="Password">
+        <Input name="password" type="password" required placeholder="••••••••" />
+      </Field>
       <button
         type="submit"
         disabled={pending}

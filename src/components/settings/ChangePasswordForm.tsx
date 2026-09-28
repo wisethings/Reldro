@@ -2,31 +2,20 @@
 
 import { useActionState } from "react";
 import { changePassword } from "@/lib/actions/account";
+import { Field, Input } from "@/components/ui/Field";
 
 export function ChangePasswordForm() {
   const [state, formAction, pending] = useActionState(changePassword, undefined);
 
   return (
-    <form action={formAction} className="space-y-3 max-w-sm">
-      <div>
-        <label className="block text-xs font-medium text-ink-600">Current password</label>
-        <input
-          name="currentPassword"
-          type="password"
-          required
-          className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-ink-600">New password</label>
-        <input
-          name="newPassword"
-          type="password"
-          required
-          minLength={8}
-          className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-        />
-        <p className="mt-1 text-[11px] text-ink-400">At least 8 characters.</p>
+    <form action={formAction} className="max-w-lg space-y-3">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Current password" required>
+          <Input name="currentPassword" type="password" required />
+        </Field>
+        <Field label="New password" hint="At least 8 characters" required>
+          <Input name="newPassword" type="password" required minLength={8} />
+        </Field>
       </div>
       <button
         disabled={pending}

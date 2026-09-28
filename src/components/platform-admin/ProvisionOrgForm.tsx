@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { provisionOrganization } from "@/lib/actions/platform-admin";
+import { Field, FieldGrid, FieldSection, Input, Select } from "@/components/ui/Field";
 
 const SIZES = ["1-50", "51-200", "201-1000", "1000+"];
 
@@ -29,66 +30,41 @@ export function ProvisionOrgForm({ onDone }: { onDone?: () => void }) {
   }
 
   return (
-    <form action={formAction} className="space-y-3">
+    <form action={formAction} className="space-y-4">
       {state?.error && <p className="rounded-lg bg-coral-soft px-3 py-2 text-sm text-danger">{state.error}</p>}
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <label className="block text-xs font-medium text-ink-600">Company name</label>
-          <input
-            name="companyName"
-            required
-            className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-ink-600">Industry</label>
-          <input
-            name="industry"
-            className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            placeholder="Insurance"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-ink-600">Company size</label>
-          <select
-            name="size"
-            defaultValue=""
-            className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          >
-            <option value="">Not set</option>
-            {SIZES.map((s) => (
-              <option key={s} value={s}>
-                {s} employees
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-ink-600">Geography</label>
-          <input
-            name="geography"
-            className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            placeholder="North America"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-ink-600">Admin name</label>
-          <input
-            name="adminName"
-            required
-            className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-ink-600">Admin email</label>
-          <input
-            name="adminEmail"
-            type="email"
-            required
-            className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          />
-        </div>
-      </div>
+      <FieldSection title="Company">
+        <FieldGrid columns={2}>
+          <Field label="Company name" required>
+            <Input name="companyName" required />
+          </Field>
+          <Field label="Industry" optional>
+            <Input name="industry" placeholder="Insurance" />
+          </Field>
+          <Field label="Company size" optional>
+            <Select name="size" defaultValue="">
+              <option value="">Not set</option>
+              {SIZES.map((s) => (
+                <option key={s} value={s}>
+                  {s} employees
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Geography" optional>
+            <Input name="geography" placeholder="North America" />
+          </Field>
+        </FieldGrid>
+      </FieldSection>
+      <FieldSection title="Admin">
+        <FieldGrid columns={2}>
+          <Field label="Admin name" required>
+            <Input name="adminName" required />
+          </Field>
+          <Field label="Admin email" required>
+            <Input name="adminEmail" type="email" required />
+          </Field>
+        </FieldGrid>
+      </FieldSection>
       <button
         type="submit"
         disabled={pending}

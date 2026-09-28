@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { addProjectMilestone } from "@/lib/actions/marketplace";
+import { Input, Select } from "@/components/ui/Field";
 
 const STAGES = ["DISCOVERY", "WORKFLOW_DESIGN", "IMPLEMENTATION", "TRAINING", "LAUNCH", "MEASUREMENT", "OPTIMIZATION"] as const;
 type Stage = (typeof STAGES)[number];
@@ -34,34 +35,20 @@ export function AddMilestoneForm({ projectId, currentStage }: { projectId: strin
         setDueDate("");
         startTransition(() => addProjectMilestone(projectId, t, d, s));
       }}
-      className="grid gap-2 border-t border-ink-200 p-3 sm:grid-cols-4"
+      className="grid gap-2 border-t border-ink-200 p-3 sm:grid-cols-5"
     >
-      <input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="Milestone title"
-        className="rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 sm:col-span-2"
-      />
-      <input
-        type="date"
-        value={dueDate}
-        onChange={(e) => setDueDate(e.target.value)}
-        className="rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-      />
-      <select
-        value={stage}
-        onChange={(e) => setStage(e.target.value as Stage)}
-        className="rounded-lg border border-ink-300 bg-white px-3 py-2 text-sm"
-      >
+      <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Milestone title" className="sm:col-span-2" />
+      <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+      <Select value={stage} onChange={(e) => setStage(e.target.value as Stage)}>
         {STAGES.map((s) => (
           <option key={s} value={s}>
             {LABELS[s]}
           </option>
         ))}
-      </select>
+      </Select>
       <button
         disabled={pending}
-        className="rounded-full bg-brand-700 px-4 py-2 text-xs font-medium text-white hover:bg-brand-800 disabled:opacity-50 sm:col-span-4"
+        className="rounded-full bg-brand-700 px-4 py-2 text-xs font-medium text-white hover:bg-brand-800 disabled:opacity-50"
       >
         Add milestone
       </button>

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { addProjectDeliverable } from "@/lib/actions/marketplace";
+import { Input } from "@/components/ui/Field";
 
 export function AddDeliverableForm({ projectId }: { projectId: string }) {
   const [name, setName] = useState("");
@@ -21,17 +22,17 @@ export function AddDeliverableForm({ projectId }: { projectId: string }) {
       }}
       className="flex flex-wrap gap-2 border-t border-ink-200 p-3"
     >
-      <input
+      <Input
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="Deliverable name"
-        className="min-w-[160px] flex-1 rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+        className="min-w-[160px] flex-1"
       />
-      <input
+      <Input
         value={url}
         onChange={(e) => setUrl(e.target.value)}
         placeholder="Link (doc, deck, file...)"
-        className="min-w-[220px] flex-[2] rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+        className="min-w-[220px] flex-[2]"
       />
       <button
         disabled={pending}

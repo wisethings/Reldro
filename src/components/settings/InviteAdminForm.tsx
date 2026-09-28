@@ -2,14 +2,15 @@
 
 import { useActionState } from "react";
 import { inviteCompanyAdmin } from "@/lib/actions/settings";
+import { Input } from "@/components/ui/Field";
 
 export function InviteAdminForm() {
   const [state, formAction, pending] = useActionState(inviteCompanyAdmin, undefined);
 
   return (
     <form action={formAction} className="grid gap-3 sm:grid-cols-3">
-      <input name="name" placeholder="Full name" required className="rounded-lg border border-ink-300 px-3 py-2 text-sm" />
-      <input name="email" type="email" placeholder="Work email" required className="rounded-lg border border-ink-300 px-3 py-2 text-sm" />
+      <Input name="name" placeholder="Full name" required />
+      <Input name="email" type="email" placeholder="Work email" required />
       <button disabled={pending} className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60">
         {pending ? "Inviting…" : "Invite admin"}
       </button>

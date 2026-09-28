@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { updateSpecialistProfile } from "@/lib/actions/specialist";
 import type { Specialist } from "@prisma/client";
+import { Field, FieldGrid, Input, Select, Textarea } from "@/components/ui/Field";
 
 export function SpecialistProfileForm({ specialist }: { specialist: Specialist }) {
   const [state, formAction, pending] = useActionState(updateSpecialistProfile, undefined);
@@ -10,54 +11,27 @@ export function SpecialistProfileForm({ specialist }: { specialist: Specialist }
   return (
     <form action={formAction} className="space-y-4">
       {state?.success && <p className="rounded-lg bg-sage px-3 py-2 text-sm text-sage-deep">Profile updated.</p>}
-      <div>
-        <label className="block text-xs font-medium text-ink-600">Headline</label>
-        <input
-          name="headline"
-          defaultValue={specialist.headline}
-          className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-ink-600">Bio</label>
-        <textarea
-          name="bio"
-          defaultValue={specialist.bio}
-          rows={4}
-          className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-        />
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-medium text-ink-600">Hourly rate ($)</label>
-          <input
-            name="hourlyRate"
-            type="number"
-            defaultValue={specialist.hourlyRate ?? ""}
-            className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-ink-600">Location</label>
-          <input
-            name="location"
-            defaultValue={specialist.location ?? ""}
-            className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          />
-        </div>
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-ink-600">Availability</label>
-        <select
-          name="availability"
-          defaultValue={specialist.availability}
-          className="mt-1 w-full rounded-lg border border-ink-300 bg-white px-3 py-2 text-sm"
-        >
-          <option>Available now</option>
-          <option>2 weeks out</option>
-          <option>Booked</option>
-        </select>
-      </div>
+      <Field label="Headline">
+        <Input name="headline" defaultValue={specialist.headline} />
+      </Field>
+      <Field label="Bio">
+        <Textarea name="bio" defaultValue={specialist.bio} rows={4} />
+      </Field>
+      <FieldGrid columns={3}>
+        <Field label="Hourly rate ($)">
+          <Input name="hourlyRate" type="number" defaultValue={specialist.hourlyRate ?? ""} />
+        </Field>
+        <Field label="Location">
+          <Input name="location" defaultValue={specialist.location ?? ""} />
+        </Field>
+        <Field label="Availability">
+          <Select name="availability" defaultValue={specialist.availability}>
+            <option>Available now</option>
+            <option>2 weeks out</option>
+            <option>Booked</option>
+          </Select>
+        </Field>
+      </FieldGrid>
       <button
         type="submit"
         disabled={pending}

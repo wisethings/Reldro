@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { setToolPlaybook } from "@/lib/actions/tools";
+import { Field, FieldGrid, Textarea } from "@/components/ui/Field";
 
 export function ToolPlaybookEditor({
   toolId,
@@ -87,34 +88,22 @@ export function ToolPlaybookEditor({
       }}
       className="space-y-3"
     >
-      <div>
-        <label className="block text-xs font-medium text-ink-600">Purpose / guidance</label>
-        <textarea
+      <Field label="Purpose / guidance">
+        <Textarea
           value={guidanceText}
           onChange={(e) => setGuidanceText(e.target.value)}
           rows={2}
           placeholder={`How should employees use ${toolName} here?`}
-          className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
         />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-ink-600">Approved uses (one per line)</label>
-        <textarea
-          value={approvedText}
-          onChange={(e) => setApprovedText(e.target.value)}
-          rows={3}
-          className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-ink-600">Restricted uses (one per line)</label>
-        <textarea
-          value={restrictedText}
-          onChange={(e) => setRestrictedText(e.target.value)}
-          rows={3}
-          className="mt-1 w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-        />
-      </div>
+      </Field>
+      <FieldGrid columns={2}>
+        <Field label="Approved uses" hint="One per line">
+          <Textarea value={approvedText} onChange={(e) => setApprovedText(e.target.value)} rows={3} />
+        </Field>
+        <Field label="Restricted uses" hint="One per line">
+          <Textarea value={restrictedText} onChange={(e) => setRestrictedText(e.target.value)} rows={3} />
+        </Field>
+      </FieldGrid>
       <div className="flex gap-2">
         <button
           type="submit"

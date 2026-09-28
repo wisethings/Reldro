@@ -2,19 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { createInitiative } from "@/lib/actions/initiatives";
-
-const inputClass =
-  "w-full rounded-lg border border-ink-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500";
-
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label className="block text-xs font-medium text-ink-600">{label}</label>
-      {hint && <p className="text-[11px] text-ink-400">{hint}</p>}
-      <div className="mt-1">{children}</div>
-    </div>
-  );
-}
+import { Field, FieldGrid, Input, Textarea } from "@/components/ui/Field";
 
 export function CreateInitiativeForm({
   departmentOptions,
@@ -28,22 +16,23 @@ export function CreateInitiativeForm({
 
   return (
     <form action={formAction} className="space-y-4">
-      <Field label="Initiative name">
-        <input name="name" required placeholder="e.g. AI-first claims processing" className={inputClass} />
-      </Field>
-
-      <Field label="Goal">
-        <textarea name="goalDescription" required rows={2} placeholder="What this initiative is trying to achieve" className={inputClass} />
-      </Field>
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Start date">
-          <input name="startDate" type="date" required className={inputClass} />
+      <FieldGrid columns={2}>
+        <Field label="Initiative name" required>
+          <Input name="name" required placeholder="e.g. AI-first claims processing" />
         </Field>
-        <Field label="Target end date">
-          <input name="endDate" type="date" required className={inputClass} />
-        </Field>
-      </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Start date" required>
+            <Input name="startDate" type="date" required />
+          </Field>
+          <Field label="Target end date" required>
+            <Input name="endDate" type="date" required />
+          </Field>
+        </div>
+      </FieldGrid>
+
+      <Field label="Goal" required>
+        <Textarea name="goalDescription" required rows={2} placeholder="What this initiative is trying to achieve" />
+      </Field>
 
       {departmentOptions.length > 0 && (
         <Field label="Departments involved">
@@ -76,13 +65,11 @@ export function CreateInitiativeForm({
         <p className="text-[11px] text-ink-400">What success looks like, measured over the initiative's timeline.</p>
         <div className="mt-2 space-y-2">
           {Array.from({ length: kpiCount }).map((_, i) => (
-            <div key={i} className="space-y-1.5 rounded-md border border-ink-100 p-2">
-              <input name="kpiLabel" placeholder="Metric (e.g. Hours saved per week)" className={inputClass} />
-              <div className="grid grid-cols-3 gap-2">
-                <input name="kpiBaseline" type="number" placeholder="Baseline" className={inputClass} />
-                <input name="kpiTarget" type="number" placeholder="Target" className={inputClass} />
-                <input name="kpiUnit" placeholder="Unit (%, hrs...)" className={inputClass} />
-              </div>
+            <div key={i} className="grid grid-cols-2 gap-2 rounded-md border border-ink-100 p-2 sm:grid-cols-[2fr_1fr_1fr_1fr]">
+              <Input name="kpiLabel" placeholder="Metric (e.g. Hours saved per week)" className="col-span-2 sm:col-span-1" />
+              <Input name="kpiBaseline" type="number" placeholder="Baseline" />
+              <Input name="kpiTarget" type="number" placeholder="Target" />
+              <Input name="kpiUnit" placeholder="Unit (%, hrs...)" />
             </div>
           ))}
         </div>

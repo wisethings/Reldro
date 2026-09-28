@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { recognizeEmployee, sendPeerRecognition } from "@/lib/actions/rewards";
 import type { RecognitionCategory } from "@prisma/client";
+import { Select, Textarea } from "@/components/ui/Field";
 
 const CATEGORY_LABELS: Record<RecognitionCategory, string> = {
   AI_ADOPTION: "AI adoption",
@@ -39,23 +40,23 @@ export function RecognitionForm({ toEmployeeId, mode }: { toEmployeeId: string; 
 
   return (
     <div className="w-full max-w-sm space-y-2 rounded-lg border border-ink-200 p-3">
-      <select
+      <Select
         value={category}
         onChange={(e) => setCategory(e.target.value as RecognitionCategory)}
-        className="w-full rounded-lg border border-ink-300 px-3 py-2 text-xs"
+        className="py-1.5 text-xs"
       >
         {(Object.keys(CATEGORY_LABELS) as RecognitionCategory[]).map((c) => (
           <option key={c} value={c}>
             {CATEGORY_LABELS[c]}
           </option>
         ))}
-      </select>
-      <textarea
+      </Select>
+      <Textarea
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         rows={3}
         placeholder="What did they do?"
-        className="w-full rounded-lg border border-ink-300 p-2 text-xs"
+        className="p-2 text-xs"
       />
       {mode === "manager" && (
         <label className="flex items-center gap-2 text-xs text-ink-600">

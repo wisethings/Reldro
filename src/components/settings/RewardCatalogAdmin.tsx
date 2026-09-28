@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { addRewardCatalogItem, setRewardCatalogItemActive } from "@/lib/actions/rewards";
 import type { RewardCategory } from "@prisma/client";
+import { Field, Input, Select } from "@/components/ui/Field";
 
 const CATEGORIES: RewardCategory[] = ["GIFT_CARD", "LEARNING_CREDIT", "MERCHANDISE", "PTO", "DONATION", "EXPERIENCE", "CUSTOM"];
 
@@ -41,33 +42,28 @@ export function RewardCatalogAdmin({ items }: { items: Item[] }) {
         {items.length === 0 && <p className="p-4 text-sm text-ink-500">No reward items yet.</p>}
       </div>
 
-      <div className="grid gap-2 rounded-lg border border-ink-200 p-4 sm:grid-cols-2">
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Reward name"
-          className="rounded-lg border border-ink-300 px-3 py-2 text-sm"
-        />
-        <select value={category} onChange={(e) => setCategory(e.target.value as RewardCategory)} className="rounded-lg border border-ink-300 px-3 py-2 text-sm">
-          {CATEGORIES.map((c) => (
-            <option key={c} value={c}>
-              {c.replace("_", " ").toLowerCase()}
-            </option>
-          ))}
-        </select>
-        <input
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Description"
-          className="sm:col-span-2 rounded-lg border border-ink-300 px-3 py-2 text-sm"
-        />
-        <input
-          type="number"
-          min={1}
-          value={pointCost}
-          onChange={(e) => setPointCost(Number(e.target.value))}
-          className="rounded-lg border border-ink-300 px-3 py-2 text-sm"
-        />
+      <div className="space-y-3 rounded-lg border border-ink-200 p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-ink-400">Add reward</p>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr]">
+          <Field label="Name">
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Reward name" />
+          </Field>
+          <Field label="Category">
+            <Select value={category} onChange={(e) => setCategory(e.target.value as RewardCategory)}>
+              {CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {c.replace("_", " ").toLowerCase()}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Point cost">
+            <Input type="number" min={1} value={pointCost} onChange={(e) => setPointCost(Number(e.target.value))} />
+          </Field>
+        </div>
+        <Field label="Description">
+          <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" />
+        </Field>
         <button
           disabled={pending || !name.trim()}
           onClick={() =>
