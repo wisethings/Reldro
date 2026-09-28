@@ -29,7 +29,7 @@ export async function ensureCourseCatalog() {
           create: c.lessons.map((l, i) => ({
             order: i + 1,
             ...l,
-            imageUrl: pickIllustration(`${l.title} ${c.skills.join(" ")}`),
+            imageUrl: pickIllustration(`${l.title} ${c.title} ${c.skills.join(" ")}`),
           })),
         },
       },

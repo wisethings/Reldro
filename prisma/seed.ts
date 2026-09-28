@@ -518,7 +518,7 @@ async function seedWorkflows() {
               description: s.description,
               aiPrompt: s.aiPrompt,
               humanCheckpoint: s.humanCheckpoint ?? false,
-              imageUrl: pickIllustration(`${s.title} ${s.description}`),
+              imageUrl: pickIllustration(`${s.title} ${s.description} ${w.title}`),
             })),
           },
         },
@@ -544,7 +544,7 @@ async function seedCoursesAndLessons(workflows: Awaited<ReturnType<typeof seedWo
           create: c.lessons.map((l, i) => ({
             order: i + 1,
             ...l,
-            imageUrl: pickIllustration(`${l.title} ${c.skills.join(" ")}`),
+            imageUrl: pickIllustration(`${l.title} ${c.title} ${c.skills.join(" ")}`),
           })),
         },
       },

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="800" height="450" role="img" aria-label="Screenshot mockup: AI classifying and scoring items in a triage queue">
+  <rect width="800" height="450" fill="#F7F4EC"/>
+  <defs><clipPath id="win-triage"><rect x="20" y="20" width="760" height="410" rx="14"/></clipPath></defs>
+  <rect x="20" y="20" width="760" height="410" rx="14" fill="#FFFFFF" stroke="#DCD5C6" stroke-width="2"/>
+  <g clip-path="url(#win-triage)" font-family="system-ui, -apple-system, Segoe UI, sans-serif">
+    <rect x="20" y="20" width="760" height="44" fill="#F7F4EC"/>
+    <circle cx="44" cy="42" r="6" fill="#E8827A"/><circle cx="64" cy="42" r="6" fill="#EDE3C9"/><circle cx="84" cy="42" r="6" fill="#E4EDD3"/>
+    <text x="400" y="47" text-anchor="middle" font-size="14" fill="#6B5A55">Triage queue</text>
+
+    <g font-size="13" fill="#402525">
+      <rect x="52" y="90" width="696" height="60" rx="8" fill="#F7F4EC"/>
+      <text x="72" y="115">Claim #48230 — rear-end collision, no injuries reported</text>
+      <text x="72" y="134" font-size="11" fill="#8C7F6C">Submitted 9 minutes ago</text>
+      <rect x="620" y="105" width="100" height="26" rx="13" fill="#E4EDD3"/>
+      <text x="670" y="122" text-anchor="middle" font-size="11" font-weight="600" fill="#3D5A3A">Low severity</text>
+
+      <rect x="52" y="160" width="696" height="60" rx="8" fill="#FADAD5"/>
+      <text x="72" y="185" font-weight="600">Claim #48213 — multi-vehicle, injuries reported</text>
+      <text x="72" y="204" font-size="11" fill="#A33828">Two conflicting repair estimates on file</text>
+      <rect x="612" y="175" width="108" height="26" rx="13" fill="#A33828"/>
+      <text x="666" y="192" text-anchor="middle" font-size="11" font-weight="600" fill="#FFFFFF">High severity</text>
+
+      <rect x="52" y="230" width="696" height="60" rx="8" fill="#F7F4EC"/>
+      <text x="72" y="255">Claim #48219 — minor property damage</text>
+      <text x="72" y="274" font-size="11" fill="#8C7F6C">Submitted 2 hours ago</text>
+      <rect x="600" y="245" width="120" height="26" rx="13" fill="#EDE3C9"/>
+      <text x="660" y="262" text-anchor="middle" font-size="11" font-weight="600" fill="#6B5A2E">Medium severity</text>
+    </g>
+
+    <!-- annotation on the AI-assigned severity tag -->
+    <rect x="602" y="167" width="128" height="42" rx="10" fill="none" stroke="#A33828" stroke-width="3" stroke-dasharray="7 6"/>
+    <circle cx="602" cy="167" r="16" fill="#A33828"/>
+    <text x="602" y="172" text-anchor="middle" font-size="14" font-weight="700" fill="#FFFFFF">AI</text>
+  </g>
+</svg>
