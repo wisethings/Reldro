@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { addRewardCatalogItem, setRewardCatalogItemActive } from "@/lib/actions/rewards";
+import { useRouter } from "next/navigation";
+import { addRewardCatalogItem, setRewardCatalogItemActive, deleteRewardItem } from "@/lib/actions/rewards";
 import type { RewardCategory } from "@prisma/client";
 import { Field, Input, Select } from "@/components/ui/Field";
 
@@ -11,6 +12,7 @@ type Item = { id: string; name: string; description: string; category: RewardCat
 
 export function RewardCatalogAdmin({ items }: { items: Item[] }) {
   const [pending, startTransition] = useTransition();
+  const router = useRouter();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<RewardCategory>("CUSTOM");
@@ -20,23 +22,39 @@ export function RewardCatalogAdmin({ items }: { items: Item[] }) {
     <div className="space-y-4">
       <div className="divide-y divide-ink-200 rounded-lg border border-ink-200">
         {items.map((item) => (
-          <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-            <div>
+          <div key={item.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+            <div className="min-w-0 flex-1">
               <p className="text-sm text-ink-800">
                 {item.name} <span className="text-xs text-ink-400">· {item.pointCost} pts</span>
               </p>
               <p className="text-xs text-ink-500">{item.description}</p>
             </div>
-            <button
-              onClick={() =>
-                startTransition(async () => {
-                  await setRewardCatalogItemActive(item.id, !item.active);
-                })
-              }
-              className="rounded-full border border-ink-300 px-3 py-1 text-xs font-medium text-ink-700 hover:border-brand-500"
-            >
-              {item.active ? "Deactivate" : "Activate"}
-            </button>
+            <div className="flex gap-2 shrink-0">
+              <button
+                onClick={() =>
+                  startTransition(async () => {
+                    await setRewardCatalogItemActive(item.id, !item.active);
+                  })
+                }
+                className="rounded-full border border-ink-300 px-3 py-1 text-xs font-medium text-ink-700 hover:border-brand-500"
+              >
+                {item.active ? "Deactivate" : "Activate"}
+              </button>
+              <button
+                onClick={() => {
+                  if (confirm("Delete this reward? Employees with pending redemptions will lose access to it.")) {
+                    startTransition(async () => {
+                      await deleteRewardItem(item.id);
+                      router.refresh();
+                    });
+                  }
+                }}
+                className="rounded-full border border-danger px-3 py-1 text-xs font-medium text-danger hover:bg-danger/10 disabled:opacity-50"
+                disabled={pending}
+              >
+                {pending ? "…" : "Delete"}
+              </button>
+            </div>
           </div>
         ))}
         {items.length === 0 && <p className="p-4 text-sm text-ink-500">No reward items yet.</p>}

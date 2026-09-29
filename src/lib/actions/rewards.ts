@@ -60,6 +60,27 @@ export async function setRewardCatalogItemActive(rewardItemId: string, active: b
   revalidatePath("/dashboard/rewards");
 }
 
+export async function deleteRewardItem(rewardItemId: string) {
+  const session = await requireRole(["COMPANY_ADMIN"]);
+  const organizationId = session.organizationId!;
+  const item = await prisma.rewardItem.findUnique({ where: { id: rewardItemId } });
+  if (!item || item.organizationId !== organizationId) throw new Error("Reward not found");
+
+  await prisma.rewardItem.delete({ where: { id: rewardItemId } });
+
+  await logAudit({
+    organizationId,
+    userId: session.sub,
+    action: "reward.item_deleted",
+    entityType: "RewardItem",
+    entityId: rewardItemId,
+    metadata: { name: item.name, category: item.category },
+  });
+
+  revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard/rewards");
+}
+
 export async function redeemReward(rewardItemId: string) {
   const session = await requireSession();
   if (!session.employeeId || !session.organizationId) throw new Error("No employee profile for this account");
