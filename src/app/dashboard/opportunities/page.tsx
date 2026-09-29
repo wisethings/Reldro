@@ -3,7 +3,7 @@ import { requireSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { IconBadge } from "@/components/ui/IconBadge";
+import { IconBadge, type IconBadgeTone } from "@/components/ui/IconBadge";
 import { CardArrow } from "@/components/ui/CardArrow";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { getCategoryIcon } from "@/lib/data/categoryIcon";
@@ -17,6 +17,24 @@ import {
 import { redirect } from "next/navigation";
 import { Select } from "@/components/ui/Field";
 import type { OpportunityStatus } from "@prisma/client";
+import { Zap, Target, Settings, CircleDashed, Trophy, BarChart3, TrendingUp, Clock, LayoutGrid } from "lucide-react";
+
+const QUADRANT_META: Record<
+  MatrixQuadrant,
+  {
+    icon: typeof Zap;
+    tone: IconBadgeTone;
+    badgeTone: "green" | "brand" | "amber" | "red";
+    badgeIcon: typeof Trophy;
+    badgeLabel: string;
+    headerBg: string;
+  }
+> = {
+  "quick-win": { icon: Zap, tone: "sage", badgeTone: "green", badgeIcon: Trophy, badgeLabel: "Quick wins", headerBg: "bg-sage" },
+  "major-project": { icon: Target, tone: "orchid", badgeTone: "brand", badgeIcon: BarChart3, badgeLabel: "Strategic bets", headerBg: "bg-orchid-soft" },
+  "fill-in": { icon: Settings, tone: "olive", badgeTone: "amber", badgeIcon: TrendingUp, badgeLabel: "Incremental gains", headerBg: "bg-olive-soft" },
+  reconsider: { icon: CircleDashed, tone: "coral", badgeTone: "red", badgeIcon: Clock, badgeLabel: "Defer for now", headerBg: "bg-coral-soft" },
+};
 
 const IMPACT_TONE = { LOW: "neutral", MEDIUM: "amber", HIGH: "green" } as const;
 const COMPLEXITY_TONE = { LOW: "green", MEDIUM: "amber", HIGH: "red" } as const;
@@ -121,16 +139,27 @@ export default async function OpportunitiesPage({
 
       {view === "matrix" ? (
         <div className="grid gap-4 sm:grid-cols-2">
-          {QUADRANT_ORDER.map((q) => (
-            <Card key={q}>
-              <div className="border-b border-ink-200 px-5 py-3">
-                <p className="text-sm font-semibold text-ink-900">{QUADRANT_LABELS[q]}</p>
-                <p className="text-xs text-ink-500">{enriched.filter((e) => e.quadrant === q).length} opportunities</p>
-              </div>
-              <CardBody className="space-y-2 p-3">
-                {enriched
-                  .filter((e) => e.quadrant === q)
-                  .map(({ o }) => {
+          {QUADRANT_ORDER.map((q) => {
+            const meta = QUADRANT_META[q];
+            const inQuadrant = enriched.filter((e) => e.quadrant === q);
+            const BadgeIcon = meta.badgeIcon;
+            return (
+              <Card key={q}>
+                <div className={`flex items-center justify-between gap-3 rounded-t-xl border-b border-ink-200 px-5 py-4 ${meta.headerBg}`}>
+                  <div className="flex items-center gap-3">
+                    <IconBadge icon={<meta.icon size={18} />} tone={meta.tone} className="bg-white/70" />
+                    <div>
+                      <p className="text-sm font-semibold text-ink-900">{QUADRANT_LABELS[q]}</p>
+                      <p className="text-xs text-ink-500">{inQuadrant.length} opportunit{inQuadrant.length === 1 ? "y" : "ies"}</p>
+                    </div>
+                  </div>
+                  <Badge tone={meta.badgeTone} className="gap-1 bg-white/70 py-1">
+                    <BadgeIcon size={12} />
+                    {meta.badgeLabel}
+                  </Badge>
+                </div>
+                <CardBody className="space-y-2 p-3">
+                  {inQuadrant.map(({ o }) => {
                     const Icon = getCategoryIcon(`${o.title} ${o.currentProcess} ${o.aiOpportunity}`);
                     return (
                       <Link
@@ -141,17 +170,31 @@ export default async function OpportunitiesPage({
                         <IconBadge icon={<Icon size={16} />} tone="olive" className="h-8 w-8" />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium text-ink-900">{o.title}</p>
-                          <p className="text-xs text-ink-500">{o.department?.name ?? "Cross-functional"} · ${(o.estAnnualValue / 1000).toFixed(0)}k/yr</p>
+                          <p className="text-xs text-ink-500">{o.department?.name ?? "Cross-functional"}</p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <div className="text-right">
+                            <p className="text-sm font-semibold text-ink-900">${(o.estAnnualValue / 1000).toFixed(0)}k/yr</p>
+                          </div>
+                          <Badge tone={IMPACT_TONE[o.impact]}>{o.impact.charAt(0) + o.impact.slice(1).toLowerCase()}</Badge>
+                          <CardArrow className="h-8 w-8" />
                         </div>
                       </Link>
                     );
                   })}
-                {enriched.filter((e) => e.quadrant === q).length === 0 && (
-                  <p className="p-3 text-xs text-ink-400">Nothing here right now.</p>
-                )}
-              </CardBody>
-            </Card>
-          ))}
+                  {inQuadrant.length === 0 && (
+                    <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-ink-200 px-6 py-10 text-center">
+                      <LayoutGrid size={22} className="text-ink-300" />
+                      <div>
+                        <p className="text-sm font-medium text-ink-700">No opportunities in this quadrant</p>
+                        <p className="mt-1 text-xs text-ink-400">Try adjusting your filters or review other quadrants for potential opportunities.</p>
+                      </div>
+                    </div>
+                  )}
+                </CardBody>
+              </Card>
+            );
+          })}
         </div>
       ) : (
         <Card>
