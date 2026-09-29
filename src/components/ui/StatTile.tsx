@@ -5,17 +5,23 @@ export function StatTile({
   value,
   helpText,
   trend,
+  icon,
   className,
 }: {
   label: string;
   value: React.ReactNode;
   helpText?: string;
   trend?: { value: string; positive: boolean };
+  /** An <IconBadge> (or any node) shown left of the label. */
+  icon?: React.ReactNode;
   className?: string;
 }) {
   return (
     <div className={cn("rounded-xl border border-ink-200 bg-white p-4", className)}>
-      <p className="text-xs font-medium text-ink-500">{label}</p>
+      <div className="flex items-center gap-2">
+        {icon}
+        <p className="text-xs font-medium text-ink-500">{label}</p>
+      </div>
       <div className="mt-1.5 flex items-baseline gap-2">
         <span className="font-display text-2xl font-medium tracking-tight text-ink-900 tabular-nums">{value}</span>
         {trend && (

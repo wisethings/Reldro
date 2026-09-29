@@ -18,9 +18,11 @@ import { getFluencyForEmployee, getStrongestSkill, getWeakestSkill, EMPLOYEE_SKI
 import { getWeeklyBrief } from "@/lib/queries/weeklyBrief";
 import { getEmployeeRecommendations } from "@/lib/queries/employeeRecommendations";
 import { getPointsBalance, getRecentPointsTransactions, getRewardMilestones } from "@/lib/rewards";
-import { getAiActivityFeed } from "@/lib/activityFeed";
+import { getAiActivityFeed, ACTIVITY_FEED_TYPE_LABEL, type ActivityFeedAction } from "@/lib/activityFeed";
 import { getWorkflowDeploymentStats } from "@/lib/queries/workflowDeployment";
 import { ownDepartmentFilter } from "@/lib/departmentVisibility";
+import { QueryParamSelect } from "@/components/ui/QueryParamSelect";
+import { CardArrow } from "@/components/ui/CardArrow";
 import { redirect } from "next/navigation";
 import {
   Gauge,
@@ -35,9 +37,47 @@ import {
   BookOpen,
   Share2,
   User,
+  Users,
+  UserCheck,
+  Clock,
+  Lightbulb,
+  Building2,
+  Briefcase,
+  Wallet,
+  Percent,
+  ClipboardCheck,
+  Zap,
+  Gift,
+  Award,
+  Heart,
 } from "lucide-react";
 
-export default async function OverviewPage() {
+const MONTHS_OPTIONS = [
+  { value: "3", label: "Last 3 months" },
+  { value: "6", label: "Last 6 months" },
+  { value: "12", label: "Last 12 months" },
+];
+
+const ACTIVITY_FILTER_OPTIONS = [
+  { value: "all", label: "All activity" },
+  ...(Object.entries(ACTIVITY_FEED_TYPE_LABEL) as [ActivityFeedAction, string][]).map(([value, label]) => ({ value, label })),
+];
+
+const ACTIVITY_ICON: Record<ActivityFeedAction, { icon: typeof Zap; tone: "orchid" | "olive" | "sage" | "coral" }> = {
+  "workflow.adopted": { icon: Zap, tone: "sage" },
+  "reward.points_awarded": { icon: Gift, tone: "orchid" },
+  "reward.redeemed": { icon: Gift, tone: "olive" },
+  "certification.earned": { icon: Award, tone: "olive" },
+  "reward.recognition_given": { icon: Heart, tone: "coral" },
+};
+
+const RECOMMENDATION_ICON = { opportunity: Target, assessment: ClipboardCheck } as const;
+
+export default async function OverviewPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ months?: string; activity?: string }>;
+}) {
   const session = await requireSession();
   if (!session.organizationId) redirect("/login");
 
@@ -45,19 +85,28 @@ export default async function OverviewPage() {
     return <EmployeeOverview session={session} name={session.name} />;
   }
 
-  return <OrgOverview organizationId={session.organizationId} />;
+  const params = await searchParams;
+  return <OrgOverview organizationId={session.organizationId} months={params.months} activity={params.activity} />;
 }
 
-async function OrgOverview({ organizationId }: { organizationId: string }) {
+async function OrgOverview({ organizationId, months, activity }: { organizationId: string; months?: string; activity?: string }) {
+  const monthsCount = [3, 6, 12].includes(Number(months)) ? Number(months) : 6;
+  const activityFilter = activity && activity in ACTIVITY_FEED_TYPE_LABEL ? (activity as ActivityFeedAction) : undefined;
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
   const [
     org,
     trend,
     latest,
     metrics,
     workflowsDeployed,
+    workflowsDeployedRecently,
     opportunitiesCount,
+    opportunitiesCreatedRecently,
     activeInitiatives,
+    initiativesCreatedRecently,
     activeProjects,
+    projectsCreatedRecently,
     topOpportunities,
     valueCapture,
     recommendations,
@@ -65,13 +114,17 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
     activityFeed,
   ] = await Promise.all([
     prisma.organization.findUnique({ where: { id: organizationId } }),
-    getOrgTrend(organizationId),
+    getOrgTrend(organizationId, monthsCount),
     getLatestOrgSnapshot(organizationId),
     getRealAdoptionMetrics(organizationId),
     prisma.organizationWorkflow.count({ where: { organizationId, status: { in: DEPLOYED_STATUSES } } }),
+    prisma.organizationWorkflow.count({ where: { organizationId, status: { in: DEPLOYED_STATUSES }, adoptedAt: { gte: thirtyDaysAgo } } }),
     prisma.opportunity.count({ where: { organizationId } }),
+    prisma.opportunity.count({ where: { organizationId, createdAt: { gte: thirtyDaysAgo } } }),
     prisma.initiative.count({ where: { organizationId, status: "IN_PROGRESS" } }),
+    prisma.initiative.count({ where: { organizationId, createdAt: { gte: thirtyDaysAgo } } }),
     prisma.project.count({ where: { organizationId, status: "ACTIVE" } }),
+    prisma.project.count({ where: { organizationId, createdAt: { gte: thirtyDaysAgo } } }),
     prisma.opportunity.findMany({
       where: { organizationId, status: { in: ["IDENTIFIED", "PLANNED"] } },
       orderBy: { estAnnualValue: "desc" },
@@ -81,7 +134,7 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
     getOrgValueCapture(organizationId),
     getOrgRecommendations(organizationId),
     getWeeklyBrief(organizationId),
-    getAiActivityFeed(organizationId),
+    getAiActivityFeed(organizationId, 12, activityFilter),
   ]);
 
   const score = latest?.aiAdoptionScore ?? 0;
@@ -94,24 +147,38 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
     measurement: latest?.measurementScore ?? 0,
     leadershipAdoption: latest?.leadershipScore ?? 0,
   };
+  // A real month-over-month score delta - both points come from the same
+  // survey-based snapshot table, so (unlike the live adoption/hours metrics)
+  // this is an honest apples-to-apples comparison.
+  const prevScore = trend.length > 1 ? trend[trend.length - 2].score : null;
+  const scoreTrend = prevScore !== null ? score - prevScore : null;
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-6">
-      <div>
-        <h1 className="text-xl font-semibold text-ink-900">Overview</h1>
-        <p className="text-sm text-ink-500">How well is {org?.name} adopting AI?</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-ink-900">Overview</h1>
+          <p className="text-sm text-ink-500">How well is {org?.name} adopting AI?</p>
+        </div>
+        <QueryParamSelect paramKey="months" options={MONTHS_OPTIONS} defaultValue="6" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-1">
           <CardBody className="flex flex-col items-center text-center">
-            <p className="text-xs font-medium text-ink-500">AI Adoption Score</p>
+            <IconBadge icon={<Gauge size={18} />} tone="orchid" className="mx-auto" />
+            <p className="mt-2 text-xs font-medium text-ink-500">AI Adoption Score</p>
             <div className="mt-3">
               <ScoreRing value={score} size={130} label="/ 100" />
             </div>
-            <Badge tone="brand" className="mt-3">
-              {band.label}
-            </Badge>
+            <div className="mt-3 flex items-center gap-2">
+              <Badge tone="brand">{band.label}</Badge>
+              {scoreTrend !== null && (
+                <span className={`text-xs font-medium ${scoreTrend >= 0 ? "text-sage-deep" : "text-danger"}`}>
+                  {scoreTrend >= 0 ? "↑" : "↓"} {Math.abs(scoreTrend)} vs last month
+                </span>
+              )}
+            </div>
             <p className="mt-2 text-xs text-ink-500">{band.description}</p>
           </CardBody>
         </Card>
@@ -119,7 +186,14 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
           <CardHeader
             icon={<IconBadge icon={<TrendingUp size={18} />} tone="orchid" />}
             title="AI Adoption Score over time"
-            subtitle="Org-wide, last 6 months"
+            subtitle={`Org-wide, last ${monthsCount} months`}
+            action={
+              scoreTrend !== null ? (
+                <Badge tone={scoreTrend >= 0 ? "green" : "red"}>
+                  {scoreTrend >= 0 ? "+" : ""}{scoreTrend} vs previous period
+                </Badge>
+              ) : undefined
+            }
           />
           <CardBody>
             <AdoptionTrendChart data={trend.map((t) => ({ month: t.month, score: t.score }))} />
@@ -129,17 +203,61 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile
+          icon={<IconBadge icon={<Users size={16} />} tone="orchid" className="h-8 w-8" />}
           label="AI adoption"
           value={`${metrics.adoptionPct}%`}
           helpText="Employees active on Reldro in the last 30 days"
+          trend={
+            metrics.adoptionPct !== metrics.adoptionPctPrevPeriod
+              ? { value: `${Math.abs(metrics.adoptionPct - metrics.adoptionPctPrevPeriod)}pt vs prior 30 days`, positive: metrics.adoptionPct >= metrics.adoptionPctPrevPeriod }
+              : undefined
+          }
         />
-        <StatTile label="Employees actively using AI" value={`${metrics.activeUsers} / ${metrics.totalUsers}`} />
-        <StatTile label="AI workflows deployed" value={workflowsDeployed} />
-        <StatTile label="Est. monthly hours saved" value={metrics.hoursSavedMonthly.toLocaleString()} />
-        <StatTile label="AI opportunities identified" value={opportunitiesCount} />
-        <StatTile label="Active AI initiatives" value={activeInitiatives} />
-        <StatTile label="Specialist projects" value={activeProjects} />
-        <StatTile label="Company size" value={org?.size ?? "-"} />
+        <StatTile
+          icon={<IconBadge icon={<UserCheck size={16} />} tone="sage" className="h-8 w-8" />}
+          label="Employees actively using AI"
+          value={`${metrics.activeUsers} / ${metrics.totalUsers}`}
+          trend={
+            metrics.activeUsers !== metrics.activeUsersPrevPeriod
+              ? { value: `${Math.abs(metrics.activeUsers - metrics.activeUsersPrevPeriod)} vs prior 30 days`, positive: metrics.activeUsers >= metrics.activeUsersPrevPeriod }
+              : undefined
+          }
+        />
+        <StatTile
+          icon={<IconBadge icon={<Share2 size={16} />} tone="olive" className="h-8 w-8" />}
+          label="AI workflows deployed"
+          value={workflowsDeployed}
+          trend={workflowsDeployedRecently > 0 ? { value: `${workflowsDeployedRecently} this month`, positive: true } : undefined}
+        />
+        <StatTile
+          icon={<IconBadge icon={<Clock size={16} />} tone="coral" className="h-8 w-8" />}
+          label="Est. monthly hours saved"
+          value={metrics.hoursSavedMonthly.toLocaleString()}
+          helpText="Across all teams with adopted workflows"
+        />
+        <StatTile
+          icon={<IconBadge icon={<Lightbulb size={16} />} tone="orchid" className="h-8 w-8" />}
+          label="AI opportunities identified"
+          value={opportunitiesCount}
+          trend={opportunitiesCreatedRecently > 0 ? { value: `${opportunitiesCreatedRecently} this month`, positive: true } : undefined}
+        />
+        <StatTile
+          icon={<IconBadge icon={<BarChart3 size={16} />} tone="sage" className="h-8 w-8" />}
+          label="Active AI initiatives"
+          value={activeInitiatives}
+          trend={initiativesCreatedRecently > 0 ? { value: `${initiativesCreatedRecently} this month`, positive: true } : undefined}
+        />
+        <StatTile
+          icon={<IconBadge icon={<Briefcase size={16} />} tone="olive" className="h-8 w-8" />}
+          label="Specialist projects"
+          value={activeProjects}
+          trend={projectsCreatedRecently > 0 ? { value: `${projectsCreatedRecently} this month`, positive: true } : undefined}
+        />
+        <StatTile
+          icon={<IconBadge icon={<Building2 size={16} />} tone="coral" className="h-8 w-8" />}
+          label="Company size"
+          value={org?.size ?? "-"}
+        />
       </div>
 
       <Card>
@@ -147,10 +265,19 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
           icon={<IconBadge icon={<Newspaper size={18} />} tone="olive" />}
           title="Your AI adoption brief"
           subtitle="What changed this week, compared to the week before"
+          action={
+            <Link
+              href="/reports/ai-transformation"
+              className="shrink-0 rounded-full border border-ink-300 px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-ink-50"
+            >
+              View full brief →
+            </Link>
+          }
         />
         <CardBody className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatTile
+              icon={<IconBadge icon={<UserCheck size={16} />} tone="orchid" className="h-8 w-8" />}
               label="Active users"
               value={weeklyBrief.activeUsersThisWeek}
               trend={{
@@ -159,6 +286,7 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
               }}
             />
             <StatTile
+              icon={<IconBadge icon={<Gauge size={16} />} tone="sage" className="h-8 w-8" />}
               label="AI fluency"
               value={weeklyBrief.fluencyNow ?? "-"}
               helpText={
@@ -168,11 +296,16 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
               }
             />
             <StatTile
+              icon={<IconBadge icon={<BookOpen size={16} />} tone="olive" className="h-8 w-8" />}
               label="Lessons completed"
               value={weeklyBrief.lessonsCompletedThisWeek}
               helpText={`${weeklyBrief.lessonsCompletedLastWeek} last week`}
             />
-            <StatTile label="Value captured this week" value={`$${Math.round(weeklyBrief.valueCapturedThisWeek / 1000)}k`} />
+            <StatTile
+              icon={<IconBadge icon={<DollarSign size={16} />} tone="coral" className="h-8 w-8" />}
+              label="Value captured this week"
+              value={`$${Math.round(weeklyBrief.valueCapturedThisWeek / 1000)}k`}
+            />
           </div>
           {(weeklyBrief.workflowsNewlyAdopted.length > 0 || weeklyBrief.fastestGrowingDepartment) && (
             <div>
@@ -202,10 +335,30 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
         />
         <CardBody>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatTile label="Potential AI value" value={`$${(valueCapture.potentialValue / 1000).toFixed(0)}k`} helpText="Estimated, across all identified opportunities" />
-            <StatTile label="Value captured" value={`$${(valueCapture.capturedValue / 1000).toFixed(0)}k`} helpText="From opportunities whose workflow is adopted" />
-            <StatTile label="Value remaining" value={`$${(valueCapture.remainingValue / 1000).toFixed(0)}k`} helpText="Potential minus captured" />
-            <StatTile label="Capture rate" value={`${valueCapture.captureRatePct}%`} helpText="Captured ÷ potential" />
+            <StatTile
+              icon={<IconBadge icon={<DollarSign size={16} />} tone="orchid" className="h-8 w-8" />}
+              label="Potential AI value"
+              value={`$${(valueCapture.potentialValue / 1000).toFixed(0)}k`}
+              helpText="Estimated, across all identified opportunities"
+            />
+            <StatTile
+              icon={<IconBadge icon={<Wallet size={16} />} tone="sage" className="h-8 w-8" />}
+              label="Value captured"
+              value={`$${(valueCapture.capturedValue / 1000).toFixed(0)}k`}
+              helpText="From opportunities whose workflow is adopted"
+            />
+            <StatTile
+              icon={<IconBadge icon={<Target size={16} />} tone="coral" className="h-8 w-8" />}
+              label="Value remaining"
+              value={`$${(valueCapture.remainingValue / 1000).toFixed(0)}k`}
+              helpText="Potential minus captured"
+            />
+            <StatTile
+              icon={<IconBadge icon={<Percent size={16} />} tone="olive" className="h-8 w-8" />}
+              label="Capture rate"
+              value={`${valueCapture.captureRatePct}%`}
+              helpText="Captured ÷ potential"
+            />
           </div>
         </CardBody>
       </Card>
@@ -218,12 +371,17 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
             subtitle="Recommended based on your opportunities and assessment"
           />
           <CardBody className="space-y-4">
-            {recommendations.map((rec) => (
+            {recommendations.map((rec) => {
+              const RecIcon = RECOMMENDATION_ICON[rec.category];
+              return (
               <div key={rec.id} className="rounded-xl border border-ink-200 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-ink-900">{rec.title}</p>
-                    <p className="mt-1 text-sm text-ink-600">{rec.reason}</p>
+                  <div className="flex min-w-0 gap-3">
+                    <IconBadge icon={<RecIcon size={18} />} tone={rec.category === "opportunity" ? "coral" : "sage"} />
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-ink-900">{rec.title}</p>
+                      <p className="mt-1 text-sm text-ink-600">{rec.reason}</p>
+                    </div>
                   </div>
                   <Link
                     href={rec.actionHref}
@@ -253,7 +411,8 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
                   </div>
                 )}
               </div>
-            ))}
+              );
+            })}
           </CardBody>
         </Card>
       )}
@@ -295,8 +454,8 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
           <CardBody className="divide-y divide-ink-200 p-0">
             {topOpportunities.length === 0 && <p className="p-5 text-sm text-ink-500">No opportunities identified yet.</p>}
             {topOpportunities.map((o) => (
-              <Link key={o.id} href={`/dashboard/opportunities/${o.id}`} className="flex items-center justify-between gap-4 px-5 py-3 hover:bg-ink-50">
-                <div className="min-w-0">
+              <Link key={o.id} href={`/dashboard/opportunities/${o.id}`} className="flex items-center gap-4 px-5 py-3 hover:bg-ink-50">
+                <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-ink-900">{o.title}</p>
                   <p className="text-xs text-ink-500">{o.department?.name ?? "Cross-functional"}</p>
                 </div>
@@ -304,29 +463,34 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
                   <p className="text-sm font-semibold text-ink-900">${(o.estAnnualValue / 1000).toFixed(0)}k/yr</p>
                   <p className="text-[11px] text-ink-500">{o.estHoursSavedMonthly} hrs/mo</p>
                 </div>
+                <CardArrow />
               </Link>
             ))}
           </CardBody>
         </Card>
       </div>
 
-      {activityFeed.length > 0 && (
-        <Card>
-          <CardHeader
-            icon={<IconBadge icon={<Activity size={18} />} tone="sage" />}
-            title="AI activity"
-            subtitle="Real activity across the organization: learning, workflow adoption, and recognition"
-          />
-          <CardBody className="divide-y divide-ink-200 p-0">
-            {activityFeed.map((item) => (
-              <div key={item.id} className="flex items-center justify-between gap-3 px-5 py-3">
-                <p className="text-sm text-ink-800">{item.text}</p>
+      <Card>
+        <CardHeader
+          icon={<IconBadge icon={<Activity size={18} />} tone="sage" />}
+          title="AI activity"
+          subtitle="Real activity across the organization: learning, workflow adoption, and recognition"
+          action={<QueryParamSelect paramKey="activity" options={ACTIVITY_FILTER_OPTIONS} defaultValue="all" />}
+        />
+        <CardBody className="divide-y divide-ink-200 p-0">
+          {activityFeed.length === 0 && <p className="p-5 text-sm text-ink-500">No activity matches this filter yet.</p>}
+          {activityFeed.map((item) => {
+            const { icon: ItemIcon, tone } = ACTIVITY_ICON[item.action];
+            return (
+              <div key={item.id} className="flex items-center gap-3 px-5 py-3">
+                <IconBadge icon={<ItemIcon size={16} />} tone={tone} className="h-8 w-8" />
+                <p className="min-w-0 flex-1 text-sm text-ink-800">{item.text}</p>
                 <span className="shrink-0 text-xs text-ink-400">{item.createdAt.toLocaleDateString()}</span>
               </div>
-            ))}
-          </CardBody>
-        </Card>
-      )}
+            );
+          })}
+        </CardBody>
+      </Card>
     </div>
   );
 }

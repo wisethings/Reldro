@@ -2,15 +2,24 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { describeAuditAction, type AuditAction } from "@/lib/audit";
 
-const FEED_ACTIONS: AuditAction[] = [
+const FEED_ACTIONS = [
   "reward.points_awarded",
   "reward.redeemed",
   "reward.recognition_given",
   "certification.earned",
   "workflow.adopted",
-];
+] as const satisfies readonly AuditAction[];
 
-export type ActivityFeedItem = { id: string; text: string; createdAt: Date };
+export type ActivityFeedAction = (typeof FEED_ACTIONS)[number];
+export type ActivityFeedItem = { id: string; text: string; createdAt: Date; action: ActivityFeedAction };
+
+export const ACTIVITY_FEED_TYPE_LABEL: Record<ActivityFeedAction, string> = {
+  "reward.points_awarded": "Points awarded",
+  "reward.redeemed": "Rewards redeemed",
+  "reward.recognition_given": "Recognition",
+  "certification.earned": "Certifications",
+  "workflow.adopted": "Workflow adoption",
+};
 
 /**
  * Real activity, built on the existing audit trail rather than a separate
@@ -18,9 +27,9 @@ export type ActivityFeedItem = { id: string; text: string; createdAt: Date };
  * already being logged for the audit trail; this just renders a readable,
  * company-visible subset of it.
  */
-export async function getAiActivityFeed(organizationId: string, limit = 12): Promise<ActivityFeedItem[]> {
+export async function getAiActivityFeed(organizationId: string, limit = 12, actionFilter?: ActivityFeedAction): Promise<ActivityFeedItem[]> {
   const logs = await prisma.auditLog.findMany({
-    where: { organizationId, action: { in: FEED_ACTIONS } },
+    where: { organizationId, action: actionFilter ?? { in: [...FEED_ACTIONS] } },
     orderBy: { createdAt: "desc" },
     take: limit,
   });
@@ -37,7 +46,12 @@ export async function getAiActivityFeed(organizationId: string, limit = 12): Pro
     : [];
   const nameById = new Map(employees.map((e) => [e.id, e.user.name]));
 
-  return logs.map((log) => ({ id: log.id, text: describeActivityFeedEntry(log.action, log.metadata as Record<string, unknown>, nameById), createdAt: log.createdAt }));
+  return logs.map((log) => ({
+    id: log.id,
+    text: describeActivityFeedEntry(log.action, log.metadata as Record<string, unknown>, nameById),
+    createdAt: log.createdAt,
+    action: log.action as ActivityFeedAction,
+  }));
 }
 
 function describeActivityFeedEntry(action: string, metaRaw: Record<string, unknown> | null, nameById: Map<string, string>): string {

@@ -31,30 +31,44 @@ export async function getLatestOrgSnapshot(organizationId: string) {
  * the snapshot table - a maturity score being based on self-reported
  * answers is normal, that part was never the problem.
  */
-export async function getRealAdoptionMetrics(organizationId: string) {
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-
-  const [totalUsers, activeFromUsageEvents, activeFromLessons, adoptedWorkflows] = await Promise.all([
-    prisma.employee.count({ where: { organizationId } }),
+/**
+ * The prior-30-day window's active-user count, computed the exact same way
+ * as the current one - a genuine trailing comparison rather than a guess,
+ * since there's no stored history of this live metric to compare against
+ * (AdoptionMetricSnapshot's activeUsers/adoptionPct predate this live
+ * computation and use a different methodology, so diffing against it would
+ * compare two incompatible numbers).
+ */
+async function getActiveUserCountForWindow(organizationId: string, from: Date, to: Date) {
+  const [fromUsageEvents, fromLessons] = await Promise.all([
     prisma.aIUsageEvent.findMany({
-      where: { organizationId, createdAt: { gte: thirtyDaysAgo }, employeeId: { not: null } },
+      where: { organizationId, createdAt: { gte: from, lt: to }, employeeId: { not: null } },
       select: { employeeId: true },
       distinct: ["employeeId"],
     }),
     prisma.lessonCompletion.findMany({
-      where: { completedAt: { gte: thirtyDaysAgo }, employee: { organizationId } },
+      where: { completedAt: { gte: from, lt: to }, employee: { organizationId } },
       select: { employeeId: true },
       distinct: ["employeeId"],
     }),
+  ]);
+  return new Set([...fromUsageEvents.map((e) => e.employeeId), ...fromLessons.map((e) => e.employeeId)]).size;
+}
+
+export async function getRealAdoptionMetrics(organizationId: string) {
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+
+  const [totalUsers, activeUsers, activeUsersPrevPeriod, adoptedWorkflows] = await Promise.all([
+    prisma.employee.count({ where: { organizationId } }),
+    getActiveUserCountForWindow(organizationId, thirtyDaysAgo, now),
+    getActiveUserCountForWindow(organizationId, sixtyDaysAgo, thirtyDaysAgo),
     prisma.organizationWorkflow.findMany({ where: { organizationId, status: { in: DEPLOYED_STATUSES } }, select: { workflowId: true } }),
   ]);
 
-  const activeEmployeeIds = new Set([
-    ...activeFromUsageEvents.map((e) => e.employeeId),
-    ...activeFromLessons.map((e) => e.employeeId),
-  ]);
-  const activeUsers = activeEmployeeIds.size;
   const adoptionPct = totalUsers > 0 ? Math.round((activeUsers / totalUsers) * 100) : 0;
+  const adoptionPctPrevPeriod = totalUsers > 0 ? Math.round((activeUsersPrevPeriod / totalUsers) * 100) : 0;
 
   const adoptedWorkflowIds = adoptedWorkflows.map((w) => w.workflowId);
   const hoursSavedMonthly = adoptedWorkflowIds.length
@@ -66,7 +80,7 @@ export async function getRealAdoptionMetrics(organizationId: string) {
         .then((r) => r._sum.estHoursSavedMonthly ?? 0)
     : 0;
 
-  return { totalUsers, activeUsers, adoptionPct, hoursSavedMonthly };
+  return { totalUsers, activeUsers, activeUsersPrevPeriod, adoptionPct, adoptionPctPrevPeriod, hoursSavedMonthly };
 }
 
 export async function getDepartmentSnapshots(organizationId: string) {
