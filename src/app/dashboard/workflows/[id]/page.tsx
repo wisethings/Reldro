@@ -129,31 +129,33 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
             <h1 className="text-xl font-semibold text-ink-900">{workflow.title}</h1>
             <p className="mt-1 text-sm text-ink-500">{workflow.department}</p>
           </div>
-          {isCompanyAdmin && workflow.organizationId === null && (
-            <RemoveCatalogButton type="WORKFLOW" id={workflow.id} title={workflow.title} label="Delete workflow" redirectTo="/dashboard/workflows" />
-          )}
-          {canEditWorkflow && (
-            <div className="flex items-center gap-2">
-              <Link href={`/dashboard/workflows/manage/${workflow.id}`} className="rounded-full border border-ink-300 px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-ink-50">
-                Edit
-              </Link>
-              <DeleteWorkflowButton workflowId={workflow.id} />
-            </div>
-          )}
-          {dependenciesMet ? (
-            <form action={adoptWorkflow.bind(null, workflow.id)}>
-              <button className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800">
-                {status === "ADOPTED" ? "Re-confirm adoption" : "Adopt workflow"}
-              </button>
-            </form>
-          ) : (
-            <div className="text-right">
-              <button disabled className="cursor-not-allowed rounded-full bg-ink-200 px-4 py-2 text-sm font-medium text-ink-500">
-                Adopt workflow
-              </button>
-              <p className="mt-1 text-xs text-ink-500">Requires first: {unmetDependencies.map((d) => d.title).join(", ")}</p>
-            </div>
-          )}
+          <div className="flex flex-wrap items-start justify-end gap-2">
+            {isCompanyAdmin && workflow.organizationId === null && (
+              <RemoveCatalogButton type="WORKFLOW" id={workflow.id} title={workflow.title} label="Delete" redirectTo="/dashboard/workflows" />
+            )}
+            {canEditWorkflow && (
+              <>
+                <Link href={`/dashboard/workflows/manage/${workflow.id}`} className="rounded-full border border-ink-300 px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-ink-50">
+                  Edit
+                </Link>
+                <DeleteWorkflowButton workflowId={workflow.id} />
+              </>
+            )}
+            {dependenciesMet ? (
+              <form action={adoptWorkflow.bind(null, workflow.id)}>
+                <button className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800">
+                  {status === "ADOPTED" ? "Re-confirm adoption" : "Adopt workflow"}
+                </button>
+              </form>
+            ) : (
+              <div className="text-right">
+                <button disabled className="cursor-not-allowed rounded-full bg-ink-200 px-4 py-2 text-sm font-medium text-ink-500">
+                  Adopt workflow
+                </button>
+                <p className="mt-1 text-xs text-ink-500">Requires first: {unmetDependencies.map((d) => d.title).join(", ")}</p>
+              </div>
+            )}
+          </div>
         </div>
         <div className="mt-3 flex flex-wrap gap-1.5">
           <Badge tone={DIFFICULTY_TONE[workflow.difficulty]}>{workflow.difficulty.toLowerCase()} difficulty</Badge>
