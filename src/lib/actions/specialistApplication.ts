@@ -1,9 +1,8 @@
 "use server";
 
-import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth/password";
-import { sendEmail, specialistApplicationNotificationHtml, specialistApplicationReceivedHtml } from "@/lib/email";
+import { sendEmail, specialistApplicationNotificationHtml, specialistApplicationReceivedHtml, getAppUrl } from "@/lib/email";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { INDUSTRIES, DEPARTMENT_OPTIONS } from "@/lib/data/catalog";
 
@@ -139,11 +138,10 @@ export async function applyAsSpecialist(_prevState: SpecialistApplicationState, 
     html: specialistApplicationNotificationHtml({ name, email, headline, yearsExperience, industries, functions, linkedinUrl, portfolioUrl }),
   });
 
-  const host = (await headers()).get("host");
   const { sent } = await sendEmail({
     to: email,
     subject: "Thanks for applying to Reldro",
-    html: specialistApplicationReceivedHtml({ name, loginUrl: `https://${host}/login`, tempPassword }),
+    html: specialistApplicationReceivedHtml({ name, loginUrl: `${getAppUrl()}/login`, tempPassword }),
   });
 
   return sent ? { success: true } : { success: true, tempPassword };

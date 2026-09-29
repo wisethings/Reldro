@@ -1,11 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/guards";
 import { hashPassword } from "@/lib/auth/password";
-import { sendEmail, inviteEmailHtml } from "@/lib/email";
+import { sendEmail, inviteEmailHtml, getAppUrl } from "@/lib/email";
 import { logAudit } from "@/lib/audit";
 
 export type FormState = { success?: boolean; error?: string } | undefined;
@@ -106,11 +105,10 @@ export async function inviteCompanyAdmin(_prevState: InviteAdminState, formData:
     metadata: { name, email },
   });
 
-  const host = (await headers()).get("host");
   const { sent } = await sendEmail({
     to: email,
     subject: `You're invited to administer ${org?.name ?? "your organization"} on Reldro`,
-    html: inviteEmailHtml({ name, orgName: org?.name ?? "Reldro", loginUrl: `https://${host}/login`, tempPassword }),
+    html: inviteEmailHtml({ name, orgName: org?.name ?? "Reldro", loginUrl: `${getAppUrl()}/login`, tempPassword }),
   });
 
   revalidatePath("/dashboard/settings");

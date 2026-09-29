@@ -2,11 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/guards";
 import { isSlackConfigured, signSlackState, slackAuthorizeUrl } from "@/lib/integrations/slack";
 import { logAudit } from "@/lib/audit";
+import { getAppUrl } from "@/lib/email";
 
 /**
  * Connects an integration. Slack is wired up to real OAuth when configured
@@ -21,8 +21,7 @@ export async function connectIntegration(integrationId: string) {
 
   const integration = await prisma.integration.findUnique({ where: { id: integrationId } });
   if (integration?.key === "slack" && isSlackConfigured()) {
-    const host = (await headers()).get("host");
-    const redirectUri = `https://${host}/api/integrations/slack/callback`;
+    const redirectUri = `${getAppUrl()}/api/integrations/slack/callback`;
     const state = await signSlackState({ organizationId, integrationId });
     redirect(slackAuthorizeUrl(state, redirectUri));
   }

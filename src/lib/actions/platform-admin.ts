@@ -1,11 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/guards";
 import { hashPassword } from "@/lib/auth/password";
-import { sendEmail, orgProvisionedEmailHtml } from "@/lib/email";
+import { sendEmail, orgProvisionedEmailHtml, getAppUrl } from "@/lib/email";
 
 function generateTempPassword() {
   return `Reldro-${Math.random().toString(36).slice(2, 8)}!`;
@@ -46,11 +45,10 @@ export async function provisionOrganization(_prevState: ProvisionOrgState, formD
     data: { name: adminName, email: adminEmail, passwordHash, role: "COMPANY_ADMIN", organizationId: org.id },
   });
 
-  const host = (await headers()).get("host");
   const { sent } = await sendEmail({
     to: adminEmail,
     subject: "Your Reldro workspace is ready",
-    html: orgProvisionedEmailHtml({ name: adminName, orgName: org.name, loginUrl: `https://${host}/login`, tempPassword }),
+    html: orgProvisionedEmailHtml({ name: adminName, orgName: org.name, loginUrl: `${getAppUrl()}/login`, tempPassword }),
   });
 
   revalidatePath("/platform-admin/organizations");

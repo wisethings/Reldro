@@ -2,11 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { requireRole, requireSession } from "@/lib/auth/guards";
 import { logAudit } from "@/lib/audit";
-import { sendEmail, expertHelpRequestEmailHtml, projectMemberAddedEmailHtml } from "@/lib/email";
+import { sendEmail, expertHelpRequestEmailHtml, projectMemberAddedEmailHtml, getAppUrl } from "@/lib/email";
 import type { ProjectStage } from "@prisma/client";
 
 const STAGE_ORDER = ["DISCOVERY", "WORKFLOW_DESIGN", "IMPLEMENTATION", "TRAINING", "LAUNCH", "MEASUREMENT", "OPTIMIZATION"] as const;
@@ -332,14 +331,13 @@ export async function addProjectMember(projectId: string, employeeId: string) {
   });
 
   const fullProject = await prisma.project.findUnique({ where: { id: projectId }, select: { title: true } });
-  const host = (await headers()).get("host");
   await sendEmail({
     to: employee.user.email,
     subject: `You've been added to a project: ${fullProject?.title ?? "Reldro project"}`,
     html: projectMemberAddedEmailHtml({
       name: employee.user.name,
       projectTitle: fullProject?.title ?? "a Reldro project",
-      projectUrl: `https://${host}/dashboard/projects/${projectId}`,
+      projectUrl: `${getAppUrl()}/dashboard/projects/${projectId}`,
     }),
   });
 

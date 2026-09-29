@@ -1,11 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/guards";
 import { hashPassword } from "@/lib/auth/password";
-import { sendEmail, inviteEmailHtml } from "@/lib/email";
+import { sendEmail, inviteEmailHtml, getAppUrl } from "@/lib/email";
 import { logAudit } from "@/lib/audit";
 
 export type FormState = { error?: string; tempPassword?: string; emailSent?: boolean } | undefined;
@@ -67,11 +66,10 @@ export async function inviteEmployee(_prevState: FormState, formData: FormData):
     metadata: { name, email, jobTitle },
   });
 
-  const host = (await headers()).get("host");
   const { sent } = await sendEmail({
     to: email,
     subject: `You're invited to ${org?.name ?? "Reldro"} on Reldro`,
-    html: inviteEmailHtml({ name, orgName: org?.name ?? "Reldro", loginUrl: `https://${host}/login`, tempPassword }),
+    html: inviteEmailHtml({ name, orgName: org?.name ?? "Reldro", loginUrl: `${getAppUrl()}/login`, tempPassword }),
   });
 
   revalidatePath("/dashboard/team");

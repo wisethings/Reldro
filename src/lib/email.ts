@@ -5,6 +5,21 @@ export function isEmailConfigured(): boolean {
   return Boolean(process.env.RESEND_API_KEY);
 }
 
+/**
+ * The app's own public origin, for building links embedded in outbound
+ * emails (login links, project links) and OAuth redirect URIs (Slack).
+ * Deliberately NOT derived from the request's Host header: several callers
+ * of this (the public specialist-application form, the employee-invite
+ * flow) are reachable by an unauthenticated or lower-trust caller who could
+ * set that header to anything, turning "https://${host}/login" into a
+ * phishing link mailed out under Reldro's own name to a real inbox with a
+ * real temporary password. Set APP_URL to override for local dev or a
+ * preview deploy; otherwise this is the known production domain.
+ */
+export function getAppUrl(): string {
+  return process.env.APP_URL || "https://app.reldro.com";
+}
+
 /** Escapes text interpolated into an HTML email template - required for any field a user (especially an unauthenticated one) typed themselves. */
 export function escapeHtml(input: string): string {
   return input
@@ -70,14 +85,19 @@ export function expertHelpRequestEmailHtml({
   budget?: number;
   ccEmails: string[];
 }) {
+  // requesterName/orgName come from the logged-in user's own account and
+  // org (admin-set, not attacker-controlled), but objective/challenges/
+  // title/timeline are free text the requester just typed into this form -
+  // escape everything interpolated here on that basis rather than trying to
+  // classify each field's trust level.
   const row = (label: string, value?: string) =>
-    value ? `<tr><td style="padding: 6px 16px 6px 0; color: #6B5A55; font-size: 13px; white-space: nowrap;">${label}</td><td style="padding: 6px 0; font-size: 13px; color: #2A0A0C;">${value}</td></tr>` : "";
+    value ? `<tr><td style="padding: 6px 16px 6px 0; color: #6B5A55; font-size: 13px; white-space: nowrap;">${label}</td><td style="padding: 6px 0; font-size: 13px; color: #2A0A0C;">${escapeHtml(value)}</td></tr>` : "";
 
   return `
     <div style="font-family: -apple-system, sans-serif; max-width: 520px; margin: 0 auto; color: #2A0A0C;">
       <h2 style="margin-bottom: 4px;">We've received your request</h2>
-      <p style="color: #6B5A55;">${orgName} · Expert help</p>
-      <p>Hi ${requesterName},</p>
+      <p style="color: #6B5A55;">${escapeHtml(orgName)} · Expert help</p>
+      <p>Hi ${escapeHtml(requesterName)},</p>
       <p>Thanks for the detail. A member of the Reldro team will review this and reach out by email within one business day to discuss next steps and match you with a specialist.</p>
       <table style="width: 100%; background: #F7F4EC; border-radius: 12px; padding: 16px; margin: 16px 0; border-collapse: collapse;">
         ${row("Request", title)}
@@ -98,8 +118,8 @@ export function orgProvisionedEmailHtml({ name, orgName, loginUrl, tempPassword 
   return `
     <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; color: #2A0A0C;">
       <h2 style="margin-bottom: 4px;">Your Reldro workspace is ready</h2>
-      <p style="color: #6B5A55;">${orgName}</p>
-      <p>Hi ${name},</p>
+      <p style="color: #6B5A55;">${escapeHtml(orgName)}</p>
+      <p>Hi ${escapeHtml(name)},</p>
       <p>Following up on our conversation - your Reldro workspace is set up. Log in with the temporary password below, then change it from your account settings.</p>
       <table style="width: 100%; background: #F7F4EC; border-radius: 12px; padding: 16px; margin: 16px 0;">
         <tr><td style="padding: 4px 16px; color: #6B5A55; font-size: 13px;">Temporary password</td></tr>
@@ -253,8 +273,8 @@ export function projectMemberAddedEmailHtml({
   return `
     <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; color: #2A0A0C;">
       <h2 style="margin-bottom: 4px;">You've been added to a project</h2>
-      <p>Hi ${name},</p>
-      <p>You've been added to <strong>${projectTitle}</strong>, an expert-help engagement in Reldro. You can see the plan, tasks, and message the specialist directly from there.</p>
+      <p>Hi ${escapeHtml(name)},</p>
+      <p>You've been added to <strong>${escapeHtml(projectTitle)}</strong>, an expert-help engagement in Reldro. You can see the plan, tasks, and message the specialist directly from there.</p>
       <a href="${projectUrl}" style="display: inline-block; background: #2A0A0C; color: #EFEBE0; padding: 10px 20px; border-radius: 999px; text-decoration: none; font-weight: 500;">Open the project</a>
     </div>
   `;
@@ -264,8 +284,8 @@ export function inviteEmailHtml({ name, orgName, loginUrl, tempPassword }: { nam
   return `
     <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; color: #2A0A0C;">
       <h2 style="margin-bottom: 4px;">You're invited to Reldro</h2>
-      <p style="color: #6B5A55;">${orgName} added you to their AI adoption workspace.</p>
-      <p>Hi ${name},</p>
+      <p style="color: #6B5A55;">${escapeHtml(orgName)} added you to their AI adoption workspace.</p>
+      <p>Hi ${escapeHtml(name)},</p>
       <p>Your account is ready. Log in with the temporary password below, then change it from your account settings.</p>
       <table style="width: 100%; background: #F7F4EC; border-radius: 12px; padding: 16px; margin: 16px 0;">
         <tr><td style="padding: 4px 16px; color: #6B5A55; font-size: 13px;">Temporary password</td></tr>
