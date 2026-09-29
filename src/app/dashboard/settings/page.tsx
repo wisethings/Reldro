@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
-import { Building2, CreditCard, History, Gift, Sliders, ShoppingBag, Layers, Eye, ShieldCheck, Lock } from "lucide-react";
+import { Building2, CreditCard, History, Gift, Sliders, ShoppingBag, Layers, Eye, ShieldCheck, Lock, Trash2 } from "lucide-react";
 import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { IconBadge } from "@/components/ui/IconBadge";
+import { RestoreContentList } from "@/components/settings/RestoreContentList";
+import { getHiddenItems, HIDEABLE_LABEL } from "@/lib/queries/hidden";
 import { AdminRow } from "@/components/settings/AdminRow";
 import { OrgProfileForm } from "@/components/settings/OrgProfileForm";
 import { AddDepartmentForm } from "@/components/settings/AddDepartmentForm";
@@ -21,7 +23,7 @@ export default async function SettingsPage() {
 
   await Promise.all([ensureDefaultPointsRules(session.organizationId), ensureDefaultRewardCatalog(session.organizationId)]);
 
-  const [org, auditLogs, pointsRules, rewardItems, rewardsStats, departments, admins] = await Promise.all([
+  const [org, auditLogs, pointsRules, rewardItems, rewardsStats, departments, admins, hiddenItems] = await Promise.all([
     prisma.organization.findUnique({ where: { id: session.organizationId } }),
     prisma.auditLog.findMany({
       where: { organizationId: session.organizationId },
@@ -34,6 +36,7 @@ export default async function SettingsPage() {
     getRewardsDashboardStats(session.organizationId),
     prisma.department.findMany({ where: { organizationId: session.organizationId }, orderBy: { name: "asc" } }),
     prisma.user.findMany({ where: { organizationId: session.organizationId, role: "COMPANY_ADMIN" }, orderBy: { createdAt: "asc" } }),
+    getHiddenItems(session.organizationId),
   ]);
   if (!org) redirect("/login");
 
@@ -104,6 +107,15 @@ export default async function SettingsPage() {
         <CardHeader icon={<IconBadge icon={<ShoppingBag size={18} />} tone="olive" />} title="Reward catalog" subtitle="What employees can redeem points for" />
         <CardBody>
           <RewardCatalogAdmin items={rewardItems} />
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader icon={<IconBadge icon={<Trash2 size={18} />} tone="coral" />} title="Deleted content" subtitle="Reldro catalog workflows, courses, tools, simulations and templates you've deleted. Restore any of them." />
+        <CardBody>
+          <RestoreContentList
+            items={hiddenItems.map((h) => ({ id: h.id, typeLabel: HIDEABLE_LABEL[h.type], title: h.title, hiddenByName: h.hiddenByName, date: h.createdAt.toLocaleDateString() }))}
+          />
         </CardBody>
       </Card>
 

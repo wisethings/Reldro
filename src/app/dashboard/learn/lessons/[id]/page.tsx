@@ -11,6 +11,7 @@ import { AudioNarration } from "@/components/learning/AudioNarration";
 import { LessonJourney } from "@/components/learning/LessonJourney";
 import { KnowledgeCheck } from "@/components/learning/KnowledgeCheck";
 import { toEmbedUrl } from "@/lib/videoEmbed";
+import { getHiddenIds } from "@/lib/queries/hidden";
 
 const LESSON_TYPE_LABEL: Record<string, string> = {
   CONCEPT: "Concept",
@@ -33,8 +34,9 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
   // null) or a team-authored one scoped to its own org - without this, any
   // org could load another org's private lesson content just by knowing an
   // id, including via a leaked recommendation link.
+  const hiddenCourseIds = await getHiddenIds(session.organizationId, "COURSE");
   const lesson = await prisma.lesson.findFirst({
-    where: { id, course: { OR: [{ organizationId: null }, { organizationId: session.organizationId }] } },
+    where: { id, course: { id: { notIn: hiddenCourseIds }, OR: [{ organizationId: null }, { organizationId: session.organizationId }] } },
     include: { course: true },
   });
   if (!lesson) notFound();

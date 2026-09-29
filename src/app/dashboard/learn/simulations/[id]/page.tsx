@@ -6,11 +6,13 @@ import { FileText, MessageSquareReply, History } from "lucide-react";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { IconBadge } from "@/components/ui/IconBadge";
+import { RemoveCatalogButton } from "@/components/ui/RemoveCatalogButton";
 import { SimulationRunner } from "@/components/learning/SimulationRunner";
 import { AudioNarration } from "@/components/learning/AudioNarration";
 import { ensureSimulationCatalog } from "@/lib/queries/simulations";
 import type { DecisionOption, AiOutputIssue } from "@/lib/simulationCatalog";
 import type { SimulationDimensions } from "@/lib/ai/simulationEvaluator";
+import { getHiddenIds } from "@/lib/queries/hidden";
 
 const DIFFICULTY_TONE = { LOW: "green", MEDIUM: "amber", HIGH: "red" } as const;
 
@@ -22,7 +24,7 @@ export default async function SimulationPage({ params }: { params: Promise<{ id:
   await ensureSimulationCatalog();
 
   const [simulation, pastAttempts] = await Promise.all([
-    prisma.simulation.findUnique({ where: { id } }),
+    prisma.simulation.findFirst({ where: { id: { equals: id, notIn: await getHiddenIds(session.organizationId, "SIMULATION") } } }),
     session.employeeId
       ? prisma.simulationAttempt.findMany({
           where: { employeeId: session.employeeId, simulationId: id },
@@ -46,7 +48,12 @@ export default async function SimulationPage({ params }: { params: Promise<{ id:
           <Badge tone={DIFFICULTY_TONE[simulation.difficulty]}>{simulation.difficulty.toLowerCase()}</Badge>
           {simulation.timeLimitMinutes && <Badge tone="neutral">{simulation.timeLimitMinutes} min</Badge>}
         </div>
-        <h1 className="mt-1 text-xl font-semibold text-ink-900">{simulation.title}</h1>
+        <div className="mt-1 flex flex-wrap items-start justify-between gap-3">
+          <h1 className="text-xl font-semibold text-ink-900">{simulation.title}</h1>
+          {session.role === "COMPANY_ADMIN" && (
+            <RemoveCatalogButton type="SIMULATION" id={simulation.id} title={simulation.title} label="Delete simulation" redirectTo="/dashboard/learn" />
+          )}
+        </div>
         <p className="mt-1 text-sm text-ink-500">{simulation.description}</p>
       </div>
 

@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { DEPLOYED_STATUSES } from "@/lib/workflowLifecycle";
+import { getHiddenIds } from "@/lib/queries/hidden";
 
 export type RelatedWorkflowSummary = { id: string; title: string; department: string };
 export type DependencyStatus = RelatedWorkflowSummary & { met: boolean };
@@ -59,7 +60,7 @@ export async function hasUnmetDependencies(organizationId: string, workflowId: s
 /** Every workflow visible to this org (global catalog + its own), for populating a link/dependency picker. */
 export async function getWorkflowChoices(organizationId: string, excludeWorkflowId: string): Promise<RelatedWorkflowSummary[]> {
   return prisma.workflow.findMany({
-    where: { OR: [{ organizationId: null }, { organizationId }], id: { not: excludeWorkflowId } },
+    where: { OR: [{ organizationId: null }, { organizationId }], id: { not: excludeWorkflowId, notIn: await getHiddenIds(organizationId, "WORKFLOW") } },
     select: { id: true, title: true, department: true },
     orderBy: [{ department: "asc" }, { title: "asc" }],
   });

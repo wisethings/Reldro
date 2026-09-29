@@ -7,6 +7,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { CopyPromptButton } from "@/components/workflows/CopyPromptButton";
 import { StepMedia } from "@/components/workflows/StepMedia";
 import { CreateTemplateForm } from "@/components/workflows/CreateTemplateForm";
+import { RemoveCatalogButton } from "@/components/ui/RemoveCatalogButton";
 import { TemplateControls } from "@/components/workflows/TemplateControls";
 import { Badge } from "@/components/ui/Badge";
 import { IconBadge } from "@/components/ui/IconBadge";
@@ -14,6 +15,7 @@ import { SearchSortBar } from "@/components/ui/SearchSortBar";
 import { ownDepartmentFilter } from "@/lib/departmentVisibility";
 import { getMatchedTools } from "@/lib/queries/tools";
 import { getCategoryIcon } from "@/lib/data/categoryIcon";
+import { getHiddenIds, getAllHiddenIds } from "@/lib/queries/hidden";
 
 const SORT_OPTIONS = [
   { value: "relevant", label: "Most relevant" },
@@ -62,12 +64,15 @@ export default async function TemplatesPage({
   // behind them. Department names aren't globally unique, so without the
   // organizationId check here, a step from another org's team-authored
   // workflow in a same-named department would leak into this list.
+  const hidden = await getAllHiddenIds(session.organizationId);
   const [steps, customTemplates] = departmentNames.length
     ? await Promise.all([
         prisma.workflowStep.findMany({
           where: {
             aiPrompt: { not: null },
+            id: { notIn: hidden.TEMPLATE },
             workflow: {
+              id: { notIn: hidden.WORKFLOW },
               department: { in: departmentNames },
               OR: [{ organizationId: null }, { organizationId: session.organizationId }],
             },
@@ -208,6 +213,7 @@ export default async function TemplatesPage({
                       </div>
                       <div className="flex shrink-0 items-center gap-1.5">
                         <CopyPromptButton prompt={row.prompt} workflowStepId={row.id} />
+                        {row.kind === "step" && isCompanyAdmin && <RemoveCatalogButton type="TEMPLATE" id={row.id} title={row.title} compact />}
                         {row.kind === "custom" && canAuthorTemplates && (isCompanyAdmin || row.department === employee?.department?.name) && (
                           <TemplateControls
                             template={{ id: row.id, title: row.title, prompt: row.prompt, department: row.department, tools: row.tools, imageUrl: row.imageUrl, videoUrl: row.videoUrl }}

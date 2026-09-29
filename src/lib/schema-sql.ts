@@ -1291,4 +1291,13 @@ ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "lastLoginAt" TIMESTAMP(3) DEFAULT C
 
 ALTER TABLE "User" ALTER COLUMN "lastLoginAt" DROP DEFAULT;
 
+-- Patch: per-org removal of shared-catalog content (idempotent, same rules).
+CREATE TABLE IF NOT EXISTS "HiddenContent" ("id" TEXT NOT NULL, "organizationId" TEXT NOT NULL, "entityType" TEXT NOT NULL, "entityId" TEXT NOT NULL, "hiddenByName" TEXT NOT NULL DEFAULT '', "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT "HiddenContent_pkey" PRIMARY KEY ("id"));
+
+CREATE UNIQUE INDEX IF NOT EXISTS "HiddenContent_organizationId_entityType_entityId_key" ON "HiddenContent"("organizationId", "entityType", "entityId");
+
+CREATE INDEX IF NOT EXISTS "HiddenContent_organizationId_entityType_idx" ON "HiddenContent"("organizationId", "entityType");
+
+DO $$ BEGIN ALTER TABLE "HiddenContent" ADD CONSTRAINT "HiddenContent_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
 `;

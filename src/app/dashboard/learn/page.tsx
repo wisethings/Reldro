@@ -11,7 +11,9 @@ import { ensureSimulationCatalog } from "@/lib/queries/simulations";
 import { ensureCourseCatalog } from "@/lib/queries/courses";
 import { ownDepartmentFilter } from "@/lib/departmentVisibility";
 import { getCategoryIcon } from "@/lib/data/categoryIcon";
+import { RemoveCatalogButton } from "@/components/ui/RemoveCatalogButton";
 import { DeleteCourseButton } from "@/components/learning/DeleteCourseButton";
+import { getHiddenIds, getAllHiddenIds } from "@/lib/queries/hidden";
 
 const DIFFICULTY_TONE = { LOW: "green", MEDIUM: "amber", HIGH: "red" } as const;
 
@@ -29,16 +31,18 @@ export default async function LearnPage() {
   // ownDepartmentFilter's doc comment for why this isn't behind a toggle.
   const ownDepartment = ownDepartmentFilter(session, employee);
 
+  const hidden = await getAllHiddenIds(session.organizationId);
   const [courses, simulations, completions, attempts] = await Promise.all([
     prisma.course.findMany({
       where: {
+        id: { notIn: hidden.COURSE },
         OR: [{ organizationId: null }, { organizationId: session.organizationId }],
         department: ownDepartment,
       },
       include: { lessons: true },
       orderBy: { department: "asc" },
     }),
-    prisma.simulation.findMany(),
+    prisma.simulation.findMany({ where: { id: { notIn: hidden.SIMULATION } } }),
     session.employeeId ? prisma.lessonCompletion.findMany({ where: { employeeId: session.employeeId } }) : Promise.resolve([]),
     session.employeeId ? prisma.simulationAttempt.findMany({ where: { employeeId: session.employeeId } }) : Promise.resolve([]),
   ]);
@@ -99,6 +103,15 @@ export default async function LearnPage() {
                               <DeleteCourseButton courseId={course.id} />
                             </div>
                           )}
+                        </div>
+                      ) : session.role === "COMPANY_ADMIN" ? (
+                        <div className="flex flex-col items-end gap-2">
+                          {course.role && (
+                            <Badge tone="neutral" className="whitespace-normal text-left">
+                              For: {course.role}
+                            </Badge>
+                          )}
+                          <RemoveCatalogButton type="COURSE" id={course.id} title={course.title} />
                         </div>
                       ) : course.role ? (
                         <Badge tone="neutral" className="whitespace-normal text-left">

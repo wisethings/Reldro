@@ -2,6 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { GLOBAL_TOOL_CATALOG } from "@/lib/toolCatalog";
 import type { ToolApprovalStatus } from "@prisma/client";
+import { getHiddenIds } from "@/lib/queries/hidden";
 
 /** Idempotent - safe to call on every page load. Only inserts catalog tools that don't already exist by name. */
 export async function ensureGlobalToolCatalog() {
@@ -60,10 +61,11 @@ export type ToolLibraryEntry = {
 /** Every catalog + custom tool, with this org's approval status (if any) and real usage stats. */
 export async function getToolLibrary(organizationId: string): Promise<ToolLibraryEntry[]> {
   await ensureGlobalToolCatalog();
+  const hiddenToolIds = await getHiddenIds(organizationId, "TOOL");
 
   const [tools, orgTools] = await Promise.all([
     prisma.tool.findMany({
-      where: { OR: [{ organizationId: null }, { organizationId }] },
+      where: { id: { notIn: hiddenToolIds }, OR: [{ organizationId: null }, { organizationId }] },
       orderBy: { name: "asc" },
     }),
     prisma.organizationTool.findMany({ where: { organizationId } }),
@@ -109,7 +111,7 @@ export async function getUnmanagedTools(organizationId: string): Promise<Unmanag
 export async function getMatchedTools(organizationId: string, toolNames: string[]): Promise<Map<string, string>> {
   if (toolNames.length === 0) return new Map();
   const tools = await prisma.tool.findMany({
-    where: { name: { in: toolNames, mode: "insensitive" }, OR: [{ organizationId: null }, { organizationId }] },
+    where: { name: { in: toolNames, mode: "insensitive" }, id: { notIn: await getHiddenIds(organizationId, "TOOL") }, OR: [{ organizationId: null }, { organizationId }] },
     select: { id: true, name: true },
   });
   const byNameLower = new Map(tools.map((t) => [t.name.toLowerCase(), t.id]));
@@ -131,7 +133,7 @@ export type WorkflowUsingTool = { id: string; title: string; department: string;
  */
 export async function getWorkflowsUsingTool(organizationId: string, toolName: string): Promise<WorkflowUsingTool[]> {
   const workflows = await prisma.workflow.findMany({
-    where: { OR: [{ organizationId: null }, { organizationId }] },
+    where: { id: { notIn: await getHiddenIds(organizationId, "WORKFLOW") }, OR: [{ organizationId: null }, { organizationId }] },
     select: { id: true, title: true, department: true, organizationId: true, toolsRequired: true },
     orderBy: { title: "asc" },
   });
@@ -148,7 +150,7 @@ export async function getToolProfile(organizationId: string, toolId: string) {
   // load (and via setToolStatus, silently adopt) another org's private tool
   // just by knowing its id.
   const [tool, orgTool] = await Promise.all([
-    prisma.tool.findFirst({ where: { id: toolId, OR: [{ organizationId: null }, { organizationId }] } }),
+    prisma.tool.findFirst({ where: { id: { equals: toolId, notIn: await getHiddenIds(organizationId, "TOOL") }, OR: [{ organizationId: null }, { organizationId }] } }),
     prisma.organizationTool.findUnique({ where: { organizationId_toolId: { organizationId, toolId } } }),
   ]);
   if (!tool) return null;

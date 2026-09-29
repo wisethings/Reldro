@@ -193,6 +193,7 @@ model Organization {
   courses                      Course[]
   workflows                    Workflow[]
   templates                    Template[]
+  hiddenContent                HiddenContent[]
   workflowChecklistCompletions WorkflowChecklistCompletion[]
   workflowLinks                WorkflowLink[]
   workflowDependencies         WorkflowDependency[]
@@ -1308,6 +1309,24 @@ model Template {
   createdAt      DateTime     @default(now())
 
   @@index([organizationId])
+}
+
+// An org admin "deleting" a shared-catalog item (workflow, course, tool,
+// simulation, or a catalog workflow step surfaced as a template). The catalog
+// rows are shared by every organization, so deleting them would remove them
+// for everyone - this records a per-org removal instead, which every catalog
+// read filters out. entityType: WORKFLOW | COURSE | TOOL | SIMULATION | TEMPLATE.
+model HiddenContent {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  entityType     String
+  entityId       String
+  hiddenByName   String       @default("")
+  createdAt      DateTime     @default(now())
+
+  @@unique([organizationId, entityType, entityId])
+  @@index([organizationId, entityType])
 }
 
 // Fixed-window rate limiting for unauthenticated endpoints (e.g. the public

@@ -6,6 +6,7 @@ import { getRealAdoptionMetrics } from "@/lib/queries/adoption";
 import { DEPLOYED_STATUSES } from "@/lib/workflowLifecycle";
 import { getFluencyForEmployee, getStrongestSkill, getWeakestSkill, EMPLOYEE_SKILL_LABELS } from "@/lib/queries/fluency";
 import { getEmployeeRecommendations } from "@/lib/queries/employeeRecommendations";
+import { getHiddenIds } from "@/lib/queries/hidden";
 
 /**
  * The Reldro Recommendation Assistant.
@@ -186,7 +187,7 @@ async function answerLearningRecommendation(organizationId: string, question: st
   if (!dept) return answerGeneral(organizationId, question);
 
   const courses = await prisma.course.findMany({
-    where: { department: dept.name, OR: [{ organizationId: null }, { organizationId }] },
+    where: { department: dept.name, id: { notIn: await getHiddenIds(organizationId, "COURSE") }, OR: [{ organizationId: null }, { organizationId }] },
     include: { lessons: true },
     take: 3,
   });

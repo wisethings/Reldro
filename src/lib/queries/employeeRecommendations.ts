@@ -2,6 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { getFluencyForEmployee, getWeakestSkill } from "@/lib/queries/fluency";
 import { DEPLOYED_STATUSES } from "@/lib/workflowLifecycle";
+import { getHiddenIds } from "@/lib/queries/hidden";
 
 export type EmployeeRecommendation = {
   id: string;
@@ -38,7 +39,7 @@ export async function getEmployeeRecommendations(employeeId: string): Promise<Em
       (await prisma.lessonCompletion.findMany({ where: { employeeId }, select: { lessonId: true } })).map((l) => l.lessonId)
     );
     const courses = await prisma.course.findMany({
-      where: { department: employee.department.name, OR: [{ organizationId: null }, { organizationId: employee.organizationId }] },
+      where: { department: employee.department.name, id: { notIn: await getHiddenIds(employee.organizationId, "COURSE") }, OR: [{ organizationId: null }, { organizationId: employee.organizationId }] },
       include: { lessons: { orderBy: { order: "asc" } } },
     });
     const nextLesson = courses.flatMap((c) => c.lessons).find((l) => !completedLessonIds.has(l.id));

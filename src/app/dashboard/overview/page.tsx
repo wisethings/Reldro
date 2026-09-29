@@ -24,6 +24,7 @@ import { ownDepartmentFilter } from "@/lib/departmentVisibility";
 import { QueryParamSelect } from "@/components/ui/QueryParamSelect";
 import { CardArrow } from "@/components/ui/CardArrow";
 import { redirect } from "next/navigation";
+import { getHiddenIds } from "@/lib/queries/hidden";
 import {
   Gauge,
   TrendingUp,
@@ -519,7 +520,7 @@ async function EmployeeOverview({ session, name }: { session: SessionPayload; na
     prisma.lessonCompletion.findMany({ where: { employeeId }, include: { lesson: { include: { course: true } } } }),
     prisma.course
       .findMany({
-        where: { OR: [{ organizationId: null }, { organizationId: employee.organizationId }], department: ownDepartment },
+        where: { id: { notIn: await getHiddenIds(employee.organizationId, "COURSE") }, OR: [{ organizationId: null }, { organizationId: employee.organizationId }], department: ownDepartment },
         include: { _count: { select: { lessons: true } } },
       })
       .then((courses) => courses.reduce((sum, c) => sum + c._count.lessons, 0)),

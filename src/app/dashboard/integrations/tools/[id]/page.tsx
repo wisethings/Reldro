@@ -9,6 +9,7 @@ import { StatTile } from "@/components/ui/StatTile";
 import { getToolProfile, getWorkflowsUsingTool } from "@/lib/queries/tools";
 import { TOOL_CATEGORY_LABEL, TOOL_STATUS_LABEL, TOOL_STATUS_TONE } from "@/lib/toolCatalog";
 import { ToolStatusSelect } from "@/components/tools/ToolStatusSelect";
+import { RemoveCatalogButton } from "@/components/ui/RemoveCatalogButton";
 import { CustomToolControls } from "@/components/tools/CustomToolControls";
 import { ToolPlaybookEditor } from "@/components/tools/ToolPlaybookEditor";
 
@@ -39,6 +40,7 @@ export default async function ToolProfilePage({ params }: { params: Promise<{ id
           <div className="flex items-center gap-2">
             {status && <Badge tone={TOOL_STATUS_TONE[status]}>{TOOL_STATUS_LABEL[status]}</Badge>}
             {isAdmin && <ToolStatusSelect toolId={tool.id} currentStatus={status} />}
+            {isAdmin && tool.organizationId === null && <RemoveCatalogButton type="TOOL" id={tool.id} title={tool.name} label="Delete tool" redirectTo="/dashboard/integrations/tools" />}
             {isAdmin && tool.isCustom && tool.organizationId === session.organizationId && <CustomToolControls tool={tool} />}
           </div>
         </div>

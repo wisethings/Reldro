@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { getEligibleEmployeesForWorkflow } from "@/lib/queries/workflowDeployment";
+import { getHiddenIds } from "@/lib/queries/hidden";
 
 export type WorkflowReadiness = {
   totalLessons: number;
@@ -17,8 +18,9 @@ export type WorkflowReadiness = {
  * totalLessons is 0 and every eligible employee counts as ready.
  */
 export async function getWorkflowReadiness(organizationId: string, workflowId: string, department: string): Promise<WorkflowReadiness> {
+  const hiddenCourseIds = await getHiddenIds(organizationId, "COURSE");
   const [courses, eligibleEmployees] = await Promise.all([
-    prisma.course.findMany({ where: { workflowId, OR: [{ organizationId: null }, { organizationId }] }, include: { lessons: true } }),
+    prisma.course.findMany({ where: { workflowId, id: { notIn: hiddenCourseIds }, OR: [{ organizationId: null }, { organizationId }] }, include: { lessons: true } }),
     getEligibleEmployeesForWorkflow(organizationId, department),
   ]);
 

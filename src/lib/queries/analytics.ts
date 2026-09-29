@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
+import { getHiddenIds } from "@/lib/queries/hidden";
 
 export async function getToolUsageBreakdown(organizationId: string) {
   const grouped = await prisma.aIUsageEvent.groupBy({
@@ -22,13 +23,14 @@ export async function getWorkflowAdoptionBreakdown(organizationId: string) {
 }
 
 export async function getTrainingCompletionRate(organizationId: string) {
+  const hiddenCourseIds = await getHiddenIds(organizationId, "COURSE");
   const [employeesByDept, coursesByDept, completions] = await Promise.all([
     prisma.employee.groupBy({ by: ["departmentId"], where: { organizationId }, _count: { _all: true } }),
     // A course is either the shared global catalog (organizationId null) or
     // a team-authored one scoped to its own org - without this filter every
     // org's private course lessons were counted into every other org's
     // "possible" denominator, permanently deflating their completion rate.
-    prisma.course.findMany({ where: { OR: [{ organizationId: null }, { organizationId }] }, include: { lessons: true } }),
+    prisma.course.findMany({ where: { id: { notIn: hiddenCourseIds }, OR: [{ organizationId: null }, { organizationId }] }, include: { lessons: true } }),
     prisma.lessonCompletion.count({ where: { employee: { organizationId } } }),
   ]);
 

@@ -24,6 +24,7 @@ export type AuditAction =
   | "reward.item_updated"
   | "content.updated"
   | "content.deleted"
+  | "content.restored"
   | "invite.resent"
   | "admin.removed"
   | "account.profile_updated"
@@ -102,6 +103,7 @@ const ACTION_LABELS: Record<AuditAction, string> = {
   "reward.item_updated": "Edited a reward item",
   "content.updated": "Edited team content",
   "content.deleted": "Deleted team content",
+  "content.restored": "Restored deleted content",
   "invite.resent": "Resent an invite",
   "admin.removed": "Removed a company admin",
   "account.profile_updated": "Updated their profile",

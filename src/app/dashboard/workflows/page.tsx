@@ -13,6 +13,7 @@ import { getWorkflowDeploymentStatsForOrg, type WorkflowDeploymentStats } from "
 import { WORKFLOW_STATUS_LABEL, WORKFLOW_STATUS_TONE } from "@/lib/workflowLifecycle";
 import { departmentVisibilityFilter } from "@/lib/departmentVisibility";
 import { getCategoryIcon } from "@/lib/data/categoryIcon";
+import { getHiddenIds } from "@/lib/queries/hidden";
 
 const DIFFICULTY_TONE = { LOW: "green", MEDIUM: "amber", HIGH: "red" } as const;
 const SORT_OPTIONS = [
@@ -48,9 +49,11 @@ export default async function WorkflowsPage({
   // it from the already department-filtered `workflows` below (the previous
   // bug) meant selecting a department collapsed the row down to just that
   // one department, since it was the only one left in that filtered list.
+  const hiddenWorkflowIds = await getHiddenIds(session.organizationId, "WORKFLOW");
   const [workflows, allDepartmentRows] = await Promise.all([
     prisma.workflow.findMany({
       where: {
+        id: { notIn: hiddenWorkflowIds },
         OR: [{ organizationId: null }, { organizationId: session.organizationId }],
         department: selectedDepartment || undefined,
       },
@@ -59,6 +62,7 @@ export default async function WorkflowsPage({
     }),
     prisma.workflow.findMany({
       where: {
+        id: { notIn: hiddenWorkflowIds },
         OR: [{ organizationId: null }, { organizationId: session.organizationId }],
         department: visibleDepartment,
       },
