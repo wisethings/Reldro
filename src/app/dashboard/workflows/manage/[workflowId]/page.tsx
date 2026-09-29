@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
+import { ListOrdered, PlusCircle } from "lucide-react";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
+import { IconBadge } from "@/components/ui/IconBadge";
 import { CreateWorkflowStepForm } from "@/components/workflows/CreateWorkflowStepForm";
 import { WorkflowStepManageRow } from "@/components/workflows/WorkflowStepManageRow";
 import { DeleteWorkflowButton } from "@/components/workflows/DeleteWorkflowButton";
@@ -44,7 +46,7 @@ export default async function ManageWorkflowPage({ params }: { params: Promise<{
       </div>
 
       <Card>
-        <CardHeader title="Steps" subtitle="Shown to your team in this order." />
+        <CardHeader icon={<IconBadge icon={<ListOrdered size={18} />} tone="orchid" />} title="Steps" subtitle="Shown to your team in this order." />
         <CardBody className="divide-y divide-ink-200 p-0">
           {workflow.steps.map((step) => (
             <WorkflowStepManageRow key={step.id} step={step} workflowId={workflow.id} />
@@ -54,7 +56,7 @@ export default async function ManageWorkflowPage({ params }: { params: Promise<{
       </Card>
 
       <Card>
-        <CardHeader title="Add a step" />
+        <CardHeader icon={<IconBadge icon={<PlusCircle size={18} />} tone="sage" />} title="Add a step" />
         <CardBody>
           <CreateWorkflowStepForm workflowId={workflow.id} />
         </CardBody>

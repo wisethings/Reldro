@@ -2,7 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
+import { PlusCircle, BookOpen } from "lucide-react";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
+import { IconBadge } from "@/components/ui/IconBadge";
 import { CreateCourseForm } from "@/components/learning/CreateCourseForm";
 
 export default async function ManageLearnPage() {
@@ -43,7 +45,7 @@ export default async function ManageLearnPage() {
       </div>
 
       <Card>
-        <CardHeader title="New course" subtitle="A course is a small group of lessons on one topic." />
+        <CardHeader icon={<IconBadge icon={<PlusCircle size={18} />} tone="orchid" />} title="New course" subtitle="A course is a small group of lessons on one topic." />
         <CardBody>
           <CreateCourseForm
             lockDepartment={isCompanyAdmin ? null : employee?.department?.name ?? null}
@@ -53,7 +55,7 @@ export default async function ManageLearnPage() {
       </Card>
 
       <Card>
-        <CardHeader title="Your courses" />
+        <CardHeader icon={<IconBadge icon={<BookOpen size={18} />} tone="sage" />} title="Your courses" />
         <CardBody className="divide-y divide-ink-200 p-0">
           {courses.map((c) => (
             <Link

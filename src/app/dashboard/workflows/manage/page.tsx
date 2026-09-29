@@ -2,7 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
+import { PlusCircle, Workflow } from "lucide-react";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
+import { IconBadge } from "@/components/ui/IconBadge";
 import { CreateWorkflowForm } from "@/components/workflows/CreateWorkflowForm";
 
 export default async function ManageWorkflowsPage() {
@@ -48,7 +50,7 @@ export default async function ManageWorkflowsPage() {
       </div>
 
       <Card>
-        <CardHeader title="New workflow" subtitle="Describe the process, then add its steps on the next screen." />
+        <CardHeader icon={<IconBadge icon={<PlusCircle size={18} />} tone="orchid" />} title="New workflow" subtitle="Describe the process, then add its steps on the next screen." />
         <CardBody>
           <CreateWorkflowForm
             lockDepartment={isCompanyAdmin ? null : employee?.department?.name ?? null}
@@ -59,7 +61,7 @@ export default async function ManageWorkflowsPage() {
       </Card>
 
       <Card>
-        <CardHeader title="Your workflows" />
+        <CardHeader icon={<IconBadge icon={<Workflow size={18} />} tone="sage" />} title="Your workflows" />
         <CardBody className="divide-y divide-ink-200 p-0">
           {workflows.map((w) => (
             <Link

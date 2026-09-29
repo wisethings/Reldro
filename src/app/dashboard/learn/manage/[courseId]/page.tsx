@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
+import { ListOrdered, PlusCircle } from "lucide-react";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
+import { IconBadge } from "@/components/ui/IconBadge";
 import { CreateLessonForm } from "@/components/learning/CreateLessonForm";
 import { LessonManageRow } from "@/components/learning/LessonManageRow";
 import { DeleteCourseButton } from "@/components/learning/DeleteCourseButton";
@@ -46,7 +48,7 @@ export default async function ManageCoursePage({ params }: { params: Promise<{ c
       </div>
 
       <Card>
-        <CardHeader title="Lessons" subtitle="Shown to your team in this order." />
+        <CardHeader icon={<IconBadge icon={<ListOrdered size={18} />} tone="orchid" />} title="Lessons" subtitle="Shown to your team in this order." />
         <CardBody className="divide-y divide-ink-200 p-0">
           {course.lessons.map((lesson) => (
             <LessonManageRow key={lesson.id} lesson={lesson} courseId={course.id} />
@@ -56,7 +58,7 @@ export default async function ManageCoursePage({ params }: { params: Promise<{ c
       </Card>
 
       <Card>
-        <CardHeader title="Add a lesson" />
+        <CardHeader icon={<IconBadge icon={<PlusCircle size={18} />} tone="sage" />} title="Add a lesson" />
         <CardBody>
           <CreateLessonForm courseId={course.id} />
         </CardBody>

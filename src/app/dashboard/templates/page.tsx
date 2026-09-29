@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { requireSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
+import { PlusCircle } from "lucide-react";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { CopyPromptButton } from "@/components/workflows/CopyPromptButton";
 import { StepMedia } from "@/components/workflows/StepMedia";
@@ -154,7 +155,7 @@ export default async function TemplatesPage({
 
       {canAuthorTemplates && (
         <Card>
-          <CardHeader title="New template" subtitle="A standalone prompt worth sharing, without needing a whole workflow behind it." />
+          <CardHeader icon={<IconBadge icon={<PlusCircle size={18} />} tone="orchid" />} title="New template" subtitle="A standalone prompt worth sharing, without needing a whole workflow behind it." />
           <CardBody>
             <CreateTemplateForm
               lockDepartment={isCompanyAdmin ? null : employee?.department?.name ?? null}

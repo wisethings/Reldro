@@ -2,8 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
+import { Inbox, Briefcase } from "lucide-react";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { IconBadge } from "@/components/ui/IconBadge";
 import { StatTile } from "@/components/ui/StatTile";
 
 export default async function SpecialistHomePage() {
@@ -50,7 +52,7 @@ export default async function SpecialistHomePage() {
 
       {proposed.length > 0 && (
         <Card>
-          <CardHeader title="New project requests" />
+          <CardHeader icon={<IconBadge icon={<Inbox size={18} />} tone="coral" />} title="New project requests" />
           <CardBody className="divide-y divide-ink-200 p-0">
             {proposed.map((p) => (
               <Link key={p.id} href={`/dashboard/projects/${p.id}`} className="flex items-center justify-between px-5 py-3 hover:bg-ink-50">
@@ -66,7 +68,7 @@ export default async function SpecialistHomePage() {
       )}
 
       <Card>
-        <CardHeader title="Active projects" />
+        <CardHeader icon={<IconBadge icon={<Briefcase size={18} />} tone="orchid" />} title="Active projects" />
         <CardBody className="divide-y divide-ink-200 p-0">
           {active.map((p) => (
             <Link key={p.id} href={`/dashboard/projects/${p.id}`} className="flex items-center justify-between px-5 py-3 hover:bg-ink-50">
