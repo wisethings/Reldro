@@ -8,7 +8,7 @@ import { dismissOnboardingTour } from "@/lib/actions/tour";
 type Step = { title: string; body: string; navHref?: string };
 
 const ADMIN_STEPS: Step[] = [
-  { title: "Welcome to Reldro", body: "This is your AI adoption operating system. Here's a 30-second tour of where things live." },
+  { title: "Welcome to Reldro", body: "This is your AI Transformation Platform. Here's a 30-second tour of where things live." },
   { title: "Overview", body: "Your organization's real AI adoption snapshot: fluency, workflow usage, and value captured, all computed from actual activity.", navHref: "/dashboard/overview" },
   { title: "Team", body: "Invite employees, see who's active, spot skill gaps, and check the reward leaderboard for who's applying AI the most.", navHref: "/dashboard/team" },
   { title: "Learn", body: "Employees get bite-sized lessons tied to real workflows. You can also create your own lessons for your team here.", navHref: "/dashboard/learn" },

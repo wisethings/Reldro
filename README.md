@@ -1,6 +1,6 @@
 # Reldro
 
-Reldro is an AI adoption platform for companies: it helps organizations assess
+Reldro is an AI Transformation Platform for companies: it helps organizations assess
 where they stand on AI, discover high-value opportunities, train employees on
 real workflows, implement changes (with vetted specialists when needed), and
 measure the resulting adoption and ROI.

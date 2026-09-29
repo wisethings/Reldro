@@ -305,7 +305,7 @@ export function inviteEmailHtml({ name, orgName, loginUrl, tempPassword }: { nam
   return `
     <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; color: #2A0A0C;">
       <h2 style="margin-bottom: 4px;">You're invited to Reldro</h2>
-      <p style="color: #6B5A55;">${escapeHtml(orgName)} added you to their AI adoption workspace.</p>
+      <p style="color: #6B5A55;">${escapeHtml(orgName)} added you to their AI Transformation Platform.</p>
       <p>Hi ${escapeHtml(name)},</p>
       <p>Your account is ready. Log in with the temporary password below, then change it from your account settings.</p>
       <table style="width: 100%; background: #F7F4EC; border-radius: 12px; padding: 16px; margin: 16px 0;">

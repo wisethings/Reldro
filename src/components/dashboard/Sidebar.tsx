@@ -38,7 +38,7 @@ function NavContent({ role, orgName, isDepartmentAdmin, onNavigate }: { role: Ro
         })}
       </nav>
       <div className="border-t border-ink-200 p-3">
-        <p className="px-1 text-[11px] text-ink-400">Reldro · AI adoption OS</p>
+        <p className="px-1 text-[11px] text-ink-400">Reldro · AI Transformation Platform</p>
       </div>
     </>
   );
