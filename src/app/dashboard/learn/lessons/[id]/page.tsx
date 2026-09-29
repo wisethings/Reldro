@@ -2,8 +2,10 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
+import { Lightbulb, Eye, PlayCircle, CheckSquare, Rocket, HelpCircle } from "lucide-react";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { IconBadge } from "@/components/ui/IconBadge";
 import { completeLesson } from "@/lib/actions/learning";
 import { AudioNarration } from "@/components/learning/AudioNarration";
 import { LessonJourney } from "@/components/learning/LessonJourney";
@@ -102,20 +104,20 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
       )}
 
       <Card>
-        <CardHeader title="Learn" action={<AudioNarration text={lesson.concept} />} />
+        <CardHeader icon={<IconBadge icon={<Lightbulb size={18} />} tone="orchid" />} title="Learn" action={<AudioNarration text={lesson.concept} />} />
         <CardBody>
           <p className="text-sm text-ink-700">{lesson.concept}</p>
         </CardBody>
       </Card>
       <Card>
-        <CardHeader title="See it" action={<AudioNarration text={lesson.example} />} />
+        <CardHeader icon={<IconBadge icon={<Eye size={18} />} tone="sage" />} title="See it" action={<AudioNarration text={lesson.example} />} />
         <CardBody>
           <p className="text-sm text-ink-700 whitespace-pre-line">{lesson.example}</p>
         </CardBody>
       </Card>
       {lesson.tryItPrompt && (
         <Card>
-          <CardHeader title="Try it" action={<AudioNarration text={lesson.tryItPrompt} />} />
+          <CardHeader icon={<IconBadge icon={<PlayCircle size={18} />} tone="olive" />} title="Try it" action={<AudioNarration text={lesson.tryItPrompt} />} />
           <CardBody>
             <p className="text-sm text-ink-700 whitespace-pre-line">{lesson.tryItPrompt}</p>
           </CardBody>
@@ -123,14 +125,14 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
       )}
       {lesson.evaluatePrompt && (
         <Card>
-          <CardHeader title="Evaluate" action={<AudioNarration text={lesson.evaluatePrompt} />} />
+          <CardHeader icon={<IconBadge icon={<CheckSquare size={18} />} tone="coral" />} title="Evaluate" action={<AudioNarration text={lesson.evaluatePrompt} />} />
           <CardBody>
             <p className="text-sm text-ink-700 whitespace-pre-line">{lesson.evaluatePrompt}</p>
           </CardBody>
         </Card>
       )}
       <Card>
-        <CardHeader title="Apply" action={<AudioNarration text={lesson.exercise} />} />
+        <CardHeader icon={<IconBadge icon={<Rocket size={18} />} tone="orchid" />} title="Apply" action={<AudioNarration text={lesson.exercise} />} />
         <CardBody>
           <p className="text-sm text-ink-700 whitespace-pre-line">{lesson.exercise}</p>
         </CardBody>
@@ -138,7 +140,7 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
 
       {hasKnowledgeCheck && session.employeeId && (
         <Card>
-          <CardHeader title="Knowledge check" />
+          <CardHeader icon={<IconBadge icon={<HelpCircle size={18} />} tone="sage" />} title="Knowledge check" />
           <CardBody>
             <KnowledgeCheck
               lessonId={lesson.id}

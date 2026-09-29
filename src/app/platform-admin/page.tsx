@@ -1,6 +1,8 @@
+import { AlertTriangle } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { StatTile } from "@/components/ui/StatTile";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
+import { IconBadge } from "@/components/ui/IconBadge";
 import Link from "next/link";
 
 export default async function PlatformAdminOverview() {
@@ -32,7 +34,7 @@ export default async function PlatformAdminOverview() {
 
       {pendingSpecialists > 0 && (
         <Card>
-          <CardHeader title="Action needed" />
+          <CardHeader icon={<IconBadge icon={<AlertTriangle size={18} />} tone="coral" />} title="Action needed" />
           <CardBody>
             <p className="text-sm text-ink-700">
               {pendingSpecialists} specialist application{pendingSpecialists > 1 ? "s" : ""} awaiting approval.

@@ -4,10 +4,13 @@ import { requireSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { IconBadge } from "@/components/ui/IconBadge";
+import { CardArrow } from "@/components/ui/CardArrow";
 import { ProgressBar } from "@/components/ui/Progress";
 import { ensureSimulationCatalog } from "@/lib/queries/simulations";
 import { ensureCourseCatalog } from "@/lib/queries/courses";
 import { ownDepartmentFilter } from "@/lib/departmentVisibility";
+import { getCategoryIcon } from "@/lib/data/categoryIcon";
 
 const DIFFICULTY_TONE = { LOW: "green", MEDIUM: "amber", HIGH: "red" } as const;
 
@@ -74,9 +77,11 @@ export default async function LearnPage() {
             {items.map((course) => {
               const done = course.lessons.filter((l) => completedLessonIds.has(l.id)).length;
               const pct = course.lessons.length ? Math.round((done / course.lessons.length) * 100) : 0;
+              const CourseIcon = getCategoryIcon(`${course.title} ${course.description}`);
               return (
                 <Card key={course.id}>
                   <CardHeader
+                    icon={<IconBadge icon={<CourseIcon size={18} />} tone="orchid" />}
                     title={course.title}
                     subtitle={course.description}
                     action={
@@ -131,25 +136,34 @@ export default async function LearnPage() {
         <h2 className="mb-3 text-sm font-semibold text-ink-800">AI simulations</h2>
         <p className="mb-3 text-xs text-ink-500">Realistic professional scenarios for practicing before you implement changes at work.</p>
         <div className="grid gap-4 sm:grid-cols-2">
-          {simulations.map((sim) => (
-            <Link key={sim.id} href={`/dashboard/learn/simulations/${sim.id}`}>
-              <Card className="h-full hover:border-brand-300">
-                <CardBody>
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-ink-900">{sim.title}</p>
-                    <div className="flex shrink-0 gap-1.5">
-                      <Badge>{sim.department}</Badge>
-                      <Badge tone={DIFFICULTY_TONE[sim.difficulty]}>{sim.difficulty.toLowerCase()}</Badge>
+          {simulations.map((sim) => {
+            const SimIcon = getCategoryIcon(`${sim.title} ${sim.description}`);
+            return (
+              <Link key={sim.id} href={`/dashboard/learn/simulations/${sim.id}`}>
+                <Card className="h-full hover:border-brand-300">
+                  <CardBody>
+                    <div className="flex items-start justify-between gap-2">
+                      <IconBadge icon={<SimIcon size={18} />} tone="sage" />
+                      <div className="flex shrink-0 gap-1.5">
+                        <Badge>{sim.department}</Badge>
+                        <Badge tone={DIFFICULTY_TONE[sim.difficulty]}>{sim.difficulty.toLowerCase()}</Badge>
+                      </div>
                     </div>
-                  </div>
-                  <p className="mt-1.5 line-clamp-2 text-xs text-ink-500">{sim.description}</p>
-                  {bestAttemptBySim.has(sim.id) && (
-                    <p className="mt-2 text-xs font-medium text-orchid-deep">Best score: {bestAttemptBySim.get(sim.id)}/100</p>
-                  )}
-                </CardBody>
-              </Card>
-            </Link>
-          ))}
+                    <p className="mt-2 text-sm font-semibold text-ink-900">{sim.title}</p>
+                    <p className="mt-1.5 line-clamp-2 text-xs text-ink-500">{sim.description}</p>
+                    <div className="mt-3 flex items-center justify-between border-t border-ink-200 pt-3">
+                      {bestAttemptBySim.has(sim.id) ? (
+                        <p className="text-xs font-medium text-orchid-deep">Best score: {bestAttemptBySim.get(sim.id)}/100</p>
+                      ) : (
+                        <span />
+                      )}
+                      <CardArrow />
+                    </div>
+                  </CardBody>
+                </Card>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </div>

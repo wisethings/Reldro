@@ -2,8 +2,10 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
+import { FileText, MessageSquareReply, History } from "lucide-react";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { IconBadge } from "@/components/ui/IconBadge";
 import { SimulationRunner } from "@/components/learning/SimulationRunner";
 import { AudioNarration } from "@/components/learning/AudioNarration";
 import { ensureSimulationCatalog } from "@/lib/queries/simulations";
@@ -49,7 +51,7 @@ export default async function SimulationPage({ params }: { params: Promise<{ id:
       </div>
 
       <Card>
-        <CardHeader title="Briefing" action={<AudioNarration text={simulation.scenario} label="Listen to briefing" />} />
+        <CardHeader icon={<IconBadge icon={<FileText size={18} />} tone="orchid" />} title="Briefing" action={<AudioNarration text={simulation.scenario} label="Listen to briefing" />} />
         <CardBody className="space-y-3 text-sm">
           <p className="text-ink-700 whitespace-pre-line">{simulation.scenario}</p>
           <dl className="grid gap-3 border-t border-ink-200 pt-3 sm:grid-cols-2">
@@ -101,7 +103,7 @@ export default async function SimulationPage({ params }: { params: Promise<{ id:
 
       {session.employeeId ? (
         <Card>
-          <CardHeader title="Your response" />
+          <CardHeader icon={<IconBadge icon={<MessageSquareReply size={18} />} tone="sage" />} title="Your response" />
           <CardBody>
             <SimulationRunner
               simulationId={simulation.id}
@@ -126,7 +128,7 @@ export default async function SimulationPage({ params }: { params: Promise<{ id:
 
       {pastAttempts.length > 0 && (
         <Card>
-          <CardHeader title="Past attempts" />
+          <CardHeader icon={<IconBadge icon={<History size={18} />} tone="olive" />} title="Past attempts" />
           <CardBody className="divide-y divide-ink-200 p-0">
             {[...pastAttempts].reverse().map((a) => (
               <div key={a.id} className="px-5 py-3">
