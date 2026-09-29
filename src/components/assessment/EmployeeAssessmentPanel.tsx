@@ -3,11 +3,14 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Gauge, BarChart3, Target } from "lucide-react";
 import { ScoreRing, ProgressBar } from "@/components/ui/Progress";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
+import { IconBadge } from "@/components/ui/IconBadge";
 import { LikertAssessmentForm } from "./LikertAssessmentForm";
 import { EMPLOYEE_ASSESSMENT_QUESTIONS } from "@/lib/data/assessment-questions";
 import { EMPLOYEE_SKILL_LABELS, type EmployeeSkillCategory } from "@/lib/scoring";
+import { EMPLOYEE_SKILL_ICON } from "@/lib/data/assessmentIcons";
 import { submitEmployeeAssessment } from "@/lib/actions/assessment";
 
 export function EmployeeAssessmentPanel({
@@ -30,10 +33,18 @@ export function EmployeeAssessmentPanel({
   if (mode === "retake") {
     return (
       <Card>
-        <CardHeader title="AI skills assessment" subtitle="Rate how much you agree with each statement" />
+        <CardHeader
+          icon={<IconBadge icon={<BarChart3 size={18} />} tone="orchid" />}
+          title="AI skills assessment"
+          subtitle="Rate how much you agree with each statement. This helps identify what to learn next."
+        />
         <CardBody>
           <LikertAssessmentForm
             questions={EMPLOYEE_ASSESSMENT_QUESTIONS}
+            categoryIcon={EMPLOYEE_SKILL_ICON}
+            categoryLabel={EMPLOYEE_SKILL_LABELS}
+            subjectLabel="me"
+            measuresDescription="This assessment evaluates your AI fluency across five skills: fundamentals, prompting, redesigning workflows around AI, evaluating AI output, and using automation."
             pending={pending}
             onSubmit={(responses) =>
               startTransition(async () => {
@@ -52,7 +63,8 @@ export function EmployeeAssessmentPanel({
     <div className="space-y-6">
       <Card>
         <CardBody className="flex flex-col items-center text-center">
-          <p className="text-xs font-medium text-ink-500">Your AI Fluency</p>
+          <IconBadge icon={<Gauge size={18} />} tone="orchid" className="mx-auto" />
+          <p className="mt-2 text-xs font-medium text-ink-500">Your AI Fluency</p>
           <div className="mt-2">
             <ScoreRing value={overallScore} size={130} label="/ 100" />
           </div>
@@ -67,7 +79,7 @@ export function EmployeeAssessmentPanel({
       </Card>
 
       <Card>
-        <CardHeader title="Skill breakdown" />
+        <CardHeader icon={<IconBadge icon={<BarChart3 size={18} />} tone="sage" />} title="Skill breakdown" />
         <CardBody className="space-y-4">
           {(Object.keys(breakdown) as EmployeeSkillCategory[]).map((cat) => (
             <div key={cat}>
@@ -82,10 +94,13 @@ export function EmployeeAssessmentPanel({
       </Card>
 
       <Card>
-        <CardBody className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-ink-900">Your biggest opportunity: {EMPLOYEE_SKILL_LABELS[weakest]}</p>
-            <p className="text-xs text-ink-500">We'll prioritize learning here.</p>
+        <CardBody className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <IconBadge icon={<Target size={18} />} tone="coral" />
+            <div>
+              <p className="text-sm font-medium text-ink-900">Your biggest opportunity: {EMPLOYEE_SKILL_LABELS[weakest]}</p>
+              <p className="text-xs text-ink-500">We'll prioritize learning here.</p>
+            </div>
           </div>
           <Link href="/dashboard/learn" className="text-xs font-medium text-orchid-deep hover:text-oxblood">
             View recommended learning →

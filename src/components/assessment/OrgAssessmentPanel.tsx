@@ -2,12 +2,15 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { BarChart3, Gauge, Search, History } from "lucide-react";
 import { ScoreRing, ProgressBar } from "@/components/ui/Progress";
 import { Badge } from "@/components/ui/Badge";
+import { IconBadge } from "@/components/ui/IconBadge";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
 import { LikertAssessmentForm } from "./LikertAssessmentForm";
 import { ORG_ASSESSMENT_QUESTIONS } from "@/lib/data/assessment-questions";
 import { ORG_MATURITY_LABELS, maturityBand, type OrgMaturityCategory } from "@/lib/scoring";
+import { ORG_MATURITY_ICON } from "@/lib/data/assessmentIcons";
 import { submitOrgAssessment } from "@/lib/actions/assessment";
 import { STATUS_LABEL, getBiggestConstraints, type DimensionDiagnostic, type DimensionStatus } from "@/lib/diagnostics-shared";
 
@@ -39,10 +42,18 @@ export function OrgAssessmentPanel({
   if (mode === "retake") {
     return (
       <Card>
-        <CardHeader title="Retake AI maturity assessment" subtitle="Rate your organization today" />
+        <CardHeader
+          icon={<IconBadge icon={<BarChart3 size={18} />} tone="orchid" />}
+          title="AI maturity assessment"
+          subtitle="Rate your organization today. This helps identify your strengths and opportunities."
+        />
         <CardBody>
           <LikertAssessmentForm
             questions={ORG_ASSESSMENT_QUESTIONS}
+            categoryIcon={ORG_MATURITY_ICON}
+            categoryLabel={ORG_MATURITY_LABELS}
+            subjectLabel="our organization"
+            measuresDescription="This assessment evaluates your organization's AI maturity across six dimensions: how well employees understand AI, how widely it's used, how deeply it's built into real workflows, what governance exists, whether impact is measured, and how much leadership champions it."
             pending={pending}
             onSubmit={(responses) =>
               startTransition(async () => {
@@ -62,7 +73,11 @@ export function OrgAssessmentPanel({
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-1">
           <CardBody className="flex flex-col items-center text-center">
-            <ScoreRing value={overallScore} size={130} label="/ 100" />
+            <IconBadge icon={<Gauge size={18} />} tone="orchid" className="mx-auto" />
+            <p className="mt-2 text-xs font-medium text-ink-500">AI Adoption Score</p>
+            <div className="mt-3">
+              <ScoreRing value={overallScore} size={130} label="/ 100" />
+            </div>
             <Badge tone="brand" className="mt-3">
               {band.label}
             </Badge>
@@ -77,7 +92,7 @@ export function OrgAssessmentPanel({
           </CardBody>
         </Card>
         <Card className="lg:col-span-2">
-          <CardHeader title="Maturity breakdown" subtitle="Weighted into your overall AI Adoption Score" />
+          <CardHeader icon={<IconBadge icon={<BarChart3 size={18} />} tone="orchid" />} title="Maturity breakdown" subtitle="Weighted into your overall AI Adoption Score" />
           <CardBody className="space-y-4">
             {(Object.keys(breakdown) as OrgMaturityCategory[]).map((cat) => (
               <div key={cat}>
@@ -94,7 +109,7 @@ export function OrgAssessmentPanel({
 
       {diagnostics.length > 0 && (
         <Card>
-          <CardHeader title="Why is our score this way?" subtitle="What's pulling the score up or down" />
+          <CardHeader icon={<IconBadge icon={<Gauge size={18} />} tone="coral" />} title="Why is our score this way?" subtitle="What's pulling the score up or down" />
           <CardBody className="space-y-5">
             <div className="space-y-2">
               {diagnostics
@@ -142,7 +157,7 @@ export function OrgAssessmentPanel({
 
       {diagnostics.length > 0 && (
         <Card>
-          <CardHeader title="Diagnostic breakdown" subtitle="What each dimension means, and what to do about it" />
+          <CardHeader icon={<IconBadge icon={<Search size={18} />} tone="olive" />} title="Diagnostic breakdown" subtitle="What each dimension means, and what to do about it" />
           <CardBody className="divide-y divide-ink-200 p-0">
             {diagnostics.map((d) => (
               <div key={d.category} className="space-y-2 px-5 py-4">
@@ -172,7 +187,7 @@ export function OrgAssessmentPanel({
 
       {history.length > 1 && (
         <Card>
-          <CardHeader title="Assessment history" />
+          <CardHeader icon={<IconBadge icon={<History size={18} />} tone="sage" />} title="Assessment history" />
           <CardBody>
             <div className="divide-y divide-ink-200">
               {history.map((h, i) => (

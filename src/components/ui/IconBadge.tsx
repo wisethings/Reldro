@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import { cn } from "./cn";
 
-type Tone = "orchid" | "olive" | "sage" | "coral";
+export type IconBadgeTone = "orchid" | "olive" | "sage" | "coral";
+type Tone = IconBadgeTone;
 
 const toneClasses: Record<Tone, string> = {
   orchid: "bg-orchid-soft text-orchid-deep",
