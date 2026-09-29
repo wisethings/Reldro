@@ -57,7 +57,7 @@ export default async function LearnPage() {
         <div>
           <h1 className="text-xl font-semibold text-ink-900">Learn</h1>
           <p className="text-sm text-ink-500">
-            Short, practical lessons built around the real workflows your team uses every day.
+            Short, practical lessons built around the workflows your team uses every day.
           </p>
         </div>
         {canAuthorLessons && (

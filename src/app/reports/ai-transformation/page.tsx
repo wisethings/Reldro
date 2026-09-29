@@ -139,7 +139,7 @@ export default async function AiTransformationReportPage() {
           </div>
         )}
 
-        <p className="mt-10 text-[11px] text-ink-400">Reldro · AI Transformation Platform · Real product data, not simulated figures.</p>
+        <p className="mt-10 text-[11px] text-ink-400">Reldro · AI Transformation Platform · Product data, not simulated figures.</p>
       </div>
     </div>
   );

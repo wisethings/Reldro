@@ -47,7 +47,7 @@ export default async function RoiPage() {
       <Card>
         <CardHeader
           icon={<IconBadge icon={<DollarSign size={18} />} tone="olive" />}
-          title="Real value capture"
+          title="Value capture"
           subtitle="Computed directly from your actual opportunities and adopted workflows"
         />
         <CardBody>
@@ -108,7 +108,7 @@ export default async function RoiPage() {
       <div>
         <h2 className="text-sm font-semibold text-ink-900">Scenario model</h2>
         <p className="text-xs text-ink-500">
-          A planning tool for stress-testing assumptions and a business case. It doesn't measure real captured value.
+          A planning tool for stress-testing assumptions and a business case. It's separate from the captured value numbers above.
         </p>
         <div className="mt-3">
           <RoiExplorer workflows={metrics.map((m) => ({ label: m.workflowLabel, investment: m.investment, annualValue: m.annualValue }))} />

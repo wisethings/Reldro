@@ -37,7 +37,7 @@ export function LogTimeSavedPrompt({ workflowId }: { workflowId: string }) {
   return (
     <div className="rounded-xl border border-orchid-soft bg-orchid-soft/40 p-4">
       <p className="text-sm font-medium text-ink-900">You've finished every step of this workflow - about how long did it save you today?</p>
-      <p className="mt-1 text-xs text-ink-500">This builds a real number from people who actually use it, instead of the catalog's own estimate.</p>
+      <p className="mt-1 text-xs text-ink-500">This builds a number from people who actually use it, instead of the catalog's own estimate.</p>
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {PRESETS.map((m) => (
           <button

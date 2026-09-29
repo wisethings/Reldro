@@ -180,7 +180,7 @@ export default async function OpportunitiesPage({
                     <div>
                       <p className="flex items-center justify-end gap-1 text-sm font-semibold text-ink-900">
                         ${(o.estAnnualValue / 1000).toFixed(0)}k/yr
-                        <InfoTooltip text="Estimated from projected hours saved and your organization's blended hourly rate. This becomes a measured figure once the workflow is deployed and employees log real time saved." />
+                        <InfoTooltip text="Estimated from projected hours saved and your organization's blended hourly rate. This becomes a measured figure once the workflow is deployed and employees log time saved." />
                       </p>
                       <p className="text-[11px] text-ink-500">{o.estHoursSavedMonthly} hrs/mo (estimated)</p>
                       <p className="mt-1 text-[11px] font-medium text-orchid-deep">Priority {priority}</p>

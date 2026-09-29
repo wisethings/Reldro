@@ -90,7 +90,7 @@ export default async function MyTeamPage() {
 
       {attentionList.length > 0 && (
         <Card>
-          <CardHeader icon={<IconBadge icon={<AlertTriangle size={18} />} tone="coral" />} title="Employees needing attention" subtitle="Flagged automatically based on real activity" />
+          <CardHeader icon={<IconBadge icon={<AlertTriangle size={18} />} tone="coral" />} title="Employees needing attention" subtitle="Flagged automatically based on activity" />
           <CardBody className="divide-y divide-ink-200 p-0">
             {attentionList.map((a) => {
               const emp = employeeById.get(a.employeeId);
@@ -115,7 +115,7 @@ export default async function MyTeamPage() {
       )}
 
       <Card>
-        <CardHeader icon={<IconBadge icon={<Users size={18} />} tone="olive" />} title="Team roster" subtitle="Updated continuously from real activity" />
+        <CardHeader icon={<IconBadge icon={<Users size={18} />} tone="olive" />} title="Team roster" subtitle="Updated continuously from activity" />
         <CardBody className="divide-y divide-ink-200 p-0">
           {teammates.map((e) => {
             const stats = activity.get(e.id);

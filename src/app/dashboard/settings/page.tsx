@@ -78,7 +78,7 @@ export default async function SettingsPage() {
       </Card>
 
       <Card>
-        <CardHeader icon={<IconBadge icon={<Gift size={18} />} tone="coral" />} title="Reward program" subtitle="Real, org-wide totals - not attributed ROI, since that needs longitudinal data this demo doesn't have" />
+        <CardHeader icon={<IconBadge icon={<Gift size={18} />} tone="coral" />} title="Reward program" subtitle="Org-wide totals, not attributed ROI, since that needs longitudinal data this demo doesn't have" />
         <CardBody>
           <div className="grid gap-4 sm:grid-cols-3">
             <StatTile label="Total points issued" value={rewardsStats.totalPointsIssued.toLocaleString()} />

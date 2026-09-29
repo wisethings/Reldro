@@ -39,7 +39,7 @@ export default async function ManageLearnPage() {
         <h1 className="mt-2 text-xl font-semibold text-ink-900">Team lessons</h1>
         <p className="text-sm text-ink-500">
           {isCompanyAdmin
-            ? "Create lessons for any department, using your own team's real workflows, tools, and edge cases."
+            ? "Create lessons for any department, using your own team's workflows, tools, and edge cases."
             : `Create lessons for ${employee?.department?.name ?? "your team"}. Only your department's employees will see these.`}
         </p>
       </div>

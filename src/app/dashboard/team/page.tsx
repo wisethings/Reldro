@@ -140,7 +140,7 @@ export default async function TeamPage({
 
       {leaderboard.length > 0 && (
         <Card>
-          <CardHeader icon={<IconBadge icon={<Trophy size={18} />} tone="olive" />} title="Reward leaderboard" subtitle="Top point balances across the organization, from real learning, workflow adoption, and recognition" />
+          <CardHeader icon={<IconBadge icon={<Trophy size={18} />} tone="olive" />} title="Reward leaderboard" subtitle="Top point balances across the organization, from learning, workflow adoption, and recognition" />
           <CardBody className="divide-y divide-ink-200 p-0">
             {leaderboard.map((row, i) => (
               <Link
@@ -182,7 +182,7 @@ export default async function TeamPage({
 
       {attentionList.length > 0 && (
         <Card>
-          <CardHeader icon={<IconBadge icon={<AlertTriangle size={18} />} tone="coral" />} title="Employees needing attention" subtitle="Flagged automatically based on real activity" />
+          <CardHeader icon={<IconBadge icon={<AlertTriangle size={18} />} tone="coral" />} title="Employees needing attention" subtitle="Flagged automatically based on activity" />
           <CardBody className="divide-y divide-ink-200 p-0">
             {attentionList.map((a) => {
               const emp = employeeById.get(a.employeeId);

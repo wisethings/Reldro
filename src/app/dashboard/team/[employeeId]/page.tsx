@@ -110,7 +110,7 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
       </div>
 
       <Card>
-        <CardHeader icon={<IconBadge icon={<Gift size={18} />} tone="coral" />} title="AI points" subtitle="Earned from real progress, never for logins or time in the app" />
+        <CardHeader icon={<IconBadge icon={<Gift size={18} />} tone="coral" />} title="AI points" subtitle="Earned from progress, never for logins or time in the app" />
         <CardBody className="flex flex-wrap items-center gap-6">
           <div>
             <p className="text-2xl font-semibold text-ink-900">{pointsBalance.toLocaleString()}</p>
@@ -171,7 +171,7 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
       )}
 
       <Card>
-        <CardHeader icon={<IconBadge icon={<Award size={18} />} tone="olive" />} title="Certifications" subtitle="Real, checkable requirements - not a time-based badge" />
+        <CardHeader icon={<IconBadge icon={<Award size={18} />} tone="olive" />} title="Certifications" subtitle="Checkable requirements, not a time-based badge" />
         <CardBody className="space-y-4">
           {certifications.map((cert) => (
             <div key={cert.key} className="border-b border-ink-100 pb-4 last:border-0 last:pb-0">
@@ -232,7 +232,7 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
       )}
 
       <Card>
-        <CardHeader icon={<IconBadge icon={<Flag size={18} />} tone="orchid" />} title="AI journey" subtitle="Real milestones, dated from the activity that earned them" />
+        <CardHeader icon={<IconBadge icon={<Flag size={18} />} tone="orchid" />} title="AI journey" subtitle="Milestones dated from the activity that earned them" />
         <CardBody className="space-y-3">
           {milestones.map((m) => (
             <div key={m.id} className="flex items-center justify-between gap-3">

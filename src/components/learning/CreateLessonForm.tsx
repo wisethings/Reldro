@@ -72,7 +72,7 @@ export function CreateLessonForm({ courseId }: { courseId: string }) {
             <Textarea name="evaluatePrompt" rows={2} />
           </Field>
         </FieldGrid>
-        <Field label="Apply" hint="Connect the skill to a real task on your team" required>
+        <Field label="Apply" hint="Connect the skill to a task on your team" required>
           <Textarea name="exercise" required rows={3} />
         </Field>
         <FieldGrid columns={2}>

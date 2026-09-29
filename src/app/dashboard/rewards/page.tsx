@@ -38,7 +38,7 @@ export default async function RewardsPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-ink-900">AI Rewards</h1>
-          <p className="text-sm text-ink-500">Earned from real learning, workflow adoption, and recognition. Never from just logging in.</p>
+          <p className="text-sm text-ink-500">Earned from learning, workflow adoption, and recognition. Never from just logging in.</p>
         </div>
         {session.role === "COMPANY_ADMIN" && (
           <Link

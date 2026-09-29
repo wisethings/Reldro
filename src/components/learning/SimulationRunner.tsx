@@ -211,7 +211,7 @@ export function SimulationRunner({
 
       {step === 1 && (
         <div className="space-y-3">
-          <p className="text-sm font-medium text-ink-900">Here's an AI-generated output for this situation. Check anything you'd flag as a real problem before it's used.</p>
+          <p className="text-sm font-medium text-ink-900">Here's an AI-generated output for this situation. Check anything you'd flag as a problem before it's used.</p>
           <div className="rounded-lg border border-ink-200 bg-ink-50 p-4 text-sm italic text-ink-700 whitespace-pre-line">{aiOutputSample}</div>
           <div className="space-y-2">
             {aiOutputIssues.map((issue) => (

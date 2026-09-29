@@ -85,7 +85,7 @@ export default async function ToolLibraryPage({
           <CardHeader
             icon={<IconBadge icon={<Wrench size={18} />} tone="olive" />}
             title="Detected but not reviewed"
-            subtitle={`${unmanaged.length} tool${unmanaged.length === 1 ? "" : "s"} showing up in real usage that aren't in your library yet`}
+            subtitle={`${unmanaged.length} tool${unmanaged.length === 1 ? "" : "s"} showing up in usage that aren't in your library yet`}
           />
           <CardBody className="flex flex-wrap gap-2">
             {unmanaged.map((t) => (

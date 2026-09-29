@@ -71,8 +71,8 @@ export default async function IntegrationsPage({
       <div>
         <h1 className="text-xl font-semibold text-ink-900">Integrations</h1>
         <p className="text-sm text-ink-500">
-          Slack connects for real when configured. Every other integration here is a demo connection for now, and no
-          live data is pulled yet. Each is clearly marked as real or mock.
+          Slack connects live when configured. Every other integration here is a demo connection for now, and no
+          live data is pulled yet. Each is clearly marked as live or demo.
         </p>
       </div>
 

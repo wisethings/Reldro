@@ -474,7 +474,7 @@ async function OrgOverview({ organizationId, months, activity }: { organizationI
         <CardHeader
           icon={<IconBadge icon={<Activity size={18} />} tone="sage" />}
           title="AI activity"
-          subtitle="Real activity across the organization: learning, workflow adoption, and recognition"
+          subtitle="Activity across the organization: learning, workflow adoption, and recognition"
           action={<QueryParamSelect paramKey="activity" options={ACTIVITY_FILTER_OPTIONS} defaultValue="all" />}
         />
         <CardBody className="divide-y divide-ink-200 p-0">
@@ -605,7 +605,7 @@ async function EmployeeOverview({ session, name }: { session: SessionPayload; na
                   {rewardMilestones[1].value - pointsBalance} pts away from {rewardMilestones[1].label}
                 </p>
               ) : (
-                <p className="text-xs text-ink-500">Earned from real progress: learning paths, simulations, workflows, and recognition</p>
+                <p className="text-xs text-ink-500">Earned from learning paths, simulations, workflows, and recognition</p>
               )}
             </div>
             {recentPoints.length > 0 && (

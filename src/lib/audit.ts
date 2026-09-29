@@ -108,7 +108,7 @@ const ACTION_LABELS: Record<AuditAction, string> = {
   "workflow.dependency_added": "Added a workflow prerequisite",
   "workflow.dependency_removed": "Removed a workflow prerequisite",
   "settings.value_estimates_recalculated": "Recalculated opportunity value estimates",
-  "workflow.time_saved_logged": "Logged real time saved on a workflow",
+  "workflow.time_saved_logged": "Logged time saved on a workflow",
   "project.budget_updated": "Updated a project's budget",
   "project.target_date_updated": "Updated a project's target completion date",
   "project.description_updated": "Updated a project's description",

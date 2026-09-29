@@ -53,7 +53,7 @@ export function OrgAssessmentPanel({
             categoryIcon={ORG_MATURITY_ICON}
             categoryLabel={ORG_MATURITY_LABELS}
             subjectLabel="our organization"
-            measuresDescription="This assessment evaluates your organization's AI maturity across six dimensions: how well employees understand AI, how widely it's used, how deeply it's built into real workflows, what governance exists, whether impact is measured, and how much leadership champions it."
+            measuresDescription="This assessment evaluates your organization's AI maturity across six dimensions: how well employees understand AI, how widely it's used, how deeply it's built into workflows, what governance exists, whether impact is measured, and how much leadership champions it."
             pending={pending}
             onSubmit={(responses) =>
               startTransition(async () => {

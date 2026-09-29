@@ -12,7 +12,7 @@ export function ViewAllDepartmentsToggle({ employeeId, viewAllDepartments }: { e
     <button
       type="button"
       disabled={pending}
-      title="Cross-department content visibility (opportunities, templates, workflows, lessons) - not a real permission tier, just a view override"
+      title="Cross-department content visibility (opportunities, templates, workflows, lessons) - not a formal permission tier, just a view override"
       onClick={() =>
         startTransition(async () => {
           await setViewAllDepartments(employeeId, !viewAllDepartments);

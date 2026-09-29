@@ -44,7 +44,7 @@ export default async function ManageWorkflowsPage() {
         <h1 className="mt-2 text-xl font-semibold text-ink-900">Team workflows</h1>
         <p className="text-sm text-ink-500">
           {isCompanyAdmin
-            ? "Create AI-enabled workflows for any department, using your own team's real processes and tools."
+            ? "Create AI-enabled workflows for any department, using your own team's processes and tools."
             : `Create workflows for ${employee?.department?.name ?? "your team"}. Only your department's employees will see these.`}
         </p>
       </div>
