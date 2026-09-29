@@ -4,7 +4,9 @@ import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { IconBadge } from "@/components/ui/IconBadge";
 import { connectIntegration, disconnectIntegration } from "@/lib/actions/integrations";
+import { Wrench } from "lucide-react";
 
 export default async function IntegrationsPage({
   searchParams,
@@ -40,6 +42,7 @@ export default async function IntegrationsPage({
 
       <Card>
         <CardHeader
+          icon={<IconBadge icon={<Wrench size={18} />} tone="orchid" />}
           title="Tool library"
           subtitle="Govern which AI tools and platforms are approved, and see how they're actually being used"
         />

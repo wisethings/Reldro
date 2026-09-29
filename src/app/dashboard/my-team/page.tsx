@@ -4,11 +4,13 @@ import { requireSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { IconBadge } from "@/components/ui/IconBadge";
 import { ProgressBar } from "@/components/ui/Progress";
 import { StatTile } from "@/components/ui/StatTile";
 import { getEmployeeActivity } from "@/lib/queries/team";
 import { getTeamGaps, getEmployeesNeedingAttention } from "@/lib/queries/teamInsights";
 import { getTeamRewardsSummary } from "@/lib/rewards";
+import { BarChart3, AlertTriangle, Users } from "lucide-react";
 
 function formatLastActive(date: Date | null) {
   if (!date) return "Never active";
@@ -70,7 +72,7 @@ export default async function MyTeamPage() {
 
       {teamGaps.length > 0 && (
         <Card>
-          <CardHeader title="Team gaps" subtitle="Average AI fluency by skill, across teammates who've completed an assessment" />
+          <CardHeader icon={<IconBadge icon={<BarChart3 size={18} />} tone="orchid" />} title="Team gaps" subtitle="Average AI fluency by skill, across teammates who've completed an assessment" />
           <CardBody className="space-y-3">
             {teamGaps.map((g) => (
               <div key={g.category}>
@@ -87,7 +89,7 @@ export default async function MyTeamPage() {
 
       {attentionList.length > 0 && (
         <Card>
-          <CardHeader title="Employees needing attention" subtitle="Flagged automatically based on real activity" />
+          <CardHeader icon={<IconBadge icon={<AlertTriangle size={18} />} tone="coral" />} title="Employees needing attention" subtitle="Flagged automatically based on real activity" />
           <CardBody className="divide-y divide-ink-200 p-0">
             {attentionList.map((a) => {
               const emp = employeeById.get(a.employeeId);
@@ -109,7 +111,7 @@ export default async function MyTeamPage() {
       )}
 
       <Card>
-        <CardHeader title="Team roster" subtitle="Updated continuously from real activity" />
+        <CardHeader icon={<IconBadge icon={<Users size={18} />} tone="olive" />} title="Team roster" subtitle="Updated continuously from real activity" />
         <CardBody className="divide-y divide-ink-200 p-0">
           {teammates.map((e) => {
             const stats = activity.get(e.id);

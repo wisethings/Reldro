@@ -6,10 +6,12 @@ import { getToolUsageBreakdown, getWorkflowAdoptionBreakdown, getTrainingComplet
 import { getAiWaste } from "@/lib/queries/waste";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { StatTile } from "@/components/ui/StatTile";
+import { IconBadge } from "@/components/ui/IconBadge";
 import { AdoptionTrendChart } from "@/components/charts/AdoptionTrendChart";
 import { BarComparisonChart } from "@/components/charts/BarComparisonChart";
 import { Badge } from "@/components/ui/Badge";
 import Link from "next/link";
+import { TrendingUp, BarChart3, Wrench, Share2, AlertTriangle } from "lucide-react";
 
 export default async function AnalyticsPage() {
   const session = await requireRole(["COMPANY_ADMIN"]);
@@ -64,14 +66,14 @@ export default async function AnalyticsPage() {
       </div>
 
       <Card>
-        <CardHeader title="Adoption over time" subtitle="Org-wide AI Adoption Score" />
+        <CardHeader icon={<IconBadge icon={<TrendingUp size={18} />} tone="orchid" />} title="Adoption over time" subtitle="Org-wide AI Adoption Score" />
         <CardBody>
           <AdoptionTrendChart data={trend.map((t) => ({ month: t.month, score: t.score }))} />
         </CardBody>
       </Card>
 
       <Card>
-        <CardHeader title="Adoption by department" subtitle="Share of employees actively using AI" />
+        <CardHeader icon={<IconBadge icon={<BarChart3 size={18} />} tone="orchid" />} title="Adoption by department" subtitle="Share of employees actively using AI" />
         <CardBody>
           <BarComparisonChart
             data={currentDeptSnapshots.map((s) => ({ label: s.department ?? "", value: s.adoptionPct }))}
@@ -82,7 +84,7 @@ export default async function AnalyticsPage() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
-          <CardHeader title="Adoption by tool" subtitle="Logged AI-assisted actions" />
+          <CardHeader icon={<IconBadge icon={<Wrench size={18} />} tone="olive" />} title="Adoption by tool" subtitle="Logged AI-assisted actions" />
           <CardBody>
             {toolUsage.length > 0 ? (
               <BarComparisonChart data={toolUsage} dataKey="value" labelKey="label" unit=" actions" />
@@ -92,7 +94,7 @@ export default async function AnalyticsPage() {
           </CardBody>
         </Card>
         <Card>
-          <CardHeader title="Workflow adoption status" />
+          <CardHeader icon={<IconBadge icon={<Share2 size={18} />} tone="olive" />} title="Workflow adoption status" />
           <CardBody className="space-y-2">
             {workflowStatuses.map((w) => (
               <div key={w.status} className="flex items-center justify-between text-sm">
@@ -107,6 +109,7 @@ export default async function AnalyticsPage() {
 
       <Card>
         <CardHeader
+          icon={<IconBadge icon={<AlertTriangle size={18} />} tone="coral" />}
           title="AI waste"
           subtitle="AI usage that isn't happening through a repeatable workflow, so the company isn't capturing the value"
         />

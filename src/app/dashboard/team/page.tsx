@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { IconBadge } from "@/components/ui/IconBadge";
 import { ProgressBar } from "@/components/ui/Progress";
 import { InviteEmployeeForm } from "@/components/team/InviteEmployeeForm";
 import { DepartmentAdminToggle } from "@/components/team/DepartmentAdminToggle";
@@ -11,6 +12,7 @@ import { ViewAllDepartmentsToggle } from "@/components/team/ViewAllDepartmentsTo
 import { getEmployeeActivity } from "@/lib/queries/team";
 import { getTeamGaps, getEmployeesNeedingAttention } from "@/lib/queries/teamInsights";
 import { getTeamRewardsSummary, getPointsBalances } from "@/lib/rewards";
+import { UserPlus, Trophy, BarChart3, AlertTriangle } from "lucide-react";
 
 function formatLastActive(date: Date | null) {
   if (!date) return "Never active";
@@ -57,7 +59,7 @@ export default async function TeamPage() {
       </div>
 
       <Card>
-        <CardHeader title="Invite an employee" />
+        <CardHeader icon={<IconBadge icon={<UserPlus size={18} />} tone="orchid" />} title="Invite an employee" />
         <CardBody>
           <InviteEmployeeForm departments={departments} />
         </CardBody>
@@ -80,7 +82,7 @@ export default async function TeamPage() {
 
       {leaderboard.length > 0 && (
         <Card>
-          <CardHeader title="Reward leaderboard" subtitle="Top point balances across the organization, from real learning, workflow adoption, and recognition" />
+          <CardHeader icon={<IconBadge icon={<Trophy size={18} />} tone="olive" />} title="Reward leaderboard" subtitle="Top point balances across the organization, from real learning, workflow adoption, and recognition" />
           <CardBody className="divide-y divide-ink-200 p-0">
             {leaderboard.map((row, i) => (
               <Link
@@ -104,7 +106,7 @@ export default async function TeamPage() {
 
       {teamGaps.length > 0 && (
         <Card>
-          <CardHeader title="Organization skill gaps" subtitle="Average AI fluency by skill, across employees who've completed an assessment" />
+          <CardHeader icon={<IconBadge icon={<BarChart3 size={18} />} tone="orchid" />} title="Organization skill gaps" subtitle="Average AI fluency by skill, across employees who've completed an assessment" />
           <CardBody className="space-y-3">
             {teamGaps.map((g) => (
               <div key={g.category}>
@@ -121,7 +123,7 @@ export default async function TeamPage() {
 
       {attentionList.length > 0 && (
         <Card>
-          <CardHeader title="Employees needing attention" subtitle="Flagged automatically based on real activity" />
+          <CardHeader icon={<IconBadge icon={<AlertTriangle size={18} />} tone="coral" />} title="Employees needing attention" subtitle="Flagged automatically based on real activity" />
           <CardBody className="divide-y divide-ink-200 p-0">
             {attentionList.map((a) => {
               const emp = employeeById.get(a.employeeId);

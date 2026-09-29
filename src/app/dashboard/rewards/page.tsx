@@ -4,8 +4,10 @@ import { requireSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { IconBadge } from "@/components/ui/IconBadge";
 import { getPointsBalance, ensureDefaultRewardCatalog } from "@/lib/rewards";
 import { RedeemButton } from "@/components/rewards/RedeemButton";
+import { Gift, History } from "lucide-react";
 
 const CATEGORY_LABEL: Record<string, string> = {
   GIFT_CARD: "Gift card",
@@ -60,7 +62,7 @@ export default async function RewardsPage() {
       )}
 
       <Card>
-        <CardHeader title="Available rewards" />
+        <CardHeader icon={<IconBadge icon={<Gift size={18} />} tone="orchid" />} title="Available rewards" />
         <CardBody className="divide-y divide-ink-200 p-0">
           {catalog.map((item) => (
             <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
@@ -80,7 +82,7 @@ export default async function RewardsPage() {
       </Card>
 
       <Card>
-        <CardHeader title="Reward history" subtitle="Every point, in and out" />
+        <CardHeader icon={<IconBadge icon={<History size={18} />} tone="olive" />} title="Reward history" subtitle="Every point, in and out" />
         <CardBody className="divide-y divide-ink-200 p-0">
           {history.map((t) => (
             <div key={t.id} className="flex items-center justify-between gap-3 px-5 py-3">

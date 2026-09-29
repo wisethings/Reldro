@@ -25,6 +25,43 @@ export function ProgressBar({
   );
 }
 
+/**
+ * A progress bar with labeled checkpoints along it (e.g. reward tiers a
+ * points balance is climbing toward), instead of a bare percentage. Each
+ * milestone before the current value renders filled; the rest are hollow.
+ * `milestones` must be sorted ascending by `value` - the last one sets the
+ * bar's own max.
+ */
+export function MilestoneProgressBar({
+  value,
+  milestones,
+  className,
+}: {
+  value: number;
+  milestones: { value: number; label: string }[];
+  className?: string;
+}) {
+  const max = milestones[milestones.length - 1]?.value || 1;
+  const pct = Math.max(0, Math.min(100, (value / max) * 100));
+
+  return (
+    <div className={cn("w-full", className)}>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-sunken">
+        <div className="h-full rounded-full bg-orchid-deep" style={{ width: `${pct}%` }} />
+      </div>
+      <div className="mt-2 flex justify-between">
+        {milestones.map((m) => (
+          <div key={m.value} className="flex flex-col items-center gap-1 text-center">
+            <span className={cn("h-2 w-2 rounded-full", value >= m.value ? "bg-orchid-deep" : "bg-ink-200")} />
+            <span className="text-[11px] font-medium text-ink-700">{m.value} pts</span>
+            <span className="text-[10px] text-ink-400">{m.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function ScoreRing({ value, size = 88, label }: { value: number; size?: number; label?: string }) {
   const stroke = 8;
   const radius = (size - stroke) / 2;

@@ -3,10 +3,12 @@ import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { StatTile } from "@/components/ui/StatTile";
+import { IconBadge } from "@/components/ui/IconBadge";
 import { ProgressBar } from "@/components/ui/Progress";
 import { RoiExplorer } from "@/components/roi/RoiExplorer";
 import { getOrgValueCapture, getDepartmentValueCapture } from "@/lib/queries/value";
 import { getAdoptionFunnel } from "@/lib/queries/funnel";
+import { DollarSign, BarChart3, Filter } from "lucide-react";
 
 export default async function RoiPage() {
   const session = await requireRole(["COMPANY_ADMIN"]);
@@ -44,6 +46,7 @@ export default async function RoiPage() {
 
       <Card>
         <CardHeader
+          icon={<IconBadge icon={<DollarSign size={18} />} tone="olive" />}
           title="Real value capture"
           subtitle="Computed directly from your actual opportunities and adopted workflows"
         />
@@ -67,7 +70,7 @@ export default async function RoiPage() {
 
       {departmentValues.length > 0 && (
         <Card>
-          <CardHeader title="Value by department" subtitle="Potential vs. captured, ranked by potential value" />
+          <CardHeader icon={<IconBadge icon={<BarChart3 size={18} />} tone="orchid" />} title="Value by department" subtitle="Potential vs. captured, ranked by potential value" />
           <CardBody className="divide-y divide-ink-200 p-0">
             {departmentValues.map((d) => (
               <div key={d.department} className="px-5 py-3">
@@ -85,7 +88,7 @@ export default async function RoiPage() {
       )}
 
       <Card>
-        <CardHeader title="AI adoption funnel" subtitle="How far employees get through the adoption journey" />
+        <CardHeader icon={<IconBadge icon={<Filter size={18} />} tone="olive" />} title="AI adoption funnel" subtitle="How far employees get through the adoption journey" />
         <CardBody className="space-y-3">
           {funnel.stages.map((s) => (
             <div key={s.label}>

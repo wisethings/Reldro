@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
+import { IconBadge } from "@/components/ui/IconBadge";
+import { Sliders, ListOrdered } from "lucide-react";
 
 type WorkflowRoi = { label: string; investment: number; annualValue: number };
 
@@ -19,6 +21,7 @@ export function RoiExplorer({ workflows }: { workflows: WorkflowRoi[] }) {
     <div className="space-y-6">
       <Card>
         <CardHeader
+          icon={<IconBadge icon={<Sliders size={18} />} tone="orchid" />}
           title="Configurable assumptions"
           subtitle="Adjust the productivity value multiplier to stress-test the model"
         />
@@ -65,7 +68,7 @@ export function RoiExplorer({ workflows }: { workflows: WorkflowRoi[] }) {
       </div>
 
       <Card>
-        <CardHeader title="ROI by workflow" />
+        <CardHeader icon={<IconBadge icon={<ListOrdered size={18} />} tone="olive" />} title="ROI by workflow" />
         <CardBody className="divide-y divide-ink-200 p-0">
           {workflows.map((w) => (
             <div key={w.label} className="flex items-center justify-between px-5 py-3">

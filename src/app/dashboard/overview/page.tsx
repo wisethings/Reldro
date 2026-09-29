@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { requireSession } from "@/lib/auth/guards";
+import type { SessionPayload } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { getOrgTrend, getLatestOrgSnapshot, getRealAdoptionMetrics } from "@/lib/queries/adoption";
 import { getOrgValueCapture } from "@/lib/queries/value";
 import { getOrgRecommendations } from "@/lib/recommendations";
 import { StatTile } from "@/components/ui/StatTile";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
-import { ScoreRing, ProgressBar } from "@/components/ui/Progress";
+import { IconBadge } from "@/components/ui/IconBadge";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { ScoreRing, ProgressBar, MilestoneProgressBar } from "@/components/ui/Progress";
 import { AdoptionTrendChart } from "@/components/charts/AdoptionTrendChart";
 import { Badge } from "@/components/ui/Badge";
 import { maturityBand, ORG_MATURITY_LABELS, type OrgMaturityCategory } from "@/lib/scoring";
@@ -14,16 +17,32 @@ import { DEPLOYED_STATUSES } from "@/lib/workflowLifecycle";
 import { getFluencyForEmployee, getStrongestSkill, getWeakestSkill, EMPLOYEE_SKILL_LABELS } from "@/lib/queries/fluency";
 import { getWeeklyBrief } from "@/lib/queries/weeklyBrief";
 import { getEmployeeRecommendations } from "@/lib/queries/employeeRecommendations";
-import { getPointsBalance, getRecentPointsTransactions, getNextRewardGap } from "@/lib/rewards";
+import { getPointsBalance, getRecentPointsTransactions, getRewardMilestones } from "@/lib/rewards";
 import { getAiActivityFeed } from "@/lib/activityFeed";
+import { getWorkflowDeploymentStats } from "@/lib/queries/workflowDeployment";
+import { ownDepartmentFilter } from "@/lib/departmentVisibility";
 import { redirect } from "next/navigation";
+import {
+  Gauge,
+  TrendingUp,
+  Newspaper,
+  DollarSign,
+  Sparkles,
+  BarChart3,
+  Target,
+  Activity,
+  FileText,
+  BookOpen,
+  Share2,
+  User,
+} from "lucide-react";
 
 export default async function OverviewPage() {
   const session = await requireSession();
   if (!session.organizationId) redirect("/login");
 
   if (session.role === "EMPLOYEE") {
-    return <EmployeeOverview employeeId={session.employeeId!} name={session.name} />;
+    return <EmployeeOverview session={session} name={session.name} />;
   }
 
   return <OrgOverview organizationId={session.organizationId} />;
@@ -97,7 +116,11 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
           </CardBody>
         </Card>
         <Card className="lg:col-span-2">
-          <CardHeader title="AI Adoption Score over time" subtitle="Org-wide, last 6 months" />
+          <CardHeader
+            icon={<IconBadge icon={<TrendingUp size={18} />} tone="orchid" />}
+            title="AI Adoption Score over time"
+            subtitle="Org-wide, last 6 months"
+          />
           <CardBody>
             <AdoptionTrendChart data={trend.map((t) => ({ month: t.month, score: t.score }))} />
           </CardBody>
@@ -120,7 +143,11 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
       </div>
 
       <Card>
-        <CardHeader title="Your AI adoption brief" subtitle="What changed this week, compared to the week before" />
+        <CardHeader
+          icon={<IconBadge icon={<Newspaper size={18} />} tone="olive" />}
+          title="Your AI adoption brief"
+          subtitle="What changed this week, compared to the week before"
+        />
         <CardBody className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatTile
@@ -169,6 +196,7 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
 
       <Card>
         <CardHeader
+          icon={<IconBadge icon={<DollarSign size={18} />} tone="olive" />}
           title="AI transformation value"
           subtitle="Estimated potential value vs. value captured from adopted workflows"
         />
@@ -184,7 +212,11 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
 
       {recommendations.length > 0 && (
         <Card>
-          <CardHeader title="What should we do next?" subtitle="Recommended based on your opportunities and assessment" />
+          <CardHeader
+            icon={<IconBadge icon={<Sparkles size={18} />} tone="orchid" />}
+            title="What should we do next?"
+            subtitle="Recommended based on your opportunities and assessment"
+          />
           <CardBody className="space-y-4">
             {recommendations.map((rec) => (
               <div key={rec.id} className="rounded-xl border border-ink-200 p-4">
@@ -228,7 +260,11 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-1">
-          <CardHeader title="Maturity breakdown" subtitle="Latest assessment" />
+          <CardHeader
+            icon={<IconBadge icon={<BarChart3 size={18} />} tone="orchid" />}
+            title="Maturity breakdown"
+            subtitle="Latest assessment"
+          />
           <CardBody className="space-y-3">
             {(Object.keys(breakdown) as OrgMaturityCategory[]).map((cat) => (
               <div key={cat}>
@@ -247,6 +283,7 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
 
         <Card className="lg:col-span-2">
           <CardHeader
+            icon={<IconBadge icon={<Target size={18} />} tone="olive" />}
             title="Top AI opportunities"
             subtitle="Ranked by estimated annual value"
             action={
@@ -275,7 +312,11 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
 
       {activityFeed.length > 0 && (
         <Card>
-          <CardHeader title="AI activity" subtitle="Real activity across the organization: learning, workflow adoption, and recognition" />
+          <CardHeader
+            icon={<IconBadge icon={<Activity size={18} />} tone="sage" />}
+            title="AI activity"
+            subtitle="Real activity across the organization: learning, workflow adoption, and recognition"
+          />
           <CardBody className="divide-y divide-ink-200 p-0">
             {activityFeed.map((item) => (
               <div key={item.id} className="flex items-center justify-between gap-3 px-5 py-3">
@@ -290,15 +331,34 @@ async function OrgOverview({ organizationId }: { organizationId: string }) {
   );
 }
 
-async function EmployeeOverview({ employeeId, name }: { employeeId: string; name: string }) {
+async function EmployeeOverview({ session, name }: { session: SessionPayload; name: string }) {
+  const employeeId = session.employeeId!;
   const employee = await prisma.employee.findUnique({
     where: { id: employeeId },
     include: { department: true, organization: true },
   });
   if (!employee) redirect("/login");
 
-  const [assignedLessons, workflows, opportunity, fluency, recommendations, pointsBalance, recentPoints, nextReward] = await Promise.all([
+  const ownDepartment = ownDepartmentFilter(session, employee);
+
+  const [
+    assignedLessons,
+    totalLessonsInScope,
+    workflows,
+    opportunity,
+    fluency,
+    recommendations,
+    pointsBalance,
+    recentPoints,
+    rewardMilestones,
+  ] = await Promise.all([
     prisma.lessonCompletion.findMany({ where: { employeeId }, include: { lesson: { include: { course: true } } } }),
+    prisma.course
+      .findMany({
+        where: { OR: [{ organizationId: null }, { organizationId: employee.organizationId }], department: ownDepartment },
+        include: { _count: { select: { lessons: true } } },
+      })
+      .then((courses) => courses.reduce((sum, c) => sum + c._count.lessons, 0)),
     prisma.organizationWorkflow.findMany({
       where: { organizationId: employee.organizationId },
       include: { workflow: true },
@@ -307,15 +367,19 @@ async function EmployeeOverview({ employeeId, name }: { employeeId: string; name
     prisma.opportunity.findFirst({
       where: { organizationId: employee.organizationId, departmentId: employee.departmentId ?? undefined },
       orderBy: { estAnnualValue: "desc" },
+      include: { workflow: true },
     }),
     getFluencyForEmployee(employeeId),
     getEmployeeRecommendations(employeeId),
     getPointsBalance(employeeId),
     getRecentPointsTransactions(employeeId, 3),
-    getNextRewardGap(employeeId, employee.organizationId),
+    getRewardMilestones(employeeId, employee.organizationId),
   ]);
 
   const relevantWorkflows = workflows.filter((w) => w.workflow.department === employee.department?.name || !employee.department);
+  const opportunityAdopters = opportunity?.workflowId
+    ? await getWorkflowDeploymentStats(employee.organizationId, { id: opportunity.workflowId, department: opportunity.workflow!.department, steps: [] })
+    : null;
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-6">
@@ -328,16 +392,23 @@ async function EmployeeOverview({ employeeId, name }: { employeeId: string; name
 
       {recommendations.length > 0 && (
         <Card>
-          <CardHeader title="What should I do next?" subtitle="Personalized based on your skills, workflows, and activity" />
+          <CardHeader
+            icon={<IconBadge icon={<Sparkles size={18} />} tone="orchid" />}
+            title="What should I do next?"
+            subtitle="Personalized based on your skills, workflows, and activity"
+          />
           <CardBody className="space-y-3">
             {recommendations.map((rec) => (
-              <div key={rec.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-ink-200 p-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-ink-900">
-                    {rec.title}
-                    {rec.estimatedMinutes && <span className="ml-2 text-xs font-normal text-ink-500">{rec.estimatedMinutes} min</span>}
-                  </p>
-                  <p className="text-xs text-ink-500">{rec.reason}</p>
+              <div key={rec.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-ink-200 p-3">
+                <div className="flex min-w-0 items-start gap-3">
+                  <IconBadge icon={<FileText size={16} />} tone="orchid" className="h-8 w-8" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-ink-900">
+                      {rec.title}
+                      {rec.estimatedMinutes && <span className="ml-2 text-xs font-normal text-ink-500">{rec.estimatedMinutes} min</span>}
+                    </p>
+                    <p className="text-xs text-ink-500">{rec.reason}</p>
+                  </div>
                 </div>
                 <Link
                   href={rec.actionHref}
@@ -353,6 +424,7 @@ async function EmployeeOverview({ employeeId, name }: { employeeId: string; name
 
       <Card>
         <CardHeader
+          icon={<IconBadge icon={<BarChart3 size={18} />} tone="olive" />}
           title="Your AI progress"
           action={
             <Link href="/dashboard/rewards" className="text-xs font-medium text-orchid-deep hover:text-oxblood">
@@ -360,39 +432,51 @@ async function EmployeeOverview({ employeeId, name }: { employeeId: string; name
             </Link>
           }
         />
-        <CardBody className="flex flex-wrap items-center gap-6">
-          <div>
-            <p className="text-2xl font-semibold text-ink-900">{pointsBalance.toLocaleString()} pts</p>
-            {nextReward ? (
-              <p className="text-xs text-ink-500">{nextReward.pointsAway} pts away from {nextReward.name}</p>
-            ) : (
-              <p className="text-xs text-ink-500">Earned from real progress: learning paths, simulations, workflows, and recognition</p>
+        <CardBody className="space-y-4">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-2xl font-semibold text-ink-900">{pointsBalance.toLocaleString()} pts</p>
+              {rewardMilestones.length > 1 ? (
+                <p className="text-xs text-ink-500">
+                  {rewardMilestones[1].value - pointsBalance} pts away from {rewardMilestones[1].label}
+                </p>
+              ) : (
+                <p className="text-xs text-ink-500">Earned from real progress: learning paths, simulations, workflows, and recognition</p>
+              )}
+            </div>
+            {recentPoints.length > 0 && (
+              <div className="min-w-0 flex-1 space-y-1 sm:max-w-xs">
+                {recentPoints.map((t) => (
+                  <p key={t.id} className="truncate text-xs text-ink-600">
+                    <span className={t.amount >= 0 ? "font-medium text-sage-deep" : "font-medium text-ink-500"}>
+                      {t.amount >= 0 ? "+" : ""}{t.amount}
+                    </span>{" "}
+                    {t.reason}
+                  </p>
+                ))}
+              </div>
             )}
           </div>
-          {recentPoints.length > 0 && (
-            <div className="min-w-0 flex-1 space-y-1">
-              {recentPoints.map((t) => (
-                <p key={t.id} className="truncate text-xs text-ink-600">
-                  <span className={t.amount >= 0 ? "font-medium text-sage-deep" : "font-medium text-ink-500"}>
-                    {t.amount >= 0 ? "+" : ""}{t.amount}
-                  </span>{" "}
-                  {t.reason}
-                </p>
-              ))}
-            </div>
-          )}
+          {rewardMilestones.length > 1 && <MilestoneProgressBar value={pointsBalance} milestones={rewardMilestones} />}
         </CardBody>
       </Card>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
+          <CardHeader
+            icon={<IconBadge icon={<Gauge size={18} />} tone="orchid" />}
+            title={
+              <span className="flex items-center gap-1.5">
+                Your AI Fluency
+                <InfoTooltip text="This measures how effectively you use AI. AI adoption measures how much you use it." />
+              </span>
+            }
+          />
           <CardBody className="flex items-center gap-4">
             <ScoreRing value={employee.aiFluencyScore ?? 0} size={72} label="/ 100" />
             <div>
-              <p className="text-xs font-medium text-ink-500">Your AI Fluency</p>
-              <p className="text-[11px] text-ink-400">This measures how effectively you use AI. AI adoption measures how much you use it.</p>
               {fluency && (
-                <p className="mt-1 text-[11px] text-ink-600">
+                <p className="text-[11px] text-ink-600">
                   Strongest: {EMPLOYEE_SKILL_LABELS[getStrongestSkill(fluency.breakdown)]} · Focus area: {EMPLOYEE_SKILL_LABELS[getWeakestSkill(fluency.breakdown)]}
                 </p>
               )}
@@ -402,16 +486,56 @@ async function EmployeeOverview({ employeeId, name }: { employeeId: string; name
             </div>
           </CardBody>
         </Card>
-        <StatTile label="Lessons completed" value={assignedLessons.length} />
-        <StatTile label="Workflows available to you" value={relevantWorkflows.length} />
+        <Card>
+          <CardHeader icon={<IconBadge icon={<BookOpen size={18} />} tone="orchid" />} title="Lessons completed" />
+          <CardBody>
+            <p className="text-2xl font-semibold text-ink-900">
+              {assignedLessons.length} <span className="text-sm font-normal text-ink-500">of {totalLessonsInScope}</span>
+            </p>
+            <p className="text-xs text-ink-500">
+              {totalLessonsInScope > 0 ? Math.round((assignedLessons.length / totalLessonsInScope) * 100) : 0}% complete
+            </p>
+            <ProgressBar value={assignedLessons.length} max={totalLessonsInScope || 1} className="mt-2" />
+            <div className="mt-2 flex items-center gap-3 text-[11px] text-ink-500">
+              <span className="flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-orchid-deep" /> Completed {assignedLessons.length}
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-ink-200" /> Not started {Math.max(0, totalLessonsInScope - assignedLessons.length)}
+              </span>
+            </div>
+          </CardBody>
+        </Card>
+        <Card>
+          <CardHeader icon={<IconBadge icon={<Share2 size={18} />} tone="olive" />} title="Workflows available to you" />
+          <CardBody>
+            <p className="text-2xl font-semibold text-ink-900">{relevantWorkflows.length}</p>
+            <p className="text-xs text-ink-500">Based on your role, team, and recent activity.</p>
+            <Link href="/dashboard/workflows" className="mt-1 inline-block text-xs font-medium text-orchid-deep hover:text-oxblood">
+              Browse workflows →
+            </Link>
+          </CardBody>
+        </Card>
       </div>
 
       {opportunity && (
         <Card>
-          <CardHeader title={`Highest-value opportunity in ${employee.department?.name ?? "your area"}`} />
+          <CardHeader
+            icon={<IconBadge icon={<Target size={18} />} tone="olive" />}
+            title={`Highest-value opportunity in ${employee.department?.name ?? "your area"}`}
+          />
           <CardBody>
             <p className="text-sm font-medium text-ink-900">{opportunity.title}</p>
             <p className="mt-1 text-sm text-ink-600">{opportunity.aiOpportunity}</p>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              <Badge tone={opportunity.impact === "HIGH" ? "green" : opportunity.impact === "MEDIUM" ? "amber" : "neutral"}>
+                {opportunity.impact.toLowerCase()} impact
+              </Badge>
+              {opportunity.workflow && <Badge>Est. {opportunity.workflow.timeSavedMinutes} min/day</Badge>}
+              {opportunityAdopters && opportunityAdopters.activeAdopters > 0 && (
+                <Badge>Used by {opportunityAdopters.activeAdopters} teammate{opportunityAdopters.activeAdopters === 1 ? "" : "s"}</Badge>
+              )}
+            </div>
             <Link href={`/dashboard/opportunities/${opportunity.id}`} className="mt-3 inline-block text-xs font-medium text-orchid-deep hover:text-oxblood">
               Explore this opportunity →
             </Link>
@@ -421,6 +545,7 @@ async function EmployeeOverview({ employeeId, name }: { employeeId: string; name
 
       <Card>
         <CardHeader
+          icon={<IconBadge icon={<User size={18} />} tone="olive" />}
           title="Recommended for your role"
           action={
             <Link href="/dashboard/workflows" className="text-xs font-medium text-orchid-deep hover:text-oxblood">
@@ -431,10 +556,16 @@ async function EmployeeOverview({ employeeId, name }: { employeeId: string; name
         <CardBody className="divide-y divide-ink-200 p-0">
           {relevantWorkflows.length === 0 && <p className="p-5 text-sm text-ink-500">No workflows tailored to your department yet.</p>}
           {relevantWorkflows.map((ow) => (
-            <Link key={ow.id} href={`/dashboard/workflows/${ow.workflow.id}`} className="flex items-center justify-between px-5 py-3 hover:bg-ink-50">
-              <div>
-                <p className="text-sm font-medium text-ink-900">{ow.workflow.title}</p>
-                <p className="text-xs text-ink-500">{ow.workflow.timeSavedMinutes} min/day saved · {ow.workflow.difficulty.toLowerCase()} difficulty</p>
+            <Link key={ow.id} href={`/dashboard/workflows/${ow.workflow.id}`} className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-ink-50">
+              <div className="flex min-w-0 items-center gap-3">
+                <IconBadge icon={<FileText size={14} />} tone="orchid" className="h-8 w-8" />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-ink-900">{ow.workflow.title}</p>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    <Badge tone="neutral">{ow.workflow.department}</Badge>
+                    <Badge tone="neutral">{ow.workflow.difficulty.toLowerCase()} difficulty</Badge>
+                  </div>
+                </div>
               </div>
               <Badge tone={ow.status === "ADOPTED" ? "green" : "neutral"}>{ow.status.replace("_", " ").toLowerCase()}</Badge>
             </Link>

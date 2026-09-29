@@ -87,6 +87,25 @@ export async function getNextRewardGap(employeeId: string, organizationId: strin
   return next ? { name: next.name, pointCost: next.pointCost, pointsAway: next.pointCost - balance } : null;
 }
 
+/**
+ * The current balance plus the next two reward tiers above it, for a
+ * milestone-style progress bar ("75 pts current -> 250 pts next reward ->
+ * 500 pts $50 credit"). Returns fewer than 3 points if the catalog doesn't
+ * have two tiers left above the balance.
+ */
+export async function getRewardMilestones(
+  employeeId: string,
+  organizationId: string
+): Promise<{ value: number; label: string }[]> {
+  await ensureDefaultRewardCatalog(organizationId);
+  const [balance, items] = await Promise.all([
+    getPointsBalance(employeeId),
+    prisma.rewardItem.findMany({ where: { organizationId, active: true }, orderBy: { pointCost: "asc" } }),
+  ]);
+  const upcoming = items.filter((i) => i.pointCost > balance).slice(0, 2);
+  return [{ value: balance, label: "Current" }, ...upcoming.map((i) => ({ value: i.pointCost, label: i.name }))];
+}
+
 export type RewardsDashboardStats = {
   totalPointsIssued: number;
   totalPointsRedeemed: number;
