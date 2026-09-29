@@ -2,9 +2,10 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
-import { ListOrdered, PlusCircle } from "lucide-react";
+import { ListOrdered, PlusCircle, Pencil } from "lucide-react";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { IconBadge } from "@/components/ui/IconBadge";
+import { CreateCourseForm } from "@/components/learning/CreateCourseForm";
 import { CreateLessonForm } from "@/components/learning/CreateLessonForm";
 import { LessonManageRow } from "@/components/learning/LessonManageRow";
 import { DeleteCourseButton } from "@/components/learning/DeleteCourseButton";
@@ -14,7 +15,7 @@ export default async function ManageCoursePage({ params }: { params: Promise<{ c
   if (!session.organizationId) redirect("/login");
   const { courseId } = await params;
 
-  const [employee, course] = await Promise.all([
+  const [employee, course, departments] = await Promise.all([
     session.employeeId
       ? prisma.employee.findUnique({ where: { id: session.employeeId }, include: { department: true } })
       : Promise.resolve(null),
@@ -22,6 +23,7 @@ export default async function ManageCoursePage({ params }: { params: Promise<{ c
       where: { id: courseId },
       include: { lessons: { orderBy: { order: "asc" } } },
     }),
+    prisma.department.findMany({ where: { organizationId: session.organizationId }, orderBy: { name: "asc" } }),
   ]);
   const isCompanyAdmin = session.role === "COMPANY_ADMIN";
   const canAuthorLessons = isCompanyAdmin || Boolean(employee?.isDepartmentAdmin);
@@ -46,6 +48,17 @@ export default async function ManageCoursePage({ params }: { params: Promise<{ c
           <DeleteCourseButton courseId={course.id} />
         </div>
       </div>
+
+      <Card>
+        <CardHeader icon={<IconBadge icon={<Pencil size={18} />} tone="olive" />} title="Course details" subtitle="Edit the title, description, and department." />
+        <CardBody>
+          <CreateCourseForm
+            course={course}
+            lockDepartment={isCompanyAdmin ? null : employee?.department?.name ?? null}
+            departmentOptions={departments.map((d) => d.name)}
+          />
+        </CardBody>
+      </Card>
 
       <Card>
         <CardHeader icon={<IconBadge icon={<ListOrdered size={18} />} tone="orchid" />} title="Lessons" subtitle="Shown to your team in this order." />

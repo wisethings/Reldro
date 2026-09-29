@@ -1,9 +1,11 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { createCustomLesson } from "@/lib/actions/customLearning";
+import { useActionState, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { createCustomLesson, updateCustomLesson } from "@/lib/actions/customLearning";
 import { ImageAttachField } from "./ImageAttachField";
 import { Field, FieldGrid, FieldSection, Input, Select, Textarea } from "@/components/ui/Field";
+import type { Lesson } from "@prisma/client";
 
 const LESSON_TYPE_OPTIONS: { value: string; label: string }[] = [
   { value: "CONCEPT", label: "Concept" },
@@ -17,22 +19,30 @@ const LESSON_TYPE_OPTIONS: { value: string; label: string }[] = [
   { value: "WORKFLOW_PRACTICE", label: "Workflow practice" },
 ];
 
-export function CreateLessonForm({ courseId }: { courseId: string }) {
-  const [state, formAction, pending] = useActionState(createCustomLesson, undefined);
-  const [hasKnowledgeCheck, setHasKnowledgeCheck] = useState(false);
-  const [optionCount, setOptionCount] = useState(2);
+export function CreateLessonForm({ courseId, lesson, onSaved }: { courseId: string; lesson?: Lesson; onSaved?: () => void }) {
+  const [state, formAction, pending] = useActionState(lesson ? updateCustomLesson : createCustomLesson, undefined);
+  const [hasKnowledgeCheck, setHasKnowledgeCheck] = useState(Boolean(lesson?.knowledgeCheckQuestion));
+  const [optionCount, setOptionCount] = useState(Math.max(2, lesson?.knowledgeCheckOptions.length ?? 2));
+  const router = useRouter();
+  useEffect(() => {
+    if (lesson && state?.success) {
+      router.refresh();
+      onSaved?.();
+    }
+  }, [lesson, state, router, onSaved]);
 
   return (
     <form action={formAction} className="space-y-4">
       <input type="hidden" name="courseId" value={courseId} />
+      {lesson && <input type="hidden" name="lessonId" value={lesson.id} />}
 
       <FieldSection>
         <FieldGrid columns={2}>
           <Field label="Lesson title" required>
-            <Input name="title" required placeholder="e.g. Drafting a claims summary" />
+            <Input name="title" required placeholder="e.g. Drafting a claims summary" defaultValue={lesson?.title} />
           </Field>
           <Field label="Type">
-            <Select name="type" defaultValue="CONCEPT">
+            <Select name="type" defaultValue={lesson?.type ?? "CONCEPT"}>
               {LESSON_TYPE_OPTIONS.map((t) => (
                 <option key={t.value} value={t.value}>
                   {t.label}
@@ -42,45 +52,45 @@ export function CreateLessonForm({ courseId }: { courseId: string }) {
           </Field>
         </FieldGrid>
         <FieldGrid columns={2}>
-          <ImageAttachField name="imageUrl" label="Image" />
+          <ImageAttachField name="imageUrl" label="Image" defaultValue={lesson?.imageUrl} />
           <Field label="Video link" hint="YouTube, Loom, or Vimeo link to embed" optional>
-            <Input name="videoUrl" type="url" placeholder="https://youtube.com/watch?v=…" />
+            <Input name="videoUrl" type="url" placeholder="https://youtube.com/watch?v=…" defaultValue={lesson?.videoUrl ?? ""} />
           </Field>
         </FieldGrid>
         <FieldGrid columns={2}>
           <Field label="Objective" hint="What you'll be able to do" optional>
-            <Input name="objective" />
+            <Input name="objective" defaultValue={lesson?.objective} />
           </Field>
           <Field label="Duration" hint="Minutes">
-            <Input name="durationMin" type="number" min={1} defaultValue={8} />
+            <Input name="durationMin" type="number" min={1} defaultValue={lesson?.durationMin ?? 8} />
           </Field>
         </FieldGrid>
       </FieldSection>
 
       <FieldSection title="Lesson content">
         <Field label="Learn" hint="Short, practical explanation of the skill" required>
-          <Textarea name="concept" required rows={3} />
+          <Textarea name="concept" required rows={3} defaultValue={lesson?.concept} />
         </Field>
         <Field label="See it" hint="A worked example, showing an expert doing this well" required>
-          <Textarea name="example" required rows={3} />
+          <Textarea name="example" required rows={3} defaultValue={lesson?.example} />
         </Field>
         <FieldGrid columns={2}>
           <Field label="Try it" hint="Instructions for the employee to attempt the task themselves" optional>
-            <Textarea name="tryItPrompt" rows={2} />
+            <Textarea name="tryItPrompt" rows={2} defaultValue={lesson?.tryItPrompt} />
           </Field>
           <Field label="Evaluate" hint="An AI output or decision for the employee to assess" optional>
-            <Textarea name="evaluatePrompt" rows={2} />
+            <Textarea name="evaluatePrompt" rows={2} defaultValue={lesson?.evaluatePrompt} />
           </Field>
         </FieldGrid>
         <Field label="Apply" hint="Connect the skill to a task on your team" required>
-          <Textarea name="exercise" required rows={3} />
+          <Textarea name="exercise" required rows={3} defaultValue={lesson?.exercise} />
         </Field>
         <FieldGrid columns={2}>
           <Field label="Why it matters" hint="Connect this to your team's actual work" optional>
-            <Textarea name="whyItMatters" rows={2} />
+            <Textarea name="whyItMatters" rows={2} defaultValue={lesson?.whyItMatters} />
           </Field>
           <Field label="Takeaway" hint="One concise principle to remember" optional>
-            <Input name="takeaway" />
+            <Input name="takeaway" defaultValue={lesson?.takeaway} />
           </Field>
         </FieldGrid>
       </FieldSection>
@@ -98,14 +108,14 @@ export function CreateLessonForm({ courseId }: { courseId: string }) {
         {hasKnowledgeCheck && (
           <div className="space-y-3 rounded-lg border border-ink-200 p-3">
             <Field label="Question">
-              <Input name="knowledgeCheckQuestion" placeholder="What should you always do before...?" />
+              <Input name="knowledgeCheckQuestion" placeholder="What should you always do before...?" defaultValue={lesson?.knowledgeCheckQuestion} />
             </Field>
             <FieldGrid columns={2}>
               {Array.from({ length: optionCount }).map((_, i) => (
                 <Field key={i} label={`Option ${i + 1}`}>
                   <div className="flex items-center gap-2">
-                    <input type="radio" name="kcCorrectIndex" value={i} defaultChecked={i === 0} title="Correct answer" />
-                    <Input name={`kcOption${i}`} required />
+                    <input type="radio" name="kcCorrectIndex" value={i} defaultChecked={i === (lesson && lesson.knowledgeCheckCorrectIndex >= 0 ? lesson.knowledgeCheckCorrectIndex : 0)} title="Correct answer" />
+                    <Input name={`kcOption${i}`} required defaultValue={lesson?.knowledgeCheckOptions[i] ?? ""} />
                   </div>
                 </Field>
               ))}
@@ -125,12 +135,12 @@ export function CreateLessonForm({ courseId }: { courseId: string }) {
       </FieldSection>
 
       {state?.error && <p className="text-sm text-danger">{state.error}</p>}
-      {state?.success && <p className="text-sm text-sage-deep">{state.success}</p>}
+      {!lesson && state?.success && <p className="text-sm text-sage-deep">{state.success}</p>}
       <button
         disabled={pending}
         className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
       >
-        {pending ? "Saving…" : "Add lesson"}
+        {pending ? "Saving…" : lesson ? "Save changes" : "Add lesson"}
       </button>
     </form>
   );

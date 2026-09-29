@@ -32,12 +32,14 @@ export function ImageAttachField({
   name,
   label,
   hint = "Optional. A screenshot or diagram to illustrate this lesson.",
+  defaultValue = null,
 }: {
   name: string;
   label: string;
   hint?: string;
+  defaultValue?: string | null;
 }) {
-  const [preview, setPreview] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(defaultValue);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 

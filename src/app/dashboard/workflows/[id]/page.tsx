@@ -22,6 +22,7 @@ import { WorkflowRelationManager } from "@/components/workflows/WorkflowRelation
 import { getWorkflowTimeSavedStats } from "@/lib/queries/timeSaved";
 import { LogTimeSavedPrompt } from "@/components/workflows/LogTimeSavedPrompt";
 import { WORKING_DAYS_PER_MONTH } from "@/lib/opportunities/generate";
+import { DeleteWorkflowButton } from "@/components/workflows/DeleteWorkflowButton";
 import { WORKFLOW_STATUS_LABEL, WORKFLOW_STATUS_TONE } from "@/lib/workflowLifecycle";
 
 const DIFFICULTY_TONE = { LOW: "green", MEDIUM: "amber", HIGH: "red" } as const;
@@ -67,6 +68,8 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
   const completedCount = workflow.steps.filter((s) => completedStepIds.has(s.id)).length;
 
   const canManageOthersHere = isCompanyAdmin || isDepartmentLeadHere;
+  // Only team-authored workflows are editable; the shared catalog is read-only.
+  const canEditWorkflow = workflow.organizationId !== null && canManageOthersHere;
   const canManageChecklist =
     canManageOthersHere ||
     (session.employeeId !== null && (orgWorkflow?.ownerId === session.employeeId || orgWorkflow?.assigneeId === session.employeeId));
@@ -123,6 +126,14 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
             <h1 className="text-xl font-semibold text-ink-900">{workflow.title}</h1>
             <p className="mt-1 text-sm text-ink-500">{workflow.department}</p>
           </div>
+          {canEditWorkflow && (
+            <div className="flex items-center gap-2">
+              <Link href={`/dashboard/workflows/manage/${workflow.id}`} className="rounded-full border border-ink-300 px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-ink-50">
+                Edit
+              </Link>
+              <DeleteWorkflowButton workflowId={workflow.id} />
+            </div>
+          )}
           {dependenciesMet ? (
             <form action={adoptWorkflow.bind(null, workflow.id)}>
               <button className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800">

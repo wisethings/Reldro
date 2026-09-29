@@ -112,3 +112,52 @@ export async function setToolPlaybook(params: {
 
   revalidatePath(`/dashboard/integrations/tools/${params.toolId}`);
 }
+
+/**
+ * Edits a custom tool this org created. The name is deliberately fixed:
+ * workflows and templates reference tools by name string, so a rename would
+ * silently orphan every one of them. The shared catalog is never editable.
+ */
+export async function updateCustomTool(params: {
+  toolId: string;
+  category: ToolCategory;
+  vendor?: string;
+  description: string;
+  capabilities: string[];
+}) {
+  const session = await requireRole(["COMPANY_ADMIN"]);
+  const organizationId = session.organizationId!;
+
+  const tool = await prisma.tool.findFirst({ where: { id: params.toolId, organizationId, isCustom: true } });
+  if (!tool) throw new Error("Tool not found");
+  if (!params.description.trim()) throw new Error("Description is required");
+
+  await prisma.tool.update({
+    where: { id: tool.id },
+    data: {
+      category: params.category,
+      vendor: params.vendor?.trim() || null,
+      description: params.description.trim(),
+      capabilities: params.capabilities,
+    },
+  });
+
+  await logAudit({ organizationId, userId: session.sub, action: "content.updated", entityType: "Tool", entityId: tool.id, metadata: { name: tool.name } });
+
+  revalidatePath("/dashboard/integrations/tools");
+  revalidatePath(`/dashboard/integrations/tools/${tool.id}`);
+}
+
+export async function deleteCustomTool(toolId: string) {
+  const session = await requireRole(["COMPANY_ADMIN"]);
+  const organizationId = session.organizationId!;
+
+  const tool = await prisma.tool.findFirst({ where: { id: toolId, organizationId, isCustom: true } });
+  if (!tool) throw new Error("Tool not found");
+
+  await prisma.tool.delete({ where: { id: tool.id } });
+
+  await logAudit({ organizationId, userId: session.sub, action: "content.deleted", entityType: "Tool", entityId: tool.id, metadata: { name: tool.name } });
+
+  revalidatePath("/dashboard/integrations/tools");
+}

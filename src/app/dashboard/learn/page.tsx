@@ -11,6 +11,7 @@ import { ensureSimulationCatalog } from "@/lib/queries/simulations";
 import { ensureCourseCatalog } from "@/lib/queries/courses";
 import { ownDepartmentFilter } from "@/lib/departmentVisibility";
 import { getCategoryIcon } from "@/lib/data/categoryIcon";
+import { DeleteCourseButton } from "@/components/learning/DeleteCourseButton";
 
 const DIFFICULTY_TONE = { LOW: "green", MEDIUM: "amber", HIGH: "red" } as const;
 
@@ -86,9 +87,19 @@ export default async function LearnPage() {
                     subtitle={course.description}
                     action={
                       course.organizationId ? (
-                        <Badge tone="brand" className="whitespace-normal text-left">
-                          Team-authored{course.createdByName ? ` · ${course.createdByName}` : ""}
-                        </Badge>
+                        <div className="flex flex-col items-end gap-2">
+                          <Badge tone="brand" className="whitespace-normal text-left">
+                            Team-authored{course.createdByName ? ` · ${course.createdByName}` : ""}
+                          </Badge>
+                          {canAuthorLessons && (session.role === "COMPANY_ADMIN" || course.department === employee?.department?.name) && (
+                            <div className="flex items-center gap-2">
+                              <Link href={`/dashboard/learn/manage/${course.id}`} className="rounded-full border border-ink-300 px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-ink-50">
+                                Edit
+                              </Link>
+                              <DeleteCourseButton courseId={course.id} />
+                            </div>
+                          )}
+                        </div>
                       ) : course.role ? (
                         <Badge tone="neutral" className="whitespace-normal text-left">
                           For: {course.role}

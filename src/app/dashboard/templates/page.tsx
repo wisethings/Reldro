@@ -7,7 +7,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { CopyPromptButton } from "@/components/workflows/CopyPromptButton";
 import { StepMedia } from "@/components/workflows/StepMedia";
 import { CreateTemplateForm } from "@/components/workflows/CreateTemplateForm";
-import { DeleteTemplateButton } from "@/components/workflows/DeleteTemplateButton";
+import { TemplateControls } from "@/components/workflows/TemplateControls";
 import { Badge } from "@/components/ui/Badge";
 import { IconBadge } from "@/components/ui/IconBadge";
 import { SearchSortBar } from "@/components/ui/SearchSortBar";
@@ -209,7 +209,12 @@ export default async function TemplatesPage({
                       <div className="flex shrink-0 items-center gap-1.5">
                         <CopyPromptButton prompt={row.prompt} workflowStepId={row.id} />
                         {row.kind === "custom" && canAuthorTemplates && (isCompanyAdmin || row.department === employee?.department?.name) && (
-                          <DeleteTemplateButton templateId={row.id} />
+                          <TemplateControls
+                            template={{ id: row.id, title: row.title, prompt: row.prompt, department: row.department, tools: row.tools, imageUrl: row.imageUrl, videoUrl: row.videoUrl }}
+                            lockDepartment={isCompanyAdmin ? null : employee?.department?.name ?? null}
+                            departmentOptions={departments.map((d) => d.name)}
+                            toolOptions={toolLibrary.map((t) => t.name)}
+                          />
                         )}
                       </div>
                     </div>

@@ -2,11 +2,12 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
-import { ListOrdered, PlusCircle } from "lucide-react";
+import { ListOrdered, PlusCircle, Pencil } from "lucide-react";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { IconBadge } from "@/components/ui/IconBadge";
 import { CreateWorkflowStepForm } from "@/components/workflows/CreateWorkflowStepForm";
 import { WorkflowStepManageRow } from "@/components/workflows/WorkflowStepManageRow";
+import { CreateWorkflowForm } from "@/components/workflows/CreateWorkflowForm";
 import { DeleteWorkflowButton } from "@/components/workflows/DeleteWorkflowButton";
 
 export default async function ManageWorkflowPage({ params }: { params: Promise<{ workflowId: string }> }) {
@@ -14,13 +15,19 @@ export default async function ManageWorkflowPage({ params }: { params: Promise<{
   if (!session.organizationId) redirect("/login");
   const { workflowId } = await params;
 
-  const [employee, workflow] = await Promise.all([
+  const [employee, workflow, departments, tools] = await Promise.all([
     session.employeeId
       ? prisma.employee.findUnique({ where: { id: session.employeeId }, include: { department: true } })
       : Promise.resolve(null),
     prisma.workflow.findUnique({
       where: { id: workflowId },
       include: { steps: { orderBy: { order: "asc" } } },
+    }),
+    prisma.department.findMany({ where: { organizationId: session.organizationId }, orderBy: { name: "asc" } }),
+    prisma.tool.findMany({
+      where: { OR: [{ organizationId: null }, { organizationId: session.organizationId }] },
+      orderBy: { name: "asc" },
+      select: { name: true },
     }),
   ]);
   const isCompanyAdmin = session.role === "COMPANY_ADMIN";
@@ -44,6 +51,18 @@ export default async function ManageWorkflowPage({ params }: { params: Promise<{
           <DeleteWorkflowButton workflowId={workflow.id} />
         </div>
       </div>
+
+      <Card>
+        <CardHeader icon={<IconBadge icon={<Pencil size={18} />} tone="olive" />} title="Workflow details" subtitle="Edit the title, process, tools, and notes." />
+        <CardBody>
+          <CreateWorkflowForm
+            workflow={workflow}
+            lockDepartment={isCompanyAdmin ? null : employee?.department?.name ?? null}
+            departmentOptions={departments.map((d) => d.name)}
+            toolOptions={tools.map((t) => t.name)}
+          />
+        </CardBody>
+      </Card>
 
       <Card>
         <CardHeader icon={<IconBadge icon={<ListOrdered size={18} />} tone="orchid" />} title="Steps" subtitle="Shown to your team in this order." />

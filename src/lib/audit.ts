@@ -21,6 +21,9 @@ export type AuditAction =
   | "reward.recognition_given"
   | "reward.rules_updated"
   | "reward.item_deleted"
+  | "reward.item_updated"
+  | "content.updated"
+  | "content.deleted"
   | "certification.earned"
   | "product_update.sent"
   | "project.member_added"
@@ -93,6 +96,9 @@ const ACTION_LABELS: Record<AuditAction, string> = {
   "reward.recognition_given": "Gave recognition",
   "reward.rules_updated": "Updated reward rules",
   "reward.item_deleted": "Deleted a reward item",
+  "reward.item_updated": "Edited a reward item",
+  "content.updated": "Edited team content",
+  "content.deleted": "Deleted team content",
   "certification.earned": "Earned a certification",
   "product_update.sent": "Sent a product update email",
   "project.member_added": "Added a team member to a project",

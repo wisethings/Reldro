@@ -60,11 +60,49 @@ export async function setRewardCatalogItemActive(rewardItemId: string, active: b
   revalidatePath("/dashboard/rewards");
 }
 
+export async function updateRewardItem(rewardItemId: string, input: { name: string; description: string; category: RewardCategory; pointCost: number }) {
+  const session = await requireRole(["COMPANY_ADMIN"]);
+  const organizationId = session.organizationId!;
+  const item = await prisma.rewardItem.findUnique({ where: { id: rewardItemId } });
+  if (!item || item.organizationId !== organizationId) throw new Error("Reward not found");
+  if (!input.name.trim()) throw new Error("Name is required");
+
+  await prisma.rewardItem.update({
+    where: { id: rewardItemId },
+    data: {
+      name: input.name.trim(),
+      description: input.description.trim(),
+      category: input.category,
+      pointCost: Math.max(1, Math.round(input.pointCost)),
+    },
+  });
+
+  await logAudit({
+    organizationId,
+    userId: session.sub,
+    action: "reward.item_updated",
+    entityType: "RewardItem",
+    entityId: rewardItemId,
+    metadata: { name: input.name.trim() },
+  });
+
+  revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard/rewards");
+}
+
 export async function deleteRewardItem(rewardItemId: string) {
   const session = await requireRole(["COMPANY_ADMIN"]);
   const organizationId = session.organizationId!;
   const item = await prisma.rewardItem.findUnique({ where: { id: rewardItemId } });
   if (!item || item.organizationId !== organizationId) throw new Error("Reward not found");
+
+  // Redemptions cascade-delete with the item, which would erase employees'
+  // redemption history for points they've already spent. Once anyone has
+  // redeemed it, deactivating is the safe way to retire it.
+  const redemptions = await prisma.rewardRedemption.count({ where: { rewardItemId } });
+  if (redemptions > 0) {
+    throw new Error("This reward has been redeemed, so it can't be deleted without erasing that history. Deactivate it instead.");
+  }
 
   await prisma.rewardItem.delete({ where: { id: rewardItemId } });
 

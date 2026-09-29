@@ -9,6 +9,7 @@ import { StatTile } from "@/components/ui/StatTile";
 import { getToolProfile, getWorkflowsUsingTool } from "@/lib/queries/tools";
 import { TOOL_CATEGORY_LABEL, TOOL_STATUS_LABEL, TOOL_STATUS_TONE } from "@/lib/toolCatalog";
 import { ToolStatusSelect } from "@/components/tools/ToolStatusSelect";
+import { CustomToolControls } from "@/components/tools/CustomToolControls";
 import { ToolPlaybookEditor } from "@/components/tools/ToolPlaybookEditor";
 
 export default async function ToolProfilePage({ params }: { params: Promise<{ id: string }> }) {
@@ -38,6 +39,7 @@ export default async function ToolProfilePage({ params }: { params: Promise<{ id
           <div className="flex items-center gap-2">
             {status && <Badge tone={TOOL_STATUS_TONE[status]}>{TOOL_STATUS_LABEL[status]}</Badge>}
             {isAdmin && <ToolStatusSelect toolId={tool.id} currentStatus={status} />}
+            {isAdmin && tool.isCustom && tool.organizationId === session.organizationId && <CustomToolControls tool={tool} />}
           </div>
         </div>
         {addedAt && <p className="mt-1 text-xs text-ink-400">Added to your library {addedAt.toLocaleDateString()}</p>}

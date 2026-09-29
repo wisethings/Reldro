@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth/guards";
+import { logAudit } from "@/lib/audit";
 
 /** Logs a real usage event when someone copies a prompt template (workflow-step-backed or standalone). */
 export async function logTemplateCopy(templateId: string) {
@@ -67,6 +68,30 @@ export async function createTemplate(_prevState: TemplateState, formData: FormDa
   return { success: "Template added." };
 }
 
+export async function updateTemplate(_prevState: TemplateState, formData: FormData): Promise<TemplateState> {
+  const { session, isCompanyAdmin, department: myDepartment } = await requireTemplateAuthor();
+
+  const templateId = String(formData.get("templateId") ?? "");
+  const template = await prisma.template.findUnique({ where: { id: templateId } });
+  if (!template || template.organizationId !== session.organizationId) return { error: "Template not found." };
+  if (!isCompanyAdmin && template.department !== myDepartment) return { error: "Template not found." };
+
+  const title = String(formData.get("title") ?? "").trim();
+  const prompt = String(formData.get("prompt") ?? "").trim();
+  const department = isCompanyAdmin ? String(formData.get("department") ?? "").trim() : template.department;
+  const tools = formData.getAll("tools").map(String).filter(Boolean);
+  const imageUrl = String(formData.get("imageUrl") ?? "").trim() || null;
+  const videoUrl = String(formData.get("videoUrl") ?? "").trim() || null;
+  if (!title || !prompt || !department) return { error: "Title, prompt, and department are required." };
+  if (videoUrl && !/^https?:\/\//i.test(videoUrl)) return { error: "Video link must be a full URL (starting with https://)." };
+
+  await prisma.template.update({ where: { id: templateId }, data: { title, prompt, department, tools, imageUrl, videoUrl } });
+  await logAudit({ organizationId: session.organizationId, userId: session.sub, action: "content.updated", entityType: "Template", entityId: templateId, metadata: { title } });
+
+  revalidatePath("/dashboard/templates");
+  return { success: "Template saved." };
+}
+
 export async function deleteTemplate(templateId: string) {
   const { session, isCompanyAdmin, department: myDepartment } = await requireTemplateAuthor();
   const template = await prisma.template.findUnique({ where: { id: templateId } });
@@ -74,5 +99,6 @@ export async function deleteTemplate(templateId: string) {
   if (!isCompanyAdmin && template.department !== myDepartment) throw new Error("Template not found.");
 
   await prisma.template.delete({ where: { id: templateId } });
+  await logAudit({ organizationId: session.organizationId, userId: session.sub, action: "content.deleted", entityType: "Template", entityId: templateId, metadata: { title: template.title } });
   revalidatePath("/dashboard/templates");
 }
