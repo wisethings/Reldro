@@ -33,14 +33,10 @@ body {
 
 /* !important because Tailwind's tracking-* utilities (tracking-tight,
    tracking-wide, etc.) are plain classes with higher specificity than this
-   universal selector. A flat 0 (this rule's original value) stacked on top
-   of Inter Tight - a display face that's already narrow-set by design -
-   read as visibly cramped, especially in semibold headings and stat
-   numbers; this small positive value keeps the same "nothing gets
-   tracking-tight's exaggerated negative spacing" guarantee while giving
-   text room to breathe. */
+   universal selector. Flat 0 so nothing gets tracking-tight's exaggerated
+   negative spacing, and nothing gets extra positive spacing either. */
 * {
-  letter-spacing: 0.015em !important;
+  letter-spacing: 0 !important;
 }
 
 /* Without this, touch browsers wait ~300ms after a tap before firing click
