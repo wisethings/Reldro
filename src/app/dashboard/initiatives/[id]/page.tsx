@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { Target, Users, Lightbulb } from "lucide-react";
 import { requireSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { IconBadge } from "@/components/ui/IconBadge";
+import { Avatar } from "@/components/ui/Avatar";
 import { ProgressBar } from "@/components/ui/Progress";
 import { DeleteInitiativeButton } from "@/components/initiatives/DeleteInitiativeButton";
-
-const STATUS_TONE = { PLANNED: "neutral", IN_PROGRESS: "blue", COMPLETED: "green", ON_HOLD: "amber" } as const;
+import { INITIATIVE_STATUS_LABEL, INITIATIVE_STATUS_TONE } from "@/lib/initiativeLifecycle";
 
 type KPI = { label: string; baseline: number; current: number; target: number; unit: string };
 
@@ -39,7 +41,7 @@ export default async function InitiativeDetailPage({ params }: { params: Promise
             <p className="mt-1 text-sm text-ink-500">{initiative.goalDescription}</p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <Badge tone={STATUS_TONE[initiative.status]}>{initiative.status.replace("_", " ").toLowerCase()}</Badge>
+            <Badge tone={INITIATIVE_STATUS_TONE[initiative.status]}>{INITIATIVE_STATUS_LABEL[initiative.status]}</Badge>
             {session.role === "COMPANY_ADMIN" && <DeleteInitiativeButton initiativeId={initiative.id} />}
           </div>
         </div>
@@ -58,7 +60,7 @@ export default async function InitiativeDetailPage({ params }: { params: Promise
       </div>
 
       <Card>
-        <CardHeader title="KPIs" />
+        <CardHeader icon={<IconBadge icon={<Target size={18} />} tone="orchid" />} title="KPIs" />
         <CardBody className="space-y-4">
           {kpis.map((kpi) => {
             const pct = Math.round(((kpi.current - kpi.baseline) / (kpi.target - kpi.baseline || 1)) * 100);
@@ -82,11 +84,12 @@ export default async function InitiativeDetailPage({ params }: { params: Promise
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
-          <CardHeader title="Team" />
+          <CardHeader icon={<IconBadge icon={<Users size={18} />} tone="sage" />} title="Team" />
           <CardBody className="divide-y divide-ink-200 p-0">
             {initiative.members.map((m) => (
-              <div key={m.id} className="flex items-center justify-between px-5 py-3">
-                <div>
+              <div key={m.id} className="flex items-center gap-3 px-5 py-3">
+                <Avatar name={m.employee.user.name} size={28} />
+                <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-ink-900">{m.employee.user.name}</p>
                   <p className="text-xs text-ink-500">{m.employee.department?.name}</p>
                 </div>
@@ -97,7 +100,7 @@ export default async function InitiativeDetailPage({ params }: { params: Promise
           </CardBody>
         </Card>
         <Card>
-          <CardHeader title="Linked opportunities" />
+          <CardHeader icon={<IconBadge icon={<Lightbulb size={18} />} tone="coral" />} title="Linked opportunities" />
           <CardBody className="divide-y divide-ink-200 p-0">
             {initiative.workflows.map((iw) =>
               iw.opportunity ? (

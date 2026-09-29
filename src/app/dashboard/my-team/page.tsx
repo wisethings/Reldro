@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { IconBadge } from "@/components/ui/IconBadge";
+import { Avatar } from "@/components/ui/Avatar";
 import { ProgressBar } from "@/components/ui/Progress";
 import { StatTile } from "@/components/ui/StatTile";
 import { getEmployeeActivity } from "@/lib/queries/team";
@@ -96,9 +97,12 @@ export default async function MyTeamPage() {
               if (!emp) return null;
               return (
                 <div key={a.employeeId} className="flex flex-col gap-1 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-ink-900">{emp.user.name}</p>
-                    <p className="text-xs text-ink-500">{a.summary}</p>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <Avatar name={emp.user.name} size={28} />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-ink-900">{emp.user.name}</p>
+                      <p className="text-xs text-ink-500">{a.summary}</p>
+                    </div>
                   </div>
                   <Link href={a.recommendationHref} className="shrink-0 text-xs font-medium text-orchid-deep hover:text-oxblood">
                     {a.recommendation} →
@@ -117,11 +121,14 @@ export default async function MyTeamPage() {
             const stats = activity.get(e.id);
             return (
               <div key={e.id} className="flex flex-col gap-2 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <Link href={`/dashboard/team/${e.id}`} className="truncate text-sm font-medium text-ink-900 hover:text-orchid-deep">
-                    {e.user.name}
-                  </Link>
-                  <p className="text-xs text-ink-500">{e.jobTitle}</p>
+                <div className="flex min-w-0 items-center gap-3">
+                  <Avatar name={e.user.name} size={28} />
+                  <div className="min-w-0">
+                    <Link href={`/dashboard/team/${e.id}`} className="truncate text-sm font-medium text-ink-900 hover:text-orchid-deep">
+                      {e.user.name}
+                    </Link>
+                    <p className="text-xs text-ink-500">{e.jobTitle}</p>
+                  </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-[11px] text-ink-400">{formatLastActive(stats?.lastActiveAt ?? null)}</span>
