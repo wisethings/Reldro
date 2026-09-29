@@ -22,14 +22,14 @@ export function RewardCatalogAdmin({ items }: { items: Item[] }) {
     <div className="space-y-4">
       <div className="divide-y divide-ink-200 rounded-lg border border-ink-200">
         {items.map((item) => (
-          <div key={item.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+          <div key={item.id} className="flex items-center justify-between gap-3 px-4 py-3">
             <div className="min-w-0 flex-1">
               <p className="text-sm text-ink-800">
                 {item.name} <span className="text-xs text-ink-400">· {item.pointCost} pts</span>
               </p>
               <p className="text-xs text-ink-500">{item.description}</p>
             </div>
-            <div className="flex gap-2 shrink-0">
+            <div className="flex items-center gap-2 whitespace-nowrap">
               <button
                 onClick={() =>
                   startTransition(async () => {
