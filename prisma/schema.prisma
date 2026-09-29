@@ -1301,6 +1301,8 @@ model Template {
   prompt         String
   tools          String[]     @default([])
   createdByName  String       @default("")
+  imageUrl       String?
+  videoUrl       String?
   createdAt      DateTime     @default(now())
 
   @@index([organizationId])

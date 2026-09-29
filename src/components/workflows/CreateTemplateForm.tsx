@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { createTemplate } from "@/lib/actions/templates";
 import { ToolMultiSelect } from "@/components/ui/ToolMultiSelect";
+import { ImageAttachField } from "@/components/learning/ImageAttachField";
 import { Field, FieldGrid, Input, Select, Textarea } from "@/components/ui/Field";
 
 export function CreateTemplateForm({
@@ -52,6 +53,12 @@ export function CreateTemplateForm({
       <Field label="Tool this prompt is for" optional>
         <ToolMultiSelect name="tools" options={toolOptions} />
       </Field>
+      <FieldGrid columns={2}>
+        <ImageAttachField name="imageUrl" label="Example output" hint="Optional. A screenshot of the AI output this prompt produces, so your team can see the outcome before trying it." />
+        <Field label="Video link" hint="YouTube, Loom, or Vimeo link to embed" optional>
+          <Input name="videoUrl" type="url" placeholder="https://youtube.com/watch?v=…" />
+        </Field>
+      </FieldGrid>
       <button disabled={pending} className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60">
         {pending ? "Adding…" : "Add template"}
       </button>

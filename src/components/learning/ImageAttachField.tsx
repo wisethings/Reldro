@@ -28,7 +28,15 @@ function compressImage(file: File): Promise<string> {
   });
 }
 
-export function ImageAttachField({ name, label }: { name: string; label: string }) {
+export function ImageAttachField({
+  name,
+  label,
+  hint = "Optional. A screenshot or diagram to illustrate this lesson.",
+}: {
+  name: string;
+  label: string;
+  hint?: string;
+}) {
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -54,7 +62,7 @@ export function ImageAttachField({ name, label }: { name: string; label: string 
   return (
     <div>
       <label className="block text-xs font-medium text-ink-600">{label}</label>
-      <p className="text-[11px] text-ink-400">Optional. A screenshot or diagram to illustrate this lesson.</p>
+      <p className="text-[11px] text-ink-400">{hint}</p>
       <div className="mt-1 space-y-2">
         <input type="hidden" name={name} value={preview ?? ""} />
         {preview ? (

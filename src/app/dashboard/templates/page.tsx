@@ -23,7 +23,7 @@ const SORT_OPTIONS = [
 
 type TemplateRow =
   | { kind: "step"; id: string; title: string; prompt: string; department: string; imageUrl: string | null; videoUrl: string | null; workflowId: string; workflowTitle: string; tools: string[] }
-  | { kind: "custom"; id: string; title: string; prompt: string; department: string; createdByName: string; tools: string[] };
+  | { kind: "custom"; id: string; title: string; prompt: string; department: string; createdByName: string; imageUrl: string | null; videoUrl: string | null; tools: string[] };
 
 export default async function TemplatesPage({
   searchParams,
@@ -106,6 +106,8 @@ export default async function TemplatesPage({
       prompt: t.prompt,
       department: t.department,
       createdByName: t.createdByName,
+      imageUrl: t.imageUrl,
+      videoUrl: t.videoUrl,
       tools: t.tools,
     })),
   ];
@@ -214,7 +216,7 @@ export default async function TemplatesPage({
                     <div className="mt-3 rounded-lg bg-ink-50 p-3">
                       <p className="font-mono text-xs text-ink-700">{row.prompt}</p>
                     </div>
-                    {row.kind === "step" && <StepMedia imageUrl={row.imageUrl} videoUrl={row.videoUrl} title={row.title} />}
+                    <StepMedia imageUrl={row.imageUrl} videoUrl={row.videoUrl} title={row.title} />
                   </CardBody>
                 </Card>
               );

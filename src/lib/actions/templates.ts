@@ -52,13 +52,15 @@ export async function createTemplate(_prevState: TemplateState, formData: FormDa
   const department = isCompanyAdmin ? String(formData.get("department") ?? "").trim() : myDepartment ?? "";
   // Multi-select chips from the Tool Library (ToolMultiSelect), one hidden input per tool.
   const tools = formData.getAll("tools").map(String).filter(Boolean);
+  const imageUrl = String(formData.get("imageUrl") ?? "").trim() || null;
+  const videoUrl = String(formData.get("videoUrl") ?? "").trim() || null;
 
   if (!title || !prompt || !department) {
     return { error: "Title, prompt, and department are required." };
   }
 
   await prisma.template.create({
-    data: { organizationId: session.organizationId!, department, title, prompt, tools, createdByName: session.name },
+    data: { organizationId: session.organizationId!, department, title, prompt, tools, createdByName: session.name, imageUrl, videoUrl },
   });
 
   revalidatePath("/dashboard/templates");

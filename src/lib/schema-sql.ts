@@ -1281,4 +1281,8 @@ ALTER TABLE "AIUsageEvent" ADD COLUMN IF NOT EXISTS "sourceId" TEXT;
 
 CREATE INDEX IF NOT EXISTS "AIUsageEvent_organizationId_eventType_sourceId_idx" ON "AIUsageEvent"("organizationId", "eventType", "sourceId");
 
+-- Patch: image/video attachments on standalone templates, same as workflow steps (idempotent, same rules).
+ALTER TABLE "Template" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT;
+ALTER TABLE "Template" ADD COLUMN IF NOT EXISTS "videoUrl" TEXT;
+
 `;
