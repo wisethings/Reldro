@@ -37,7 +37,11 @@ export type AuditAction =
   | "workflow.dependency_added"
   | "workflow.dependency_removed"
   | "settings.value_estimates_recalculated"
-  | "workflow.time_saved_logged";
+  | "workflow.time_saved_logged"
+  | "project.budget_updated"
+  | "project.target_date_updated"
+  | "project.description_updated"
+  | "project.team_notified";
 
 /**
  * Records a sensitive action to the audit trail. Best-effort: a failure here
@@ -105,6 +109,10 @@ const ACTION_LABELS: Record<AuditAction, string> = {
   "workflow.dependency_removed": "Removed a workflow prerequisite",
   "settings.value_estimates_recalculated": "Recalculated opportunity value estimates",
   "workflow.time_saved_logged": "Logged real time saved on a workflow",
+  "project.budget_updated": "Updated a project's budget",
+  "project.target_date_updated": "Updated a project's target completion date",
+  "project.description_updated": "Updated a project's description",
+  "project.team_notified": "Notified the project team",
 };
 
 export function describeAuditAction(action: string): string {

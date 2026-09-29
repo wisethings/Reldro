@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { Check } from "lucide-react";
 import { advanceProjectStage } from "@/lib/actions/marketplace";
 
 const STAGES = ["DISCOVERY", "WORKFLOW_DESIGN", "IMPLEMENTATION", "TRAINING", "LAUNCH", "MEASUREMENT", "OPTIMIZATION"] as const;
@@ -41,15 +42,15 @@ export function ProjectStageStepper({
               className={`flex flex-col items-center gap-1 rounded-lg px-3 py-1.5 text-center ${canAdvance ? "cursor-pointer hover:bg-ink-50" : ""}`}
             >
               <span
-                className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
-                  done ? "bg-sage text-sage-deep" : active ? "bg-brand-700 text-white" : "bg-ink-100 text-ink-500"
+                className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold ${
+                  done ? "bg-sage-deep text-white" : active ? "bg-ink-900 text-white" : "bg-ink-100 text-ink-500"
                 }`}
               >
-                {i + 1}
+                {done ? <Check size={14} /> : i + 1}
               </span>
               <span className={`text-[11px] font-medium ${active ? "text-ink-900" : "text-ink-500"}`}>{LABELS[stage]}</span>
             </button>
-            {i < STAGES.length - 1 && <span className="h-px w-6 shrink-0 bg-ink-200" />}
+            {i < STAGES.length - 1 && <span className={`h-px w-6 shrink-0 ${i < currentIndex ? "bg-sage-deep" : "bg-ink-200"}`} />}
           </div>
         );
       })}

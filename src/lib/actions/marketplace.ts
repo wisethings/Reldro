@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireRole, requireSession } from "@/lib/auth/guards";
 import { logAudit } from "@/lib/audit";
-import { sendEmail, expertHelpRequestEmailHtml, projectMemberAddedEmailHtml, getAppUrl } from "@/lib/email";
+import { sendEmail, expertHelpRequestEmailHtml, projectMemberAddedEmailHtml, projectUpdateEmailHtml, getAppUrl } from "@/lib/email";
 import type { ProjectStage } from "@prisma/client";
 
 const STAGE_ORDER = ["DISCOVERY", "WORKFLOW_DESIGN", "IMPLEMENTATION", "TRAINING", "LAUNCH", "MEASUREMENT", "OPTIMIZATION"] as const;
@@ -359,4 +359,99 @@ export async function removeProjectMember(projectId: string, employeeId: string)
   });
 
   revalidatePath(`/dashboard/projects/${projectId}`);
+}
+
+export async function updateProjectBudget(projectId: string, budget: number | null) {
+  const { session, project } = await requireProjectAccess(projectId);
+  const value = budget !== null && Number.isFinite(budget) && budget >= 0 ? Math.round(budget) : null;
+
+  await prisma.project.update({ where: { id: projectId }, data: { budget: value } });
+  await logAudit({
+    organizationId: project.organizationId,
+    userId: session.sub,
+    action: "project.budget_updated",
+    entityType: "Project",
+    entityId: projectId,
+    metadata: { budget: value },
+  });
+  revalidatePath(`/dashboard/projects/${projectId}`);
+}
+
+export async function updateProjectTargetDate(projectId: string, targetEndDate: string | null) {
+  const { session, project } = await requireProjectAccess(projectId);
+  const value = targetEndDate ? new Date(targetEndDate) : null;
+
+  await prisma.project.update({ where: { id: projectId }, data: { targetEndDate: value } });
+  await logAudit({
+    organizationId: project.organizationId,
+    userId: session.sub,
+    action: "project.target_date_updated",
+    entityType: "Project",
+    entityId: projectId,
+    metadata: { targetEndDate: value?.toISOString() ?? null },
+  });
+  revalidatePath(`/dashboard/projects/${projectId}`);
+}
+
+export async function updateProjectDescription(projectId: string, description: string) {
+  const { session, project } = await requireProjectAccess(projectId);
+  const trimmed = description.trim();
+  if (!trimmed) return;
+
+  await prisma.project.update({ where: { id: projectId }, data: { description: trimmed } });
+  await logAudit({
+    organizationId: project.organizationId,
+    userId: session.sub,
+    action: "project.description_updated",
+    entityType: "Project",
+    entityId: projectId,
+  });
+  revalidatePath(`/dashboard/projects/${projectId}`);
+}
+
+/**
+ * A real, on-demand nudge for anyone not currently watching the project -
+ * emails every member, the assigned specialist, and any cc'd addresses
+ * (skipping whoever clicked the button, since they don't need to hear from
+ * themselves) rather than a decorative button with nothing behind it.
+ */
+export async function notifyProjectTeam(projectId: string) {
+  const { session, project } = await requireProjectAccess(projectId);
+
+  const fullProject = await prisma.project.findUnique({
+    where: { id: projectId },
+    include: {
+      members: { include: { employee: { include: { user: true } } } },
+      specialist: { include: { user: true } },
+    },
+  });
+  if (!fullProject) return;
+
+  const recipients = new Map<string, string>();
+  for (const m of fullProject.members) {
+    if (m.employee.user.email) recipients.set(m.employee.user.email, m.employee.user.name);
+  }
+  if (fullProject.specialist) recipients.set(fullProject.specialist.user.email, fullProject.specialist.user.name);
+  for (const cc of fullProject.ccEmails) recipients.set(cc, cc);
+  recipients.delete(session.email);
+
+  const projectUrl = `${getAppUrl()}/dashboard/projects/${projectId}`;
+  await Promise.all(
+    Array.from(recipients.entries()).map(([email, name]) =>
+      sendEmail({
+        to: email,
+        subject: `Update on: ${fullProject.title}`,
+        html: projectUpdateEmailHtml({ name, projectTitle: fullProject.title, fromName: session.name, projectUrl }),
+      })
+    )
+  );
+
+  await logAudit({
+    organizationId: project.organizationId,
+    userId: session.sub,
+    action: "project.team_notified",
+    entityType: "Project",
+    entityId: projectId,
+    metadata: { recipientCount: recipients.size },
+  });
 }

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { postProjectMessage } from "@/lib/actions/marketplace";
+import { Avatar } from "@/components/ui/Avatar";
 
 type Message = { id: string; body: string; createdAt: string; senderName: string; senderUserId: string };
 
@@ -20,16 +21,18 @@ export function MessageThread({
   return (
     <div className="space-y-4">
       <div className="max-h-72 space-y-3 overflow-y-auto scrollbar-thin">
-        {messages.map((m) => {
-          const mine = m.senderUserId === currentUserId;
-          return (
-            <div key={m.id} className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${mine ? "ml-auto rounded-br-md bg-oxblood text-bone" : "rounded-bl-md bg-surface-sunken text-ink-800"}`}>
-              {!mine && <p className="text-[11px] font-medium text-ink-500">{m.senderName}</p>}
-              <p>{m.body}</p>
-              <p className={`mt-1 text-[10px] ${mine ? "text-bone/70" : "text-ink-400"}`}>{new Date(m.createdAt).toLocaleString()}</p>
+        {messages.map((m) => (
+          <div key={m.id} className="flex items-start gap-2.5">
+            <Avatar name={m.senderName} size={28} />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline gap-2">
+                <p className="text-xs font-medium text-ink-900">{m.senderName}</p>
+                <p className="text-[10px] text-ink-400">{new Date(m.createdAt).toLocaleString()}</p>
+              </div>
+              <p className="mt-0.5 text-sm text-ink-700">{m.body}</p>
             </div>
-          );
-        })}
+          </div>
+        ))}
         {messages.length === 0 && <p className="text-sm text-ink-500">No messages yet.</p>}
       </div>
       <form

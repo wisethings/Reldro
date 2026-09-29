@@ -3,6 +3,8 @@
 import { useEffect, useState, useTransition } from "react";
 import { addProjectMember, removeProjectMember } from "@/lib/actions/marketplace";
 import { Select } from "@/components/ui/Field";
+import { Avatar } from "@/components/ui/Avatar";
+import { Badge } from "@/components/ui/Badge";
 
 type Member = { employeeId: string; name: string; jobTitle: string };
 type Candidate = { id: string; name: string; jobTitle: string };
@@ -40,23 +42,24 @@ export function ProjectTeamCard({
   return (
     <div className="divide-y divide-ink-200">
       {specialistName && (
-        <div className="flex items-center justify-between px-5 py-3">
-          <div>
+        <div className="flex items-center gap-3 px-5 py-3">
+          <Avatar name={specialistName} size={32} />
+          <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-ink-900">{specialistName}</p>
             <p className="text-xs text-ink-500">{specialistHeadline ?? "Specialist"}</p>
           </div>
-          <span className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full bg-orchid-soft px-2.5 py-0.5 text-[11px] font-medium tracking-wide text-orchid-deep">
-            Specialist
-          </span>
+          <Badge tone="brand">Specialist</Badge>
         </div>
       )}
 
       {members.map((m) => (
-        <div key={m.employeeId} className="flex items-center justify-between px-5 py-3">
-          <div>
+        <div key={m.employeeId} className="flex items-center gap-3 px-5 py-3">
+          <Avatar name={m.name} size={32} />
+          <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-ink-900">{m.name}</p>
             <p className="text-xs text-ink-500">{m.jobTitle}</p>
           </div>
+          <Badge tone="neutral">Contributor</Badge>
           {canManage && (
             <button
               disabled={pending}

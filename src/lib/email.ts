@@ -280,6 +280,27 @@ export function projectMemberAddedEmailHtml({
   `;
 }
 
+export function projectUpdateEmailHtml({
+  name,
+  projectTitle,
+  fromName,
+  projectUrl,
+}: {
+  name: string;
+  projectTitle: string;
+  fromName: string;
+  projectUrl: string;
+}) {
+  return `
+    <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; color: #2A0A0C;">
+      <h2 style="margin-bottom: 4px;">There's an update on a project</h2>
+      <p>Hi ${escapeHtml(name)},</p>
+      <p>${escapeHtml(fromName)} flagged an update on <strong>${escapeHtml(projectTitle)}</strong>. Take a look at the latest tasks, milestones, and messages.</p>
+      <a href="${projectUrl}" style="display: inline-block; background: #2A0A0C; color: #EFEBE0; padding: 10px 20px; border-radius: 999px; text-decoration: none; font-weight: 500;">Open the project</a>
+    </div>
+  `;
+}
+
 export function inviteEmailHtml({ name, orgName, loginUrl, tempPassword }: { name: string; orgName: string; loginUrl: string; tempPassword: string }) {
   return `
     <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; color: #2A0A0C;">
