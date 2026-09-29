@@ -13,7 +13,7 @@ export async function logTemplateCopy(templateId: string) {
   const step = await prisma.workflowStep.findUnique({ where: { id: templateId }, include: { workflow: true } });
   if (step) {
     await prisma.aIUsageEvent.create({
-      data: { organizationId: session.organizationId, employeeId: session.employeeId, tool: step.workflow.title, eventType: "template_copied" },
+      data: { organizationId: session.organizationId, employeeId: session.employeeId, tool: step.workflow.title, eventType: "template_copied", sourceId: step.id },
     });
     return;
   }
@@ -21,7 +21,7 @@ export async function logTemplateCopy(templateId: string) {
   const template = await prisma.template.findUnique({ where: { id: templateId } });
   if (!template) return;
   await prisma.aIUsageEvent.create({
-    data: { organizationId: session.organizationId, employeeId: session.employeeId, tool: template.title, eventType: "template_copied" },
+    data: { organizationId: session.organizationId, employeeId: session.employeeId, tool: template.title, eventType: "template_copied", sourceId: template.id },
   });
 }
 

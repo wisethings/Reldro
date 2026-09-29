@@ -3,6 +3,10 @@ import { requireSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { IconBadge } from "@/components/ui/IconBadge";
+import { CardArrow } from "@/components/ui/CardArrow";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { getCategoryIcon } from "@/lib/data/categoryIcon";
 import {
   computePriorityScore,
   computeEffortScore,
@@ -12,9 +16,17 @@ import {
 } from "@/lib/scoring";
 import { redirect } from "next/navigation";
 import { Select } from "@/components/ui/Field";
+import type { OpportunityStatus } from "@prisma/client";
 
 const IMPACT_TONE = { LOW: "neutral", MEDIUM: "amber", HIGH: "green" } as const;
 const COMPLEXITY_TONE = { LOW: "green", MEDIUM: "amber", HIGH: "red" } as const;
+const STATUS_TONE: Record<OpportunityStatus, "neutral" | "brand" | "green" | "amber" | "red" | "blue"> = {
+  IDENTIFIED: "neutral",
+  PLANNED: "brand",
+  IN_PROGRESS: "amber",
+  IMPLEMENTED: "green",
+  DEFERRED: "red",
+};
 const QUADRANT_ORDER: MatrixQuadrant[] = ["quick-win", "major-project", "fill-in", "reconsider"];
 
 export default async function OpportunitiesPage({
@@ -118,12 +130,22 @@ export default async function OpportunitiesPage({
               <CardBody className="space-y-2 p-3">
                 {enriched
                   .filter((e) => e.quadrant === q)
-                  .map(({ o }) => (
-                    <Link key={o.id} href={`/dashboard/opportunities/${o.id}`} className="block rounded-lg border border-ink-200 p-3 hover:border-brand-300 hover:bg-brand-50/40">
-                      <p className="text-sm font-medium text-ink-900">{o.title}</p>
-                      <p className="text-xs text-ink-500">{o.department?.name ?? "Cross-functional"} · ${(o.estAnnualValue / 1000).toFixed(0)}k/yr</p>
-                    </Link>
-                  ))}
+                  .map(({ o }) => {
+                    const Icon = getCategoryIcon(`${o.title} ${o.currentProcess} ${o.aiOpportunity}`);
+                    return (
+                      <Link
+                        key={o.id}
+                        href={`/dashboard/opportunities/${o.id}`}
+                        className="flex items-center gap-3 rounded-lg border border-ink-200 p-3 hover:border-brand-300 hover:bg-brand-50/40"
+                      >
+                        <IconBadge icon={<Icon size={16} />} tone="olive" className="h-8 w-8" />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium text-ink-900">{o.title}</p>
+                          <p className="text-xs text-ink-500">{o.department?.name ?? "Cross-functional"} · ${(o.estAnnualValue / 1000).toFixed(0)}k/yr</p>
+                        </div>
+                      </Link>
+                    );
+                  })}
                 {enriched.filter((e) => e.quadrant === q).length === 0 && (
                   <p className="p-3 text-xs text-ink-400">Nothing here right now.</p>
                 )}
@@ -135,29 +157,39 @@ export default async function OpportunitiesPage({
         <Card>
           <CardBody className="divide-y divide-ink-200 p-0">
             {enriched.length === 0 && <p className="p-6 text-sm text-ink-500">No opportunities match these filters.</p>}
-            {enriched.map(({ o, priority, quadrant }) => (
-              <Link
-                key={o.id}
-                href={`/dashboard/opportunities/${o.id}`}
-                className="flex flex-col gap-2 px-5 py-4 hover:bg-ink-50 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-ink-900">{o.title}</p>
-                  <p className="mt-0.5 text-xs text-ink-500">{o.department?.name ?? "Cross-functional"} · {QUADRANT_LABELS[quadrant]}</p>
-                  <div className="mt-1.5 flex flex-wrap gap-1.5">
-                    {o.recommendedSpecialist && <Badge tone="blue">Specialist recommended</Badge>}
-                    <Badge tone={IMPACT_TONE[o.impact]}>{o.impact.toLowerCase()} impact</Badge>
-                    <Badge tone={COMPLEXITY_TONE[o.complexity]}>{o.complexity.toLowerCase()} complexity</Badge>
-                    <Badge>{o.status.replace("_", " ").toLowerCase()}</Badge>
+            {enriched.map(({ o, priority, quadrant }) => {
+              const Icon = getCategoryIcon(`${o.title} ${o.currentProcess} ${o.aiOpportunity}`);
+              return (
+                <Link
+                  key={o.id}
+                  href={`/dashboard/opportunities/${o.id}`}
+                  className="flex flex-col gap-3 px-5 py-4 hover:bg-ink-50 sm:flex-row sm:items-center sm:gap-4"
+                >
+                  <IconBadge icon={<Icon size={18} />} tone="olive" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-ink-900">{o.title}</p>
+                    <p className="mt-0.5 text-xs text-ink-500">{o.department?.name ?? "Cross-functional"} · {QUADRANT_LABELS[quadrant]}</p>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {o.recommendedSpecialist && <Badge tone="blue">Specialist recommended</Badge>}
+                      <Badge tone={IMPACT_TONE[o.impact]}>{o.impact.toLowerCase()} impact</Badge>
+                      <Badge tone={COMPLEXITY_TONE[o.complexity]}>{o.complexity.toLowerCase()} complexity</Badge>
+                      <Badge tone={STATUS_TONE[o.status]}>{o.status.replace("_", " ").toLowerCase()}</Badge>
+                    </div>
                   </div>
-                </div>
-                <div className="shrink-0 sm:text-right">
-                  <p className="text-sm font-semibold text-ink-900">${(o.estAnnualValue / 1000).toFixed(0)}k/yr</p>
-                  <p className="text-[11px] text-ink-500">{o.estHoursSavedMonthly} hrs/mo</p>
-                  <p className="mt-1 text-[11px] font-medium text-orchid-deep">Priority {priority}</p>
-                </div>
-              </Link>
-            ))}
+                  <div className="flex shrink-0 items-center gap-3 sm:text-right">
+                    <div>
+                      <p className="flex items-center justify-end gap-1 text-sm font-semibold text-ink-900">
+                        ${(o.estAnnualValue / 1000).toFixed(0)}k/yr
+                        <InfoTooltip text="Estimated from projected hours saved and your organization's blended hourly rate. This becomes a measured figure once the workflow is deployed and employees log real time saved." />
+                      </p>
+                      <p className="text-[11px] text-ink-500">{o.estHoursSavedMonthly} hrs/mo (estimated)</p>
+                      <p className="mt-1 text-[11px] font-medium text-orchid-deep">Priority {priority}</p>
+                    </div>
+                    <CardArrow />
+                  </div>
+                </Link>
+              );
+            })}
           </CardBody>
         </Card>
       )}

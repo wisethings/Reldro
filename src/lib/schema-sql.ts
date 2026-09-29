@@ -1276,4 +1276,9 @@ DO $$ BEGIN ALTER TABLE "WorkflowTimeSavedLog" ADD CONSTRAINT "WorkflowTimeSaved
 
 DO $$ BEGIN ALTER TABLE "WorkflowTimeSavedLog" ADD CONSTRAINT "WorkflowTimeSavedLog_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
 
+-- Patch: precise per-template copy counts (idempotent, same rules).
+ALTER TABLE "AIUsageEvent" ADD COLUMN IF NOT EXISTS "sourceId" TEXT;
+
+CREATE INDEX IF NOT EXISTS "AIUsageEvent_organizationId_eventType_sourceId_idx" ON "AIUsageEvent"("organizationId", "eventType", "sourceId");
+
 `;

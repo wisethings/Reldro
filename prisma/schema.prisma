@@ -1016,9 +1016,11 @@ model AIUsageEvent {
   employee       Employee?    @relation(fields: [employeeId], references: [id])
   tool           String
   eventType      String
+  sourceId       String? // e.g. the specific WorkflowStep/Template id a "template_copied" event was copied from
   createdAt      DateTime     @default(now())
 
   @@index([organizationId])
+  @@index([organizationId, eventType, sourceId])
 }
 
 model AdoptionMetricSnapshot {
