@@ -4,7 +4,7 @@ import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { IconBadge } from "@/components/ui/IconBadge";
-import { Avatar } from "@/components/ui/Avatar";
+import { AdminRow } from "@/components/settings/AdminRow";
 import { OrgProfileForm } from "@/components/settings/OrgProfileForm";
 import { AddDepartmentForm } from "@/components/settings/AddDepartmentForm";
 import { InviteAdminForm } from "@/components/settings/InviteAdminForm";
@@ -134,14 +134,7 @@ export default async function SettingsPage() {
         <CardBody className="space-y-4">
           <div className="divide-y divide-ink-200">
             {admins.map((a) => (
-              <div key={a.id} className="flex items-center gap-3 py-2.5 text-sm">
-                <Avatar name={a.name} size={28} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-ink-900">{a.name}</p>
-                  <p className="text-xs text-ink-500">{a.email}</p>
-                </div>
-                {a.id === session.sub && <span className="shrink-0 text-xs text-ink-400">You</span>}
-              </div>
+              <AdminRow key={a.id} admin={{ id: a.id, name: a.name, email: a.email, pending: a.lastLoginAt === null }} isSelf={a.id === session.sub} />
             ))}
           </div>
           <InviteAdminForm />

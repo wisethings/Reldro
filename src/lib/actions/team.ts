@@ -4,14 +4,10 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/guards";
 import { hashPassword } from "@/lib/auth/password";
-import { sendEmail, inviteEmailHtml, getAppUrl } from "@/lib/email";
+import { deliverInvite, generateTempPassword, type InviteDelivery } from "@/lib/invites";
 import { logAudit } from "@/lib/audit";
 
-export type FormState = { error?: string; tempPassword?: string; emailSent?: boolean } | undefined;
-
-function generateTempPassword() {
-  return `Reldro-${Math.random().toString(36).slice(2, 8)}!`;
-}
+export type FormState = ({ error?: string } & InviteDelivery) | undefined;
 
 export async function inviteEmployee(_prevState: FormState, formData: FormData): Promise<FormState> {
   const session = await requireRole(["COMPANY_ADMIN"]);
@@ -66,14 +62,16 @@ export async function inviteEmployee(_prevState: FormState, formData: FormData):
     metadata: { name, email, jobTitle },
   });
 
-  const { sent } = await sendEmail({
+  const delivery = await deliverInvite({
     to: email,
+    name,
+    orgName: org?.name ?? "Reldro",
     subject: `You're invited to ${org?.name ?? "Reldro"} on Reldro`,
-    html: inviteEmailHtml({ name, orgName: org?.name ?? "Reldro", loginUrl: `${getAppUrl()}/login`, tempPassword }),
+    tempPassword,
   });
 
   revalidatePath("/dashboard/team");
-  return sent ? { emailSent: true } : { tempPassword };
+  return delivery;
 }
 
 /**

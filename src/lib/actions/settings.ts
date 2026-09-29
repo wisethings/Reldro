@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/guards";
 import { hashPassword } from "@/lib/auth/password";
-import { sendEmail, inviteEmailHtml, getAppUrl } from "@/lib/email";
+import { deliverInvite, generateTempPassword, type InviteDelivery } from "@/lib/invites";
 import { logAudit } from "@/lib/audit";
 
 export type FormState = { success?: boolean; error?: string } | undefined;
@@ -112,11 +112,7 @@ export async function createDepartment(_prevState: CreateDepartmentState, formDa
   return { success: true };
 }
 
-export type InviteAdminState = { error?: string; tempPassword?: string; emailSent?: boolean } | undefined;
-
-function generateTempPassword() {
-  return `Reldro-${Math.random().toString(36).slice(2, 8)}!`;
-}
+export type InviteAdminState = ({ error?: string } & InviteDelivery) | undefined;
 
 /**
  * Invites another company admin for the same organization - a plain User
@@ -151,12 +147,14 @@ export async function inviteCompanyAdmin(_prevState: InviteAdminState, formData:
     metadata: { name, email },
   });
 
-  const { sent } = await sendEmail({
+  const delivery = await deliverInvite({
     to: email,
+    name,
+    orgName: org?.name ?? "Reldro",
     subject: `You're invited to administer ${org?.name ?? "your organization"} on Reldro`,
-    html: inviteEmailHtml({ name, orgName: org?.name ?? "Reldro", loginUrl: `${getAppUrl()}/login`, tempPassword }),
+    tempPassword,
   });
 
   revalidatePath("/dashboard/settings");
-  return sent ? { emailSent: true } : { tempPassword };
+  return delivery;
 }

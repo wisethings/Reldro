@@ -10,6 +10,7 @@ import { ProgressBar } from "@/components/ui/Progress";
 import { SearchSortBar } from "@/components/ui/SearchSortBar";
 import { InviteEmployeeForm } from "@/components/team/InviteEmployeeForm";
 import { DepartmentAdminToggle } from "@/components/team/DepartmentAdminToggle";
+import { ResendInviteButton } from "@/components/team/ResendInviteButton";
 import { ViewAllDepartmentsToggle } from "@/components/team/ViewAllDepartmentsToggle";
 import { getEmployeeActivity } from "@/lib/queries/team";
 import { getTeamGaps, getEmployeesNeedingAttention } from "@/lib/queries/teamInsights";
@@ -255,6 +256,8 @@ export default async function TeamPage({
                   <Badge tone="neutral">{stats?.lessonsCompleted ?? 0} lesson{stats?.lessonsCompleted === 1 ? "" : "s"}</Badge>
                   {e.aiFluencyScore !== null && <Badge tone="brand">Fluency {e.aiFluencyScore}</Badge>}
                   {(pointsBalances.get(e.id) ?? 0) > 0 && <Badge tone="green">{(pointsBalances.get(e.id) ?? 0).toLocaleString()} pts</Badge>}
+                  {e.user.lastLoginAt === null && <Badge tone="amber">Invite pending</Badge>}
+                  {e.user.lastLoginAt === null && <ResendInviteButton userId={e.userId} name={e.user.name} />}
                   {e.isDepartmentAdmin && <Badge>Dept admin</Badge>}
                   {e.viewAllDepartments && <Badge tone="brand">All-dept. access</Badge>}
                   {e.departmentId && <DepartmentAdminToggle employeeId={e.id} isDepartmentAdmin={e.isDepartmentAdmin} />}

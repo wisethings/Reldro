@@ -1285,4 +1285,10 @@ CREATE INDEX IF NOT EXISTS "AIUsageEvent_organizationId_eventType_sourceId_idx" 
 ALTER TABLE "Template" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT;
 ALTER TABLE "Template" ADD COLUMN IF NOT EXISTS "videoUrl" TEXT;
 
+-- Patch: track first login so pending invites can be told apart from active accounts (idempotent, same rules).
+-- Existing accounts default to "now" so they are not mistaken for pending invites; the default is then dropped so new invites start as null.
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "lastLoginAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP;
+
+ALTER TABLE "User" ALTER COLUMN "lastLoginAt" DROP DEFAULT;
+
 `;

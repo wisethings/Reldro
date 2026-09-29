@@ -232,6 +232,8 @@ model User {
   hasSeenTour         Boolean   @default(false)
   failedLoginAttempts Int       @default(0)
   lockedUntil         DateTime?
+  // null = invited but has never logged in (an invite still pending).
+  lastLoginAt         DateTime?
 
   employee          Employee?
   specialist        Specialist?

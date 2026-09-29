@@ -48,9 +48,7 @@ export async function login(_prevState: FormState, formData: FormData): Promise<
     return { error: "Invalid email or password." };
   }
 
-  if (user.failedLoginAttempts > 0 || user.lockedUntil) {
-    await prisma.user.update({ where: { id: user.id }, data: { failedLoginAttempts: 0, lockedUntil: null } });
-  }
+  await prisma.user.update({ where: { id: user.id }, data: { failedLoginAttempts: 0, lockedUntil: null, lastLoginAt: new Date() } });
 
   await createSession({
     sub: user.id,
