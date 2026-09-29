@@ -279,3 +279,41 @@ export async function toggleWorkflowStep(workflowStepId: string, workflowId: str
 
   revalidatePath(`/dashboard/workflows/${workflowId}`);
 }
+
+const MAX_MINUTES_SAVED_PER_LOG = 480; // 8 hours - a sanity ceiling, not a real limit on any workflow
+
+/**
+ * Real, employee-reported time saved on a workflow - see
+ * WorkflowTimeSavedLog for why this exists: the catalog's own
+ * timeSavedMinutes is a flat editorial guess with no link to what anyone
+ * actually experiences, and it's presented in the UI as if it were fact.
+ * One entry per (employee, workflow); resubmitting updates their own figure
+ * rather than creating a second one.
+ */
+export async function logWorkflowTimeSaved(workflowId: string, minutesSaved: number) {
+  const session = await requireSession();
+  if (!session.employeeId || !session.organizationId) redirect("/login");
+  const organizationId = session.organizationId;
+
+  if (!Number.isFinite(minutesSaved) || minutesSaved < 0 || minutesSaved > MAX_MINUTES_SAVED_PER_LOG) {
+    throw new Error(`Enter a realistic number of minutes (0-${MAX_MINUTES_SAVED_PER_LOG}).`);
+  }
+  const rounded = Math.round(minutesSaved);
+
+  await prisma.workflowTimeSavedLog.upsert({
+    where: { employeeId_workflowId: { employeeId: session.employeeId, workflowId } },
+    update: { minutesSaved: rounded },
+    create: { organizationId, workflowId, employeeId: session.employeeId, minutesSaved: rounded },
+  });
+
+  await logAudit({
+    organizationId,
+    userId: session.sub,
+    action: "workflow.time_saved_logged",
+    entityType: "Workflow",
+    entityId: workflowId,
+    metadata: { minutesSaved: rounded },
+  });
+
+  revalidatePath(`/dashboard/workflows/${workflowId}`);
+}

@@ -28,8 +28,9 @@ export async function previewOpportunityCandidates(input: {
   departments: string[];
   painPointsByDept: Record<string, string[]>;
 }): Promise<OpportunityCandidate[]> {
-  await requireOrganization();
-  return computeOpportunityCandidates(input);
+  const session = await requireOrganization();
+  const org = await prisma.organization.findUnique({ where: { id: session.organizationId }, select: { blendedHourlyRate: true } });
+  return computeOpportunityCandidates({ ...input, hourlyRate: org?.blendedHourlyRate });
 }
 
 export async function completeOnboarding(payload: OnboardingPayload) {

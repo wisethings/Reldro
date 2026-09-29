@@ -1261,4 +1261,19 @@ DO $$ BEGIN ALTER TABLE "WorkflowDependency" ADD CONSTRAINT "WorkflowDependency_
 
 DO $$ BEGIN ALTER TABLE "WorkflowDependency" ADD CONSTRAINT "WorkflowDependency_dependsOnWorkflowId_fkey" FOREIGN KEY ("dependsOnWorkflowId") REFERENCES "Workflow"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
 
+-- Patch: org-configurable blended hourly rate, and real employee-reported time-saved logs (idempotent, same rules).
+ALTER TABLE "Organization" ADD COLUMN IF NOT EXISTS "blendedHourlyRate" DOUBLE PRECISION NOT NULL DEFAULT 45;
+
+CREATE TABLE IF NOT EXISTS "WorkflowTimeSavedLog" ("id" TEXT NOT NULL, "organizationId" TEXT NOT NULL, "workflowId" TEXT NOT NULL, "employeeId" TEXT NOT NULL, "minutesSaved" INTEGER NOT NULL, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" TIMESTAMP(3) NOT NULL, CONSTRAINT "WorkflowTimeSavedLog_pkey" PRIMARY KEY ("id"));
+
+CREATE UNIQUE INDEX IF NOT EXISTS "WorkflowTimeSavedLog_employeeId_workflowId_key" ON "WorkflowTimeSavedLog"("employeeId", "workflowId");
+
+CREATE INDEX IF NOT EXISTS "WorkflowTimeSavedLog_organizationId_workflowId_idx" ON "WorkflowTimeSavedLog"("organizationId", "workflowId");
+
+DO $$ BEGIN ALTER TABLE "WorkflowTimeSavedLog" ADD CONSTRAINT "WorkflowTimeSavedLog_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "WorkflowTimeSavedLog" ADD CONSTRAINT "WorkflowTimeSavedLog_workflowId_fkey" FOREIGN KEY ("workflowId") REFERENCES "Workflow"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "WorkflowTimeSavedLog" ADD CONSTRAINT "WorkflowTimeSavedLog_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
 `;

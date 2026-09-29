@@ -19,7 +19,7 @@ import type { ComplexityLevel, ImpactLevel } from "@prisma/client";
  */
 
 const HOURLY_VALUE = 45; // blended fully-loaded cost per hour, used for $ estimates
-const WORKING_DAYS_PER_MONTH = 21;
+export const WORKING_DAYS_PER_MONTH = 21;
 const PAIN_POINT_MATCH_BOOST = 10;
 
 const SIZE_TO_HEADCOUNT: Record<string, number> = {
@@ -63,14 +63,23 @@ export type OpportunityCandidate = {
   recommended: boolean;
 };
 
-/** Computes every candidate opportunity for the given org attributes, without writing anything. Used both for the onboarding preview and the final insert. */
+/**
+ * Computes every candidate opportunity for the given org attributes, without
+ * writing anything. Used both for the onboarding preview and the final
+ * insert. `hourlyRate` should be the org's own blendedHourlyRate
+ * (Organization model, editable in Settings) - a single number assumed for
+ * every customer was the whole problem. Falls back to HOURLY_VALUE only for
+ * a caller that genuinely has no org yet.
+ */
 export async function computeOpportunityCandidates(params: {
   industry: string;
   size: string;
   departments: string[];
   painPointsByDept: Record<string, string[]>;
+  hourlyRate?: number;
 }): Promise<OpportunityCandidate[]> {
   if (params.departments.length === 0) return [];
+  const hourlyRate = params.hourlyRate ?? HOURLY_VALUE;
 
   const workflows = await prisma.workflow.findMany({
     where: { department: { in: params.departments } },
@@ -107,7 +116,7 @@ export async function computeOpportunityCandidates(params: {
       impact: impactFromScore(businessImpactScore),
       complexity: w.difficulty,
       estHoursSavedMonthly,
-      estAnnualValue: Math.round(estHoursSavedMonthly * 12 * HOURLY_VALUE),
+      estAnnualValue: Math.round(estHoursSavedMonthly * 12 * hourlyRate),
       businessImpactScore,
       adoptionPotentialScore,
       frequencyScore,
@@ -158,11 +167,13 @@ export async function createSelectedOpportunities(params: {
 
   if (params.selectedWorkflowIds.length === 0) return;
 
+  const org = await prisma.organization.findUnique({ where: { id: params.organizationId }, select: { blendedHourlyRate: true } });
   const candidates = await computeOpportunityCandidates({
     industry: params.industry,
     size: params.size,
     departments: params.departments,
     painPointsByDept: params.painPointsByDept,
+    hourlyRate: org?.blendedHourlyRate,
   });
   const selectedSet = new Set(params.selectedWorkflowIds);
   const selected = candidates.filter((c) => selectedSet.has(c.workflowId));

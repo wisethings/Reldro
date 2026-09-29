@@ -157,6 +157,12 @@ model Organization {
   // authored content are filtered out for them) - a company admin always
   // sees everything regardless of this setting.
   departmentIsolationEnabled Boolean  @default(false)
+  // What this org's own admin says an hour of employee time actually costs,
+  // fully loaded - used to turn measured/estimated time saved into a dollar
+  // figure for THIS company instead of a single number assumed for every
+  // customer. Defaults to a reasonable blended estimate until an admin sets
+  // their own in Settings.
+  blendedHourlyRate          Float    @default(45)
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
 
@@ -190,6 +196,7 @@ model Organization {
   workflowChecklistCompletions WorkflowChecklistCompletion[]
   workflowLinks                WorkflowLink[]
   workflowDependencies         WorkflowDependency[]
+  workflowTimeSavedLogs        WorkflowTimeSavedLog[]
 
   @@index([industry])
 }
@@ -265,6 +272,7 @@ model Employee {
   workflowStepCompletions WorkflowStepCompletion[]
   ownedWorkflows          OrganizationWorkflow[]   @relation("WorkflowOwner")
   assignedWorkflows       OrganizationWorkflow[]   @relation("WorkflowAssignee")
+  workflowTimeSavedLogs   WorkflowTimeSavedLog[]
   certifications          EmployeeCertification[]
   pointsTransactions      PointsTransaction[]
   rewardRedemptions       RewardRedemption[]
@@ -568,6 +576,7 @@ model Workflow {
   linksAsTarget         WorkflowLink[]                @relation("WorkflowLinkTarget")
   dependenciesRequired  WorkflowDependency[]          @relation("DependentWorkflow")
   dependenciesBlocking  WorkflowDependency[]          @relation("PrerequisiteWorkflow")
+  timeSavedLogs         WorkflowTimeSavedLog[]
 
   @@index([department])
   @@index([organizationId])
@@ -685,6 +694,30 @@ model WorkflowDependency {
   @@unique([organizationId, workflowId, dependsOnWorkflowId])
   @@index([organizationId, workflowId])
   @@index([organizationId, dependsOnWorkflowId])
+}
+
+// A real, employee-reported time-saved figure for one workflow, replacing
+// the catalog's flat editorial guess (Workflow.timeSavedMinutes) with actual
+// measured data once enough of it exists. One row per (employee, workflow):
+// prompted the first time an employee finishes every step of a workflow, and
+// they can resubmit later to update their own estimate rather than get
+// re-prompted every time. Org-scoped like the other org/workflow join
+// models, since the underlying Workflow can be shared global-catalog
+// content that no single org owns.
+model WorkflowTimeSavedLog {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workflowId     String
+  workflow       Workflow     @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  employeeId     String
+  employee       Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  minutesSaved   Int
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([employeeId, workflowId])
+  @@index([organizationId, workflowId])
 }
 
 // ---------------------------------------------------------------------------

@@ -35,7 +35,9 @@ export type AuditAction =
   | "workflow.linked"
   | "workflow.unlinked"
   | "workflow.dependency_added"
-  | "workflow.dependency_removed";
+  | "workflow.dependency_removed"
+  | "settings.value_estimates_recalculated"
+  | "workflow.time_saved_logged";
 
 /**
  * Records a sensitive action to the audit trail. Best-effort: a failure here
@@ -101,6 +103,8 @@ const ACTION_LABELS: Record<AuditAction, string> = {
   "workflow.unlinked": "Removed a link between two workflows",
   "workflow.dependency_added": "Added a workflow prerequisite",
   "workflow.dependency_removed": "Removed a workflow prerequisite",
+  "settings.value_estimates_recalculated": "Recalculated opportunity value estimates",
+  "workflow.time_saved_logged": "Logged real time saved on a workflow",
 };
 
 export function describeAuditAction(action: string): string {

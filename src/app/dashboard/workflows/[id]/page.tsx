@@ -17,6 +17,9 @@ import { getWorkflowReadiness } from "@/lib/queries/workflowReadiness";
 import { getMatchedTools } from "@/lib/queries/tools";
 import { getLinkedWorkflows, getWorkflowDependencies, getDependentWorkflows, getWorkflowChoices } from "@/lib/queries/workflowRelations";
 import { WorkflowRelationManager } from "@/components/workflows/WorkflowRelationManager";
+import { getWorkflowTimeSavedStats } from "@/lib/queries/timeSaved";
+import { LogTimeSavedPrompt } from "@/components/workflows/LogTimeSavedPrompt";
+import { WORKING_DAYS_PER_MONTH } from "@/lib/opportunities/generate";
 import { WORKFLOW_STATUS_LABEL, WORKFLOW_STATUS_TONE } from "@/lib/workflowLifecycle";
 
 const DIFFICULTY_TONE = { LOW: "green", MEDIUM: "amber", HIGH: "red" } as const;
@@ -32,7 +35,7 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
   // any other org's private workflow (and its courses) just by guessing an
   // id, which is exactly what happened via the "linked workflow" link from a
   // project page.
-  const [workflow, orgWorkflow, courses, completions, employee] = await Promise.all([
+  const [workflow, orgWorkflow, courses, completions, employee, org] = await Promise.all([
     prisma.workflow.findFirst({
       where: { id, OR: [{ organizationId: null }, { organizationId: session.organizationId }] },
       include: { steps: { orderBy: { order: "asc" } } },
@@ -50,6 +53,7 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
     session.employeeId
       ? prisma.employee.findUnique({ where: { id: session.employeeId }, include: { department: true } })
       : Promise.resolve(null),
+    prisma.organization.findUnique({ where: { id: session.organizationId }, select: { blendedHourlyRate: true } }),
   ]);
   if (!workflow) notFound();
   const canRequestExpertHelp = session.role === "COMPANY_ADMIN" || Boolean(employee?.isDepartmentAdmin);
@@ -65,7 +69,7 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
     canManageOthersHere ||
     (session.employeeId !== null && (orgWorkflow?.ownerId === session.employeeId || orgWorkflow?.assigneeId === session.employeeId));
 
-  const [stats, eligibleEmployees, readiness, matchedTools, checklistCompletions, linkedWorkflows, dependencies, dependentWorkflows, workflowChoices] =
+  const [stats, eligibleEmployees, readiness, matchedTools, checklistCompletions, linkedWorkflows, dependencies, dependentWorkflows, workflowChoices, timeSavedStats] =
     await Promise.all([
       getWorkflowDeploymentStats(session.organizationId, workflow),
       canManageOthersHere ? getEligibleEmployeesForWorkflow(session.organizationId, workflow.department) : Promise.resolve([]),
@@ -76,12 +80,28 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
       getWorkflowDependencies(session.organizationId, workflow.id),
       getDependentWorkflows(session.organizationId, workflow.id),
       getWorkflowChoices(session.organizationId, workflow.id),
+      getWorkflowTimeSavedStats(session.organizationId, workflow.id, session.employeeId),
     ]);
   const checklistCompletionByIndex = new Map(checklistCompletions.map((c) => [c.itemIndex, c]));
   const unmetDependencies = dependencies.filter((d) => !d.met);
   const dependenciesMet = unmetDependencies.length === 0;
   const linkChoices = workflowChoices.filter((w) => !linkedWorkflows.some((l) => l.id === w.id));
   const dependencyChoices = workflowChoices.filter((w) => !dependencies.some((d) => d.id === w.id));
+  const showTimeSavedPrompt =
+    Boolean(session.employeeId) && workflow.steps.length > 0 && completedCount === workflow.steps.length && timeSavedStats.myMinutesSaved === null;
+
+  // A real dollar figure, built only from measured inputs: the actual number
+  // of people who've completed this workflow (not an assumed "12% of
+  // headcount"), the average minutes they themselves reported saving (not
+  // the catalog's flat guess), and this org's own hourly rate (not a single
+  // number assumed for every customer). Only shown once there's at least
+  // one real report to build it from.
+  const measuredHoursSavedMonthly =
+    timeSavedStats.reportCount > 0
+      ? Math.round((timeSavedStats.avgMinutesSaved! * stats.activeAdopters * WORKING_DAYS_PER_MONTH) / 60)
+      : null;
+  const measuredAnnualValue =
+    measuredHoursSavedMonthly !== null ? Math.round(measuredHoursSavedMonthly * 12 * (org?.blendedHourlyRate ?? 45)) : null;
   const checklistItems = [
     "Review current process with the team",
     "Confirm access to required tools",
@@ -124,7 +144,15 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Stat label="Time saved" value={`${workflow.timeSavedMinutes} min/day`} />
+        {timeSavedStats.reportCount > 0 ? (
+          <Stat
+            label="Time saved (measured)"
+            value={`${timeSavedStats.avgMinutesSaved} min/day`}
+            hint={`From ${timeSavedStats.reportCount} employee report${timeSavedStats.reportCount === 1 ? "" : "s"}`}
+          />
+        ) : (
+          <Stat label="Time saved (estimated)" value={`${workflow.timeSavedMinutes} min/day`} hint="Not yet measured for your team" />
+        )}
         <div className="rounded-xl border border-ink-200 bg-white p-4">
           <p className="text-xs text-ink-500">Tools required</p>
           {workflow.toolsRequired.length > 0 ? (
@@ -173,9 +201,19 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <Stat label="Adoption" value={`${stats.adoptionPct}% (${stats.activeAdopters}/${stats.eligibleEmployees})`} />
             <Stat label="Completion rate" value={`${stats.completionRatePct}%`} />
-            {stats.estAnnualValue !== null && <Stat label="Estimated value" value={`$${Math.round(stats.estAnnualValue / 1000)}k/yr`} />}
+            {measuredAnnualValue !== null ? (
+              <Stat
+                label="Measured value"
+                value={`$${Math.round(measuredAnnualValue / 1000)}k/yr`}
+                hint={`From ${timeSavedStats.reportCount} employee report${timeSavedStats.reportCount === 1 ? "" : "s"}`}
+              />
+            ) : (
+              stats.estAnnualValue !== null && (
+                <Stat label="Estimated value" value={`$${Math.round(stats.estAnnualValue / 1000)}k/yr`} hint="Not yet measured for your team" />
+              )
+            )}
             <Stat label="Captured value" value={`$${Math.round(stats.capturedValue / 1000)}k/yr`} />
-            <Stat label="Time saved" value={`${stats.hoursSavedMonthly} hrs/mo`} />
+            <Stat label="Time saved" value={`${measuredHoursSavedMonthly ?? stats.hoursSavedMonthly} hrs/mo`} />
             <Stat label="Last activity" value={stats.lastActivityAt ? stats.lastActivityAt.toLocaleDateString() : "No activity yet"} />
           </div>
         </CardBody>
@@ -312,6 +350,8 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
         </CardBody>
       </Card>
 
+      {showTimeSavedPrompt && <LogTimeSavedPrompt workflowId={workflow.id} />}
+
       {(workflow.securityNotes || workflow.trainingNotes) && (
         <div className="grid gap-4 sm:grid-cols-2">
           {workflow.securityNotes && (
@@ -417,11 +457,12 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="rounded-xl border border-ink-200 bg-white p-4">
       <p className="text-xs text-ink-500">{label}</p>
       <p className="mt-1 text-sm font-semibold text-ink-900">{value}</p>
+      {hint && <p className="mt-0.5 text-[11px] text-ink-400">{hint}</p>}
     </div>
   );
 }
