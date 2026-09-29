@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { Gift, BarChart3, Award, Heart, Workflow, Flag } from "lucide-react";
 import { requireSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { IconBadge } from "@/components/ui/IconBadge";
+import { Avatar } from "@/components/ui/Avatar";
 import { StatTile } from "@/components/ui/StatTile";
 import { ScoreRing, ProgressBar } from "@/components/ui/Progress";
 import { getEmployeeAiProfile, getEmployeeMilestones } from "@/lib/queries/employeeProfile";
@@ -63,11 +66,14 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
           ← Team
         </Link>
         <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-semibold text-ink-900">{employee.user.name}</h1>
-            <p className="mt-1 text-sm text-ink-500">
-              {employee.jobTitle} · {employee.department?.name ?? "No department"}
-            </p>
+          <div className="flex items-center gap-3">
+            <Avatar name={employee.user.name} size={40} />
+            <div>
+              <h1 className="text-xl font-semibold text-ink-900">{employee.user.name}</h1>
+              <p className="mt-1 text-sm text-ink-500">
+                {employee.jobTitle} · {employee.department?.name ?? "No department"}
+              </p>
+            </div>
           </div>
           <Badge tone="brand">{CAPABILITY_LEVEL_LABEL[level]}</Badge>
         </div>
@@ -104,7 +110,7 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
       </div>
 
       <Card>
-        <CardHeader title="AI points" subtitle="Earned from real progress, never for logins or time in the app" />
+        <CardHeader icon={<IconBadge icon={<Gift size={18} />} tone="coral" />} title="AI points" subtitle="Earned from real progress, never for logins or time in the app" />
         <CardBody className="flex flex-wrap items-center gap-6">
           <div>
             <p className="text-2xl font-semibold text-ink-900">{pointsBalance.toLocaleString()}</p>
@@ -139,7 +145,7 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
 
       {profile.fluency && (
         <Card>
-          <CardHeader title="Skills" subtitle="Why is this score what it is? See the evidence for each." />
+          <CardHeader icon={<IconBadge icon={<BarChart3 size={18} />} tone="orchid" />} title="Skills" subtitle="Why is this score what it is? See the evidence for each." />
           <CardBody className="space-y-4">
             {(Object.keys(profile.fluency.breakdown) as EmployeeSkillCategory[]).map((cat) => {
               const evidence = skillEvidence.find((e) => e.skill === cat);
@@ -165,7 +171,7 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
       )}
 
       <Card>
-        <CardHeader title="Certifications" subtitle="Real, checkable requirements - not a time-based badge" />
+        <CardHeader icon={<IconBadge icon={<Award size={18} />} tone="olive" />} title="Certifications" subtitle="Real, checkable requirements - not a time-based badge" />
         <CardBody className="space-y-4">
           {certifications.map((cert) => (
             <div key={cert.key} className="border-b border-ink-100 pb-4 last:border-0 last:pb-0">
@@ -194,7 +200,7 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
 
       {recognitions.length > 0 && (
         <Card>
-          <CardHeader title="Recognition" />
+          <CardHeader icon={<IconBadge icon={<Heart size={18} />} tone="coral" />} title="Recognition" />
           <CardBody className="divide-y divide-ink-200 p-0">
             {recognitions.map((r) => (
               <div key={r.id} className="px-5 py-3">
@@ -214,7 +220,7 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
 
       {profile.workflowsUsed.length > 0 && (
         <Card>
-          <CardHeader title="Workflows used" />
+          <CardHeader icon={<IconBadge icon={<Workflow size={18} />} tone="sage" />} title="Workflows used" />
           <CardBody className="flex flex-wrap gap-1.5">
             {profile.workflowsUsed.map((w) => (
               <Link key={w.id} href={`/dashboard/workflows/${w.id}`}>
@@ -226,7 +232,7 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
       )}
 
       <Card>
-        <CardHeader title="AI journey" subtitle="Real milestones, dated from the activity that earned them" />
+        <CardHeader icon={<IconBadge icon={<Flag size={18} />} tone="orchid" />} title="AI journey" subtitle="Real milestones, dated from the activity that earned them" />
         <CardBody className="space-y-3">
           {milestones.map((m) => (
             <div key={m.id} className="flex items-center justify-between gap-3">

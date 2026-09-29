@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { FileText, Users, ListChecks, Flag, FolderOpen, MessageCircle } from "lucide-react";
 import { requireSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { IconBadge } from "@/components/ui/IconBadge";
 import { ProjectStageStepper } from "@/components/projects/ProjectStageStepper";
 import { TaskList } from "@/components/projects/TaskList";
 import { MilestoneList } from "@/components/projects/MilestoneList";
@@ -81,14 +83,14 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       </div>
 
       <Card>
-        <CardHeader title="Description" />
+        <CardHeader icon={<IconBadge icon={<FileText size={18} />} tone="sage" />} title="Description" />
         <CardBody>
           <p className="text-sm text-ink-700">{project.description}</p>
         </CardBody>
       </Card>
 
       <Card>
-        <CardHeader title="Project team" subtitle={canManageTeam ? "Add colleagues to collaborate with the specialist" : undefined} />
+        <CardHeader icon={<IconBadge icon={<Users size={18} />} tone="orchid" />} title="Project team" subtitle={canManageTeam ? "Add colleagues to collaborate with the specialist" : undefined} />
         <CardBody className="p-0">
           <ProjectTeamCard
             projectId={project.id}
@@ -103,14 +105,14 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
-          <CardHeader title="Tasks" />
+          <CardHeader icon={<IconBadge icon={<ListChecks size={18} />} tone="olive" />} title="Tasks" />
           <CardBody className="p-0">
             <TaskList tasks={project.tasks} />
             {canEdit && <AddTaskForm projectId={project.id} />}
           </CardBody>
         </Card>
         <Card>
-          <CardHeader title="Milestones" />
+          <CardHeader icon={<IconBadge icon={<Flag size={18} />} tone="coral" />} title="Milestones" />
           <CardBody className="p-0">
             <MilestoneList milestones={project.milestones} />
             {canEdit && <AddMilestoneForm projectId={project.id} currentStage={project.stage} />}
@@ -119,7 +121,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       </div>
 
       <Card>
-        <CardHeader title="Deliverables" />
+        <CardHeader icon={<IconBadge icon={<FolderOpen size={18} />} tone="sage" />} title="Deliverables" />
         <CardBody className="divide-y divide-ink-200 p-0">
           {project.deliverables.map((d) => (
             <div key={d.id} className="flex items-center justify-between px-5 py-3">
@@ -135,7 +137,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       </Card>
 
       <Card>
-        <CardHeader title="Messages" />
+        <CardHeader icon={<IconBadge icon={<MessageCircle size={18} />} tone="orchid" />} title="Messages" />
         <CardBody>
           <MessageThread
             projectId={project.id}

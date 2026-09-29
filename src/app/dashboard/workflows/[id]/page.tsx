@@ -2,8 +2,10 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
+import { Rocket, ListChecks, FileText, Sparkles, GitBranch, Link2, ListOrdered, ShieldAlert, GraduationCap, CheckSquare, Users, BookOpen, LifeBuoy } from "lucide-react";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { IconBadge } from "@/components/ui/IconBadge";
 import { ProgressBar } from "@/components/ui/Progress";
 import { adoptWorkflow, toggleWorkflowStep } from "@/lib/actions/workflows";
 import { RequestExpertHelpForm } from "@/components/specialists/RequestExpertHelpForm";
@@ -176,6 +178,7 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
 
       <Card>
         <CardHeader
+          icon={<IconBadge icon={<Rocket size={18} />} tone="orchid" />}
           title="Deployment"
           subtitle={stats.ownerName ? `Owned by ${stats.ownerName}` : "No owner assigned yet"}
         />
@@ -222,6 +225,7 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
       {(dependencies.length > 0 || canManageOthersHere) && (
         <Card>
           <CardHeader
+            icon={<IconBadge icon={<ListChecks size={18} />} tone="coral" />}
             title="Prerequisites"
             subtitle={dependencies.length > 0 ? "This workflow shouldn't be adopted until these are." : "Workflows that must be adopted first, if any."}
           />
@@ -244,13 +248,13 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
-          <CardHeader title="Current process" />
+          <CardHeader icon={<IconBadge icon={<FileText size={18} />} tone="sage" />} title="Current process" />
           <CardBody>
             <p className="text-sm text-ink-700">{workflow.currentProcess}</p>
           </CardBody>
         </Card>
         <Card>
-          <CardHeader title="AI-enabled process" />
+          <CardHeader icon={<IconBadge icon={<Sparkles size={18} />} tone="orchid" />} title="AI-enabled process" />
           <CardBody>
             <p className="text-sm text-ink-700">{workflow.aiProcess}</p>
           </CardBody>
@@ -259,7 +263,7 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
 
       {workflow.steps.length > 0 && (
         <Card>
-          <CardHeader title="Process chain" subtitle="AI actions and human checkpoints, in order" />
+          <CardHeader icon={<IconBadge icon={<GitBranch size={18} />} tone="olive" />} title="Process chain" subtitle="AI actions and human checkpoints, in order" />
           <CardBody>
             <div className="flex flex-wrap items-center gap-2">
               {workflow.steps.map((step, i) => (
@@ -277,7 +281,7 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
 
       {(linkedWorkflows.length > 0 || canManageOthersHere) && (
         <Card>
-          <CardHeader title="Related workflows" subtitle="Other workflows worth knowing about alongside this one." />
+          <CardHeader icon={<IconBadge icon={<Link2 size={18} />} tone="sage" />} title="Related workflows" subtitle="Other workflows worth knowing about alongside this one." />
           <CardBody>
             <WorkflowRelationManager
               mode="link"
@@ -292,6 +296,7 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
 
       <Card>
         <CardHeader
+          icon={<IconBadge icon={<ListOrdered size={18} />} tone="orchid" />}
           title="Step-by-step process"
           subtitle={session.employeeId ? `${completedCount} of ${workflow.steps.length} steps completed` : undefined}
         />
@@ -356,7 +361,7 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
         <div className="grid gap-4 sm:grid-cols-2">
           {workflow.securityNotes && (
             <Card>
-              <CardHeader title="Security considerations" />
+              <CardHeader icon={<IconBadge icon={<ShieldAlert size={18} />} tone="coral" />} title="Security considerations" />
               <CardBody>
                 <p className="text-sm text-ink-700">{workflow.securityNotes}</p>
               </CardBody>
@@ -364,7 +369,7 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
           )}
           {workflow.trainingNotes && (
             <Card>
-              <CardHeader title="Training requirements" />
+              <CardHeader icon={<IconBadge icon={<GraduationCap size={18} />} tone="olive" />} title="Training requirements" />
               <CardBody>
                 <p className="text-sm text-ink-700">{workflow.trainingNotes}</p>
               </CardBody>
@@ -375,6 +380,7 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
 
       <Card>
         <CardHeader
+          icon={<IconBadge icon={<CheckSquare size={18} />} tone="sage" />}
           title="Implementation checklist"
           subtitle={`${checklistCompletionByIndex.size} of ${checklistItems.length} done`}
         />
@@ -402,6 +408,7 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
       {courses.length > 0 && (
         <Card>
           <CardHeader
+            icon={<IconBadge icon={<Users size={18} />} tone="orchid" />}
             title="Team readiness"
             subtitle={`${readiness.totalLessons} required lesson${readiness.totalLessons === 1 ? "" : "s"} · ~${readiness.estimatedMinutesPerEmployee} min per employee`}
           />
@@ -433,7 +440,7 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
 
       {courses.length > 0 && (
         <Card>
-          <CardHeader title="Recommended learning" />
+          <CardHeader icon={<IconBadge icon={<BookOpen size={18} />} tone="olive" />} title="Recommended learning" />
           <CardBody className="divide-y divide-ink-200 p-0">
             {courses.map((c) => (
               <Link key={c.id} href={`/dashboard/learn?course=${c.id}`} className="flex items-center justify-between px-5 py-3 hover:bg-ink-50">
@@ -447,7 +454,7 @@ export default async function WorkflowDetailPage({ params }: { params: Promise<{
 
       {workflow.difficulty === "HIGH" && canRequestExpertHelp && (
         <Card>
-          <CardHeader title="Consider expert help" subtitle="High-complexity workflows implement faster with outside expertise" />
+          <CardHeader icon={<IconBadge icon={<LifeBuoy size={18} />} tone="coral" />} title="Consider expert help" subtitle="High-complexity workflows implement faster with outside expertise" />
           <CardBody>
             <RequestExpertHelpForm workflowId={workflow.id} />
           </CardBody>

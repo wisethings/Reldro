@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { FileText, Sparkles, Target, Rocket, LifeBuoy } from "lucide-react";
 import { requireSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { IconBadge } from "@/components/ui/IconBadge";
 import { LinkButton } from "@/components/ui/Button";
 import { RequestExpertHelpForm } from "@/components/specialists/RequestExpertHelpForm";
 import { computePriorityScore, computeEffortScore, opportunityQuadrant, QUADRANT_LABELS } from "@/lib/scoring";
@@ -59,14 +61,14 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
       </div>
 
       <Card>
-        <CardHeader title="Current process" />
+        <CardHeader icon={<IconBadge icon={<FileText size={18} />} tone="sage" />} title="Current process" />
         <CardBody>
           <p className="text-sm text-ink-700">{opportunity.currentProcess}</p>
         </CardBody>
       </Card>
 
       <Card>
-        <CardHeader title="AI opportunity" />
+        <CardHeader icon={<IconBadge icon={<Sparkles size={18} />} tone="orchid" />} title="AI opportunity" />
         <CardBody>
           <p className="text-sm text-ink-700">{opportunity.aiOpportunity}</p>
           <div className="mt-3 flex flex-wrap gap-1.5">
@@ -80,7 +82,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
       </Card>
 
       <Card>
-        <CardHeader title="Prioritization" subtitle={QUADRANT_LABELS[quadrant]} />
+        <CardHeader icon={<IconBadge icon={<Target size={18} />} tone="olive" />} title="Prioritization" subtitle={QUADRANT_LABELS[quadrant]} />
         <CardBody>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <ScoreCell label="Business impact" value={opportunity.businessImpactScore} />
@@ -94,6 +96,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
       {opportunity.workflow && (
         <Card>
           <CardHeader
+            icon={<IconBadge icon={<Rocket size={18} />} tone="orchid" />}
             title="Recommended action"
             subtitle="Start with training, then implement the workflow"
             action={
@@ -124,7 +127,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
 
       {opportunity.recommendedSpecialist && canRequestExpertHelp && (
         <Card>
-          <CardHeader title="Specialist recommended" subtitle="This opportunity is complex enough to benefit from outside expertise" />
+          <CardHeader icon={<IconBadge icon={<LifeBuoy size={18} />} tone="coral" />} title="Specialist recommended" subtitle="This opportunity is complex enough to benefit from outside expertise" />
           <CardBody>
             <RequestExpertHelpForm opportunityId={opportunity.id} workflowId={opportunity.workflowId ?? undefined} />
           </CardBody>

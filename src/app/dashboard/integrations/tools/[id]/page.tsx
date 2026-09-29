@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { FileText, BookOpenCheck, Workflow } from "lucide-react";
 import { requireSession } from "@/lib/auth/guards";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { IconBadge } from "@/components/ui/IconBadge";
 import { StatTile } from "@/components/ui/StatTile";
 import { getToolProfile, getWorkflowsUsingTool } from "@/lib/queries/tools";
 import { TOOL_CATEGORY_LABEL, TOOL_STATUS_LABEL, TOOL_STATUS_TONE } from "@/lib/toolCatalog";
@@ -42,7 +44,7 @@ export default async function ToolProfilePage({ params }: { params: Promise<{ id
       </div>
 
       <Card>
-        <CardHeader title="Overview" />
+        <CardHeader icon={<IconBadge icon={<FileText size={18} />} tone="sage" />} title="Overview" />
         <CardBody>
           <p className="text-sm text-ink-700">{tool.description}</p>
           {tool.capabilities.length > 0 && (
@@ -67,7 +69,7 @@ export default async function ToolProfilePage({ params }: { params: Promise<{ id
 
       {status && (
         <Card>
-          <CardHeader title="Playbook" subtitle={`When you use ${tool.name} here, this is how you're expected to use AI`} />
+          <CardHeader icon={<IconBadge icon={<BookOpenCheck size={18} />} tone="orchid" />} title="Playbook" subtitle={`When you use ${tool.name} here, this is how you're expected to use AI`} />
           <CardBody>
             <ToolPlaybookEditor
               toolId={tool.id}
@@ -83,6 +85,7 @@ export default async function ToolProfilePage({ params }: { params: Promise<{ id
 
       <Card>
         <CardHeader
+          icon={<IconBadge icon={<Workflow size={18} />} tone="olive" />}
           title="Workflows using this tool"
           subtitle={`How your team actually puts ${tool.name} to work, step by step`}
         />

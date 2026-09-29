@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
+import { Building2, CreditCard, History, Gift, Sliders, ShoppingBag, Layers, Eye, ShieldCheck, Lock } from "lucide-react";
 import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
+import { IconBadge } from "@/components/ui/IconBadge";
+import { Avatar } from "@/components/ui/Avatar";
 import { OrgProfileForm } from "@/components/settings/OrgProfileForm";
 import { AddDepartmentForm } from "@/components/settings/AddDepartmentForm";
 import { InviteAdminForm } from "@/components/settings/InviteAdminForm";
@@ -42,14 +45,14 @@ export default async function SettingsPage() {
       </div>
 
       <Card>
-        <CardHeader title="Organization profile" />
+        <CardHeader icon={<IconBadge icon={<Building2 size={18} />} tone="orchid" />} title="Organization profile" />
         <CardBody>
           <OrgProfileForm org={org} />
         </CardBody>
       </Card>
 
       <Card>
-        <CardHeader title="Billing" />
+        <CardHeader icon={<IconBadge icon={<CreditCard size={18} />} tone="olive" />} title="Billing" />
         <CardBody className="space-y-2">
           <p className="text-sm text-ink-700">
             Reldro plans are tailored to your organization. Your account manager handles plan changes, seat count, and
@@ -60,7 +63,7 @@ export default async function SettingsPage() {
       </Card>
 
       <Card>
-        <CardHeader title="Activity log" subtitle="Sensitive actions taken on this organization, most recent first." />
+        <CardHeader icon={<IconBadge icon={<History size={18} />} tone="sage" />} title="Activity log" subtitle="Sensitive actions taken on this organization, most recent first." />
         <CardBody className="divide-y divide-ink-200 p-0">
           {auditLogs.map((log) => (
             <div key={log.id} className="flex items-center justify-between gap-3 px-5 py-3">
@@ -75,7 +78,7 @@ export default async function SettingsPage() {
       </Card>
 
       <Card>
-        <CardHeader title="Reward program" subtitle="Real, org-wide totals - not attributed ROI, since that needs longitudinal data this demo doesn't have" />
+        <CardHeader icon={<IconBadge icon={<Gift size={18} />} tone="coral" />} title="Reward program" subtitle="Real, org-wide totals - not attributed ROI, since that needs longitudinal data this demo doesn't have" />
         <CardBody>
           <div className="grid gap-4 sm:grid-cols-3">
             <StatTile label="Total points issued" value={rewardsStats.totalPointsIssued.toLocaleString()} />
@@ -93,19 +96,19 @@ export default async function SettingsPage() {
       </Card>
 
       <Card>
-        <CardHeader title="Reward rules" subtitle="Which behaviors earn points, and how much - never logins or time in the app" />
+        <CardHeader icon={<IconBadge icon={<Sliders size={18} />} tone="orchid" />} title="Reward rules" subtitle="Which behaviors earn points, and how much - never logins or time in the app" />
         <PointsRulesTable rules={pointsRules} />
       </Card>
 
       <Card>
-        <CardHeader title="Reward catalog" subtitle="What employees can redeem points for" />
+        <CardHeader icon={<IconBadge icon={<ShoppingBag size={18} />} tone="olive" />} title="Reward catalog" subtitle="What employees can redeem points for" />
         <CardBody>
           <RewardCatalogAdmin items={rewardItems} />
         </CardBody>
       </Card>
 
       <Card>
-        <CardHeader title="Departments" subtitle="Add a department so you can invite employees into it and scope workflows and lessons to it." />
+        <CardHeader icon={<IconBadge icon={<Layers size={18} />} tone="sage" />} title="Departments" subtitle="Add a department so you can invite employees into it and scope workflows and lessons to it." />
         <CardBody className="space-y-4">
           <div className="flex flex-wrap gap-1.5">
             {departments.map((d) => (
@@ -120,19 +123,20 @@ export default async function SettingsPage() {
       </Card>
 
       <Card>
-        <CardHeader title="Department visibility" subtitle="Control whether one department's employees can see another department's workflows and lessons." />
+        <CardHeader icon={<IconBadge icon={<Eye size={18} />} tone="coral" />} title="Department visibility" subtitle="Control whether one department's employees can see another department's workflows and lessons." />
         <CardBody>
           <DepartmentIsolationToggle enabled={org.departmentIsolationEnabled} />
         </CardBody>
       </Card>
 
       <Card>
-        <CardHeader title="Admins" subtitle="Company admins have full organization access. Add more so no single account is a bottleneck." />
+        <CardHeader icon={<IconBadge icon={<ShieldCheck size={18} />} tone="orchid" />} title="Admins" subtitle="Company admins have full organization access. Add more so no single account is a bottleneck." />
         <CardBody className="space-y-4">
           <div className="divide-y divide-ink-200">
             {admins.map((a) => (
-              <div key={a.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
-                <div className="min-w-0">
+              <div key={a.id} className="flex items-center gap-3 py-2.5 text-sm">
+                <Avatar name={a.name} size={28} />
+                <div className="min-w-0 flex-1">
                   <p className="truncate font-medium text-ink-900">{a.name}</p>
                   <p className="text-xs text-ink-500">{a.email}</p>
                 </div>
@@ -145,7 +149,7 @@ export default async function SettingsPage() {
       </Card>
 
       <Card>
-        <CardHeader title="Permissions" />
+        <CardHeader icon={<IconBadge icon={<Lock size={18} />} tone="sage" />} title="Permissions" />
         <CardBody className="space-y-2 text-sm text-ink-700">
           <p>Company admins have full organization access. Department leads manage and can view their own department's team-authored workflows and lessons - a department can have more than one lead. Employees see only their own profile, learning, and assigned workflows.</p>
           <p>Each organization's data is fully isolated. No user can access another organization's records.</p>
