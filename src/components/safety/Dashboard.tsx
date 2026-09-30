@@ -34,7 +34,7 @@ const TEXT: Record<Tint, string> = {
 
 export function IconTile({ tint, children, size = "md" }: { tint: Tint; children: React.ReactNode; size?: "sm" | "md" }) {
   return (
-    <span aria-hidden className={`flex shrink-0 items-center justify-center rounded-lg ${size === "sm" ? "h-6 w-6" : "h-8 w-8"} ${TINT[tint]}`}>
+    <span aria-hidden className={`flex shrink-0 items-center justify-center rounded-lg ${size === "sm" ? "h-6 w-6 [&>svg]:h-3.5 [&>svg]:w-3.5" : "h-8 w-8 [&>svg]:h-4 [&>svg]:w-4"} ${TINT[tint]}`}>
       {children}
     </span>
   );

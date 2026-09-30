@@ -551,6 +551,107 @@ export async function seedDatabase() {
   ];
   for (const [who, name, issued, expires] of extraQuals) await prisma.qualification.create({ data: { organizationId: org.id, employeeId: emp[who], name, issuedOn: daysFromNow(issued), expiresOn: expires === null ? null : daysFromNow(expires) } });
 
+  // ---- Demo login profiles -----------------------------------------------------------------
+  // The people a demo signs in as (safety manager, foremen, electricians) each get their own history:
+  // reports they filed in every state, corrective actions assigned to them, follow-ups, and recent sign-ins.
+  type PR = { by: string; type: string; category: string; severity: string; title: string; description: string; site: string; hours: number; status: string; note?: string; injury?: boolean; privacy?: string };
+  const personal: PR[] = [
+    { by: "priya", type: "HAZARD", category: "ELECTRICAL", severity: "MEDIUM", title: "Temporary lighting string hung from a sprinkler pipe", description: "The string lights on level 3 are zip-tied to a sprinkler branch line. The cord jacket is scuffed where it rubs the pipe.", site: "riverside", hours: 26, status: "ASSIGNED" },
+    { by: "priya", type: "NEAR_MISS", category: "STRUCK_BY", severity: "MEDIUM", title: "Cart with wire reels rolled down the ramp", description: "A cart loaded with reels started rolling on the loading ramp when the brake did not hold. Two of us stopped it.", site: "riverside", hours: 24 * 16, status: "CLOSED", note: "Ramp chocks added and cart brakes replaced." },
+    { by: "priya", type: "CONCERN", category: "PPE", severity: "LOW", title: "Safety glasses fog up under the dust mask", description: "Several of us are pushing glasses up to see. A fog-resistant option would help.", site: "riverside", hours: 24 * 34, status: "CLOSED", note: "Anti-fog glasses stocked at the trailer." },
+    { by: "fatima", type: "EQUIPMENT", category: "TOOLS", severity: "MEDIUM", title: "Meter leads cracked on the fire alarm test kit", description: "The insulation on the red test lead is cracked near the probe tip. Pulled it from the kit.", site: "lakeshore", hours: 24 * 6, status: "ACTIONS_OPEN" },
+    { by: "fatima", type: "CONCERN", category: "HOUSEKEEPING", severity: "LOW", title: "Stair landing used as a staging area", description: "Boxes of devices are stacked on the level 3 landing between deliveries.", site: "lakeshore", hours: 24 * 27, status: "CLOSED", note: "Staging moved to a marked area." },
+    { by: "marcus", type: "NEAR_MISS", category: "FALLS", severity: "HIGH", title: "Harness lanyard caught on rebar while moving between bays", description: "Moving between bays my lanyard caught and pulled me back. I unclipped safely but it could have gone the other way.", site: "riverside", hours: 24 * 3, status: "INVESTIGATING" },
+    { by: "wei", type: "HAZARD", category: "ELECTRICAL", severity: "MEDIUM", title: "Panel directory missing on the level 5 distribution board", description: "There is no circuit directory and several breakers are unlabeled.", site: "lakeshore", hours: 24 * 5, status: "ACTIONS_OPEN" },
+    { by: "liam", type: "EQUIPMENT", category: "TOOLS", severity: "LOW", title: "Wire stripper handle cracked in the shop", description: "The rubber grip has split on one of the benchtop strippers.", site: "shop", hours: 24 * 11, status: "CLOSED", note: "Replaced and added to the monthly tool check." },
+    { by: "tom", type: "HAZARD", category: "HOUSEKEEPING", severity: "MEDIUM", title: "Prewire staging blocks the second exit on level 2", description: "Material staged for tomorrow narrows the second exit to under a foot. Moved it, but the plan needs a staging area.", site: "riverside", hours: 24 * 2, status: "ASSIGNED" },
+    { by: "danielle", type: "CONCERN", category: "ENVIRONMENT", severity: "LOW", title: "Heat advisory: adjust rooftop start times", description: "Crews on the Lakeshore roof are hitting heat limits by 1 pm. Suggest earlier starts this week.", site: "lakeshore", hours: 24 * 8, status: "CLOSED", note: "Start times moved up by two hours during advisories." },
+  ];
+  const personalIds: Record<string, string> = {};
+  for (const pr of personal) {
+    const createdAt = hoursAgo(pr.hours);
+    const closed = pr.status === "CLOSED";
+    const ownerKey = siteOwnerKey[pr.site];
+    const acked = ownerKey ? new Date(createdAt.getTime() + 90 * 60_000) : null;
+    const rep = await prisma.safetyReport.create({
+      data: {
+        organizationId: org.id, number: nextRep, type: pr.type, category: pr.category, severity: pr.severity, title: pr.title, description: pr.description, siteId: sites[pr.site],
+        occurredAt: new Date(createdAt.getTime() - 3600_000), status: pr.status, privacy: pr.privacy ?? "NAMED", injuryInvolved: Boolean(pr.injury), reporterId: emp[pr.by], ownerId: ownerKey ? emp[ownerKey] : null,
+        respondBy: new Date(createdAt.getTime() + 48 * 3600_000), acknowledgedAt: acked, severityConfirmedAt: pr.hours > 48 ? new Date(createdAt.getTime() + 3 * 3600_000) : null, severityConfirmedById: pr.hours > 48 ? emp.maria : null,
+        closedAt: closed ? new Date(createdAt.getTime() + 8 * day) : null, createdAt,
+      },
+    });
+    const evs: { type: string; message: string; actorName?: string; actorId?: string | null; at: Date }[] = [
+      { type: "CREATED", message: "Report submitted.", actorName: nameOf(pr.by), actorId: emp[pr.by], at: createdAt },
+      { type: "ASSIGNED", message: ownerKey ? `Assigned to ${nameOf(ownerKey)} as the site's safety lead.` : "No owner matched. Waiting for the safety team to assign an owner.", at: new Date(createdAt.getTime() + 1000) },
+    ];
+    if (acked && ownerKey) evs.push({ type: "ACKNOWLEDGED", message: "Report acknowledged.", actorName: nameOf(ownerKey), actorId: emp[ownerKey], at: acked });
+    if (ownerKey && pr.hours > 48 && !closed) evs.push({ type: "MESSAGE_TO_REPORTER", message: "Thanks for flagging this. We are looking at it and will update you here. If you notice anything else, add it to this report.", actorName: nameOf(ownerKey), actorId: emp[ownerKey], at: new Date(createdAt.getTime() + 5 * 3600_000) });
+    if (closed && ownerKey) {
+      evs.push({ type: "ACTION", message: "Corrective action verified.", actorName: nameOf(ownerKey), actorId: emp[ownerKey], at: new Date(createdAt.getTime() + 7 * day) });
+      evs.push({ type: "STATUS", message: `Status set to Closed. ${pr.note ?? ""}`.trim(), actorName: nameOf(ownerKey), actorId: emp[ownerKey], at: new Date(createdAt.getTime() + 8 * day) });
+    }
+    await prisma.reportEvent.createMany({ data: evs.map((e) => ({ reportId: rep.id, type: e.type, message: e.message, actorName: e.actorName ?? "", actorId: e.actorId ?? null, createdAt: e.at })) });
+    personalIds[pr.title] = rep.id;
+    nextRep++;
+  }
+
+  // Corrective actions assigned to the demo people, in every state, some due soon and one overdue.
+  const ownedActions: { owner: string; title: string; status: string; priority: string; due: number; report?: string; note?: string }[] = [
+    { owner: "priya", title: "Re-route temporary lighting off the sprinkler line and use listed hangers", status: "IN_PROGRESS", priority: "MEDIUM", due: 3, report: "Temporary lighting string hung from a sprinkler pipe" },
+    { owner: "priya", title: "Add chocks and a brake check to the material cart routine", status: "APPROVED", priority: "MEDIUM", due: 9 },
+    { owner: "fatima", title: "Replace the cracked test leads and add a lead check to the kit sign-out", status: "APPROVED", priority: "MEDIUM", due: 1, report: "Meter leads cracked on the fire alarm test kit" },
+    { owner: "fatima", title: "Post a staging map for device deliveries on level 3", status: "COMPLETED", priority: "LOW", due: -2, note: "Map posted at the delivery door and reviewed at the huddle." },
+    { owner: "marcus", title: "Walk each bay with the foreman and mark lanyard anchor points", status: "IN_PROGRESS", priority: "HIGH", due: 2, report: "Harness lanyard caught on rebar while moving between bays" },
+    { owner: "wei", title: "Label every breaker and post a directory on the level 5 board", status: "IN_PROGRESS", priority: "MEDIUM", due: 5, report: "Panel directory missing on the level 5 distribution board" },
+    { owner: "noah", title: "Inspect all ladders on the Lakeshore floors and tag out the damaged ones", status: "APPROVED", priority: "HIGH", due: -1 },
+    { owner: "liam", title: "Add a weekly grip and handle check to the shop tool board", status: "VERIFIED", priority: "LOW", due: -8, note: "Check added and first week logged." },
+    { owner: "tom", title: "Mark a staging area on the level 2 plan and brief every crew", status: "IN_PROGRESS", priority: "MEDIUM", due: 0, report: "Prewire staging blocks the second exit on level 2" },
+    { owner: "danielle", title: "Post the scaffold tag-out status at each access point", status: "APPROVED", priority: "HIGH", due: 1 },
+    { owner: "maria", title: "Review the site emergency plans for all four sites", status: "IN_PROGRESS", priority: "MEDIUM", due: 14 },
+    { owner: "kevin", title: "Run a competent-person scaffold refresher for Lakeshore foremen", status: "PROPOSED", priority: "MEDIUM", due: 12 },
+  ];
+  for (const a of ownedActions) {
+    const done = ["COMPLETED", "VERIFIED"].includes(a.status);
+    await prisma.correctiveAction.create({
+      data: {
+        organizationId: org.id, number: nextAct++, reportId: a.report ? personalIds[a.report] : null, title: a.title, description: "", priority: a.priority, status: a.status, ownerId: emp[a.owner], dueDate: daysFromNow(a.due),
+        proposedById: emp.maria, approvedById: a.status === "PROPOSED" ? null : emp.maria, approvedAt: a.status === "PROPOSED" ? null : daysAgo(6), completionNotes: a.note ?? "",
+        completedAt: done ? daysAgo(3) : null, verifiedById: a.status === "VERIFIED" ? emp.maria : null, verifiedAt: a.status === "VERIFIED" ? daysAgo(2) : null, createdAt: daysAgo(8),
+      },
+    });
+  }
+
+  // A response that is winding down at Riverside, led by Tom, so a foreman's login has a live workspace too.
+  const monitored = generated.find((g) => g.h[3].startsWith("Exposed energized terminals"));
+  if (monitored) {
+    const rep = await prisma.safetyReport.findUniqueOrThrow({ where: { id: monitored.id } });
+    const inc = await prisma.incidentResponse.create({
+      data: {
+        organizationId: org.id, reportId: rep.id, status: "MONITORING", leadId: emp.tom, openedBy: "MANUAL", openedById: emp.maria, openedAt: new Date(rep.createdAt.getTime() + 2 * 3600_000),
+        summary: "Exposed lugs in a temporary panel at knee height. The panel is de-energized and locked out, and a new cover is on order.",
+        nextAction: "Confirm the new cover is fitted and the panel re-energized with a test.", nextActionDueAt: new Date(Date.now() + 26 * 3600_000),
+      },
+    });
+    await prisma.incidentResponder.createMany({ data: [{ incidentId: inc.id, employeeId: emp.maria, role: "Safety" }, { incidentId: inc.id, employeeId: emp.marcus, role: "Electrician on the panel" }] });
+    const t0 = rep.createdAt.getTime();
+    await prisma.reportEvent.createMany({
+      data: [
+        { reportId: rep.id, type: "INCIDENT", message: "Incident workspace opened: Exposed energized parts, temporary power.", actorName: "Maria Delgado", actorId: emp.maria, createdAt: new Date(t0 + 2 * 3600_000) },
+        { reportId: rep.id, type: "UPDATE", message: "Panel locked out and tagged. Crews on level 2 moved to the west feed.", actorName: "Tom Brennan", actorId: emp.tom, createdAt: new Date(t0 + 3 * 3600_000) },
+        { reportId: rep.id, type: "DECISION", message: "The panel stays locked out until the new cover is fitted and a second electrician has checked it.", actorName: "Maria Delgado", actorId: emp.maria, createdAt: new Date(t0 + 4 * 3600_000) },
+      ],
+    });
+  }
+
+  // Sign-in times that look like a team in daily use.
+  const lastSeen: Record<string, number> = { "admin@havenbrook.com": 0.4, "maria.delgado@havenbrook.com": 0.2, "kevin.park@havenbrook.com": 1.5, "tom.brennan@havenbrook.com": 0.8, "danielle.okafor@havenbrook.com": 2, "luis.ortega@havenbrook.com": 5, "priya.shah@havenbrook.com": 3, "fatima.haddad@havenbrook.com": 6, "marcus.bennett@havenbrook.com": 9, "wei.zhang@havenbrook.com": 12, "sofia.rossi@havenbrook.com": 26, "james.coleman@havenbrook.com": 30, "noah.park@havenbrook.com": 50, "liam.obrien@havenbrook.com": 8 };
+  for (const [email, h] of Object.entries(lastSeen)) await prisma.user.update({ where: { email }, data: { lastLoginAt: hoursAgo(h) } });
+  // One more renewal each so every worker login has something to renew.
+  for (const [who, name, issued, expires] of [["fatima", "First aid / CPR", -700, 14], ["tom", "First aid / CPR", -690, 21], ["marcus", "Aerial lift", -700, 11], ["wei", "OSHA 10", -400, null]] as [string, string, number, number | null][]) {
+    await prisma.qualification.create({ data: { organizationId: org.id, employeeId: emp[who], name, issuedOn: daysFromNow(issued), expiresOn: expires === null ? null : daysFromNow(expires) } });
+  }
+
   await prisma.subscription.create({ data: { organizationId: org.id, tier: "GROWTH", status: "ACTIVE", seats: 75, pricePerMonth: 900, currentPeriodEnd: daysFromNow(20) } }).catch(() => {});
 
   console.log("Done. Demo password for all seeded accounts:", DEMO_PASSWORD);

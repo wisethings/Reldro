@@ -101,9 +101,9 @@ export function EmptyHero({
   return (
     <div className="overflow-hidden rounded-2xl border border-ink-200/80 bg-white">
       <div className="relative bg-gradient-to-b from-orchid-soft/70 via-orchid-soft/30 to-white px-4 pt-8 text-center">
-        <div aria-hidden className="mx-auto flex h-36 max-w-xl items-end justify-center gap-3 overflow-hidden [mask-image:linear-gradient(to_bottom,black_55%,transparent)]">
+        <div aria-hidden className="mx-auto flex h-40 max-w-xl items-start justify-center gap-3 overflow-hidden px-1 pt-1 [mask-image:linear-gradient(to_bottom,black_50%,transparent)]">
           {[0.55, 1, 0.55].map((scale, idx) => (
-            <div key={idx} className="w-44 shrink-0 rounded-xl border border-ink-200/70 bg-white p-3 shadow-sm" style={{ transform: `translateY(${idx === 1 ? 0 : 22}px)`, opacity: idx === 1 ? 1 : 0.7 }}>
+            <div key={idx} className="w-44 shrink-0 rounded-xl border border-ink-200/70 bg-white p-3 shadow-sm" style={{ transform: `translateY(${idx === 1 ? 0 : 20}px)`, opacity: idx === 1 ? 1 : 0.7 }}>
               <div className="flex items-center gap-2">
                 <span className="h-5 w-5 rounded-md bg-orchid-soft" />
                 <span className={`${bar} w-16`} />

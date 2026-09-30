@@ -22,7 +22,7 @@ const toneClasses: Record<Tone, string> = {
  */
 export function IconBadge({ icon, tone = "orchid", className }: { icon: ReactNode; tone?: Tone; className?: string }) {
   return (
-    <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", toneClasses[tone], className)}>
+    <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl [&>svg]:h-5 [&>svg]:w-5", toneClasses[tone], className)}>
       {icon}
     </div>
   );
