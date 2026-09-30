@@ -16,7 +16,7 @@ import { AdminRow } from "@/components/settings/AdminRow";
 import { Pagination, readPage } from "@/components/safety/Pagination";
 import { DeleteRuleButton, EmergencyInstructionsForm, EscalationRuleForm } from "@/components/safety/SettingsForms";
 
-const ADMIN_PAGE = 8;
+const ADMIN_PAGE = 10;
 
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ apage?: string }> }) {
   const { apage } = await searchParams;

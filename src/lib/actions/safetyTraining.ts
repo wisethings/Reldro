@@ -92,3 +92,47 @@ export async function deleteQualification(id: string) {
   await prisma.qualification.delete({ where: { id } });
   revalidatePath("/dashboard/training");
 }
+
+/** Loads qualifications this person may manage: the safety team any, a supervisor only people at their own site. */
+async function manageableQualifications(ids: string[]) {
+  const v = await requireViewer();
+  if (!v.isSafetyTeam && !v.isSupervisor) throw new Error("Only the safety team or a supervisor can change qualifications.");
+  const rows = await prisma.qualification.findMany({ where: { id: { in: ids }, organizationId: v.organizationId } });
+  if (rows.length === 0) throw new Error("Nothing selected.");
+  if (!v.isSafetyTeam) {
+    const emps = await prisma.employee.findMany({ where: { id: { in: rows.map((r) => r.employeeId) } }, select: { id: true, siteId: true } });
+    const ok = new Set(emps.filter((e) => e.siteId === v.siteId).map((e) => e.id));
+    if (rows.some((r) => !ok.has(r.employeeId))) throw new Error("You can only change qualifications for people at your own site.");
+  }
+  return { v, rows };
+}
+
+export async function deleteQualifications(ids: string[]) {
+  const { v, rows } = await manageableQualifications(ids);
+  await prisma.qualification.deleteMany({ where: { id: { in: rows.map((r) => r.id) } } });
+  await audit(v, "safety.settings_changed", "Qualification", rows[0].id, { removed: rows.length });
+  revalidatePath("/dashboard/training");
+  revalidatePath("/dashboard/overview");
+}
+
+/** Sets a new expiry date on several qualifications at once, for example after a group renewal. */
+export async function setQualificationsExpiry(ids: string[], expiresOn: string) {
+  const { v, rows } = await manageableQualifications(ids);
+  const date = isoOrNull(expiresOn);
+  if (!date) throw new Error("Choose a valid date.");
+  await prisma.qualification.updateMany({ where: { id: { in: rows.map((r) => r.id) } }, data: { expiresOn: date } });
+  await audit(v, "safety.settings_changed", "Qualification", rows[0].id, { renewed: rows.length });
+  revalidatePath("/dashboard/training");
+  revalidatePath("/dashboard/overview");
+}
+
+export async function updateQualification(id: string, changes: { name: string; issuedOn: string; expiresOn: string }) {
+  const { v, rows } = await manageableQualifications([id]);
+  const name = changes.name.trim().slice(0, 120);
+  if (!name) throw new Error("Name the qualification.");
+  await prisma.qualification.update({ where: { id: rows[0].id }, data: { name, issuedOn: isoOrNull(changes.issuedOn), expiresOn: isoOrNull(changes.expiresOn) } });
+  await audit(v, "safety.settings_changed", "Qualification", id, { updated: true });
+  revalidatePath("/dashboard/training");
+  revalidatePath("/dashboard/overview");
+  revalidatePath(`/dashboard/training/qualifications/${id}`);
+}

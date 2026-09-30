@@ -3,10 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { requireViewer } from "@/lib/safety/context";
 import { getPack, OPEN_ACTION_STATUSES, SITE_KINDS } from "@/lib/safety/pack";
 import { dueLabel, EmptyState, NoAccess } from "@/components/safety/ui";
+import { paginate, Pagination } from "@/components/safety/Pagination";
 import { SiteActiveToggle, SiteEditor } from "@/components/safety/SettingsForms";
 
-export default async function SitesPage({ searchParams }: { searchParams: Promise<{ view?: string; q?: string }> }) {
-  const { view: view0, q } = await searchParams;
+export default async function SitesPage({ searchParams }: { searchParams: Promise<{ view?: string; q?: string; page?: string }> }) {
+  const { view: view0, q, page: pageParam } = await searchParams;
   const v = await requireViewer();
   if (!v.isSafetyTeam) return <NoAccess what="site management" />;
   const now = new Date();
@@ -47,6 +48,8 @@ export default async function SitesPage({ searchParams }: { searchParams: Promis
   const view = view0 === "attention" || view0 === "track" ? view0 : "all";
   const term = (q ?? "").trim().toLowerCase();
   const shown = rows.filter((r) => (view === "all" ? true : view === "attention" ? r.health === "attention" : r.health === "track" || r.health === "nolead") && (!term || `${r.s.name} ${r.s.address}`.toLowerCase().includes(term)));
+  const { rows: pageSites, page } = paginate(shown, pageParam, 12);
+  const siteHref = (n: number) => { const sp = new URLSearchParams(); if (view !== "all") sp.set("view", view); if (q) sp.set("q", q); if (n > 1) sp.set("page", String(n)); return `?${sp.toString()}`; };
   const showTools = sites.length > 3;
   const chip = (on: boolean) => `rounded-md px-3 py-1 text-xs font-medium transition-colors ${on ? "bg-white text-ink-900 shadow-[0_0_0_1px_rgba(42,10,12,0.08)]" : "text-ink-600 hover:text-ink-900"}`;
   const HEALTH = {
@@ -95,7 +98,7 @@ export default async function SitesPage({ searchParams }: { searchParams: Promis
         <p className="rounded-xl border border-dashed border-ink-200 bg-white px-6 py-10 text-center text-sm text-ink-600">No sites match. <Link href="?" className="font-medium text-orchid-deep hover:text-oxblood">Show all sites</Link></p>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {shown.map(({ s, nd, open, overdue, health, lead, people: headcountHere }) => {
+          {pageSites.map(({ s, nd, open, overdue, health, lead, people: headcountHere }) => {
             const h = HEALTH[health];
             const reportsHref = `/dashboard/reports?status=open&site=${s.id}`;
             return (
@@ -139,6 +142,7 @@ export default async function SitesPage({ searchParams }: { searchParams: Promis
           })}
         </div>
       )}
+      <Pagination page={page} total={shown.length} pageSize={12} noun="sites" hrefFor={siteHref} />
     </div>
   );
 }

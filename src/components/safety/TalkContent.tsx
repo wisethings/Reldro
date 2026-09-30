@@ -24,15 +24,15 @@ export function parseTalk(content: string): Block[] {
 export function TalkContent({ content }: { content: string }) {
   const blocks = parseTalk(content);
   return (
-    <div className="max-w-[46rem] space-y-5">
+    <div className="space-y-3.5">
       {blocks.map((b, i) => (
         <section key={i}>
-          {b.heading && <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-500">{b.heading}</h3>}
+          {b.heading && <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-500">{b.heading}</h3>}
           {b.paragraphs.map((p, j) => (
             <p key={j} className={`text-sm leading-relaxed ${/^sign-off/i.test(p) ? "mt-1 text-ink-600" : "text-ink-800"}`}>{p}</p>
           ))}
           {b.bullets.length > 0 && (
-            <ul className="mt-1 space-y-1.5 text-sm leading-relaxed text-ink-800">
+            <ul className="mt-0.5 space-y-1 text-sm leading-relaxed text-ink-800">
               {b.bullets.map((t, j) => (
                 <li key={j} className="flex gap-2.5"><span aria-hidden className="mt-2 h-1 w-1 shrink-0 rounded-full bg-ink-400" />{t}</li>
               ))}

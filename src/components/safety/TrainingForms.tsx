@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { MoreHorizontal } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { acknowledgeTalk, addQualification, createToolboxTalk, deleteQualification, deleteToolboxTalk } from "@/lib/actions/safetyTraining";
+import { acknowledgeTalk, addQualification, createToolboxTalk, deleteToolboxTalk } from "@/lib/actions/safetyTraining";
 import { aiDraftToolboxTalk } from "@/lib/actions/safetyAi";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { AiTextDraft } from "./AiTextDraft";
@@ -104,19 +104,30 @@ export function QualificationForm({ people, suggestions }: { people: { id: strin
   const router = useRouter();
   useEffect(() => { if (state?.success) router.refresh(); }, [state, router]);
   return (
-    <form action={formAction} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5" key={state?.success ? "x" : "y"}>
+    <form action={formAction} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_9rem_9rem_auto]" key={state?.success ? "x" : "y"}>
       <Field label="Person"><Select name="employeeId" required defaultValue=""><option value="" disabled>Choose…</option>{people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select></Field>
       <Field label="Qualification"><Input name="name" list="qual-suggestions" required placeholder="e.g. OSHA 30" /><datalist id="qual-suggestions">{suggestions.map((s) => <option key={s} value={s} />)}</datalist></Field>
-      <Field label="Issued" optional><Input name="issuedOn" type="date" /></Field>
-      <Field label="Expires" optional><Input name="expiresOn" type="date" /></Field>
-      <div className="flex items-end"><button disabled={pending} className="w-full rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? "Saving…" : "Record"}</button></div>
+      <Field label="Issued"><Input name="issuedOn" type="date" /></Field>
+      <Field label="Expires"><Input name="expiresOn" type="date" /></Field>
+      <div className="flex items-end"><button disabled={pending} className="w-full rounded-full bg-brand-700 px-5 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? "Saving…" : "Record"}</button></div>
       {state?.error && <p role="alert" className="text-sm text-danger sm:col-span-2 lg:col-span-5">{state.error}</p>}
       {state?.success && <p className="text-sm text-sage-deep sm:col-span-2 lg:col-span-5">{state.success}</p>}
     </form>
   );
 }
 
-export function DeleteQualificationButton({ id }: { id: string }) {
-  const { run, pending } = useAct();
-  return <button disabled={pending} onClick={() => confirm("Remove this qualification record?") && run(() => deleteQualification(id))} className="text-xs text-danger hover:underline">Remove</button>;
+
+/** Who has not acknowledged yet: the first few names in one quiet line, with the rest a click away. */
+export function StillToAcknowledge({ names, preview = 4 }: { names: string[]; preview?: number }) {
+  const [all, setAll] = useState(false);
+  const shown = all ? names : names.slice(0, preview);
+  const rest = names.length - shown.length;
+  return (
+    <p className="mt-2 text-xs leading-relaxed text-ink-500">
+      <span className="text-ink-500">Still to acknowledge: </span>
+      <span className="text-ink-700">{shown.join(", ")}</span>
+      {rest > 0 && <> <button type="button" onClick={() => setAll(true)} className="font-medium text-orchid-deep hover:text-oxblood">+{rest} more</button></>}
+      {all && names.length > preview && <> <button type="button" onClick={() => setAll(false)} className="font-medium text-orchid-deep hover:text-oxblood">Show fewer</button></>}
+    </p>
+  );
 }

@@ -6,8 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { describeAuditAction } from "@/lib/audit";
 import { PageHeader } from "@/components/safety/ui";
 import { LocalTime } from "@/components/safety/LocalTime";
+import { PAGE_SIZE, Pagination, readPage } from "@/components/safety/Pagination";
 
-const PAGE_SIZE = 30;
 const AREAS: Record<string, { label: string; prefixes: string[] }> = {
   safety: { label: "Reports and safety work", prefixes: ["safety."] },
   people: { label: "People and access", prefixes: ["employee.", "admin.", "invite.", "account."] },
@@ -23,7 +23,6 @@ export default async function ActivityLogPage({ searchParams }: { searchParams: 
   const area = p.area && AREAS[p.area] ? p.area : "";
   const range = p.range && RANGES[p.range] ? p.range : "30";
   const who = p.who ?? "";
-  const page = Math.max(1, Number.parseInt(p.page ?? "1", 10) || 1);
   const since = RANGES[range].days ? new Date(Date.now() - RANGES[range].days! * 86_400_000) : null;
 
   const where = {
@@ -32,12 +31,12 @@ export default async function ActivityLogPage({ searchParams }: { searchParams: 
     ...(who === "system" ? { userId: null } : who ? { userId: who } : {}),
     ...(area ? { OR: AREAS[area].prefixes.map((prefix) => ({ action: { startsWith: prefix } })) } : {}),
   };
-  const [rows, total, people] = await Promise.all([
+  const total = await prisma.auditLog.count({ where });
+  const page = Math.min(readPage(p.page), Math.max(1, Math.ceil(total / PAGE_SIZE)));
+  const [rows, people] = await Promise.all([
     prisma.auditLog.findMany({ where, include: { user: { select: { name: true } } }, orderBy: { createdAt: "desc" }, skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE }),
-    prisma.auditLog.count({ where }),
     prisma.user.findMany({ where: { organizationId: orgId, auditLogs: { some: {} } }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
-  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const href = (over: Record<string, string | undefined>) => {
     const q = new URLSearchParams();
@@ -92,13 +91,7 @@ export default async function ActivityLogPage({ searchParams }: { searchParams: 
         )}
       </div>
 
-      <div className="flex items-center justify-between text-xs text-ink-600">
-        <span>{total === 0 ? "0 entries" : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, total)} of ${total}`}</span>
-        <span className="flex items-center gap-2">
-          {page > 1 && <Link href={href({ page: String(page - 1) })} className="inline-flex items-center gap-1 rounded-full border border-ink-300 px-3 py-1 font-medium hover:bg-surface-hover"><ChevronLeft size={14} aria-hidden /> Newer</Link>}
-          {page < pages && <Link href={href({ page: String(page + 1) })} className="inline-flex items-center gap-1 rounded-full border border-ink-300 px-3 py-1 font-medium hover:bg-surface-hover">Older <ChevronRight size={14} aria-hidden /></Link>}
-        </span>
-      </div>
+      <Pagination page={page} total={total} noun="entries" hrefFor={(n) => href({ page: n > 1 ? String(n) : undefined })} />
     </div>
   );
 }

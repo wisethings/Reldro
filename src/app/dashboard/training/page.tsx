@@ -7,14 +7,15 @@ import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { EmptyState, fmtDate, PageHeader } from "@/components/safety/ui";
 import { StatStrip } from "@/components/safety/Dashboard";
-import { Pagination, readPage } from "@/components/safety/Pagination";
+import { PAGE_SIZE, paginate, Pagination, readPage } from "@/components/safety/Pagination";
 import { TalkContent } from "@/components/safety/TalkContent";
-import { AcknowledgeButton, DeleteQualificationButton, QualificationForm, TalkForm, TalkMenu } from "@/components/safety/TrainingForms";
+import { AcknowledgeButton, QualificationForm, StillToAcknowledge, TalkForm, TalkMenu } from "@/components/safety/TrainingForms";
+import { QualificationTable, type QualRow } from "@/components/safety/QualificationTable";
 import { ListToolbar } from "@/components/safety/ListToolbar";
 import { PersonAccess, PersonAssignment, PersonMenu } from "@/components/team/PeopleControls";
 import { InviteEmployeeForm } from "@/components/team/InviteEmployeeForm";
 
-export default async function TrainingPage({ searchParams }: { searchParams: Promise<{ tab?: string; filter?: string; q?: string; page?: string; new?: string; pq?: string; psite?: string; pcrew?: string; pacc?: string; psort?: string; ppage?: string }> }) {
+export default async function TrainingPage({ searchParams }: { searchParams: Promise<{ tab?: string; filter?: string; q?: string; page?: string; new?: string; qq?: string; qs?: string; qtype?: string; qemp?: string; qwhen?: string; qsort?: string; qpage?: string; pq?: string; psite?: string; pcrew?: string; pacc?: string; psort?: string; ppage?: string }> }) {
   const v = await requireViewer();
   const sp = await searchParams;
   const { tab = "talks", filter: f, q, page: pageParam, new: newParam } = sp;
@@ -59,7 +60,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
     const featured = filter === "all" && !term ? rows.filter((r) => r.status === "needs").sort((a, b) => (a.acked / Math.max(1, a.audience)) - (b.acked / Math.max(1, b.audience))).slice(0, 3) : [];
     const featuredIds = new Set(featured.map((r) => r.t.id));
     const rest = matches.filter((r) => !featuredIds.has(r.t.id));
-    const perPage = 12;
+    const perPage = PAGE_SIZE;
     const page = Math.min(readPage(pageParam), Math.max(1, Math.ceil(rest.length / perPage)));
     const pageRows = rest.slice((page - 1) * perPage, page * perPage);
     const href = (over: Record<string, string | undefined>) => {
@@ -83,7 +84,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
                 <p className="mt-0.5 truncate text-xs text-ink-500">{fmtDate(r.t.scheduledFor)} · {r.where} · {r.t.createdByName}{r.t.aiDrafted ? " · AI-assisted, reviewed" : ""}</p>
               </div>
               {canManage ? (
-                <div className="order-3 col-span-2 flex items-center gap-2 md:order-none md:col-span-1" title={`${r.acked} of ${r.audience} acknowledged`}>
+                <div className="order-3 col-span-2 flex items-center gap-2 group-open:invisible md:order-none md:col-span-1" title={`${r.acked} of ${r.audience} acknowledged`}>
                   <span aria-hidden className="h-1.5 w-full max-w-24 overflow-hidden rounded-full bg-ink-100"><span className={`block h-full rounded-full ${pct === 100 ? "bg-sage-deep" : "bg-orchid-deep"}`} style={{ width: `${pct}%` }} /></span>
                   <span className="shrink-0 text-xs tabular-nums text-ink-600">{r.acked} of {r.audience}</span>
                 </div>
@@ -93,37 +94,29 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
                 {!canManage && r.status === "needs" && v.employeeId ? <AcknowledgeButton talkId={r.t.id} compact /> : <span className="text-xs font-medium text-orchid-deep group-hover:text-oxblood group-open:hidden">View talk →</span>}
               </div>
             </summary>
-            <div className="expand-panel mx-3 mb-3 mt-0.5 px-4 py-5 sm:mx-4 sm:px-6 sm:py-6">
-              <div className="flex items-start justify-between gap-4">
+            <div className="expand-panel relative mx-3 mb-3 mt-0.5 px-4 py-4 sm:mx-4 sm:px-5">
+              {canManage && <div className="absolute right-2 top-2"><TalkMenu talkId={r.t.id} /></div>}
+              <div className="max-w-[42rem]">
                 <TalkContent content={r.t.content} />
-                {canManage && <TalkMenu talkId={r.t.id} />}
-              </div>
-              <div className="mt-6 max-w-[46rem] border-t border-ink-100 pt-4">
-                {canManage ? (
-                  <>
-                    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-                      <p className="text-sm font-semibold text-ink-900">{r.acked} of {r.audience} acknowledged</p>
-                      {v.employeeId && (r.mineDone ? <Badge tone="green">You acknowledged this</Badge> : <AcknowledgeButton talkId={r.t.id} />)}
-                    </div>
-                    <div aria-hidden className="mt-2 h-1.5 overflow-hidden rounded-full bg-ink-200/70"><div className={`h-full rounded-full ${r.acked === r.audience ? "bg-sage-deep" : "bg-orchid-deep"}`} style={{ width: `${r.audience ? Math.round((r.acked / r.audience) * 100) : 0}%` }} /></div>
-                    {r.missing.length > 0 ? (
-                      <div className="mt-3">
-                        <p className="text-xs text-ink-600">Still to acknowledge</p>
-                        <ul className="mt-1.5 flex flex-wrap gap-1.5">
-                          {r.missing.slice(0, 12).map((n) => <li key={n} className="rounded-full bg-white px-2.5 py-1 text-xs text-ink-800 ring-1 ring-ink-200">{n}</li>)}
-                          {r.missing.length > 12 && <li className="px-1 py-1 text-xs text-ink-500">and {r.missing.length - 12} more</li>}
-                        </ul>
+                <div className="mt-4 border-t border-ink-100 pt-3">
+                  {canManage ? (
+                    <>
+                      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5">
+                        <p className="text-sm font-semibold text-ink-900">{r.acked} of {r.audience} acknowledged</p>
+                        {v.employeeId && (r.mineDone ? <Badge tone="green">You acknowledged this</Badge> : <AcknowledgeButton talkId={r.t.id} compact />)}
                       </div>
-                    ) : <p className="mt-3 text-xs text-sage-deep">Everyone in scope has acknowledged this talk.</p>}
-                  </>
-                ) : (
-                  v.employeeId && (r.mineDone ? <Badge tone="green">You acknowledged this</Badge> : (
-                    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-                      <p className="text-xs text-ink-600">By acknowledging, you confirm you attended and understood this talk.</p>
-                      <AcknowledgeButton talkId={r.t.id} />
-                    </div>
-                  ))
-                )}
+                      <div aria-hidden className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-ink-200/70"><div className={`h-full rounded-full ${r.acked === r.audience ? "bg-sage-deep" : "bg-orchid-deep"}`} style={{ width: `${r.audience ? Math.round((r.acked / r.audience) * 100) : 0}%` }} /></div>
+                      {r.missing.length > 0 ? <StillToAcknowledge names={r.missing} /> : <p className="mt-2 text-xs text-sage-deep">Everyone in scope has acknowledged this talk.</p>}
+                    </>
+                  ) : (
+                    v.employeeId && (r.mineDone ? <Badge tone="green">You acknowledged this</Badge> : (
+                      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                        <p className="text-xs text-ink-600">By acknowledging, you confirm you attended and understood this talk.</p>
+                        <AcknowledgeButton talkId={r.t.id} />
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
           </details>
@@ -168,7 +161,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
             {featured.length > 0 && (
               <section aria-labelledby="needs-attention">
                 <h2 id="needs-attention" className="mb-2 flex items-center gap-2 text-sm font-semibold text-ink-900"><span aria-hidden className="h-2 w-2 rounded-full bg-amber-deep" />Needs attention</h2>
-                <ul className="divide-y divide-ink-100 overflow-hidden rounded-xl border-l-2 border-amber-deep/70 bg-white">{featured.map((r) => <TalkRow key={r.t.id} r={r} />)}</ul>
+                <ul className="divide-y divide-ink-100 overflow-hidden rounded-xl bg-white">{featured.map((r) => <TalkRow key={r.t.id} r={r} />)}</ul>
               </section>
             )}
             <section aria-labelledby="all-talks">
@@ -206,34 +199,121 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
       canManage ? prisma.employee.findMany({ where: { organizationId: v.organizationId, ...(v.isSafetyTeam ? {} : { siteId: v.siteId ?? "__none__" }) }, include: { user: { select: { name: true } } }, orderBy: { user: { name: "asc" } } }) : Promise.resolve([]),
     ]);
     const names = new Map((await prisma.employee.findMany({ where: { id: { in: quals.map((q) => q.employeeId) } }, include: { user: { select: { name: true } } } })).map((e) => [e.id, e.user.name]));
-    body = (
-      <div className="space-y-5">
-        {canManage && (
-          <Card tone="plain">
-            <CardHeader title="Record a qualification" subtitle="Record certifications and authorizations with an expiry date. Reldro flags them 30 days before they expire." />
-            <CardBody><QualificationForm people={people.map((p) => ({ id: p.id, name: p.user.name }))} suggestions={pack.qualificationSuggestions} /></CardBody>
-          </Card>
-        )}
-        {quals.length === 0 ? (
-          <EmptyState title="No qualifications recorded" body={canManage ? "Add the certifications your crews need, such as aerial lift, first aid, or OSHA 30, so expiry dates are not missed." : "Your supervisor records your certifications."} />
-        ) : (
-          <Card tone="plain">
-            <ul className="divide-y divide-ink-200">
-              {quals.map((q) => {
-                const expired = q.expiresOn && q.expiresOn < now;
-                const soon = q.expiresOn && !expired && q.expiresOn <= in30;
-                return (
-                  <li key={q.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 sm:px-5">
-                    <div><p className="text-sm font-medium text-ink-900">{canManage ? `${names.get(q.employeeId) ?? "Someone"} · ` : ""}{q.name}</p><p className="text-xs text-ink-500">{q.issuedOn ? `Issued ${fmtDate(q.issuedOn)} · ` : ""}{q.expiresOn ? `Expires ${fmtDate(q.expiresOn)}` : "No expiry"}</p></div>
-                    <div className="flex items-center gap-3">{expired ? <Badge tone="red">Expired</Badge> : soon ? <Badge tone="gold">Expires soon</Badge> : <Badge tone="green">Current</Badge>}{canManage && <DeleteQualificationButton id={q.id} />}</div>
-                  </li>
-                );
-              })}
-            </ul>
-          </Card>
-        )}
-      </div>
-    );
+    type QStatus = "expired" | "soon" | "current";
+    const statusOf = (q: (typeof quals)[number]): QStatus => (q.expiresOn && q.expiresOn < now ? "expired" : q.expiresOn && q.expiresOn <= in30 ? "soon" : "current");
+    const rank: Record<QStatus, number> = { expired: 0, soon: 1, current: 2 };
+    const all = quals.map((q) => ({ q, status: statusOf(q), employee: names.get(q.employeeId) ?? "Someone" }));
+    const counts = { all: all.length, expired: all.filter((r) => r.status === "expired").length, soon: all.filter((r) => r.status === "soon").length, current: all.filter((r) => r.status === "current").length };
+
+    if (!canManage) {
+      const mine = paginate(all.sort((a, b) => rank[a.status] - rank[b.status] || (a.q.expiresOn?.getTime() ?? Infinity) - (b.q.expiresOn?.getTime() ?? Infinity)), sp.qpage);
+      body = all.length === 0 ? (
+        <EmptyState title="No qualifications recorded" body="Your supervisor records your certifications." />
+      ) : (
+        <div className="space-y-3">
+          <ul className="surface divide-y divide-ink-100">
+            {mine.rows.map(({ q, status }) => (
+              <li key={q.id} className="flex min-h-[2.75rem] flex-wrap items-center justify-between gap-2 px-4 py-2.5">
+                <div className="min-w-0"><p className="truncate text-sm font-semibold text-ink-900">{q.name}</p><p className="text-xs text-ink-500">{q.issuedOn ? `Issued ${fmtDate(q.issuedOn)} · ` : ""}{q.expiresOn ? `Expires ${fmtDate(q.expiresOn)}` : "No expiry"}</p></div>
+                {status === "expired" ? <Badge tone="red">Expired</Badge> : status === "soon" ? <Badge tone="amber">Expires soon</Badge> : <Badge tone="green">Current</Badge>}
+              </li>
+            ))}
+          </ul>
+          <Pagination page={mine.page} total={all.length} noun="qualifications" hrefFor={(n) => `?tab=${activeTab}${n > 1 ? `&qpage=${n}` : ""}`} />
+        </div>
+      );
+    } else {
+      const qq = (sp.qq ?? "").trim().toLowerCase();
+      const qs = sp.qs === "expired" || sp.qs === "soon" || sp.qs === "current" ? sp.qs : "";
+      const qsort = sp.qsort === "employee" || sp.qsort === "type" || sp.qsort === "expires" ? sp.qsort : "status";
+      const qwhen = Number(sp.qwhen);
+      const whenDays = [30, 60, 90].includes(qwhen) ? qwhen : 0;
+      const types = [...new Set(quals.map((q) => q.name))].sort((a, b) => a.localeCompare(b));
+      const exp = (r: (typeof all)[number]) => r.q.expiresOn?.getTime() ?? Infinity;
+      const list = all
+        .filter((r) =>
+          (!qq || `${r.employee} ${r.q.name}`.toLowerCase().includes(qq)) &&
+          (!qs || r.status === qs) &&
+          (!sp.qtype || r.q.name === sp.qtype) &&
+          (!sp.qemp || r.q.employeeId === sp.qemp) &&
+          (!whenDays || (r.q.expiresOn && r.q.expiresOn >= now && r.q.expiresOn.getTime() <= Date.now() + whenDays * 86400_000)),
+        )
+        .sort((a, b) =>
+          qsort === "employee" ? a.employee.localeCompare(b.employee) || exp(a) - exp(b)
+          : qsort === "type" ? a.q.name.localeCompare(b.q.name) || a.employee.localeCompare(b.employee)
+          : qsort === "expires" ? exp(a) - exp(b)
+          : rank[a.status] - rank[b.status] || exp(a) - exp(b) || a.employee.localeCompare(b.employee),
+        );
+      const pg = paginate(list, sp.qpage);
+      const rel = (d: Date | null, st: QStatus) => {
+        if (!d) return null;
+        const days = Math.ceil((d.getTime() - Date.now()) / 86400_000);
+        return st === "expired" ? `${-days} day${days === -1 ? "" : "s"} ago` : days === 0 ? "Today" : `in ${days} day${days === 1 ? "" : "s"}`;
+      };
+      const iso = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : "");
+      const label: Record<QStatus, string> = { expired: "Expired", soon: "Expiring soon", current: "Current" };
+      const rows: QualRow[] = pg.rows.map((r, i) => ({
+        id: r.q.id,
+        employee: r.employee,
+        name: r.q.name,
+        status: r.status,
+        issued: r.q.issuedOn ? fmtDate(r.q.issuedOn) : "—",
+        expires: r.q.expiresOn ? fmtDate(r.q.expiresOn) : "No expiry",
+        issuedIso: iso(r.q.issuedOn),
+        expiresIso: iso(r.q.expiresOn),
+        rel: r.status === "current" && !r.q.expiresOn ? null : rel(r.q.expiresOn, r.status),
+        group: qsort === "status" && (i === 0 || pg.rows[i - 1].status !== r.status) ? label[r.status] : null,
+      }));
+      const qHref = (over: Record<string, string | undefined>) => {
+        const q2 = new URLSearchParams({ tab: "qualifications" });
+        const merged: Record<string, string | undefined> = { qq: sp.qq, qs: sp.qs, qtype: sp.qtype, qemp: sp.qemp, qwhen: sp.qwhen, qsort: sp.qsort, ...over };
+        for (const [k, val] of Object.entries(merged)) if (val) q2.set(k, val);
+        return `?${q2.toString()}`;
+      };
+      const seg2 = (on: boolean, hot?: "red" | "amber") => `rounded-md px-3 py-1 text-xs font-medium transition-colors ${on ? "bg-white text-ink-900 shadow-[0_0_0_1px_rgba(42,10,12,0.08)]" : hot && counts[hot === "red" ? "expired" : "soon"] > 0 ? "text-ink-800 hover:text-ink-900" : "text-ink-600 hover:text-ink-900"}`;
+      const filteredQ = Boolean(qq || qs || sp.qtype || sp.qemp || whenDays);
+      body = (
+        <div className="space-y-4">
+          <section aria-labelledby="record-qual" className="surface p-4">
+            <h2 id="record-qual" className="mb-3 text-sm font-semibold text-ink-900">Record a qualification <span className="font-normal text-ink-500">· Reldro flags it 30 days before it expires</span></h2>
+            <QualificationForm people={people.map((p) => ({ id: p.id, name: p.user.name }))} suggestions={pack.qualificationSuggestions} />
+          </section>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <div role="group" aria-label="Filter by status" className="flex rounded-lg bg-ink-100 p-0.5">
+              <Link scroll={false} href={qHref({ qs: undefined, qpage: undefined })} className={seg2(!qs)}>All ({counts.all})</Link>
+              <Link scroll={false} href={qHref({ qs: "expired", qpage: undefined })} className={`${seg2(qs === "expired", "red")} ${counts.expired > 0 && qs !== "expired" ? "!text-danger" : ""}`}>Expired ({counts.expired})</Link>
+              <Link scroll={false} href={qHref({ qs: "soon", qpage: undefined })} className={`${seg2(qs === "soon", "amber")} ${counts.soon > 0 && qs !== "soon" ? "!text-amber-deep" : ""}`}>Expiring soon ({counts.soon})</Link>
+              <Link scroll={false} href={qHref({ qs: "current", qpage: undefined })} className={seg2(qs === "current")}>Current ({counts.current})</Link>
+            </div>
+          </div>
+          <ListToolbar
+            searchParam="qq"
+            pageParam="qpage"
+            placeholder="Search employee or qualification"
+            selects={[
+              { param: "qtype", label: "All qualifications", options: types.map((t) => ({ value: t, label: t })) },
+              { param: "qemp", label: "All employees", options: people.map((p) => ({ value: p.id, label: p.user.name })) },
+              { param: "qwhen", label: "Any expiry date", options: [{ value: "30", label: "Expires in 30 days" }, { value: "60", label: "Expires in 60 days" }, { value: "90", label: "Expires in 90 days" }] },
+            ]}
+            sort={{ param: "qsort", label: "Sort qualifications", options: [{ value: "", label: "Needs action first" }, { value: "expires", label: "Expiry date" }, { value: "employee", label: "Employee" }, { value: "type", label: "Qualification" }] }}
+          />
+
+          {all.length === 0 ? (
+            <EmptyState title="No qualifications recorded" body="Add the certifications your crews need, such as aerial lift, first aid, or OSHA 30, so expiry dates are not missed." />
+          ) : list.length === 0 ? (
+            <div className="surface border-dashed px-6 py-10 text-center">
+              <p className="text-sm font-medium text-ink-900">No qualifications match</p>
+              <p className="mt-1 text-sm text-ink-600">Try a different search, or clear the filters.</p>
+              {(filteredQ || qs) && <Link href="?tab=qualifications" className="mt-3 inline-block text-sm font-medium text-orchid-deep hover:text-oxblood">Clear filters</Link>}
+            </div>
+          ) : (
+            <QualificationTable rows={rows} />
+          )}
+          <Pagination page={pg.page} total={list.length} noun="qualifications" hrefFor={(n) => qHref({ qpage: n > 1 ? String(n) : undefined })} />
+        </div>
+      );
+    }
   } else if (activeTab === "people" && v.isAdmin) {
     const [everyone, crews] = await Promise.all([
       prisma.employee.findMany({ where: { organizationId: v.organizationId }, include: { user: true, department: true }, orderBy: { user: { name: "asc" } } }),
@@ -257,7 +337,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
         : psort === "access" ? accessRank(a) - accessRank(b) || a.user.name.localeCompare(b.user.name)
         : a.user.name.localeCompare(b.user.name),
       );
-    const peoplePerPage = 20;
+    const peoplePerPage = PAGE_SIZE;
     const ppage = Math.min(readPage(sp.ppage), Math.max(1, Math.ceil(people.length / peoplePerPage)));
     const pagePeople = people.slice((ppage - 1) * peoplePerPage, ppage * peoplePerPage);
     const pHref = (n: number) => {
