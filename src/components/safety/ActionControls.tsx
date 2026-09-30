@@ -11,6 +11,7 @@ import { Alert } from "@/components/ui/Alert";
 import { PhotoField } from "./PhotoField";
 import { useAct } from "./useAct";
 import { Spinner } from "@/components/ui/Spinner";
+import { PersonSelect, type PersonOpt } from "@/components/ui/PersonSelect";
 
 type Props = {
   actionId: string;
@@ -20,7 +21,7 @@ type Props = {
   dueDate: string | null;
   isSafetyTeam: boolean;
   isOwner: boolean;
-  people: { id: string; name: string }[];
+  people: PersonOpt[];
 };
 
 const btn = "rounded-full px-4 py-2 text-sm font-medium disabled:opacity-50";
@@ -128,17 +129,14 @@ export function ActionControls({ actionId, status, ownerId, ownerName, isSafetyT
 }
 
 /** Owner and due date, editable by the safety team. Kept apart from the next step so each does one job. */
-export function ActionPlanEditor({ actionId, ownerId, dueDate, people }: { actionId: string; ownerId: string | null; dueDate: string | null; people: { id: string; name: string }[] }) {
+export function ActionPlanEditor({ actionId, ownerId, dueDate, people }: { actionId: string; ownerId: string | null; dueDate: string | null; people: PersonOpt[] }) {
   const { run, pending, error } = useAct();
   return (
     <div className="space-y-2">
       {error && <Alert tone="error">{error}</Alert>}
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Owner">
-          <Select defaultValue={ownerId ?? ""} disabled={pending} onChange={(e) => run(() => updateActionPlan(actionId, { ownerId: e.target.value || null }))}>
-            <option value="">No owner</option>
-            {people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </Select>
+          <PersonSelect defaultValue={ownerId ?? ""} disabled={pending} onChange={(v) => run(() => updateActionPlan(actionId, { ownerId: v || null }))} people={people} emptyLabel="No owner" />
         </Field>
         <Field label="Due date">
           <Input type="date" defaultValue={dueDate ?? ""} disabled={pending} onChange={(e) => run(() => updateActionPlan(actionId, { dueDate: e.target.value || null }))} />

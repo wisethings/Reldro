@@ -13,8 +13,9 @@ import { useAct } from "./useAct";
 import { Alert } from "@/components/ui/Alert";
 import { Spinner } from "@/components/ui/Spinner";
 import { MobileStickyActionBar } from "@/components/ui/MobileStickyActionBar";
+import { PersonSelect, type PersonOpt } from "@/components/ui/PersonSelect";
 
-export function ScheduleInspectionForm({ templates, sites, people, onSuccess }: { onSuccess?: () => void; templates: { id: string; name: string }[]; sites: { id: string; name: string }[]; people: { id: string; name: string }[] }) {
+export function ScheduleInspectionForm({ templates, sites, people, onSuccess }: { onSuccess?: () => void; templates: { id: string; name: string }[]; sites: { id: string; name: string }[]; people: PersonOpt[] }) {
   const [state, formAction, pending] = useActionState(scheduleInspection, undefined);
   const router = useRouter();
   useEffect(() => { if (state?.success) { router.refresh(); onSuccess?.(); } }, [state, router, onSuccess]);
@@ -22,7 +23,7 @@ export function ScheduleInspectionForm({ templates, sites, people, onSuccess }: 
     <form action={formAction} className={onSuccess ? "grid gap-3 sm:grid-cols-2" : "grid gap-3 sm:grid-cols-2 lg:grid-cols-5"}>
       <Field label="Checklist"><Select name="templateId" required defaultValue=""><option value="" disabled>Choose…</option>{templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</Select></Field>
       <Field label="Site"><Select name="siteId" required defaultValue=""><option value="" disabled>Choose…</option>{sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select></Field>
-      <Field label="Owner"><Select name="assigneeId" defaultValue=""><option value="">Anyone at the site</option>{people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select></Field>
+      <Field label="Owner"><PersonSelect name="assigneeId" people={people} emptyLabel="Anyone at the site" /></Field>
       <Field label="Due date"><Input name="dueDate" type="date" required /></Field>
       <div className="flex items-end"><button disabled={pending} className="w-full rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? <><Spinner /> Scheduling…</> : "Schedule"}</button></div>
       {state?.error && <p role="alert" className="text-sm text-danger sm:col-span-2 lg:col-span-5">{state.error}</p>}
@@ -91,7 +92,7 @@ export function RaiseReportButton({ inspectionId, itemId }: { inspectionId: stri
 }
 
 /** Compact primary action: the scheduling form opens in a dialog instead of sitting on the page. */
-export function ScheduleInspectionButton({ templates, sites, people, defaultOpen = false }: { templates: { id: string; name: string }[]; sites: { id: string; name: string }[]; people: { id: string; name: string }[]; defaultOpen?: boolean }) {
+export function ScheduleInspectionButton({ templates, sites, people, defaultOpen = false }: { templates: { id: string; name: string }[]; sites: { id: string; name: string }[]; people: PersonOpt[]; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <>

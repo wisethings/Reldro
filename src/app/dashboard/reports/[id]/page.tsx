@@ -108,7 +108,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
           openedByName={inc.openedById ? nameOf(inc.openedById) : null}
           leadName={nameOf(inc.leadId)}
           responders={inc.responders.map((r) => ({ employeeId: r.employeeId, name: nameOf(r.employeeId) ?? "Someone", role: r.role }))}
-          people={people.map((p) => ({ id: p.id, name: p.user.name }))}
+          people={people.map((p) => ({ id: p.id, name: p.user.name, hint: p.jobTitle }))}
           canRun={runIncident}
           canContribute={contribute}
           isSafetyTeam={v.isSafetyTeam}
@@ -165,14 +165,14 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
               acknowledged={Boolean(report.acknowledgedAt)}
               hasInvestigation={Boolean(inv)}
               isSafetyTeam={v.isSafetyTeam}
-              people={people.map((p) => ({ id: p.id, name: p.user.name }))}
+              people={people.map((p) => ({ id: p.id, name: p.user.name, hint: p.jobTitle }))}
               severities={SEVERITIES.map((s) => ({ key: s.key, label: s.label }))}
               categories={pack.categories.map((c) => ({ key: c.key, label: c.label }))}
             />
             {v.isSafetyTeam && !inc && report.status !== "CLOSED" && (
               <div className="mt-4 border-t border-ink-200 pt-4">
                 <p className="mb-2 text-xs text-ink-600">Most reports do not need an incident response. For a serious event, open a shared workspace with a response lead and a timeline.</p>
-                <OpenIncidentForm reportId={report.id} people={people.map((p) => ({ id: p.id, name: p.user.name }))} defaultLeadId={report.ownerId} />
+                <OpenIncidentForm reportId={report.id} people={people.map((p) => ({ id: p.id, name: p.user.name, hint: p.jobTitle }))} defaultLeadId={report.ownerId} />
               </div>
             )}
           </CardBody>
@@ -219,7 +219,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
             <details className="border-t border-ink-100 pt-3">
               <summary className="cursor-pointer text-sm font-medium text-ink-800">{v.isSafetyTeam ? "Add a corrective action" : "Propose a corrective action"}</summary>
               <div className="mt-3">
-                <ActionForm reportId={report.id} people={people.map((p) => ({ id: p.id, name: p.user.name }))} severities={SEVERITIES.map((s) => ({ key: s.key, label: s.label }))} isSafetyTeam={v.isSafetyTeam} />
+                <ActionForm reportId={report.id} people={people.map((p) => ({ id: p.id, name: p.user.name, hint: p.jobTitle }))} severities={SEVERITIES.map((s) => ({ key: s.key, label: s.label }))} isSafetyTeam={v.isSafetyTeam} />
               </div>
             </details>
           )}

@@ -6,6 +6,7 @@ import { createAction } from "@/lib/actions/safetyActions";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { Alert } from "@/components/ui/Alert";
 import { Spinner } from "@/components/ui/Spinner";
+import { PersonSelect, type PersonOpt } from "@/components/ui/PersonSelect";
 
 export function ActionForm({
   reportId,
@@ -15,7 +16,7 @@ export function ActionForm({
   defaultTitle = "",
 }: {
   reportId: string | null;
-  people: { id: string; name: string }[];
+  people: PersonOpt[];
   severities: { key: string; label: string }[];
   isSafetyTeam: boolean;
   defaultTitle?: string;
@@ -39,12 +40,7 @@ export function ActionForm({
       </Field>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Field label="Owner">
-          <Select name="ownerId" defaultValue="">
-            <option value="">No owner</option>
-            {people.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </Select>
+          <PersonSelect name="ownerId" people={people} emptyLabel="No owner" />
         </Field>
         <Field label="Due date">
           <Input name="dueDate" type="date" />

@@ -22,6 +22,7 @@ import { PhotoField } from "./PhotoField";
 import { useAct } from "./useAct";
 import { Alert } from "@/components/ui/Alert";
 import { Spinner } from "@/components/ui/Spinner";
+import { PersonSelect, type PersonOpt } from "@/components/ui/PersonSelect";
 
 type Person = { id: string; name: string };
 
@@ -50,10 +51,7 @@ export function OpenIncidentForm({ reportId, people, defaultLeadId }: { reportId
         {notice && <p role="status" className="rounded-lg bg-sage px-3 py-2 text-sm text-sage-deep">{notice}</p>}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Response lead" hint="Runs the response and closes it out. You can change this later.">
-            <Select value={lead} onChange={(e) => setLead(e.target.value)}>
-              <option value="">Choose later</option>
-              {people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </Select>
+            <PersonSelect value={lead} onChange={setLead} people={people} emptyLabel="Choose later" />
           </Field>
           <Field label="Why does this need a coordinated response?" optional>
             <Input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={300} placeholder="e.g. Serious injury, multiple crews affected" />
@@ -112,10 +110,7 @@ export function IncidentDetailsForm({
         </Field>
       </div>
       <Field label="Response lead">
-        <Select value={lead} onChange={(e) => setLead(e.target.value)}>
-          <option value="">No lead yet</option>
-          {people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </Select>
+        <PersonSelect value={lead} onChange={setLead} people={people} emptyLabel="No lead yet" />
       </Field>
       <div className="flex flex-wrap items-center gap-2">
         <button
@@ -176,10 +171,7 @@ export function ResponderManager({
       {canEdit && (
         <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr),minmax(0,1fr),auto] sm:items-end">
           <Field label="Add a responder">
-            <Select value={who} onChange={(e) => setWho(e.target.value)}>
-              <option value="">Choose a person</option>
-              {people.filter((p) => !taken.has(p.id)).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </Select>
+            <PersonSelect value={who} onChange={setWho} people={people.filter((p) => !taken.has(p.id))} />
           </Field>
           <Field label="Role" optional>
             <Input list="responder-roles" value={role} onChange={(e) => setRole(e.target.value)} maxLength={60} placeholder="e.g. Site lead" />

@@ -8,6 +8,7 @@ import { startInvestigation } from "@/lib/actions/safetyInvestigations";
 import { Select } from "@/components/ui/Field";
 import { useAct } from "./useAct";
 import { Alert } from "@/components/ui/Alert";
+import { PersonSelect, type PersonOpt } from "@/components/ui/PersonSelect";
 
 type Opt = { key: string; label: string };
 
@@ -34,7 +35,7 @@ export function ReportControls({
   acknowledged: boolean;
   hasInvestigation: boolean;
   isSafetyTeam: boolean;
-  people: { id: string; name: string }[];
+  people: PersonOpt[];
   severities: Opt[];
   categories: Opt[];
 }) {
@@ -75,17 +76,9 @@ export function ReportControls({
         {isSafetyTeam && (
           <label className="block text-xs font-medium text-ink-600">
             Owner
-            <Select
-              value={owner}
-              disabled={pending}
-              onChange={(e) => { setOwner(e.target.value); run(() => assignReport(reportId, e.target.value || null)); }}
-              className="mt-1"
-            >
-              <option value="">No owner</option>
-              {people.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </Select>
+            <span className="mt-1 block">
+              <PersonSelect value={owner} disabled={pending} onChange={(v) => { setOwner(v); run(() => assignReport(reportId, v || null)); }} people={people} emptyLabel="No owner" />
+            </span>
           </label>
         )}
         <div>

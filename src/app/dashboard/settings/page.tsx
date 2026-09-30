@@ -97,7 +97,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                 severities={SEVERITIES.map((s) => ({ key: s.key, label: s.label }))}
                 categories={pack.categories.map((c) => ({ key: c.key, label: c.label }))}
                 sites={sites.map((s) => ({ id: s.id, name: s.name }))}
-                people={people.map((p) => ({ id: p.id, name: p.user.name }))}
+                people={people.map((p) => ({ id: p.id, name: p.user.name, hint: p.jobTitle }))}
               />
             </div>
           </details>

@@ -8,6 +8,7 @@ import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
 import { useAct } from "./useAct";
 import { Spinner } from "@/components/ui/Spinner";
+import { AdaptiveSelect, PersonSelect, type PersonOpt } from "@/components/ui/PersonSelect";
 
 type Opt = { id: string; name: string };
 type KeyOpt = { key: string; label: string };
@@ -20,10 +21,10 @@ export function EscalationRuleForm({ severities, categories, sites, people }: { 
     <form action={formAction} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <Field label="When seriousness is at least"><Select name="minSeverity" defaultValue="HIGH">{severities.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}</Select></Field>
       <Field label="Topic" optional><Select name="category" defaultValue=""><option value="">Any topic</option>{categories.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</Select></Field>
-      <Field label="Site" optional><Select name="siteId" defaultValue=""><option value="">Any site</option>{sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select></Field>
-      <Field label="Assign to" optional hint="Blank uses the site's safety lead."><Select name="ownerId" defaultValue=""><option value="">Site safety lead</option>{people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select></Field>
+      <Field label="Site" optional><AdaptiveSelect name="siteId" noun="site" emptyLabel="Any site" options={sites.map((s) => ({ value: s.id, label: s.name }))} /></Field>
+      <Field label="Assign to" optional hint="Blank uses the site's safety lead."><PersonSelect name="ownerId" people={people} emptyLabel="Site safety lead" /></Field>
       <Field label="Acknowledge within (hours)"><Input name="respondWithinHours" type="number" min={1} max={720} defaultValue={24} required /></Field>
-      <Field label="Escalate to if late" optional><Select name="escalateToId" defaultValue=""><option value="">Nobody</option>{people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select></Field>
+      <Field label="Escalate to if late" optional><PersonSelect name="escalateToId" people={people} emptyLabel="Nobody" /></Field>
       <label className="flex items-start gap-2 rounded-lg border border-ink-200 p-3 text-sm sm:col-span-2 lg:col-span-3">
         <input type="checkbox" name="openIncident" className="mt-1" />
         <span>
@@ -71,7 +72,7 @@ export function SiteEditor({ site, people, trigger, siteExample = "Bayside Tower
             <Field label="Name" required><Input name="name" defaultValue={site?.name} required placeholder={`e.g. ${kind === "WAREHOUSE" ? "North Yard \u2014 Warehouse 2" : siteExample}`} /></Field>
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Type"><Select name="kind" value={kind} onChange={(e) => setKind(e.target.value)}>{kinds.map((k) => <option key={k.key} value={k.key}>{k.label}</option>)}</Select></Field>
-              <Field label="Safety lead for this site" hint="Reports for this site go to this person unless an escalation rule says otherwise."><Select name="safetyLeadId" defaultValue={site?.safetyLeadId ?? ""}><option value="">None yet</option>{people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select></Field>
+              <Field label="Safety lead for this site" hint="Reports for this site go to this person unless an escalation rule says otherwise."><PersonSelect name="safetyLeadId" defaultValue={site?.safetyLeadId ?? ""} people={people} emptyLabel="None yet" /></Field>
             </div>
             <Field label="Address" optional><Input name="address" defaultValue={site?.address} /></Field>
             <button disabled={pending} className="rounded-full bg-brand-700 px-5 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? <><Spinner /> Saving…</> : "Save site"}</button>

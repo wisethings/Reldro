@@ -13,6 +13,7 @@ import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { Alert } from "@/components/ui/Alert";
 import { Spinner } from "@/components/ui/Spinner";
 import { MobileStickyActionBar } from "@/components/ui/MobileStickyActionBar";
+import { AdaptiveSelect } from "@/components/ui/PersonSelect";
 
 type Option = { key: string; label: string; plain?: string };
 
@@ -388,13 +389,7 @@ export function ReportForm({
         <div className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Field label="Where did it happen?" hint={`Choose the closest ${siteLabel}. “Not sure” is fine.`}>
-              <Select name="siteId" value={siteChoice} onChange={(e) => setSiteChoice(e.target.value)} className="text-base">
-                <option value="">Not sure</option>
-                {sites.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-                <option value="__else">Somewhere else</option>
-              </Select>
+              <AdaptiveSelect name="siteId" noun="site" value={siteChoice} onChange={setSiteChoice} pinned={[{ value: "", label: "Not sure" }, { value: "__else", label: "Somewhere else" }]} options={sites.map((s) => ({ value: s.id, label: s.name }))} />
             </Field>
             <Field label={siteChoice === "__else" || siteChoice === "" ? "Describe the location" : "Where exactly?"} optional>
               <Input name="locationNote" maxLength={300} placeholder={siteChoice === "__else" || siteChoice === "" ? "e.g. Customer's parking lot, 5th & Main" : "e.g. Level 3, east stair"} />

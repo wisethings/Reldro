@@ -4,8 +4,9 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
 import { Spinner } from "@/components/ui/Spinner";
+import { AdaptiveSelect } from "@/components/ui/PersonSelect";
 
-export type ToolbarSelect = { param: string; label: string; options: { value: string; label: string }[] };
+export type ToolbarSelect = { param: string; label: string; options: { value: string; label: string; hint?: string }[]; /** Always a searchable picker (people), even when short. */ search?: boolean; noun?: string };
 
 /**
  * One quiet control bar for admin lists: a search box, a few filters and a sort, all kept in the URL so views can be
@@ -59,10 +60,9 @@ export function ListToolbar({
         />
       </div>
       {selects.map((s) => (
-        <select key={s.param} aria-label={s.label} value={params.get(s.param) ?? ""} onChange={(e) => push({ [s.param]: e.target.value })} className={sel}>
-          <option value="">{s.label}</option>
-          {s.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
+        <div key={s.param} className="min-w-0 flex-1 basis-[calc(50%-0.25rem)] sm:flex-none sm:basis-auto">
+          <AdaptiveSelect variant="toolbar" aria-label={s.label} emptyLabel={s.label} noun={s.noun ?? "option"} alwaysSearch={s.search} options={s.options} value={params.get(s.param) ?? ""} onChange={(v) => push({ [s.param]: v })} className="w-full sm:w-auto sm:min-w-[9rem]" />
+        </div>
       ))}
       <Spinner className={`text-xs text-ink-500 transition-opacity ${busy ? "opacity-100" : "opacity-0"}`} />
       {active && <button type="button" onClick={clear} className="text-xs font-medium text-orchid-deep hover:text-oxblood">Clear</button>}

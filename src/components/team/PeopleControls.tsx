@@ -10,6 +10,7 @@ import { Input, Field } from "@/components/ui/Field";
 import { useAct } from "@/components/safety/useAct";
 import { InviteResult } from "./InviteResult";
 import { Spinner } from "@/components/ui/Spinner";
+import { AdaptiveSelect } from "@/components/ui/PersonSelect";
 
 type Opt = { id: string; name: string };
 
@@ -20,14 +21,8 @@ export function PersonAssignment({ employeeId, siteId, crewId, sites, crews }: {
   return (
     <div>
       <div className="flex divide-x divide-ink-200 overflow-hidden rounded-lg border border-ink-200 bg-white focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20 hover:border-ink-300">
-        <select aria-label="Home site" defaultValue={siteId ?? ""} disabled={pending} onChange={(e) => run(() => setPersonRoles(employeeId, { siteId: e.target.value || null }))} className={sel}>
-          <option value="">No home site</option>
-          {sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-        </select>
-        <select aria-label="Crew" defaultValue={crewId ?? ""} disabled={pending} onChange={(e) => run(() => setPersonRoles(employeeId, { departmentId: e.target.value || null }))} className={sel}>
-          <option value="">No crew</option>
-          {crews.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
+        <AdaptiveSelect variant="bare" aria-label="Home site" noun="site" emptyLabel="No home site" defaultValue={siteId ?? ""} disabled={pending} onChange={(v) => run(() => setPersonRoles(employeeId, { siteId: v || null }))} options={sites.map((s) => ({ value: s.id, label: s.name }))} />
+        <AdaptiveSelect variant="bare" aria-label="Crew" noun="crew" emptyLabel="No crew" defaultValue={crewId ?? ""} disabled={pending} onChange={(v) => run(() => setPersonRoles(employeeId, { departmentId: v || null }))} options={crews.map((c) => ({ value: c.id, label: c.name }))} />
       </div>
       {error && <p className="mt-1 text-xs text-danger">{error}</p>}
     </div>

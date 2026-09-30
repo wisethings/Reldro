@@ -30,7 +30,7 @@ export default async function SitesPage({ searchParams }: { searchParams: Promis
   for (const a of overdueActions) overdueBySite.set(a.report?.siteId ?? null, (overdueBySite.get(a.report?.siteId ?? null) ?? 0) + 1);
   const nextBySite = new Map<string, Date>();
   for (const i of nextInsp) if (i._min.dueDate) nextBySite.set(i.siteId, i._min.dueDate);
-  const peopleOpts = people.map((p) => ({ id: p.id, name: p.user.name }));
+  const peopleOpts = people.map((p) => ({ id: p.id, name: p.user.name, hint: p.jobTitle }));
   const leadName = (id: string | null) => (id ? peopleOpts.find((p) => p.id === id)?.name ?? "Unknown" : null);
   const kinds = SITE_KINDS.map((k) => ({ key: k.key, label: k.label }));
 

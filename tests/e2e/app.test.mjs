@@ -281,3 +281,33 @@ test("on a phone the Submit bar sits directly above the tab bar, is opaque, and 
     await page.context().close();
   }
 });
+
+test("person fields are searchable pickers: focus on open, filter as you type, pinned choice stays on top, keyboard to choose", async () => {
+  for (const phone of [false, true]) {
+    const page = await signIn("admin", { phone });
+    try {
+      await page.goto(`${BASE}/dashboard/inspections`, { waitUntil: "networkidle" });
+      await page.getByRole("button", { name: "Schedule inspection" }).click();
+      const owner = page.getByRole("button", { name: /Owner/ });
+      await owner.click();
+      const search = page.getByRole("combobox", { name: /Search by name/ });
+      assert.equal(await search.evaluate((e) => e === document.activeElement), true, "the search box should have focus when the picker opens");
+      const options = page.locator("ul[role=listbox]").getByRole("option");
+      assert.ok((await options.count()) <= 51, "a picker must never draw more than 50 people plus the pinned choice");
+      await search.fill("okaf");
+      const names = await options.allInnerTexts();
+      assert.ok(names[0].includes("Anyone at the site"), "the pinned choice should stay first");
+      assert.ok(names.some((n) => n.includes("Danielle Okafor")), "typing should filter to the matching person");
+      assert.ok(!names.some((n) => n.includes("Priya Shah")), "non-matching people should be hidden");
+      await search.fill("zzzz");
+      await page.getByText(/No person matches/).waitFor();
+      await search.fill("okaf");
+      await search.press("ArrowDown");
+      await search.press("Enter");
+      assert.ok((await owner.innerText()).includes("Danielle Okafor"));
+      assert.equal(await hasSideways(page), false);
+    } finally {
+      await page.context().close();
+    }
+  }
+});

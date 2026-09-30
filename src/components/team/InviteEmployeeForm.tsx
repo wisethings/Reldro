@@ -5,6 +5,7 @@ import { inviteEmployee } from "@/lib/actions/team";
 import { InviteResult } from "@/components/team/InviteResult";
 import { Input, Select } from "@/components/ui/Field";
 import { Spinner } from "@/components/ui/Spinner";
+import { AdaptiveSelect } from "@/components/ui/PersonSelect";
 
 export function InviteEmployeeForm({ crews, sites }: { crews: { id: string; name: string }[]; sites: { id: string; name: string }[] }) {
   const [state, formAction, pending] = useActionState(inviteEmployee, undefined);
@@ -14,22 +15,8 @@ export function InviteEmployeeForm({ crews, sites }: { crews: { id: string; name
       <Input name="name" placeholder="Full name" required />
       <Input name="email" type="email" placeholder="Work email" required />
       <Input name="jobTitle" placeholder="Job title (e.g. Journeyman electrician)" required />
-      <Select name="departmentId" aria-label="Crew">
-        <option value="">No crew</option>
-        {crews.map((d) => (
-          <option key={d.id} value={d.id}>
-            {d.name}
-          </option>
-        ))}
-      </Select>
-      <Select name="siteId" aria-label="Home site">
-        <option value="">No home site</option>
-        {sites.map((s) => (
-          <option key={s.id} value={s.id}>
-            {s.name}
-          </option>
-        ))}
-      </Select>
+      <AdaptiveSelect name="departmentId" aria-label="Crew" noun="crew" emptyLabel="No crew" options={crews.map((d) => ({ value: d.id, label: d.name }))} />
+      <AdaptiveSelect name="siteId" aria-label="Home site" noun="site" emptyLabel="No home site" options={sites.map((s) => ({ value: s.id, label: s.name }))} />
       <button disabled={pending} className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60">
         {pending ? <><Spinner /> Inviting…</> : "Invite person"}
       </button>

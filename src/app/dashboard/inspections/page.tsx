@@ -87,7 +87,7 @@ export default async function InspectionsPage({ searchParams }: { searchParams: 
       <PageHeader
         title="Inspections"
         subtitle="Site inspections and job-start checks. Failed items can become corrective actions."
-        actions={canSchedule && templates.length > 0 ? <ScheduleInspectionButton templates={templates.map((t) => ({ id: t.id, name: t.name }))} sites={sites.map((s) => ({ id: s.id, name: s.name }))} people={people.map((p) => ({ id: p.id, name: p.user.name }))} defaultOpen={sp.new === "1"} /> : undefined}
+        actions={canSchedule && templates.length > 0 ? <ScheduleInspectionButton templates={templates.map((t) => ({ id: t.id, name: t.name }))} sites={sites.map((s) => ({ id: s.id, name: s.name }))} people={people.map((p) => ({ id: p.id, name: p.user.name, hint: p.jobTitle }))} defaultOpen={sp.new === "1"} /> : undefined}
       />
 
       <p className="surface flex flex-wrap items-center gap-x-5 gap-y-1 px-4 py-2 text-xs text-ink-600">

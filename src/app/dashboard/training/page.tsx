@@ -269,7 +269,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
         <div className="space-y-4">
           <section aria-labelledby="record-qual" className="surface p-4">
             <h2 id="record-qual" className="mb-3 text-sm font-semibold text-ink-900">Record a qualification <span className="font-normal text-ink-500">· Reldro flags it 30 days before it expires</span></h2>
-            <QualificationForm people={people.map((p) => ({ id: p.id, name: p.user.name }))} suggestions={pack.qualificationSuggestions} />
+            <QualificationForm people={people.map((p) => ({ id: p.id, name: p.user.name, hint: p.jobTitle }))} suggestions={pack.qualificationSuggestions} />
           </section>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -285,8 +285,8 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
             pageParam="qpage"
             placeholder="Search employee or qualification"
             selects={[
-              { param: "qtype", label: "All qualifications", options: types.map((t) => ({ value: t, label: t })) },
-              { param: "qemp", label: "All employees", options: people.map((p) => ({ value: p.id, label: p.user.name })) },
+              { param: "qtype", label: "All qualifications", noun: "qualification", options: types.map((t) => ({ value: t, label: t })) },
+              { param: "qemp", label: "All employees", search: true, noun: "person", options: people.map((p) => ({ value: p.id, label: p.user.name, hint: p.jobTitle })) },
               { param: "qwhen", label: "Any expiry date", options: [{ value: "30", label: "Expires in 30 days" }, { value: "60", label: "Expires in 60 days" }, { value: "90", label: "Expires in 90 days" }] },
             ]}
             sort={{ param: "qsort", label: "Sort qualifications", options: [{ value: "", label: "Needs action first" }, { value: "expires", label: "Expiry date" }, { value: "employee", label: "Employee" }, { value: "type", label: "Qualification" }] }}

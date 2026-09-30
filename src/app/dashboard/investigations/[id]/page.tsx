@@ -111,7 +111,7 @@ export default async function InvestigationPage({ params }: { params: Promise<{ 
             <CardBody className="space-y-2">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-ink-500">Lead</h2>
               {v.isSafetyTeam ? (
-                <LeadSelect investigationId={inv.id} leadId={inv.leadId} people={people.map((p) => ({ id: p.id, name: p.user.name }))} />
+                <LeadSelect investigationId={inv.id} leadId={inv.leadId} people={people.map((p) => ({ id: p.id, name: p.user.name, hint: p.jobTitle }))} />
               ) : (
                 <p className="flex items-center gap-2 text-sm text-ink-800">{lead && <span aria-hidden className="flex h-6 w-6 items-center justify-center rounded-full bg-orchid-soft text-[10px] font-semibold text-orchid-deep">{initials(lead.user.name)}</span>}{lead?.user.name ?? "No lead assigned"}</p>
               )}

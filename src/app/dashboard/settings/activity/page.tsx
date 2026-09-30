@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AdaptiveSelect } from "@/components/ui/PersonSelect";
 import { QueryLink } from "@/components/ui/QueryLink";
 import { redirect } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -64,13 +65,8 @@ export default async function ActivityLogPage({ searchParams }: { searchParams: 
           <form action="/dashboard/settings/activity" className="ml-auto flex items-center gap-2">
             {area && <input type="hidden" name="area" value={area} />}
             {range !== "30" && <input type="hidden" name="range" value={range} />}
-            <label className="sr-only" htmlFor="who">Person</label>
-            <select id="who" name="who" defaultValue={who} className="h-8 max-w-[11rem] rounded-lg border border-ink-200 bg-white px-2 text-xs text-ink-800">
-              <option value="">Everyone</option>
-              <option value="system">System</option>
-              {people.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-            </select>
-            <button type="submit" className="h-8 rounded-full border border-ink-300 px-3 text-xs font-medium text-ink-700 hover:bg-surface-hover">Apply</button>
+            <AdaptiveSelect variant="toolbar" name="who" id="who" aria-label="Person" noun="person" alwaysSearch defaultValue={who} pinned={[{ value: "", label: "Everyone" }, { value: "system", label: "System" }]} options={people.map((u) => ({ value: u.id, label: u.name }))} className="w-44" />
+            <button type="submit" className="h-10 rounded-full border border-ink-300 px-3 text-xs md:h-8 font-medium text-ink-700 hover:bg-surface-hover">Apply</button>
           </form>
         </div>
       </div>

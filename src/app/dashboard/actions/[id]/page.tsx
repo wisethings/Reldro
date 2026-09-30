@@ -61,7 +61,7 @@ export default async function ActionDetailPage({ params }: { params: Promise<{ i
           {v.isSafetyTeam && !["VERIFIED", "CANCELLED"].includes(a.status) && (
             <details className="group border-t border-ink-100 pt-3">
               <summary className="cursor-pointer list-none text-xs font-medium text-orchid-deep hover:text-oxblood [&::-webkit-details-marker]:hidden">Change owner or due date</summary>
-              <div className="mt-3"><ActionPlanEditor actionId={a.id} ownerId={a.ownerId} dueDate={a.dueDate ? a.dueDate.toISOString().slice(0, 10) : null} people={people.map((p) => ({ id: p.id, name: p.user.name }))} /></div>
+              <div className="mt-3"><ActionPlanEditor actionId={a.id} ownerId={a.ownerId} dueDate={a.dueDate ? a.dueDate.toISOString().slice(0, 10) : null} people={people.map((p) => ({ id: p.id, name: p.user.name, hint: p.jobTitle }))} /></div>
             </details>
           )}
         </CardBody>
@@ -87,7 +87,7 @@ export default async function ActionDetailPage({ params }: { params: Promise<{ i
           dueDate={a.dueDate ? a.dueDate.toISOString().slice(0, 10) : null}
           isSafetyTeam={v.isSafetyTeam}
           isOwner={isOwnerViewer}
-          people={people.map((p) => ({ id: p.id, name: p.user.name }))}
+          people={people.map((p) => ({ id: p.id, name: p.user.name, hint: p.jobTitle }))}
         />
       </section>
     </div>

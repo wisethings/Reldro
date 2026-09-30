@@ -13,6 +13,7 @@ import { useAct } from "./useAct";
 import { useConfirm } from "@/components/ui/useConfirm";
 import { Alert } from "@/components/ui/Alert";
 import { Spinner } from "@/components/ui/Spinner";
+import { PersonSelect, type PersonOpt } from "@/components/ui/PersonSelect";
 
 /** The "New talk" entry point: a quiet header row that opens the guided form below it, and closes again. */
 export function CreateTalkPanel({ sites, lockSiteId, defaultOpen = false }: { sites: { id: string; name: string }[]; lockSiteId: string | null; defaultOpen?: boolean }) {
@@ -143,13 +144,13 @@ export function TalkMenu({ talkId }: { talkId: string }) {
   );
 }
 
-export function QualificationForm({ people, suggestions }: { people: { id: string; name: string }[]; suggestions: string[] }) {
+export function QualificationForm({ people, suggestions }: { people: PersonOpt[]; suggestions: string[] }) {
   const [state, formAction, pending] = useActionState(addQualification, undefined);
   const router = useRouter();
   useEffect(() => { if (state?.success) router.refresh(); }, [state, router]);
   return (
     <form action={formAction} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_9rem_9rem_auto]" key={state?.success ? "x" : "y"}>
-      <Field label="Person"><Select name="employeeId" required defaultValue=""><option value="" disabled>Choose…</option>{people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select></Field>
+      <Field label="Person"><PersonSelect name="employeeId" required people={people} /></Field>
       <Field label="Qualification"><Input name="name" list="qual-suggestions" required placeholder="e.g. OSHA 30" /><datalist id="qual-suggestions">{suggestions.map((s) => <option key={s} value={s} />)}</datalist></Field>
       <Field label="Issued"><Input name="issuedOn" type="date" /></Field>
       <Field label="Expires"><Input name="expiresOn" type="date" /></Field>
