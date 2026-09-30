@@ -16,12 +16,12 @@ import { LocalTime } from "@/components/safety/LocalTime";
 import { CloseoutForm, OpenIncidentForm, ReporterMessageBox } from "@/components/safety/IncidentControls";
 
 const EVENT_LABEL: Record<string, { text: string; cls: string }> = {
-  UPDATE: { text: "Update", cls: "bg-blue-100 text-blue-800" },
+  UPDATE: { text: "Update", cls: "bg-sky-soft text-sky-deep" },
   DECISION: { text: "Decision", cls: "bg-orchid-soft text-orchid-deep" },
   EVIDENCE: { text: "Evidence", cls: "bg-sage text-sage-deep" },
   INCIDENT: { text: "Incident", cls: "bg-coral-soft text-danger" },
-  MESSAGE_TO_REPORTER: { text: "To reporter", cls: "bg-olive-soft text-olive" },
-  REPORTER_REPLY: { text: "From reporter", cls: "bg-olive-soft text-olive" },
+  MESSAGE_TO_REPORTER: { text: "To reporter", cls: "bg-teal-soft text-teal-deep" },
+  REPORTER_REPLY: { text: "From reporter", cls: "bg-gold-soft text-gold-deep" },
 };
 
 export default async function ReportDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -87,7 +87,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
       </div>
 
       {late && (
-        <p role="status" className="rounded-lg bg-coral-soft px-4 py-3 text-sm text-danger">
+        <p role="status" className="rounded-lg border border-amber-deep/25 bg-amber-soft px-4 py-3 text-sm text-amber-deep">
           Response overdue. The safety team was due to acknowledge this report by {fmtDateTime(report.respondBy)}.
         </p>
       )}

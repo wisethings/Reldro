@@ -1,13 +1,17 @@
 import { cn } from "./cn";
 
-type Tone = "neutral" | "brand" | "green" | "amber" | "red" | "blue";
+type Tone = "neutral" | "brand" | "green" | "amber" | "gold" | "red" | "blue" | "sky" | "teal" | "indigo";
 
 const toneClasses: Record<Tone, string> = {
   neutral: "bg-surface-sunken text-ink-900",
   brand: "bg-orchid-soft text-orchid-deep",
-  blue: "bg-orchid-soft text-orchid-deep",
+  blue: "bg-sky-soft text-sky-deep",
+  sky: "bg-sky-soft text-sky-deep",
+  teal: "bg-teal-soft text-teal-deep",
+  indigo: "bg-indigo-soft text-indigo-deep",
+  gold: "bg-gold-soft text-gold-deep",
   green: "bg-sage text-sage-deep",
-  amber: "bg-olive-soft text-olive",
+  amber: "bg-amber-soft text-amber-deep",
   red: "bg-coral-soft text-danger",
 };
 

@@ -6,14 +6,30 @@ import { CheckCircle2, ChevronRight, TriangleAlert } from "lucide-react";
  * kind of thing, not a verdict: coral = needs attention, purple = review or information, gold = follow-up
  * work, green = nothing pending, neutral = structure. Counts are never coloured good or bad.
  */
-export type Tint = "coral" | "orchid" | "gold" | "sage" | "neutral";
+export type Tint = "coral" | "orchid" | "gold" | "amber" | "sky" | "teal" | "indigo" | "sage" | "neutral";
 
 const TINT: Record<Tint, string> = {
   coral: "bg-coral-soft text-danger",
   orchid: "bg-orchid-soft text-orchid-deep",
-  gold: "bg-olive-soft text-olive",
+  gold: "bg-gold-soft text-gold-deep",
+  amber: "bg-amber-soft text-amber-deep",
+  sky: "bg-sky-soft text-sky-deep",
+  teal: "bg-teal-soft text-teal-deep",
+  indigo: "bg-indigo-soft text-indigo-deep",
   sage: "bg-sage text-sage-deep",
   neutral: "bg-ink-100 text-ink-600",
+};
+
+const TEXT: Record<Tint, string> = {
+  coral: "text-danger",
+  orchid: "text-orchid-deep",
+  gold: "text-gold-deep",
+  amber: "text-amber-deep",
+  sky: "text-sky-deep",
+  teal: "text-teal-deep",
+  indigo: "text-indigo-deep",
+  sage: "text-sage-deep",
+  neutral: "text-ink-900",
 };
 
 export function IconTile({ tint, children, size = "md" }: { tint: Tint; children: React.ReactNode; size?: "sm" | "md" }) {
@@ -31,9 +47,9 @@ export function StatCard({ href, icon, tint, value, label, alert = false }: { hr
       href={href}
       className="group flex items-center gap-3 bg-white px-3.5 py-3 outline-none hover:bg-ink-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500"
     >
-      <IconTile tint={alert ? "coral" : tint}>{icon}</IconTile>
+      <IconTile tint={tint}>{icon}</IconTile>
       <span className="min-w-0 flex-1">
-        <span className={`block text-xl font-semibold leading-none tabular-nums ${alert ? "text-danger" : "text-ink-900"}`}>{value}</span>
+        <span className={`block text-xl font-semibold leading-none tabular-nums ${alert ? TEXT[tint] : "text-ink-900"}`}>{value}</span>
         <span className="mt-1 line-clamp-2 text-xs leading-tight text-ink-600">{label}</span>
       </span>
       <ChevronRight size={14} aria-hidden className="hidden shrink-0 text-ink-300 transition-transform group-hover:translate-x-0.5 lg:block" />
@@ -53,7 +69,7 @@ export function StatBar({ children, cols }: { children: React.ReactNode; cols: 4
 export function StatusBanner({ tone, title, body }: { tone: "calm" | "watch" | "urgent"; title: string; body: string }) {
   const style = {
     calm: { box: "border-sage-deep/20 bg-sage/60", icon: "text-sage-deep", Icon: CheckCircle2 },
-    watch: { box: "border-olive/20 bg-olive-soft/70", icon: "text-olive", Icon: TriangleAlert },
+    watch: { box: "border-amber-deep/20 bg-amber-soft/70", icon: "text-amber-deep", Icon: TriangleAlert },
     urgent: { box: "border-coral/60 bg-coral-soft/60", icon: "text-danger", Icon: TriangleAlert },
   }[tone];
   return (
@@ -87,11 +103,11 @@ export function AttentionRow({ href, icon, tint, title, count, detail, alert = f
   const quiet = count === 0;
   return (
     <Link href={href} className="group flex items-center gap-3 border-b border-ink-100 px-3.5 py-2.5 outline-none last:border-b-0 hover:bg-ink-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500">
-      <IconTile tint={quiet ? "neutral" : alert ? "coral" : tint} size="sm">{icon}</IconTile>
+      <IconTile tint={quiet ? "neutral" : tint} size="sm">{icon}</IconTile>
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
           <span className={`text-[13px] font-medium leading-snug ${quiet ? "text-ink-700" : "text-ink-900"}`}>{title}</span>
-          <span className={`shrink-0 rounded-md px-1.5 text-[11px] font-semibold leading-[18px] tabular-nums ${!quiet && alert ? "bg-coral-soft text-danger" : "bg-ink-100 text-ink-700"}`}>{count}</span>
+          <span className={`shrink-0 rounded-md px-1.5 text-[11px] font-semibold leading-[18px] tabular-nums ${!quiet ? TINT[tint] : "bg-ink-100 text-ink-700"}`}>{count}</span>
         </span>
         <span className="mt-px block truncate text-xs text-ink-500">{detail}</span>
       </span>

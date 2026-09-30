@@ -6,6 +6,7 @@ import { acknowledgeReport, assignReport, setReportStatus, updateTriage } from "
 import { startInvestigation } from "@/lib/actions/safetyInvestigations";
 import { Select } from "@/components/ui/Field";
 import { useAct } from "./useAct";
+import { Alert } from "@/components/ui/Alert";
 
 type Opt = { key: string; label: string };
 
@@ -42,7 +43,7 @@ export function ReportControls({
 
   return (
     <div className="space-y-4">
-      {error && <p role="alert" className="rounded-lg bg-coral-soft px-3 py-2 text-sm text-danger">{error}</p>}
+      {error && <Alert tone="error">{error}</Alert>}
       <div className="flex flex-wrap gap-2">
         {!acknowledged && (
           <button disabled={pending} onClick={() => run(() => acknowledgeReport(reportId))} className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">

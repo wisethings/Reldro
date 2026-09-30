@@ -109,10 +109,11 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
             const flags = (
               <>
                 {r.incident && r.incident.status !== "RESOLVED" && <Badge tone="red">Incident response</Badge>}
-                {!r.ownerId && r.status !== "CLOSED" && <Badge tone="amber">No owner</Badge>}
                 {late && <Badge tone="red">Response overdue</Badge>}
               </>
             );
+            // On wide screens the Owner column already says "No owner", so this chip is for the stacked phone row only.
+            const noOwner = !r.ownerId && r.status !== "CLOSED" && <Badge tone="gold">No owner</Badge>;
             const sev = <SeverityBadge severity={r.severity} suggested={!r.severityConfirmedAt} />;
             const cells = staff
               ? [sev, <ReportStatusBadge key="s" status={r.status} />, r.site?.name ?? "Site not given", (r.ownerId && ownerName.get(r.ownerId)) || "No owner", fmtShort(r.occurredAt)]
@@ -124,21 +125,19 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                 template={staff ? "minmax(0,1fr) 9rem 9.5rem 10rem 7rem 3.5rem" : "minmax(0,1fr) 9.5rem 11rem 4.5rem"}
                 main={
                   <>
-                    <div className="flex items-center gap-1.5">
-                      <p className="min-w-0 truncate text-[13px] font-medium text-ink-900">{r.title}</p>
+                    <p className="truncate text-[13px] font-medium text-ink-900">{r.title}</p>
+                    <div className="mt-0.5 flex items-center gap-1.5 text-xs text-ink-500">
+                      <span className="shrink-0 font-mono">SR-{String(r.number).padStart(4, "0")}</span>
+                      <span className="min-w-0 truncate">{reportTypeLabel(r.type)}<span className="hidden md:inline"> · {categoryLabel(r.category, pack)}</span></span>
                       <span className="hidden shrink-0 items-center gap-1.5 md:flex">{flags}</span>
                     </div>
-                    <p className="mt-0.5 truncate text-xs text-ink-500">
-                      <span className="font-mono">SR-{String(r.number).padStart(4, "0")}</span>
-                      {" · "}{reportTypeLabel(r.type)}
-                      <span className="hidden md:inline"> · {categoryLabel(r.category, pack)}</span>
-                    </p>
                   </>
                 }
                 chips={
                   <>
                     {staff && sev}
                     <ReportStatusBadge status={r.status} />
+                    {noOwner}
                     {flags}
                     <span className="text-xs text-ink-500">{r.site?.name ?? "Site not given"} · {fmtShort(r.occurredAt)}</span>
                   </>

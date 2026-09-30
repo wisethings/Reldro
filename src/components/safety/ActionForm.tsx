@@ -4,6 +4,7 @@ import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createAction } from "@/lib/actions/safetyActions";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
+import { Alert } from "@/components/ui/Alert";
 
 export function ActionForm({
   reportId,
@@ -27,7 +28,7 @@ export function ActionForm({
   return (
     <form action={formAction} className="space-y-3" key={state?.success ? "done" : "form"}>
       {reportId && <input type="hidden" name="reportId" value={reportId} />}
-      {state?.error && <p role="alert" className="rounded-lg bg-coral-soft px-3 py-2 text-sm text-danger">{state.error}</p>}
+      {state?.error && <Alert tone="error">{state.error}</Alert>}
       {state?.success && <p className="rounded-lg bg-sage px-3 py-2 text-sm text-sage-deep">{state.success}</p>}
       <Field label="What needs to change?" required>
         <Input name="title" defaultValue={defaultTitle} required placeholder="e.g. Install guardrail at level 3 floor opening" />

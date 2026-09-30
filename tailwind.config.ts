@@ -51,6 +51,14 @@ const config: Config = {
         coral: { DEFAULT: "#E8827A", soft: "#FADAD5" },
         sage: { DEFAULT: "#E4EDD3", deep: "#3D5A3A" },
         olive: { DEFAULT: "#755F2F", soft: "#EDE3C9" },
+        // Alert and icon hues. Each means one thing so two neighbouring badges never look alike:
+        // coral/danger = urgent, amber = serious or overdue, gold = moderate or expiring, sky = new or informational,
+        // teal = in progress or prevention, indigo = corrective work, orchid = review, sage = done.
+        amber: { soft: "#FBE0BF", deep: "#8F4A0A" },
+        gold: { soft: "#F6EBB4", deep: "#665300" },
+        sky: { soft: "#DCE8F5", deep: "#2A5A8C" },
+        teal: { soft: "#D2EBE7", deep: "#1B615C" },
+        indigo: { soft: "#E1E3F7", deep: "#3D479A" },
         pine: "#1F3A2E",
         stone: "#BFB5A3",
         danger: "#A33828",

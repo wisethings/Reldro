@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { updateOrgProfile } from "@/lib/actions/settings";
 import type { Organization } from "@prisma/client";
 import { Field, Input } from "@/components/ui/Field";
+import { Alert } from "@/components/ui/Alert";
 
 export function OrgProfileForm({ org }: { org: Organization }) {
   const [state, formAction, pending] = useActionState(updateOrgProfile, undefined);
@@ -11,7 +12,7 @@ export function OrgProfileForm({ org }: { org: Organization }) {
   return (
     <form action={formAction} className="space-y-4">
       {state?.success && <p className="rounded-lg bg-sage px-3 py-2 text-sm text-sage-deep">Saved.</p>}
-      {state?.error && <p className="rounded-lg bg-coral-soft px-3 py-2 text-sm text-danger">{state.error}</p>}
+      {state?.error && <Alert tone="error">{state.error}</Alert>}
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Company name">
           <Input name="name" defaultValue={org.name} required />

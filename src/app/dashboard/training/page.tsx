@@ -111,7 +111,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
                 return (
                   <li key={q.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 sm:px-5">
                     <div><p className="text-sm font-medium text-ink-900">{canManage ? `${names.get(q.employeeId) ?? "Someone"} · ` : ""}{q.name}</p><p className="text-xs text-ink-500">{q.issuedOn ? `Issued ${fmtDate(q.issuedOn)} · ` : ""}{q.expiresOn ? `Expires ${fmtDate(q.expiresOn)}` : "No expiry"}</p></div>
-                    <div className="flex items-center gap-3">{expired ? <Badge tone="red">Expired</Badge> : soon ? <Badge tone="amber">Expires soon</Badge> : <Badge tone="green">Current</Badge>}{canManage && <DeleteQualificationButton id={q.id} />}</div>
+                    <div className="flex items-center gap-3">{expired ? <Badge tone="red">Expired</Badge> : soon ? <Badge tone="gold">Expires soon</Badge> : <Badge tone="green">Current</Badge>}{canManage && <DeleteQualificationButton id={q.id} />}</div>
                   </li>
                 );
               })}

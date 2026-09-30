@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 const MAX_DIMENSION = 1280;
 
@@ -31,6 +31,7 @@ function compress(file: File): Promise<string> {
 export function PhotoField({ name = "attachment", label = "Add photos", max = 3 }: { name?: string; label?: string; max?: number }) {
   const [photos, setPhotos] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function add(files: FileList | null) {
@@ -73,10 +74,29 @@ export function PhotoField({ name = "attachment", label = "Add photos", max = 3 
           </div>
         ))}
         {photos.length < max && (
-          <label className="flex h-20 min-w-[5rem] cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-ink-300 px-3 text-center text-xs font-medium text-ink-600 hover:bg-ink-50">
-            {busy ? "Adding…" : label}
-            <input type="file" accept="image/*" capture="environment" multiple className="sr-only" onChange={(e) => add(e.target.files)} disabled={busy} />
-          </label>
+          <>
+            {/* A hidden input opened by a button: a visually-hidden focusable input makes the browser scroll the app frame when the picker opens. */}
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => inputRef.current?.click()}
+              className="flex h-20 min-w-[5rem] cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-ink-300 px-3 text-center text-xs font-medium text-ink-600 hover:bg-ink-50 disabled:opacity-60"
+            >
+              {busy ? "Adding…" : label}
+            </button>
+            <input
+              ref={inputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              hidden
+              tabIndex={-1}
+              onChange={(e) => {
+                void add(e.target.files);
+                e.target.value = "";
+              }}
+            />
+          </>
         )}
       </div>
       {error && <p className="mt-1 text-xs text-danger">{error}</p>}

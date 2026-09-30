@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { lookupFollowUp, sendFollowUpReply, type FollowUpView } from "@/lib/actions/safetyFollowUp";
 import { Field, Input, Textarea } from "@/components/ui/Field";
+import { Alert } from "@/components/ui/Alert";
 
 const fmt = (iso: string) => new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 
@@ -38,7 +39,7 @@ export function FollowUpClient() {
   if (!view) {
     return (
       <form onSubmit={look} className="space-y-4 rounded-xl border border-ink-200 bg-white p-5">
-        {error && <p role="alert" className="rounded-lg bg-coral-soft px-3 py-2 text-sm text-danger">{error}</p>}
+        {error && <Alert tone="error">{error}</Alert>}
         <Field label="Case code" hint="For example, K7QF-3MXP-9WDA. It was shown once, right after you submitted the report.">
           <Input
             value={code}
@@ -77,7 +78,7 @@ export function FollowUpClient() {
 
       {!view.closed ? (
         <form onSubmit={send} className="space-y-3 rounded-xl border border-ink-200 bg-white p-5">
-          {error && <p role="alert" className="rounded-lg bg-coral-soft px-3 py-2 text-sm text-danger">{error}</p>}
+          {error && <Alert tone="error">{error}</Alert>}
           <Field label="Reply to the safety team" hint="Share only what you are comfortable sharing. Names or places could reveal who you are.">
             <Textarea value={reply} onChange={(e) => setReply(e.target.value)} rows={4} maxLength={2000} />
           </Field>

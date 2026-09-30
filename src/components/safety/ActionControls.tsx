@@ -6,6 +6,7 @@ import { approveAction, cancelAction, completeAction, remindOwner, reopenAction,
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { PhotoField } from "./PhotoField";
 import { useAct } from "./useAct";
+import { Alert } from "@/components/ui/Alert";
 
 export function ActionControls({
   actionId,
@@ -40,7 +41,7 @@ export function ActionControls({
 
   return (
     <div className="space-y-4">
-      {error && <p role="alert" className="rounded-lg bg-coral-soft px-3 py-2 text-sm text-danger">{error}</p>}
+      {error && <Alert tone="error">{error}</Alert>}
       {message && <p className="rounded-lg bg-sage px-3 py-2 text-sm text-sage-deep">{message}</p>}
 
       <div className="flex flex-wrap gap-2">

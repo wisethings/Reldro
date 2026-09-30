@@ -9,6 +9,7 @@ import type { ReportDraft } from "@/lib/safety/ai";
 import { PhotoField } from "./PhotoField";
 import { DraftLabel } from "./ui";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
+import { Alert } from "@/components/ui/Alert";
 
 type Option = { key: string; label: string; plain?: string };
 
@@ -201,7 +202,7 @@ export function ReportForm({
   const occurredAt = when === "earlier" && whenValue ? new Date(whenValue).toISOString() : "";
   const nowLocal = localInputValue(new Date());
   const chip = (checked: boolean) =>
-    `flex min-h-[3.25rem] cursor-pointer flex-col justify-center rounded-xl border px-3 py-2 text-left transition-colors focus-within:ring-2 focus-within:ring-brand-500 ${checked ? "border-brand-700 bg-orchid-soft" : "border-ink-200 bg-white hover:bg-ink-50"}`;
+    `relative flex min-h-[3.25rem] cursor-pointer flex-col justify-center rounded-xl border px-3 py-2 text-left transition-colors focus-within:ring-2 focus-within:ring-brand-500 ${checked ? "border-brand-700 bg-orchid-soft" : "border-ink-200 bg-white hover:bg-ink-50"}`;
   const privacyInfo = PRIVACY_OPTIONS.find((o) => o.key === privacy) ?? PRIVACY_OPTIONS[0];
 
   if (state?.submitted) {
@@ -257,9 +258,9 @@ export function ReportForm({
       </div>
 
       {state?.error && (
-        <p ref={errorRef} tabIndex={-1} role="alert" className="rounded-lg bg-coral-soft px-3 py-2 text-sm text-danger outline-none">
-          {state.error}
-        </p>
+        <div ref={errorRef} tabIndex={-1} className="outline-none">
+          <Alert tone="error">{state.error}</Alert>
+        </div>
       )}
 
       <fieldset>
@@ -301,7 +302,7 @@ export function ReportForm({
           placeholder="Include what you saw, where it happened, and when, if you know."
           className="mt-2 text-base"
         />
-        {voiceError && <p role="alert" className="mt-1 rounded-lg bg-coral-soft px-3 py-2 text-xs text-danger">{voiceError}</p>}
+        {voiceError && <Alert tone="warning" className="mt-1 text-xs">{voiceError}</Alert>}
         <p className="mt-1 text-[11px] text-ink-500" aria-live="polite">
           {!voiceSupported
             ? "Voice input is not available in this browser. Use the microphone on your keyboard to dictate instead, then review and edit the text before you submit."

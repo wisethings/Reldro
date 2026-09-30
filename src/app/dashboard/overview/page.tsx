@@ -223,19 +223,19 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
     const ref = `${refOf(e.report.number)} · ${e.report.title}`;
     const href = `/dashboard/reports/${e.report.id}`;
     const by = e.actorName ? `${e.actorName} · ` : "";
-    if (e.type === "CREATED") feed.push({ key: e.id, at: e.createdAt, icon: <FileText size={16} />, tint: "orchid", text: `New report: ${e.report.title}`, meta: `${refOf(e.report.number)} · ${by.replace(/ · $/, "") || "Submitted"}`, href });
+    if (e.type === "CREATED") feed.push({ key: e.id, at: e.createdAt, icon: <FileText size={16} />, tint: "sky", text: `New report: ${e.report.title}`, meta: `${refOf(e.report.number)} · ${by.replace(/ · $/, "") || "Submitted"}`, href });
     else if (e.type === "ACKNOWLEDGED") feed.push({ key: e.id, at: e.createdAt, icon: <CheckCircle2 size={16} />, tint: "sage", text: "Report acknowledged", meta: `${by}${ref}`, href });
     else if (e.type === "INCIDENT") feed.push({ key: e.id, at: e.createdAt, icon: <Bell size={16} />, tint: "coral", text: e.message, meta: `${by}${ref}`, href });
     else if (e.type === "INVESTIGATION") feed.push({ key: e.id, at: e.createdAt, icon: <Search size={16} />, tint: "orchid", text: e.message, meta: `${by}${ref}`, href });
-    else if (e.type === "ACTION") feed.push({ key: e.id, at: e.createdAt, icon: <ClipboardCheck size={16} />, tint: "gold", text: e.message, meta: `${by}${ref}`, href });
-    else if (e.type === "UPDATE" || e.type === "DECISION") feed.push({ key: e.id, at: e.createdAt, icon: <Bell size={16} />, tint: "coral", text: `${e.type === "DECISION" ? "Decision" : "Update"}: ${e.message.length > 110 ? `${e.message.slice(0, 109)}…` : e.message}`, meta: `${by}${ref}`, href });
+    else if (e.type === "ACTION") feed.push({ key: e.id, at: e.createdAt, icon: <ClipboardCheck size={16} />, tint: "indigo", text: e.message, meta: `${by}${ref}`, href });
+    else if (e.type === "UPDATE" || e.type === "DECISION") feed.push({ key: e.id, at: e.createdAt, icon: <Bell size={16} />, tint: "amber", text: `${e.type === "DECISION" ? "Decision" : "Update"}: ${e.message.length > 110 ? `${e.message.slice(0, 109)}…` : e.message}`, meta: `${by}${ref}`, href });
     else if (e.type === "STATUS") feed.push({ key: e.id, at: e.createdAt, icon: <CheckCircle2 size={16} />, tint: "neutral", text: e.message, meta: `${by}${ref}`, href });
   }
   for (const i of doneInspections) {
     const failed = (i.results as { result: string }[]).filter((r) => r.result === "FAIL").length;
-    feed.push({ key: `i${i.id}`, at: i.completedAt ?? i.createdAt, icon: <CalendarCheck size={16} />, tint: "orchid", text: `${i.template.name} completed at ${i.site.name}`, meta: failed ? `${failed} failed item${failed === 1 ? "" : "s"}` : "No failed items", href: `/dashboard/inspections/${i.id}` });
+    feed.push({ key: `i${i.id}`, at: i.completedAt ?? i.createdAt, icon: <CalendarCheck size={16} />, tint: "teal", text: `${i.template.name} completed at ${i.site.name}`, meta: failed ? `${failed} failed item${failed === 1 ? "" : "s"}` : "No failed items", href: `/dashboard/inspections/${i.id}` });
   }
-  for (const t of talks) feed.push({ key: `t${t.id}`, at: t.scheduledFor, icon: <Megaphone size={16} />, tint: "gold", text: `Toolbox talk: ${t.title}`, meta: `${t._count.acknowledgements} of ${empCount} acknowledged`, href: "/dashboard/training" });
+  for (const t of talks) feed.push({ key: `t${t.id}`, at: t.scheduledFor, icon: <Megaphone size={16} />, tint: "sky", text: `Toolbox talk: ${t.title}`, meta: `${t._count.acknowledgements} of ${empCount} acknowledged`, href: "/dashboard/training" });
   feed.sort((a, b) => b.at.getTime() - a.at.getTime());
   const recent = feed.slice(0, 8);
 
@@ -250,8 +250,8 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
 
       <StatBar cols={v.isSafetyTeam ? 5 : 4}>
         <StatCard href="/dashboard/reports?status=incidents" icon={<Bell size={22} />} tint="coral" value={activeIncidents.length} label="Active incidents" alert={activeIncidents.length > 0} />
-        <StatCard href="/dashboard/reports?status=open" icon={<Clock size={22} />} tint="coral" value={respCount} label="Response overdue" alert={respCount > 0} />
-        <StatCard href="/dashboard/reports?status=open" icon={<UserRound size={22} />} tint="coral" value={noOwnerCount} label="Reports without an owner" alert={noOwnerCount > 0} />
+        <StatCard href="/dashboard/reports?status=open" icon={<Clock size={22} />} tint="amber" value={respCount} label="Response overdue" alert={respCount > 0} />
+        <StatCard href="/dashboard/reports?status=open" icon={<UserRound size={22} />} tint="sky" value={noOwnerCount} label="Unowned reports" alert={noOwnerCount > 0} />
         {v.isSafetyTeam && <StatCard href="/dashboard/investigations" icon={<Search size={22} />} tint="orchid" value={invCount} label="Active investigations" />}
         <StatCard href="/dashboard/actions?view=overdue" icon={<TriangleAlert size={22} />} tint="gold" value={overdueCount} label="Overdue actions" alert={overdueCount > 0} />
       </StatBar>
@@ -269,16 +269,16 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
             detail={topIncident ? `${topIncident.report.title} · Lead: ${topIncident.leadName ?? "none yet"}` : "No incident responses are open. One appears here when an event needs a coordinated response."}
           />
           <AttentionRow
-            href={respFirst ? `/dashboard/reports/${respFirst.id}` : "/dashboard/reports?status=open"} icon={<Clock size={18} />} tint="coral" alert title="Response overdue" count={respCount}
+            href={respFirst ? `/dashboard/reports/${respFirst.id}` : "/dashboard/reports?status=open"} icon={<Clock size={18} />} tint="amber" alert title="Response overdue" count={respCount}
             detail={respFirst ? `${respFirst.title} · ${respFirst.site?.name ?? "Site not given"}` : "Every report was acknowledged within its response time."}
           />
           <AttentionRow
-            href={noOwnerFirst ? `/dashboard/reports/${noOwnerFirst.id}` : "/dashboard/reports?status=open"} icon={<UserRound size={18} />} tint="coral" alert title="New reports without an owner" count={noOwnerCount}
+            href={noOwnerFirst ? `/dashboard/reports/${noOwnerFirst.id}` : "/dashboard/reports?status=open"} icon={<UserRound size={18} />} tint="sky" alert title="New reports without an owner" count={noOwnerCount}
             detail={noOwnerFirst ? `${noOwnerFirst.title} · ${noOwnerFirst.site?.name ?? "Site not given"}` : "No new reports are waiting for an owner."}
           />
           {v.isSafetyTeam && (
             <AttentionRow
-              href="/dashboard/actions?view=attention" icon={<ClipboardCheck size={18} />} tint="gold" title="Corrective actions waiting for you" count={waitCount}
+              href="/dashboard/actions?view=attention" icon={<ClipboardCheck size={18} />} tint="indigo" title="Corrective actions waiting for you" count={waitCount}
               detail={waitFirst ? `${waitFirst.title} · ${waitFirst.status === "PROPOSED" ? "Needs approval" : actionStatusInfo(waitFirst.status).label}` : "No corrective actions are waiting for approval or verification."}
             />
           )}
@@ -288,13 +288,13 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
           />
         </Panel>
 
-        <Panel icon={<CalendarDays size={20} />} tint="orchid" title="Upcoming and in progress" subtitle="Deadlines and work under way.">
+        <Panel icon={<CalendarDays size={20} />} tint="teal" title="Upcoming and in progress" subtitle="Deadlines and work under way.">
           <AttentionRow
-            href="/dashboard/inspections" icon={<CalendarDays size={18} />} tint="orchid" title="Inspections due in the next 7 days" count={inspCount}
+            href="/dashboard/inspections" icon={<CalendarDays size={18} />} tint="teal" title="Inspections due in the next 7 days" count={inspCount}
             detail={inspFirst ? `${inspFirst.template.name} · ${inspFirst.site.name} · ${dueLabel(inspFirst.dueDate, true).text}` : "No inspections are due in the next 7 days."}
           />
           <AttentionRow
-            href="/dashboard/training?tab=qualifications" icon={<BadgeCheck size={18} />} tint="sage" title="Qualifications expiring in the next 30 days" count={qualCount}
+            href="/dashboard/training?tab=qualifications" icon={<BadgeCheck size={18} />} tint="gold" title="Qualifications expiring in the next 30 days" count={qualCount}
             detail={qualFirst ? `${qualPerson?.user.name ?? "Someone"} · ${qualFirst.name} · ${qualFirst.expiresOn && qualFirst.expiresOn < now ? "expired" : "expires"} ${fmtDate(qualFirst.expiresOn)}` : "No qualifications expire in the next 30 days."}
           />
           {v.isSafetyTeam && (
@@ -304,7 +304,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
             />
           )}
           <AttentionRow
-            href="/dashboard/training" icon={<Megaphone size={18} />} tint="gold" title="Recent toolbox talks" count={talks.length}
+            href="/dashboard/training" icon={<Megaphone size={18} />} tint="sky" title="Recent toolbox talks" count={talks.length}
             detail={talks[0] ? `${talks[0].title} · ${talks[0]._count.acknowledgements} of ${empCount} acknowledged` : "No toolbox talks in the last two weeks."}
           />
         </Panel>
@@ -319,7 +319,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
         </Panel>
 
         <Panel
-          icon={<ChartNoAxesColumn size={20} />} tint="orchid" title="Activity pulse" subtitle="Counts of what was reported and done. They show volume, not how safe a site is."
+          icon={<ChartNoAxesColumn size={20} />} tint="sky" title="Activity pulse" subtitle="Counts of what was reported and done. They show volume, not how safe a site is."
           action={
             <div className="flex shrink-0 gap-1" role="group" aria-label="Time period">
               {[7, 30, 90].map((n) => <Link key={n} href={`?pulse=${n}`} className={chip(pulseDays === n)} aria-pressed={pulseDays === n}>{n} days</Link>)}
@@ -327,10 +327,10 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
           }
         >
           <PulseGrid>
-            <PulseItem icon={<FileText size={16} />} tint="orchid" value={repNow} previous={repPrev} days={pulseDays} label="Reports submitted" />
+            <PulseItem icon={<FileText size={16} />} tint="sky" value={repNow} previous={repPrev} days={pulseDays} label="Reports submitted" />
             <PulseItem icon={<Search size={16} />} tint="orchid" value={invNow} previous={invPrev} days={pulseDays} label="Investigations opened" />
-            <PulseItem icon={<ClipboardCheck size={16} />} tint="gold" value={actNow} previous={actPrev} days={pulseDays} label="Corrective actions created" />
-            <PulseItem icon={<CalendarCheck size={16} />} tint="orchid" value={inspNow} previous={inspPrev} days={pulseDays} label="Inspections completed" />
+            <PulseItem icon={<ClipboardCheck size={16} />} tint="indigo" value={actNow} previous={actPrev} days={pulseDays} label="Corrective actions created" />
+            <PulseItem icon={<CalendarCheck size={16} />} tint="teal" value={inspNow} previous={inspPrev} days={pulseDays} label="Inspections completed" />
             <PulseItem icon={<CheckCircle2 size={16} />} tint="sage" value={verNow} previous={verPrev} days={pulseDays} label="Corrective actions verified" />
             <PulseItem icon={<Bell size={16} />} tint="coral" value={incNow} previous={incPrev} days={pulseDays} label="Incident responses opened" />
           </PulseGrid>

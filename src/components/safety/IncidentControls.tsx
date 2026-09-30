@@ -19,6 +19,7 @@ import { INCIDENT_ENTRY_TYPES, RESPONDER_ROLE_SUGGESTIONS } from "@/lib/safety/p
 import { AiTextDraft } from "./AiTextDraft";
 import { PhotoField } from "./PhotoField";
 import { useAct } from "./useAct";
+import { Alert } from "@/components/ui/Alert";
 
 type Person = { id: string; name: string };
 
@@ -26,7 +27,7 @@ const primary = "rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-wh
 const secondary = "rounded-full border border-ink-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-ink-50 disabled:opacity-40";
 
 function ErrorLine({ error }: { error: string | null }) {
-  return error ? <p role="alert" className="rounded-lg bg-coral-soft px-3 py-2 text-sm text-danger">{error}</p> : null;
+  return error ? <Alert tone="error">{error}</Alert> : null;
 }
 
 /** Shown to the safety team on a report with no incident response. Most reports never need one. */

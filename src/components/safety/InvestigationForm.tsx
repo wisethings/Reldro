@@ -6,6 +6,7 @@ import { aiDraftLesson, aiSummarizeInvestigation } from "@/lib/actions/safetyAi"
 import { Field, Textarea } from "@/components/ui/Field";
 import { AiTextDraft } from "./AiTextDraft";
 import { useAct } from "./useAct";
+import { Alert } from "@/components/ui/Alert";
 
 export function InvestigationForm({
   investigationId,
@@ -32,7 +33,7 @@ export function InvestigationForm({
     <div className="space-y-5">
       <form action={formAction} className="space-y-5">
         <input type="hidden" name="investigationId" value={investigationId} />
-        {state?.error && <p role="alert" className="rounded-lg bg-coral-soft px-3 py-2 text-sm text-danger">{state.error}</p>}
+        {state?.error && <Alert tone="error">{state.error}</Alert>}
         {state?.success && <p className="rounded-lg bg-sage px-3 py-2 text-sm text-sage-deep">{state.success}</p>}
 
         <Field label="Facts gathered" hint="What is known: observations, measurements, and conditions. Include only what can be verified.">

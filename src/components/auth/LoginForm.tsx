@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { login } from "@/lib/actions/auth";
 import { Field, Input } from "@/components/ui/Field";
+import { Alert } from "@/components/ui/Alert";
 
 export function LoginForm() {
   const [state, formAction, pending] = useActionState(login, undefined);
@@ -10,7 +11,7 @@ export function LoginForm() {
   return (
     <form action={formAction} className="space-y-4">
       {state?.error && (
-        <p className="rounded-lg bg-coral-soft px-3 py-2 text-sm text-danger">{state.error}</p>
+        <Alert tone="error">{state.error}</Alert>
       )}
       <Field label="Work email">
         <Input name="email" type="email" required placeholder="you@company.com" />

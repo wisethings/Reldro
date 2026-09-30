@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { completeInspection, createTemplate, scheduleInspection, addStarterTemplates, deleteTemplate, raiseReportFromInspection } from "@/lib/actions/safetyInspections";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { useAct } from "./useAct";
+import { Alert } from "@/components/ui/Alert";
 
 export function ScheduleInspectionForm({ templates, sites, people }: { templates: { id: string; name: string }[]; sites: { id: string; name: string }[]; people: { id: string; name: string }[] }) {
   const [state, formAction, pending] = useActionState(scheduleInspection, undefined);
@@ -66,7 +67,7 @@ export function InspectionRunner({ inspectionId, items }: { inspectionId: string
   return (
     <form action={formAction} className="space-y-4 pb-24 sm:pb-0">
       <input type="hidden" name="inspectionId" value={inspectionId} />
-      {state?.error && <p role="alert" className="rounded-lg bg-coral-soft px-3 py-2 text-sm text-danger">{state.error}</p>}
+      {state?.error && <Alert tone="error">{state.error}</Alert>}
       {state?.success && <p className="rounded-lg bg-sage px-3 py-2 text-sm text-sage-deep">{state.success}</p>}
       <ul className="space-y-3">
         {items.map((it) => (
@@ -74,7 +75,7 @@ export function InspectionRunner({ inspectionId, items }: { inspectionId: string
             <p className="text-sm font-medium text-ink-900">{it.label}{it.critical && <span className="ml-2 rounded bg-coral-soft px-1.5 py-0.5 text-[10px] font-semibold text-danger">Critical</span>}</p>
             <div className="mt-2 grid grid-cols-3 gap-2" role="radiogroup" aria-label={it.label}>
               {[["PASS", "Pass"], ["FAIL", "Fail"], ["NA", "N/A"]].map(([val, label]) => (
-                <label key={val} className="cursor-pointer">
+                <label key={val} className="relative cursor-pointer">
                   <input type="radio" name={`result_${it.id}`} value={val} className="peer sr-only" required />
                   <span className={`block rounded-lg border border-ink-200 py-2.5 text-center text-sm font-medium text-ink-700 ${val === "FAIL" ? "peer-checked:border-danger peer-checked:bg-coral-soft peer-checked:text-danger" : val === "PASS" ? "peer-checked:border-sage-deep peer-checked:bg-sage peer-checked:text-sage-deep" : "peer-checked:border-ink-400 peer-checked:bg-surface-sunken"}`}>{label}</span>
                 </label>

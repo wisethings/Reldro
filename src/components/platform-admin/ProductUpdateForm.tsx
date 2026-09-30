@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { sendProductUpdate } from "@/lib/actions/productUpdates";
 import { Field, Input, Textarea } from "@/components/ui/Field";
+import { Alert } from "@/components/ui/Alert";
 
 const AUDIENCES = [
   { value: "employees", label: "All employees at customer orgs", desc: "Every user with an organization, both admins and employees." },
@@ -15,7 +16,7 @@ export function ProductUpdateForm() {
 
   return (
     <form action={formAction} className="max-w-2xl space-y-5 rounded-lg border border-ink-200 bg-white p-5">
-      {state?.error && <p className="rounded-lg bg-coral-soft px-3 py-2 text-sm text-danger">{state.error}</p>}
+      {state?.error && <Alert tone="error">{state.error}</Alert>}
       {typeof state?.sent === "number" && (
         <p className="rounded-lg border border-sage bg-sage/20 px-3 py-2 text-sm text-sage-deep">
           Sent to {state.sent} of {state.total} recipient{state.total === 1 ? "" : "s"}.

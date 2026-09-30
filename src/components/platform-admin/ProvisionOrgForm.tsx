@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { provisionOrganization } from "@/lib/actions/platform-admin";
 import { Field, FieldGrid, FieldSection, Input } from "@/components/ui/Field";
 import { InviteResult } from "@/components/team/InviteResult";
+import { Alert } from "@/components/ui/Alert";
 
 export function ProvisionOrgForm({ onDone }: { onDone?: () => void }) {
   const [state, formAction, pending] = useActionState(provisionOrganization, undefined);
@@ -24,7 +25,7 @@ export function ProvisionOrgForm({ onDone }: { onDone?: () => void }) {
 
   return (
     <form action={formAction} className="space-y-4">
-      {state?.error && <p className="rounded-lg bg-coral-soft px-3 py-2 text-sm text-danger">{state.error}</p>}
+      {state?.error && <Alert tone="error">{state.error}</Alert>}
       <FieldSection title="Company">
         <FieldGrid columns={2}>
           <Field label="Company name" required>

@@ -8,6 +8,7 @@ import { setPersonRoles } from "@/lib/actions/safetySettings";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { AiTextDraft } from "./AiTextDraft";
 import { useAct } from "./useAct";
+import { Alert } from "@/components/ui/Alert";
 
 export function TalkForm({ sites, lockSiteId }: { sites: { id: string; name: string }[]; lockSiteId: string | null }) {
   const [state, formAction, pending] = useActionState(createToolboxTalk, undefined);
@@ -21,7 +22,7 @@ export function TalkForm({ sites, lockSiteId }: { sites: { id: string; name: str
   return (
     <form action={formAction} className="space-y-3">
       <input type="hidden" name="aiDrafted" value={aiDrafted ? "1" : "0"} />
-      {state?.error && <p role="alert" className="rounded-lg bg-coral-soft px-3 py-2 text-sm text-danger">{state.error}</p>}
+      {state?.error && <Alert tone="error">{state.error}</Alert>}
       {state?.success && <p className="rounded-lg bg-sage px-3 py-2 text-sm text-sage-deep">{state.success}</p>}
       <div className="grid gap-3 sm:grid-cols-3">
         <Field label="Title" required><Input name="title" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="e.g. Ladder setup and inspection" required /></Field>

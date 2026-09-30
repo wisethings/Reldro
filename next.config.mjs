@@ -14,7 +14,7 @@ const nextConfig = {
           // Force HTTPS for a year, including subdomains, once a browser has seen it once.
           { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
           // Disable browser APIs this product has no legitimate use for.
-          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
+          { key: "Permissions-Policy", value: "camera=(self), microphone=(self), geolocation=(), payment=()" },
         ],
       },
     ];

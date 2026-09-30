@@ -5,12 +5,12 @@
  * getPack() so adding warehousing/logistics later means adding an entry here.
  */
 
-export type Tone = "neutral" | "brand" | "green" | "amber" | "red" | "blue";
+export type Tone = "neutral" | "brand" | "green" | "amber" | "gold" | "red" | "blue" | "sky" | "teal" | "indigo";
 
 export const SEVERITIES = [
   { key: "LOW", label: "Minor", plain: "No injury and little chance of harm", tone: "neutral" as Tone },
-  { key: "MEDIUM", label: "Moderate", plain: "Could cause an injury that keeps someone off work", tone: "amber" as Tone },
-  { key: "HIGH", label: "Serious", plain: "Could cause a serious injury", tone: "red" as Tone },
+  { key: "MEDIUM", label: "Moderate", plain: "Could cause an injury that keeps someone off work", tone: "gold" as Tone },
+  { key: "HIGH", label: "Serious", plain: "Could cause a serious injury", tone: "amber" as Tone },
   { key: "CRITICAL", label: "Life-threatening", plain: "Could cause a death or permanent harm", tone: "red" as Tone },
 ] as const;
 export type SeverityKey = (typeof SEVERITIES)[number]["key"];
@@ -29,18 +29,18 @@ export type ReportTypeKey = (typeof REPORT_TYPES)[number]["key"];
 export const reportTypeLabel = (k: string) => REPORT_TYPES.find((t) => t.key === k)?.label ?? k;
 
 export const REPORT_STATUSES = [
-  { key: "NEW", label: "New", tone: "amber" as Tone },
-  { key: "ASSIGNED", label: "Assigned", tone: "blue" as Tone },
+  { key: "NEW", label: "New", tone: "sky" as Tone },
+  { key: "ASSIGNED", label: "Assigned", tone: "teal" as Tone },
   { key: "INVESTIGATING", label: "Under investigation", tone: "brand" as Tone },
-  { key: "ACTIONS_OPEN", label: "Corrective actions open", tone: "amber" as Tone },
+  { key: "ACTIONS_OPEN", label: "Corrective actions open", tone: "indigo" as Tone },
   { key: "CLOSED", label: "Closed", tone: "green" as Tone },
 ] as const;
 export const reportStatusInfo = (k: string) => REPORT_STATUSES.find((s) => s.key === k) ?? REPORT_STATUSES[0];
 
 export const ACTION_STATUSES = [
   { key: "PROPOSED", label: "Proposed", tone: "neutral" as Tone, hint: "Waiting for approval" },
-  { key: "APPROVED", label: "Open", tone: "blue" as Tone, hint: "Approved and not started" },
-  { key: "IN_PROGRESS", label: "In progress", tone: "amber" as Tone, hint: "Owner is working on it" },
+  { key: "APPROVED", label: "Open", tone: "sky" as Tone, hint: "Approved and not started" },
+  { key: "IN_PROGRESS", label: "In progress", tone: "teal" as Tone, hint: "Owner is working on it" },
   { key: "COMPLETED", label: "Ready to verify", tone: "brand" as Tone, hint: "The owner says it is done. Someone else needs to check it." },
   { key: "VERIFIED", label: "Verified", tone: "green" as Tone, hint: "Someone confirmed the fix is in place" },
   { key: "CANCELLED", label: "Cancelled", tone: "neutral" as Tone, hint: "No longer needed" },
@@ -49,7 +49,7 @@ export const actionStatusInfo = (k: string) => ACTION_STATUSES.find((s) => s.key
 export const OPEN_ACTION_STATUSES = ["PROPOSED", "APPROVED", "IN_PROGRESS", "COMPLETED"];
 
 export const INVESTIGATION_STATUSES = [
-  { key: "OPEN", label: "Open", tone: "amber" as Tone },
+  { key: "OPEN", label: "Open", tone: "sky" as Tone },
   { key: "IN_REVIEW", label: "In review", tone: "brand" as Tone },
   { key: "COMPLETE", label: "Complete", tone: "green" as Tone },
 ] as const;
