@@ -16,6 +16,7 @@ import { QualificationTable, type QualRow } from "@/components/safety/Qualificat
 import { ListToolbar } from "@/components/safety/ListToolbar";
 import { PersonAccess, PersonAssignment, PersonMenu } from "@/components/team/PeopleControls";
 import { InviteEmployeeForm } from "@/components/team/InviteEmployeeForm";
+import { LIST_PAGE } from "@/components/ui/layout";
 
 export default async function TrainingPage({ searchParams }: { searchParams: Promise<{ tab?: string; filter?: string; q?: string; page?: string; new?: string; qq?: string; qs?: string; qtype?: string; qemp?: string; qwhen?: string; qsort?: string; qpage?: string; pq?: string; psite?: string; pcrew?: string; pacc?: string; psort?: string; ppage?: string }> }) {
   const v = await requireViewer();
@@ -438,7 +439,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="min-h-full bg-surface-muted">
-    <div className="mx-auto w-full max-w-6xl space-y-4 px-4 py-4 sm:px-6">
+    <div className={LIST_PAGE}>
       <PageHeader title={v.isAdmin || v.isSafetyTeam ? "People & Training" : v.isSupervisor ? "Training" : "Toolbox talks"} subtitle={canManage ? "Manage worker qualifications, toolbox talks, and training acknowledgements." : "Toolbox talks shared with your team, and your acknowledgements."} />
       {canManage && (
         <StatStrip items={[

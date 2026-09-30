@@ -7,6 +7,7 @@ import { createEscalationRule, deleteEscalationRule, saveEmergencyInstructions, 
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
 import { useAct } from "./useAct";
+import { Spinner } from "@/components/ui/Spinner";
 
 type Opt = { id: string; name: string };
 type KeyOpt = { key: string; label: string };
@@ -34,7 +35,7 @@ export function EscalationRuleForm({ severities, categories, sites, people }: { 
         </span>
       </label>
       <div className="sm:col-span-2 lg:col-span-3">
-        <button disabled={pending} className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? "Adding…" : "Add rule"}</button>
+        <button disabled={pending} className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? <><Spinner /> Adding…</> : "Add rule"}</button>
         {state?.error && <p role="alert" className="mt-2 text-sm text-danger">{state.error}</p>}
         {state?.success && <p className="mt-2 text-sm text-sage-deep">{state.success}</p>}
       </div>
@@ -73,7 +74,7 @@ export function SiteEditor({ site, people, trigger, siteExample = "Bayside Tower
               <Field label="Safety lead for this site" hint="Reports for this site go to this person unless an escalation rule says otherwise."><Select name="safetyLeadId" defaultValue={site?.safetyLeadId ?? ""}><option value="">None yet</option>{people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select></Field>
             </div>
             <Field label="Address" optional><Input name="address" defaultValue={site?.address} /></Field>
-            <button disabled={pending} className="rounded-full bg-brand-700 px-5 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? "Saving…" : "Save site"}</button>
+            <button disabled={pending} className="rounded-full bg-brand-700 px-5 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? <><Spinner /> Saving…</> : "Save site"}</button>
           </form>
         </Modal>
       )}
@@ -93,7 +94,7 @@ export function EmergencyInstructionsForm({ initial }: { initial: string }) {
       <Field label="Emergency instructions shown to reporters" hint="Shown on the report form after the standard message: “If anyone is in immediate danger or needs urgent medical help, call your local emergency number or follow your site's emergency procedure now.” Leave blank to show the standard message only. Reldro does not contact emergency services.">
         <Textarea name="emergencyInstructions" rows={3} maxLength={600} defaultValue={initial} placeholder="e.g. Call 911, then the site superintendent at 555-0142. Muster at the north gate." />
       </Field>
-      <button disabled={pending} className="rounded-full border border-ink-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-surface-hover disabled:opacity-50">{pending ? "Saving…" : "Save"}</button>
+      <button disabled={pending} className="rounded-full border border-ink-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-surface-hover disabled:opacity-50">{pending ? <><Spinner /> Saving…</> : "Save"}</button>
       {state?.error && <p role="alert" className="text-sm text-danger">{state.error}</p>}
       {state?.success && <p className="rounded-lg bg-sage px-3 py-2 text-sm text-sage-deep">{state.success}</p>}
     </form>

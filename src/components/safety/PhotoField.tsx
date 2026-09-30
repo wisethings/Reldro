@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { Spinner } from "@/components/ui/Spinner";
 
 const MAX_DIMENSION = 1024;
 
@@ -82,7 +83,7 @@ export function PhotoField({ name = "attachment", label = "Add photos", max = 3 
               onClick={() => inputRef.current?.click()}
               className="flex h-20 min-w-[5rem] cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-ink-300 px-3 text-center text-xs font-medium text-ink-600 hover:bg-surface-hover disabled:opacity-60"
             >
-              {busy ? "Adding…" : label}
+              {busy ? <><Spinner /> Adding…</> : label}
             </button>
             <input
               ref={inputRef}

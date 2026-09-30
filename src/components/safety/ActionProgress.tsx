@@ -5,6 +5,7 @@ import { Check, RotateCcw } from "lucide-react";
 import { setActionStatus } from "@/lib/actions/safetyActions";
 import { Alert } from "@/components/ui/Alert";
 import { useAct } from "./useAct";
+import { Spinner } from "@/components/ui/Spinner";
 
 const STEPS = [
   { key: "PROPOSED", label: "Proposed" },
@@ -71,7 +72,7 @@ export function ActionProgress({ actionId, status, backTo }: { actionId: string;
           <label className="sr-only" htmlFor="move-reason">Reason (optional)</label>
           <textarea id="move-reason" value={reason} onChange={(e) => setReason(e.target.value)} rows={2} maxLength={300} placeholder="Why? (optional, for example: fix did not hold, plan changed)" className="w-full rounded-lg border border-ink-200 bg-white px-3 py-2 text-base outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30 sm:text-sm" />
           <div className="flex gap-2">
-            <button type="button" disabled={pending} onClick={() => run(() => setActionStatus(actionId, target, reason), () => { setTarget(null); setReason(""); })} className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? "Moving…" : "Confirm"}</button>
+            <button type="button" disabled={pending} onClick={() => run(() => setActionStatus(actionId, target, reason), () => { setTarget(null); setReason(""); })} className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? <><Spinner /> Moving…</> : "Confirm"}</button>
             <button type="button" onClick={() => { setTarget(null); setReason(""); }} className="rounded-full border border-ink-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-surface-hover">Keep as is</button>
           </div>
         </div>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { addComment } from "@/lib/actions/safetyReports";
 import { Textarea } from "@/components/ui/Field";
 import { useAct } from "./useAct";
+import { Spinner } from "@/components/ui/Spinner";
 
 export function CommentBox({ reportId, canRestrict }: { reportId: string; canRestrict: boolean }) {
   const [text, setText] = useState("");
@@ -19,7 +20,7 @@ export function CommentBox({ reportId, canRestrict }: { reportId: string; canRes
           onClick={() => run(() => addComment(reportId, text, restricted), () => setText(""))}
           className="rounded-full bg-brand-700 px-4 py-1.5 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-40"
         >
-          {pending ? "Posting…" : "Post"}
+          {pending ? <><Spinner /> Posting…</> : "Post"}
         </button>
         {canRestrict && (
           <label className="flex items-center gap-2 text-xs text-ink-600">

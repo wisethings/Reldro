@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { changePassword } from "@/lib/actions/account";
 import { Field, Input } from "@/components/ui/Field";
+import { Spinner } from "@/components/ui/Spinner";
 
 export function ChangePasswordForm() {
   const [state, formAction, pending] = useActionState(changePassword, undefined);
@@ -21,7 +22,7 @@ export function ChangePasswordForm() {
         disabled={pending}
         className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
       >
-        {pending ? "Updating…" : "Update password"}
+        {pending ? <><Spinner /> Updating…</> : "Update password"}
       </button>
       {state?.error && <p className="text-sm text-danger">{state.error}</p>}
       {state?.success && <p className="rounded-lg bg-sage px-3 py-2 text-sm text-sage-deep">Password updated.</p>}

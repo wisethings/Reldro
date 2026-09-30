@@ -7,6 +7,7 @@ import { removeCompanyAdmin } from "@/lib/actions/invites";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { ResendInviteButton } from "@/components/team/ResendInviteButton";
+import { Spinner } from "@/components/ui/Spinner";
 
 export function AdminRow({ admin, isSelf }: { admin: { id: string; name: string; email: string; pending: boolean }; isSelf: boolean }) {
   const [pending, startTransition] = useTransition();
@@ -45,7 +46,7 @@ export function AdminRow({ admin, isSelf }: { admin: { id: string; name: string;
             } })}
             className="rounded-full border border-danger px-3 py-1 text-xs font-medium text-danger hover:bg-danger/10 disabled:opacity-50"
           >
-            {pending ? "Removing…" : "Remove"}
+            {pending ? <><Spinner /> Removing…</> : "Remove"}
           </button>
         )}
       </div>

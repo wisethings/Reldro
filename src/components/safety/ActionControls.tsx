@@ -10,6 +10,7 @@ import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { Alert } from "@/components/ui/Alert";
 import { PhotoField } from "./PhotoField";
 import { useAct } from "./useAct";
+import { Spinner } from "@/components/ui/Spinner";
 
 type Props = {
   actionId: string;
@@ -96,7 +97,7 @@ export function ActionControls({ actionId, status, ownerId, ownerName, isSafetyT
               <PhotoField name="evidence" label="Add photo" />
             </div>
             <div className="flex gap-2">
-              <button disabled={completing} className={primary}>{completing ? "Saving…" : "Mark done and ask for verification"}</button>
+              <button disabled={completing} className={primary}>{completing ? <><Spinner /> Saving…</> : "Mark done and ask for verification"}</button>
               <button type="button" onClick={() => setShowDone(false)} className={secondary}>Not yet</button>
             </div>
           </form>

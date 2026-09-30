@@ -35,7 +35,7 @@ export function DashboardShell({
       <div className="flex min-w-0 flex-1 flex-col md:py-2 md:pr-2">
         <div className="flex min-h-0 flex-1 flex-col overflow-clip bg-white md:rounded-2xl md:border md:border-ink-200/70 md:shadow-[0_1px_2px_rgba(42,10,12,0.04)]">
           <Topbar audience={audience} onMenuClick={() => setMobileOpen(true)} hideReportCta={hideReportCta} />
-          <main className="flex-1 overflow-y-auto bg-surface-muted pb-24 md:pb-0">{children}</main>
+          <main className="min-w-0 flex-1 overflow-y-auto bg-surface-muted pb-24 [scrollbar-gutter:stable] md:pb-0">{children}</main>
         </div>
       </div>
       <MobileTabBar onMenu={() => setMobileOpen(true)} />

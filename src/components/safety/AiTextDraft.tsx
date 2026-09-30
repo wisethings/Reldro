@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { unwrap } from "@/lib/actionResult";
 import { DraftLabel } from "./ui";
+import { Spinner } from "@/components/ui/Spinner";
 
 type Draft = { text: string; generatedBy: "model" | "rules"; sources?: string[] };
 
@@ -48,7 +49,7 @@ export function AiTextDraft({
         }
         className="rounded-full border border-orchid-deep px-3 py-1.5 text-xs font-medium text-orchid-deep hover:bg-orchid-soft disabled:opacity-40"
       >
-        {pending ? "Drafting…" : label}
+        {pending ? <><Spinner /> Drafting…</> : label}
       </button>
       {error && <p className="text-xs text-danger">{error}</p>}
       {draft && (

@@ -134,3 +134,28 @@ main,
 [role="dialog"] {
   overflow-wrap: anywhere;
 }
+
+/* One loading animation for the whole product: a thin arc that turns with a soft ease, so it reads as "working" rather
+   than "frozen". Reduced-motion users get a slower turn instead of a static icon, because it still has to show activity. */
+@keyframes reldro-spin {
+  to { transform: rotate(360deg); }
+}
+@layer components {
+.spinner {
+  display: inline-block;
+  flex: none;
+  width: 0.95em;
+  height: 0.95em;
+  vertical-align: -0.12em;
+  border-radius: 9999px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  opacity: 0.7;
+  animation: reldro-spin 0.8s cubic-bezier(0.45, 0.15, 0.55, 0.85) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation-duration: 2s; }
+}
+}
+/* Soft fade for content that is refreshing in place (filters, tabs). */
+[aria-busy="true"] { transition: opacity 150ms ease; }

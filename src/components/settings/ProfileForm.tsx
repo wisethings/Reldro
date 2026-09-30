@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { updateProfile } from "@/lib/actions/profile";
 import { Field, FieldGrid, Input } from "@/components/ui/Field";
+import { Spinner } from "@/components/ui/Spinner";
 
 export function ProfileForm({
   name,
@@ -43,7 +44,7 @@ export function ProfileForm({
         disabled={pending}
         className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60"
       >
-        {pending ? "Saving…" : "Save profile"}
+        {pending ? <><Spinner /> Saving…</> : "Save profile"}
       </button>
       {state?.error && <p className="text-sm text-danger">{state.error}</p>}
       {state?.success && <p className="rounded-lg bg-sage px-3 py-2 text-sm text-sage-deep">Profile updated.</p>}

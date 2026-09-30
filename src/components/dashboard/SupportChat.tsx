@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { CircleHelp, Send, X } from "lucide-react";
 import { openSupportThread, sendSupportMessage, supportUnreadCount, type SupportMessageView } from "@/lib/actions/support";
+import { Spinner } from "@/components/ui/Spinner";
 
 const POLL_MS = 30_000;
 
@@ -103,7 +104,7 @@ export function SupportChat() {
           </header>
           <div className="min-h-[10rem] flex-1 space-y-2 overflow-y-auto bg-ink-50 px-3 py-3" aria-live="polite">
             {messages === null ? (
-              <p className="py-6 text-center text-xs text-ink-500">Loading…</p>
+              <p className="flex items-center justify-center gap-2 py-6 text-center text-xs text-ink-500"><Spinner /> Loading…</p>
             ) : messages.length === 0 ? (
               <p className="py-6 text-center text-sm text-ink-600">No messages yet. Ask how something in Reldro works, or what a setting does.</p>
             ) : (

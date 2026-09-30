@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { sendProductUpdate } from "@/lib/actions/productUpdates";
 import { Field, Input, Textarea } from "@/components/ui/Field";
 import { Alert } from "@/components/ui/Alert";
+import { Spinner } from "@/components/ui/Spinner";
 
 const AUDIENCES = [
   { value: "employees", label: "All employees at customer orgs", desc: "Every user with an organization, both admins and employees." },
@@ -52,7 +53,7 @@ export function ProductUpdateForm() {
         disabled={pending}
         className="rounded-full bg-brand-700 px-4 py-2 text-xs font-medium text-white hover:bg-brand-800 disabled:opacity-50"
       >
-        {pending ? "Sending…" : "Send update"}
+        {pending ? <><Spinner /> Sending…</> : "Send update"}
       </button>
     </form>
   );

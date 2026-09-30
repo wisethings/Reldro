@@ -7,7 +7,7 @@ import { ChevronRight } from "lucide-react";
  */
 export function DataTable({ columns, template, children }: { columns: string[]; template: string; children: React.ReactNode }) {
   return (
-    <div role="table" className="overflow-hidden surface">
+    <div role="table" className="w-full min-w-0 overflow-hidden surface">
       <div role="row" className="hidden items-center gap-3 border-b border-l-2 border-b-ink-200 border-l-transparent bg-ink-100 px-4 py-2 text-xs font-medium text-ink-700 md:grid md:pr-9" style={{ gridTemplateColumns: template }}>
         {columns.map((c, i) => (
           <span key={i} role="columnheader" className="truncate">{c}</span>

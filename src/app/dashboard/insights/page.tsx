@@ -7,6 +7,7 @@ import { NoAccess } from "@/components/safety/ui";
 import { ThemesSummaryDraft } from "@/components/safety/AiDraftButtons";
 import { isOverdue } from "@/lib/safety/dates";
 import { REPORT_LIST_FIELDS } from "@/lib/safety/selects";
+import { LIST_PAGE } from "@/components/ui/layout";
 
 function Bars({ rows, empty = "Nothing to show yet." }: { rows: { label: string; count: number; href?: string }[]; empty?: string }) {
   if (rows.length === 0) return <p className="text-sm text-ink-500">{empty}</p>;
@@ -97,7 +98,7 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
   const seg = (active: boolean) => `rounded-md px-3 py-1 text-xs font-medium transition-colors ${active ? "bg-white text-ink-900 shadow-[0_0_0_1px_rgba(42,10,12,0.08)]" : "text-ink-600 hover:text-ink-900"}`;
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-4 px-4 py-6 sm:px-8 sm:py-8">
+    <div className={LIST_PAGE}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-tight text-ink-900">Insights</h1>

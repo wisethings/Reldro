@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { lookupFollowUp, sendFollowUpReply, type FollowUpView } from "@/lib/actions/safetyFollowUp";
 import { Field, Input, Textarea } from "@/components/ui/Field";
 import { Alert } from "@/components/ui/Alert";
+import { Spinner } from "@/components/ui/Spinner";
 
 const fmt = (iso: string) => new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 
@@ -53,7 +54,7 @@ export function FollowUpClient() {
           />
         </Field>
         <button disabled={pending || code.replace(/[^a-z0-9]/gi, "").length < 12} className="w-full rounded-full bg-brand-700 px-5 py-3 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-40">
-          {pending ? "Checking…" : "Check for updates"}
+          {pending ? <><Spinner /> Checking…</> : "Check for updates"}
         </button>
       </form>
     );
@@ -83,7 +84,7 @@ export function FollowUpClient() {
             <Textarea value={reply} onChange={(e) => setReply(e.target.value)} rows={4} maxLength={2000} />
           </Field>
           <button disabled={pending || reply.trim().length < 2} className="rounded-full bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-40">
-            {pending ? "Sending…" : "Send reply"}
+            {pending ? <><Spinner /> Sending…</> : "Send reply"}
           </button>
         </form>
       ) : (

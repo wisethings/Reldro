@@ -11,6 +11,7 @@ import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { btnGhost, btnPrimary, btnSecondary, FormPanel, FormSection } from "@/components/ui/FormParts";
 import { useAct } from "./useAct";
 import { Alert } from "@/components/ui/Alert";
+import { Spinner } from "@/components/ui/Spinner";
 
 export function ScheduleInspectionForm({ templates, sites, people, onSuccess }: { onSuccess?: () => void; templates: { id: string; name: string }[]; sites: { id: string; name: string }[]; people: { id: string; name: string }[] }) {
   const [state, formAction, pending] = useActionState(scheduleInspection, undefined);
@@ -22,7 +23,7 @@ export function ScheduleInspectionForm({ templates, sites, people, onSuccess }: 
       <Field label="Site"><Select name="siteId" required defaultValue=""><option value="" disabled>Choose…</option>{sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select></Field>
       <Field label="Owner"><Select name="assigneeId" defaultValue=""><option value="">Anyone at the site</option>{people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select></Field>
       <Field label="Due date"><Input name="dueDate" type="date" required /></Field>
-      <div className="flex items-end"><button disabled={pending} className="w-full rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? "Scheduling…" : "Schedule"}</button></div>
+      <div className="flex items-end"><button disabled={pending} className="w-full rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? <><Spinner /> Scheduling…</> : "Schedule"}</button></div>
       {state?.error && <p role="alert" className="text-sm text-danger sm:col-span-2 lg:col-span-5">{state.error}</p>}
       {state?.success && <p className="text-sm text-sage-deep sm:col-span-2 lg:col-span-5">{state.success}</p>}
     </form>
@@ -33,7 +34,7 @@ export function StarterTemplatesButton() {
   const { run, pending, error } = useAct();
   return (
     <div>
-      <button disabled={pending} onClick={() => run(() => addStarterTemplates())} className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? "Adding…" : "Add starter checklists"}</button>
+      <button disabled={pending} onClick={() => run(() => addStarterTemplates())} className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? <><Spinner /> Adding…</> : "Add starter checklists"}</button>
       {error && <p className="mt-1 text-xs text-danger">{error}</p>}
     </div>
   );
@@ -69,7 +70,7 @@ export function InspectionRunner({ inspectionId, items }: { inspectionId: string
       <Field label="Overall notes" optional><Textarea name="notes" rows={2} /></Field>
       <label className="flex items-start gap-2 text-sm text-ink-800"><input type="checkbox" name="createActions" defaultChecked className="mt-1" /> Turn failed items into proposed corrective actions</label>
       <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-30 border-t border-ink-200 bg-white p-3 sm:static sm:border-0 sm:bg-transparent sm:p-0 md:bottom-0">
-        <button disabled={pending} className="w-full rounded-full bg-brand-700 px-6 py-3 text-base font-semibold text-white hover:bg-brand-800 disabled:opacity-50 sm:w-auto">{pending ? "Submitting…" : "Submit inspection"}</button>
+        <button disabled={pending} className="w-full rounded-full bg-brand-700 px-6 py-3 text-base font-semibold text-white hover:bg-brand-800 disabled:opacity-50 sm:w-auto">{pending ? <><Spinner /> Submitting…</> : "Submit inspection"}</button>
       </div>
     </form>
   );
@@ -81,7 +82,7 @@ export function RaiseReportButton({ inspectionId, itemId }: { inspectionId: stri
   return (
     <div className="mt-1">
       <button disabled={pending} onClick={() => run(() => raiseReportFromInspection(inspectionId, itemId))} className="text-xs font-medium text-orchid-deep hover:text-oxblood disabled:opacity-40">
-        {pending ? "Filing…" : "File as a hazard report"}
+        {pending ? <><Spinner /> Filing…</> : "File as a hazard report"}
       </button>
       {error && <p role="alert" className="text-xs text-danger">{error}</p>}
     </div>
@@ -185,7 +186,7 @@ export function ChecklistBuilder({ initial, onDone, onCancel }: { initial?: Chec
         onClose={onCancel}
         actions={
           <>
-            <button disabled={pending} className={btnPrimary}>{pending ? "Saving…" : initial ? "Save changes" : "Save checklist"}</button>
+            <button disabled={pending} className={btnPrimary}>{pending ? <><Spinner /> Saving…</> : initial ? "Save changes" : "Save checklist"}</button>
             <button type="button" onClick={onCancel} className={btnSecondary}>Cancel</button>
             <span className="ml-auto text-xs text-ink-500"><span className="text-danger">*</span> required</span>
           </>
@@ -301,7 +302,7 @@ export function ChecklistMenu({ template }: { template: ChecklistInitial }) {
           <div className="max-w-md space-y-3">
             <p className="text-sm text-ink-700"><span className="font-semibold text-ink-900">{template.name}</span> will be deleted, and inspections still scheduled with it will also be removed. A checklist that has completed inspections can’t be deleted, so those records are never lost. This can’t be undone.</p>
             {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-            <div className="flex gap-2"><button disabled={pending} onClick={() => run(() => deleteTemplate(template.id), close)} className="rounded-full bg-danger px-5 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50">{pending ? "Deleting…" : "Delete checklist"}</button><button type="button" onClick={close} className={btnSecondary}>Cancel</button></div>
+            <div className="flex gap-2"><button disabled={pending} onClick={() => run(() => deleteTemplate(template.id), close)} className="rounded-full bg-danger px-5 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50">{pending ? <><Spinner /> Deleting…</> : "Delete checklist"}</button><button type="button" onClick={close} className={btnSecondary}>Cancel</button></div>
           </div>
         </Modal>
       )}

@@ -9,6 +9,7 @@ import type { QuestionDraft } from "@/lib/safety/ai";
 import { Field, Input, Textarea } from "@/components/ui/Field";
 import { DraftLabel } from "./ui";
 import { useAct } from "./useAct";
+import { Spinner } from "@/components/ui/Spinner";
 
 export function StatementsPanel({
   investigationId,
@@ -42,7 +43,7 @@ export function StatementsPanel({
         <Field label="From (role or name)"><Input name="providedBy" placeholder="e.g. Apprentice electrician, witness" /></Field>
         <Field label="What they said"><Textarea name="content" rows={3} required /></Field>
         {state?.error && <p className="text-xs text-danger">{state.error}</p>}
-        <button disabled={pending} className="rounded-full border border-ink-300 px-4 py-1.5 text-sm font-medium text-ink-800 hover:bg-surface-hover disabled:opacity-50">{pending ? "Adding…" : "Add statement"}</button>
+        <button disabled={pending} className="rounded-full border border-ink-300 px-4 py-1.5 text-sm font-medium text-ink-800 hover:bg-surface-hover disabled:opacity-50">{pending ? <><Spinner /> Adding…</> : "Add statement"}</button>
       </form>
     </div>
   );
@@ -114,7 +115,7 @@ export function QuestionsPanel({
               }}
               className="rounded-full border border-orchid-deep px-3 py-1.5 text-xs font-medium text-orchid-deep hover:bg-orchid-soft disabled:opacity-40"
             >
-              {drafting ? "Drafting…" : "Draft investigation questions"}
+              {drafting ? <><Spinner /> Drafting…</> : "Draft investigation questions"}
             </button>
             {draftError && <p className="text-xs text-danger">{draftError}</p>}
             {draft && (

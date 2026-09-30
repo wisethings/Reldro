@@ -8,6 +8,7 @@ import { EmptyHero, fmtShort, InvestigationStatusBadge, NoAccess, PageHeader, Se
 
 import { StatStrip } from "@/components/safety/Dashboard";
 import { PAGE_SIZE, Pagination, readPage } from "@/components/safety/Pagination";
+import { LIST_PAGE } from "@/components/ui/layout";
 export default async function InvestigationsPage({ searchParams }: { searchParams: Promise<{ status?: string; page?: string }> }) {
   const v = await requireViewer();
   const { status = "active", page: pageParam } = await searchParams;
@@ -42,7 +43,7 @@ export default async function InvestigationsPage({ searchParams }: { searchParam
     prisma.investigation.count({ where: { ...orgWhere, shareLesson: true } }),
   ]);
   return (
-    <div className="mx-auto max-w-5xl space-y-5 p-4 sm:p-6">
+    <div className={LIST_PAGE}>
       <PageHeader title="Investigations" subtitle="Review what happened, identify contributing factors, and track steps to reduce the chance of it happening again." />
       <StatStrip items={[
         { label: "Open", value: sOpen, href: "?status=active" },

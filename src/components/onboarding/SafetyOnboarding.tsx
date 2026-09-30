@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { completeSafetyOnboarding } from "@/lib/actions/safetySettings";
 import { Field, Input, Textarea } from "@/components/ui/Field";
 import { Alert } from "@/components/ui/Alert";
+import { Spinner } from "@/components/ui/Spinner";
 
 export function SafetyOnboarding({ companyName }: { companyName: string }) {
   const [state, formAction, pending] = useActionState(completeSafetyOnboarding, undefined);
@@ -34,7 +35,7 @@ export function SafetyOnboarding({ companyName }: { companyName: string }) {
         <p className="text-xs text-ink-500">Until you name a safety lead for a site (under People and Sites), new reports show up on your Overview as unassigned so nothing waits unseen. You can add escalation rules in Settings.</p>
         <Textarea name="note" rows={2} placeholder="Optional: anything we should know about how your safety team works?" />
       </div>
-      <button disabled={pending} className="rounded-full bg-brand-700 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-50">{pending ? "Setting up…" : "Finish setup"}</button>
+      <button disabled={pending} className="rounded-full bg-brand-700 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-50">{pending ? <><Spinner /> Setting up…</> : "Finish setup"}</button>
     </form>
   );
 }

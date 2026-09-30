@@ -5,6 +5,7 @@ import { useConfirm } from "@/components/ui/useConfirm";
 import { deleteDepartment, renameDepartment } from "@/lib/actions/settings";
 import { Input } from "@/components/ui/Field";
 import { useAct } from "@/components/safety/useAct";
+import { Spinner } from "@/components/ui/Spinner";
 
 /** One crew in Settings: rename it, or delete it (people keep their accounts and just lose the crew label). */
 export function CrewRow({ id, name, people }: { id: string; name: string; people: number }) {
@@ -25,7 +26,7 @@ export function CrewRow({ id, name, people }: { id: string; name: string; people
           }}
         >
           <Input value={value} onChange={(e) => setValue(e.target.value)} maxLength={80} required aria-label={`New name for ${name}`} className="w-auto min-w-[10rem] flex-1" autoFocus />
-          <button disabled={pending} className="rounded-full bg-brand-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? "Saving…" : "Save"}</button>
+          <button disabled={pending} className="rounded-full bg-brand-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? <><Spinner /> Saving…</> : "Save"}</button>
           <button type="button" onClick={() => { setEditing(false); setValue(name); }} className="text-xs font-medium text-ink-600 hover:text-ink-900">Cancel</button>
         </form>
       ) : (

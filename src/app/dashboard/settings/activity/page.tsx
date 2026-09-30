@@ -8,6 +8,7 @@ import { describeAuditAction } from "@/lib/audit";
 import { PageHeader } from "@/components/safety/ui";
 import { LocalTime } from "@/components/safety/LocalTime";
 import { PAGE_SIZE, Pagination, readPage } from "@/components/safety/Pagination";
+import { LIST_PAGE } from "@/components/ui/layout";
 
 const AREAS: Record<string, { label: string; prefixes: string[] }> = {
   safety: { label: "Reports and safety work", prefixes: ["safety."] },
@@ -49,7 +50,7 @@ export default async function ActivityLogPage({ searchParams }: { searchParams: 
   const chip = (on: boolean) => `rounded-full border px-3 py-1 text-xs font-medium ${on ? "border-brand-700 bg-orchid-soft text-orchid-deep" : "border-ink-200 bg-white text-ink-700 hover:bg-surface-hover"}`;
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-4 p-4 sm:p-6">
+    <div className={LIST_PAGE}>
       <Link href="/dashboard/settings" className="inline-flex items-center gap-1 text-xs font-medium text-orchid-deep hover:text-oxblood"><ChevronLeft size={14} aria-hidden /> Settings</Link>
       <PageHeader title="Activity log" subtitle="Who changed what across your workspace, most recent first." />
 

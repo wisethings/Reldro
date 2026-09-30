@@ -11,6 +11,7 @@ import { StatStrip } from "@/components/safety/Dashboard";
 import { PAGE_SIZE, Pagination, readPage } from "@/components/safety/Pagination";
 import { ACTION_LIST_FIELDS } from "@/lib/safety/selects";
 import { daysUntil, startOfTodayUTC } from "@/lib/safety/dates";
+import { LIST_PAGE } from "@/components/ui/layout";
 export default async function ActionsPage({ searchParams }: { searchParams: Promise<{ view?: string; page?: string }> }) {
   const v = await requireViewer();
   const { view = v.isSafetyTeam ? "attention" : "open", page: pageParam } = await searchParams;
@@ -53,7 +54,7 @@ export default async function ActionsPage({ searchParams }: { searchParams: Prom
   const staff = v.isSafetyTeam || v.isSupervisor;
   const template = staff ? "minmax(0,1fr) 8rem 9.5rem 9rem 9rem" : "minmax(0,1fr) 7.5rem 9.5rem 10rem";
   return (
-    <div className="mx-auto w-full max-w-[90rem] space-y-3 px-4 py-4 sm:px-6">
+    <div className={LIST_PAGE}>
       <PageHeader title={staff ? "Corrective actions" : "My corrective actions"} subtitle="Track fixes identified in reports, investigations, and inspections. Verify a fix before closing it." />
       <StatStrip large items={[
         { label: "Open", value: sOpen, href: "?view=open" },

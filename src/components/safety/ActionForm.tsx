@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createAction } from "@/lib/actions/safetyActions";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { Alert } from "@/components/ui/Alert";
+import { Spinner } from "@/components/ui/Spinner";
 
 export function ActionForm({
   reportId,
@@ -57,7 +58,7 @@ export function ActionForm({
         </Field>
       </div>
       <button disabled={pending} className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">
-        {pending ? "Saving…" : isSafetyTeam ? "Create corrective action" : "Propose corrective action"}
+        {pending ? <><Spinner /> Saving…</> : isSafetyTeam ? "Create corrective action" : "Propose corrective action"}
       </button>
       {!isSafetyTeam && <p className="text-xs text-ink-500">The safety team reviews a proposed corrective action before work starts.</p>}
     </form>

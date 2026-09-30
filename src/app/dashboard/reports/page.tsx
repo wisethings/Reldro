@@ -12,6 +12,7 @@ const STATUS_GROUPS: Record<string, string[] | undefined> = { open: ["NEW", "ASS
 
 import { PAGE_SIZE, Pagination, readPage } from "@/components/safety/Pagination";
 import { REPORT_LIST_FIELDS } from "@/lib/safety/selects";
+import { LIST_PAGE } from "@/components/ui/layout";
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<{ status?: string; severity?: string; site?: string; q?: string; page?: string; attention?: string }> }) {
   const v = await requireViewer();
   const p = await searchParams;
@@ -76,7 +77,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   );
 
   return (
-    <div className="mx-auto w-full max-w-[90rem] space-y-3 px-4 py-4 sm:px-6">
+    <div className={LIST_PAGE}>
       <PageHeader
         title={title}
         subtitle={v.isSafetyTeam ? "Hazards, near misses, injuries, and other safety concerns reported across your sites." : v.isSupervisor ? "Safety concerns reported at your site, and ones you submitted." : "Safety concerns you submitted, and what happened next."}

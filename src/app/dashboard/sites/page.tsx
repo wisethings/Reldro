@@ -7,6 +7,7 @@ import { dueLabel, EmptyState, NoAccess } from "@/components/safety/ui";
 import { paginate, Pagination } from "@/components/safety/Pagination";
 import { SiteActiveToggle, SiteEditor } from "@/components/safety/SettingsForms";
 import { startOfTodayUTC } from "@/lib/safety/dates";
+import { LIST_PAGE } from "@/components/ui/layout";
 
 export default async function SitesPage({ searchParams }: { searchParams: Promise<{ view?: string; q?: string; page?: string }> }) {
   const { view: view0, q, page: pageParam } = await searchParams;
@@ -62,7 +63,7 @@ export default async function SitesPage({ searchParams }: { searchParams: Promis
   } as const;
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-5 px-4 py-4 sm:px-6 sm:py-6">
+    <div className={LIST_PAGE}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-tight text-ink-900">Sites</h1>

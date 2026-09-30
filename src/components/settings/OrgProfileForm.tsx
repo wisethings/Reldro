@@ -5,6 +5,7 @@ import { updateOrgProfile } from "@/lib/actions/settings";
 import type { Organization } from "@prisma/client";
 import { Field, Input } from "@/components/ui/Field";
 import { Alert } from "@/components/ui/Alert";
+import { Spinner } from "@/components/ui/Spinner";
 
 export function OrgProfileForm({ org }: { org: Organization }) {
   const [state, formAction, pending] = useActionState(updateOrgProfile, undefined);
@@ -28,7 +29,7 @@ export function OrgProfileForm({ org }: { org: Organization }) {
         </Field>
       </div>
       <button disabled={pending} className="rounded-full bg-brand-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-60">
-        {pending ? "Saving…" : "Save changes"}
+        {pending ? <><Spinner /> Saving…</> : "Save changes"}
       </button>
     </form>
   );

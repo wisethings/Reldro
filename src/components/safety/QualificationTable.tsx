@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { Field, Input } from "@/components/ui/Field";
 import { useAct } from "./useAct";
+import { Spinner } from "@/components/ui/Spinner";
 
 export type QualStatus = "expired" | "soon" | "current";
 export type QualRow = { id: string; employee: string; name: string; status: QualStatus; issued: string; expires: string; expiresIso: string; issuedIso: string; rel: string | null; group: string | null };
@@ -28,7 +29,7 @@ function ConfirmRemove({ count, label, onClose, ids }: { count: number; label: s
         <p className="text-sm text-ink-700">{count === 1 ? <><span className="font-semibold text-ink-900">{label}</span> will be removed from the record.</> : `${count} qualification records will be removed.`} This can’t be undone.</p>
         {error && <p role="alert" className="text-sm text-danger">{error}</p>}
         <div className="flex gap-2">
-          <button disabled={pending} onClick={() => run(() => deleteQualifications(ids), onClose)} className="rounded-full bg-danger px-5 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50">{pending ? "Removing…" : "Remove"}</button>
+          <button disabled={pending} onClick={() => run(() => deleteQualifications(ids), onClose)} className="rounded-full bg-danger px-5 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50">{pending ? <><Spinner /> Removing…</> : "Remove"}</button>
           <button type="button" onClick={onClose} className="rounded-full border border-ink-300 px-5 py-2 text-sm font-medium text-ink-800 hover:bg-surface-hover">Cancel</button>
         </div>
       </div>
@@ -84,7 +85,7 @@ export function QualificationTable({ rows }: { rows: QualRow[] }) {
             New expiry date
             <input type="date" value={expiry} onChange={(e) => setExpiry(e.target.value)} className="h-8 rounded-lg border border-ink-300 bg-white px-2 text-xs outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20" />
           </label>
-          <button disabled={!expiry || pending} onClick={() => run(() => setQualificationsExpiry(ids, expiry), () => { setPicked(new Set()); setExpiry(""); })} className="rounded-full bg-brand-700 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-brand-800 disabled:opacity-40">{pending ? "Updating…" : "Update expiry"}</button>
+          <button disabled={!expiry || pending} onClick={() => run(() => setQualificationsExpiry(ids, expiry), () => { setPicked(new Set()); setExpiry(""); })} className="rounded-full bg-brand-700 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-brand-800 disabled:opacity-40">{pending ? <><Spinner /> Updating…</> : "Update expiry"}</button>
           <button onClick={() => setRemoveIds(ids)} className="rounded-full border border-ink-300 bg-white px-3.5 py-1.5 text-xs font-medium text-ink-800 hover:bg-surface-hover">Remove</button>
           <button onClick={() => setPicked(new Set())} className="ml-auto text-xs font-medium text-ink-600 hover:text-ink-900">Clear selection</button>
           {error && <p role="alert" className="w-full text-xs text-danger">{error}</p>}
@@ -137,7 +138,7 @@ export function QualificationEditForm({ id, name, issuedIso, expiresIso }: { id:
       <Field label="Qualification" className="sm:col-span-3"><Input value={n} onChange={(x) => setN(x.target.value)} required /></Field>
       <Field label="Issued" optional><Input type="date" value={i} onChange={(x) => setI(x.target.value)} /></Field>
       <Field label="Expires" optional><Input type="date" value={e} onChange={(x) => setE(x.target.value)} /></Field>
-      <div className="flex items-end gap-3"><button disabled={pending} className="rounded-full bg-brand-700 px-5 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? "Saving…" : "Save changes"}</button>{saved && !error && <span role="status" className="text-xs text-sage-deep">Saved</span>}</div>
+      <div className="flex items-end gap-3"><button disabled={pending} className="rounded-full bg-brand-700 px-5 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? <><Spinner /> Saving…</> : "Save changes"}</button>{saved && !error && <span role="status" className="text-xs text-sage-deep">Saved</span>}</div>
       {error && <p role="alert" className="text-sm text-danger sm:col-span-3">{error}</p>}
     </form>
   );

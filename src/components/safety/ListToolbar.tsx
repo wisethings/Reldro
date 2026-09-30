@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
+import { Spinner } from "@/components/ui/Spinner";
 
 export type ToolbarSelect = { param: string; label: string; options: { value: string; label: string }[] };
 
@@ -63,7 +64,7 @@ export function ListToolbar({
           {s.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
       ))}
-      {busy && <span aria-hidden className="h-3 w-3 animate-spin rounded-full border-2 border-ink-400 border-t-transparent" />}
+      <Spinner className={`text-xs text-ink-500 transition-opacity ${busy ? "opacity-100" : "opacity-0"}`} />
       {active && <button type="button" onClick={clear} className="text-xs font-medium text-orchid-deep hover:text-oxblood">Clear</button>}
       {sort && (
         <label className="ml-auto flex items-center gap-1.5 text-xs text-ink-600">

@@ -12,6 +12,7 @@ import { AiTextDraft } from "./AiTextDraft";
 import { useAct } from "./useAct";
 import { useConfirm } from "@/components/ui/useConfirm";
 import { Alert } from "@/components/ui/Alert";
+import { Spinner } from "@/components/ui/Spinner";
 
 /** The "New talk" entry point: a quiet header row that opens the guided form below it, and closes again. */
 export function CreateTalkPanel({ sites, lockSiteId, defaultOpen = false }: { sites: { id: string; name: string }[]; lockSiteId: string | null; defaultOpen?: boolean }) {
@@ -51,7 +52,7 @@ export function TalkForm({ sites, lockSiteId, onClose }: { sites: { id: string; 
         onClose={onClose}
         actions={
           <>
-            <button disabled={pending} className={btnPrimary}>{pending ? "Publishing…" : "Publish talk"}</button>
+            <button disabled={pending} className={btnPrimary}>{pending ? <><Spinner /> Publishing…</> : "Publish talk"}</button>
             {onClose && <button type="button" onClick={onClose} className={btnSecondary}>Cancel</button>}
             <span className="ml-auto text-xs text-ink-500"><span className="text-danger">*</span> required</span>
           </>
@@ -106,7 +107,7 @@ export function AcknowledgeButton({ talkId, compact = false }: { talkId: string;
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); run(() => acknowledgeTalk(talkId)); }}
         className={`rounded-full bg-brand-700 font-medium text-white hover:bg-brand-800 disabled:opacity-50 ${compact ? "px-3 py-1 text-xs" : "px-4 py-1.5 text-sm"}`}
       >
-        {pending ? "Saving…" : compact ? "Acknowledge" : "I attended and understood"}
+        {pending ? <><Spinner /> Saving…</> : compact ? "Acknowledge" : "I attended and understood"}
       </button>
       {error && <p className="mt-1 text-xs text-danger">{error}</p>}
     </div>
@@ -152,7 +153,7 @@ export function QualificationForm({ people, suggestions }: { people: { id: strin
       <Field label="Qualification"><Input name="name" list="qual-suggestions" required placeholder="e.g. OSHA 30" /><datalist id="qual-suggestions">{suggestions.map((s) => <option key={s} value={s} />)}</datalist></Field>
       <Field label="Issued"><Input name="issuedOn" type="date" /></Field>
       <Field label="Expires"><Input name="expiresOn" type="date" /></Field>
-      <div className="flex items-end"><button disabled={pending} className="w-full rounded-full bg-brand-700 px-5 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? "Saving…" : "Record"}</button></div>
+      <div className="flex items-end"><button disabled={pending} className="w-full rounded-full bg-brand-700 px-5 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? <><Spinner /> Saving…</> : "Record"}</button></div>
       {state?.error && <p role="alert" className="text-sm text-danger sm:col-span-2 lg:col-span-5">{state.error}</p>}
       {state?.success && <p className="text-sm text-sage-deep sm:col-span-2 lg:col-span-5">{state.success}</p>}
     </form>

@@ -11,6 +11,7 @@ import { PhotoField } from "./PhotoField";
 import { DraftLabel } from "./ui";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { Alert } from "@/components/ui/Alert";
+import { Spinner } from "@/components/ui/Spinner";
 
 type Option = { key: string; label: string; plain?: string };
 
@@ -352,7 +353,7 @@ export function ReportForm({
               onClick={askAi}
               className="rounded-full border border-orchid-deep/60 px-3 py-1 text-xs font-medium text-orchid-deep hover:bg-orchid-soft disabled:opacity-40"
             >
-              {drafting ? "Drafting…" : "Draft details with AI"}
+              {drafting ? <><Spinner /> Drafting…</> : "Draft details with AI"}
             </button>
             <span className="text-xs text-ink-500">AI tidies what you wrote and does not add facts. You review it first.</span>
           </div>
@@ -493,7 +494,7 @@ export function ReportForm({
             disabled={!canSubmit}
             className={`w-full rounded-full px-7 py-3.5 text-base font-semibold transition-colors sm:w-auto ${canSubmit ? "bg-brand-700 text-white hover:bg-brand-800" : "cursor-not-allowed bg-ink-100 text-ink-400"}`}
           >
-            {submitting ? "Submitting…" : "Submit report"}
+            {submitting ? <><Spinner /> Submitting…</> : "Submit report"}
           </button>
           <p className={`text-center text-xs sm:text-left ${canSubmit ? "text-sage-deep" : "text-ink-600"}`} aria-live="polite">
             {canSubmit ? "Ready to submit. You can still add more details above." : problem}

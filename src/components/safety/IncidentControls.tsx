@@ -21,6 +21,7 @@ import { AiTextDraft } from "./AiTextDraft";
 import { PhotoField } from "./PhotoField";
 import { useAct } from "./useAct";
 import { Alert } from "@/components/ui/Alert";
+import { Spinner } from "@/components/ui/Spinner";
 
 type Person = { id: string; name: string };
 
@@ -59,7 +60,7 @@ export function OpenIncidentForm({ reportId, people, defaultLeadId }: { reportId
           </Field>
         </div>
         <button disabled={pending} onClick={() => run(async () => setNotice(unwrap(await openIncident(reportId, lead || null, reason))))} className={primary}>
-          {pending ? "Opening…" : "Open incident response"}
+          {pending ? <><Spinner /> Opening…</> : "Open incident response"}
         </button>
       </div>
     </details>
@@ -122,7 +123,7 @@ export function IncidentDetailsForm({
           onClick={() => run(() => updateIncidentDetails(reportId, { summary: s, nextAction: next, nextActionDueAt: due ? new Date(due).toISOString() : null, leadId: lead || null }))}
           className={primary}
         >
-          {pending ? "Saving…" : "Save"}
+          {pending ? <><Spinner /> Saving…</> : "Save"}
         </button>
         {status === "ACTIVE" ? (
           <button disabled={pending} onClick={() => run(() => setIncidentStatus(reportId, "MONITORING"))} className={secondary}>Move to monitoring</button>
@@ -232,7 +233,7 @@ export function IncidentComposer({ reportId, isSafetyTeam }: { reportId: string;
           <span><span className="font-medium">Safety team only.</span> Use for medical or personal details. Responders outside the safety team cannot see this entry or its photos.</span>
         </label>
       )}
-      <button disabled={pending || (!message.trim() && kind !== "EVIDENCE")} className={primary}>{pending ? "Posting…" : "Add to timeline"}</button>
+      <button disabled={pending || (!message.trim() && kind !== "EVIDENCE")} className={primary}>{pending ? <><Spinner /> Posting…</> : "Add to timeline"}</button>
     </form>
   );
 }
@@ -250,7 +251,7 @@ export function ReporterMessageBox({ reportId, anonymous }: { reportId: string; 
           : "The reporter can read this on their report."}
       </p>
       <button disabled={pending || !text.trim()} onClick={() => run(() => messageReporter(reportId, text), () => setText(""))} className={secondary}>
-        {pending ? "Sending…" : "Send to reporter"}
+        {pending ? <><Spinner /> Sending…</> : "Send to reporter"}
       </button>
     </div>
   );
@@ -296,7 +297,7 @@ export function CloseoutForm({
         </p>
       )}
       <button disabled={pending || text.trim().length < 20} onClick={() => run(() => resolveIncident(reportId, text))} className={primary}>
-        {pending ? "Saving…" : "Resolve incident response"}
+        {pending ? <><Spinner /> Saving…</> : "Resolve incident response"}
       </button>
 
       <details className="border-t border-ink-100 pt-3">

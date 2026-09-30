@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useConfirm } from "@/components/ui/useConfirm";
 import { resendInvite, type ResendInviteResult } from "@/lib/actions/invites";
 import { InviteResult } from "./InviteResult";
+import { Spinner } from "@/components/ui/Spinner";
 
 export function ResendInviteButton({ userId, name }: { userId: string; name: string }) {
   const [pending, startTransition] = useTransition();
@@ -32,7 +33,7 @@ export function ResendInviteButton({ userId, name }: { userId: string; name: str
         }
         className="rounded-full border border-ink-300 px-3 py-1 text-xs font-medium text-ink-700 hover:border-brand-500 disabled:opacity-50"
       >
-        {pending ? "Sending…" : "Resend invite"}
+        {pending ? <><Spinner /> Sending…</> : "Resend invite"}
       </button>
       <InviteResult result={result} className="max-w-sm text-left text-xs" />
       {dialog}

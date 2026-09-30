@@ -11,6 +11,7 @@ import { DataRow, DataTable } from "@/components/safety/Table";
 import { ListToolbar } from "@/components/safety/ListToolbar";
 import { PAGE_SIZE, Pagination, readPage } from "@/components/safety/Pagination";
 import { ChecklistMenu, NewChecklist, ScheduleInspectionButton, StarterTemplatesButton } from "@/components/safety/InspectionForms";
+import { LIST_PAGE } from "@/components/ui/layout";
 
 const DAY = 86400_000;
 type View = "all" | "overdue" | "soon" | "done" | "checklists";
@@ -82,7 +83,7 @@ export default async function InspectionsPage({ searchParams }: { searchParams: 
   };
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-4 px-4 py-4 sm:px-6 sm:py-6">
+    <div className={LIST_PAGE}>
       <PageHeader
         title="Inspections"
         subtitle="Site inspections and job-start checks. Failed items can become corrective actions."

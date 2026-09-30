@@ -9,6 +9,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Input, Field } from "@/components/ui/Field";
 import { useAct } from "@/components/safety/useAct";
 import { InviteResult } from "./InviteResult";
+import { Spinner } from "@/components/ui/Spinner";
 
 type Opt = { id: string; name: string };
 
@@ -101,7 +102,7 @@ export function PersonMenu({ userId, employeeId, name, jobTitle, isSupervisor, i
             <Field label="Full name"><Input value={n} onChange={(e) => setN(e.target.value)} required /></Field>
             <Field label="Job title"><Input value={t} onChange={(e) => setT(e.target.value)} required /></Field>
             {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-            <div className="flex gap-2"><button disabled={pending} className="rounded-full bg-brand-700 px-5 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? "Saving…" : "Save"}</button><button type="button" onClick={close} className="rounded-full border border-ink-300 px-5 py-2 text-sm font-medium text-ink-800 hover:bg-surface-hover">Cancel</button></div>
+            <div className="flex gap-2"><button disabled={pending} className="rounded-full bg-brand-700 px-5 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? <><Spinner /> Saving…</> : "Save"}</button><button type="button" onClick={close} className="rounded-full border border-ink-300 px-5 py-2 text-sm font-medium text-ink-800 hover:bg-surface-hover">Cancel</button></div>
           </form>
         </Modal>
       )}
@@ -112,7 +113,7 @@ export function PersonMenu({ userId, employeeId, name, jobTitle, isSupervisor, i
             <label className="flex items-start gap-2.5 rounded-lg border border-ink-200 p-3 text-sm"><input type="checkbox" checked={sup} onChange={(e) => setSup(e.target.checked)} className="mt-0.5" /><span><span className="block font-medium text-ink-900">Supervisor</span><span className="text-xs text-ink-500">Runs a site or crew.</span></span></label>
             <label className="flex items-start gap-2.5 rounded-lg border border-ink-200 p-3 text-sm"><input type="checkbox" checked={lead} onChange={(e) => setLead(e.target.checked)} className="mt-0.5" /><span><span className="block font-medium text-ink-900">Safety lead</span><span className="text-xs text-ink-500">Part of the safety team.</span></span></label>
             {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-            <div className="flex gap-2"><button disabled={pending} onClick={() => run(() => setPersonRoles(employeeId, { isSupervisor: sup, isSafetyLead: lead }), close)} className="rounded-full bg-brand-700 px-5 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? "Saving…" : "Save role"}</button><button type="button" onClick={close} className="rounded-full border border-ink-300 px-5 py-2 text-sm font-medium text-ink-800 hover:bg-surface-hover">Cancel</button></div>
+            <div className="flex gap-2"><button disabled={pending} onClick={() => run(() => setPersonRoles(employeeId, { isSupervisor: sup, isSafetyLead: lead }), close)} className="rounded-full bg-brand-700 px-5 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? <><Spinner /> Saving…</> : "Save role"}</button><button type="button" onClick={close} className="rounded-full border border-ink-300 px-5 py-2 text-sm font-medium text-ink-800 hover:bg-surface-hover">Cancel</button></div>
           </div>
         </Modal>
       )}
@@ -121,7 +122,7 @@ export function PersonMenu({ userId, employeeId, name, jobTitle, isSupervisor, i
           <div className="max-w-md space-y-3">
             <p className="text-sm text-ink-700"><span className="font-semibold text-ink-900">{name}</span> will lose access immediately, and their login, acknowledgements and qualifications are deleted. Reports and investigations they were part of stay in your records. This can’t be undone.</p>
             {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-            <div className="flex gap-2"><button disabled={pending} onClick={() => run(() => deletePerson(employeeId), close)} className="rounded-full bg-danger px-5 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50">{pending ? "Deleting…" : "Delete person"}</button><button type="button" onClick={close} className="rounded-full border border-ink-300 px-5 py-2 text-sm font-medium text-ink-800 hover:bg-surface-hover">Cancel</button></div>
+            <div className="flex gap-2"><button disabled={pending} onClick={() => run(() => deletePerson(employeeId), close)} className="rounded-full bg-danger px-5 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50">{pending ? <><Spinner /> Deleting…</> : "Delete person"}</button><button type="button" onClick={close} className="rounded-full border border-ink-300 px-5 py-2 text-sm font-medium text-ink-800 hover:bg-surface-hover">Cancel</button></div>
           </div>
         </Modal>
       )}
