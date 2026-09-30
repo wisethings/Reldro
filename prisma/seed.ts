@@ -644,6 +644,23 @@ export async function seedDatabase() {
     });
   }
 
+  // A believable activity log: setup, invites, settings, and day-to-day safety work over the last two months.
+  const adminUser = await prisma.user.findUniqueOrThrow({ where: { email: "admin@havenbrook.com" } });
+  const actorUserId = async (k: string) => (await prisma.employee.findUniqueOrThrow({ where: { id: emp[k] } })).userId;
+  const actors = { admin: adminUser.id, maria: await actorUserId("maria"), kevin: await actorUserId("kevin"), tom: await actorUserId("tom"), danielle: await actorUserId("danielle"), luis: await actorUserId("luis") };
+  const logPlan: [keyof typeof actors | null, string, string, number][] = [
+    ["admin", "safety.settings_changed", "Organization", 24 * 58], ["admin", "employee.invited", "User", 24 * 57], ["admin", "employee.invited", "User", 24 * 57 - 1], ["admin", "admin.invited", "User", 24 * 56],
+    ["admin", "employee.made_department_lead", "Employee", 24 * 55], ["admin", "employee.made_department_lead", "Employee", 24 * 55 - 2], ["maria", "safety.settings_changed", "EscalationRule", 24 * 52], ["maria", "safety.settings_changed", "EscalationRule", 24 * 52 - 1],
+    ["admin", "invite.resent", "User", 24 * 44], ["admin", "account.profile_updated", "User", 24 * 41], ["maria", "safety.inspection_completed", "Inspection", 24 * 37], ["kevin", "safety.inspection_completed", "Inspection", 24 * 30],
+    ["maria", "safety.investigation_updated", "Investigation", 24 * 24], ["luis", "safety.action_updated", "CorrectiveAction", 24 * 21], ["tom", "safety.action_updated", "CorrectiveAction", 24 * 20], ["maria", "safety.report_updated", "SafetyReport", 24 * 18],
+    ["admin", "safety.settings_changed", "Organization", 24 * 15], ["maria", "safety.exported", "Export", 24 * 14], ["danielle", "safety.inspection_completed", "Inspection", 24 * 12], ["admin", "employee.invited", "User", 24 * 11],
+    ["maria", "safety.report_updated", "SafetyReport", 24 * 9], ["kevin", "safety.report_updated", "SafetyReport", 24 * 8], ["tom", "safety.action_updated", "CorrectiveAction", 24 * 7], ["maria", "safety.investigation_updated", "Investigation", 24 * 6],
+    ["admin", "account.password_changed", "User", 24 * 5], ["luis", "safety.action_updated", "CorrectiveAction", 24 * 4], ["maria", "safety.report_updated", "SafetyReport", 24 * 3], ["kevin", "safety.report_updated", "SafetyReport", 30],
+    ["admin", "safety.settings_changed", "Organization", 26], ["maria", "safety.action_updated", "CorrectiveAction", 20], ["tom", "safety.report_updated", "SafetyReport", 9], ["danielle", "safety.action_updated", "CorrectiveAction", 5],
+    ["maria", "safety.report_updated", "SafetyReport", 3], [null, "account.locked", "User", 24 * 26],
+  ];
+  await prisma.auditLog.createMany({ data: logPlan.map(([who, action, entityType, hrs]) => ({ organizationId: org.id, userId: who ? actors[who] : null, action, entityType, createdAt: hoursAgo(hrs) })) });
+
   // Sign-in times that look like a team in daily use.
   const lastSeen: Record<string, number> = { "admin@havenbrook.com": 0.4, "maria.delgado@havenbrook.com": 0.2, "kevin.park@havenbrook.com": 1.5, "tom.brennan@havenbrook.com": 0.8, "danielle.okafor@havenbrook.com": 2, "luis.ortega@havenbrook.com": 5, "priya.shah@havenbrook.com": 3, "fatima.haddad@havenbrook.com": 6, "marcus.bennett@havenbrook.com": 9, "wei.zhang@havenbrook.com": 12, "sofia.rossi@havenbrook.com": 26, "james.coleman@havenbrook.com": 30, "noah.park@havenbrook.com": 50, "liam.obrien@havenbrook.com": 8 };
   for (const [email, h] of Object.entries(lastSeen)) await prisma.user.update({ where: { email }, data: { lastLoginAt: hoursAgo(h) } });

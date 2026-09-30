@@ -1,10 +1,12 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Building2, HardHat, History, Layers, ShieldCheck, Siren, LifeBuoy, PhoneCall } from "lucide-react";
+import { ArrowRight, Building2, HardHat, History, Layers, ShieldCheck, Siren, LifeBuoy, PhoneCall } from "lucide-react";
 import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { categoryLabel, getPack, severityInfo, SEVERITIES } from "@/lib/safety/pack";
 import { describeAuditAction } from "@/lib/audit";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
+import { LocalTime } from "@/components/safety/LocalTime";
 import { IconBadge } from "@/components/ui/IconBadge";
 import { OrgProfileForm } from "@/components/settings/OrgProfileForm";
 import { AddDepartmentForm } from "@/components/settings/AddDepartmentForm";
@@ -21,7 +23,7 @@ export default async function SettingsPage() {
 
   const [org, auditLogs, crews, admins, rules, sites, people] = await Promise.all([
     prisma.organization.findUnique({ where: { id: orgId } }),
-    prisma.auditLog.findMany({ where: { organizationId: orgId }, include: { user: true }, orderBy: { createdAt: "desc" }, take: 25 }),
+    prisma.auditLog.findMany({ where: { organizationId: orgId }, include: { user: true }, orderBy: { createdAt: "desc" }, take: 5 }),
     prisma.department.findMany({ where: { organizationId: orgId }, orderBy: { name: "asc" } }),
     prisma.user.findMany({ where: { organizationId: orgId, role: "COMPANY_ADMIN" }, orderBy: { createdAt: "asc" } }),
     prisma.escalationRule.findMany({ where: { organizationId: orgId }, orderBy: { createdAt: "asc" } }),
@@ -113,15 +115,18 @@ export default async function SettingsPage() {
       </Card>
 
       <Card>
-        <CardHeader icon={<IconBadge icon={<History size={18} />} tone="sage" />} title="Activity log" subtitle="Who changed what, most recent first." />
+        <CardHeader icon={<IconBadge icon={<History size={18} />} tone="sage" />} title="Activity log" subtitle="The latest changes in your workspace." />
         <CardBody className="divide-y divide-ink-200 p-0">
           {auditLogs.map((log) => (
             <div key={log.id} className="px-4 py-3 sm:px-5">
               <p className="truncate text-sm text-ink-800">{describeAuditAction(log.action)}</p>
-              <p className="text-xs text-ink-500">{log.user?.name ?? "System"} · {log.createdAt.toLocaleString()}</p>
+              <p className="text-xs text-ink-500">{log.user?.name ?? "System"} · <LocalTime value={log.createdAt} /></p>
             </div>
           ))}
           {auditLogs.length === 0 && <p className="p-5 text-sm text-ink-500">No activity recorded yet.</p>}
+          <Link href="/dashboard/settings/activity" className="flex items-center justify-between px-4 py-3 text-sm font-medium text-orchid-deep hover:bg-ink-50 hover:text-oxblood sm:px-5">
+            View the full activity log, with filters <ArrowRight size={14} aria-hidden />
+          </Link>
         </CardBody>
       </Card>
 
