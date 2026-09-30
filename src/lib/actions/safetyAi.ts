@@ -1,12 +1,14 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { canSeeInvestigation, canSeeReport, reportWhere } from "@/lib/safety/access";
+import { canRunIncident, canSeeInvestigation, canSeeReport, reportWhere } from "@/lib/safety/access";
 import { requireViewer } from "@/lib/safety/context";
 import { checkRateLimit } from "@/lib/rateLimit";
-import { categoryLabel, getPack, OPEN_ACTION_STATUSES } from "@/lib/safety/pack";
+import { actionStatusInfo, categoryLabel, getPack, OPEN_ACTION_STATUSES, SITE_KINDS } from "@/lib/safety/pack";
 import {
+  draftCloseout,
   draftInvestigationQuestions,
+  draftLesson,
   draftToolboxTalk,
   structureReportDraft,
   summarizeInvestigation,
@@ -35,7 +37,7 @@ export async function aiStructureReport(text: string): Promise<ReportDraft> {
 
 async function factsFor(reportId: string) {
   const v = await requireViewer();
-  const report = await prisma.safetyReport.findFirst({ where: { id: reportId, organizationId: v.organizationId }, include: { site: true, investigation: true } });
+  const report = await prisma.safetyReport.findFirst({ where: { id: reportId, organizationId: v.organizationId }, include: { site: true, investigation: true, incident: { include: { responders: true } } } });
   if (!report || !canSeeReport(v, report)) throw new Error("Report not found.");
   const facts = {
     number: report.number,
@@ -115,4 +117,44 @@ export async function aiDraftToolboxTalk(topic: string, sourceMaterial: string):
   if (!topic.trim()) throw new Error("Enter a topic first.");
   if (sourceMaterial.trim().length < 40) throw new Error("Paste your approved material (a procedure, policy excerpt or past lesson) so the outline is based on it.");
   return draftToolboxTalk({ topic: topic.trim(), sourceMaterial });
+}
+
+/** Draft closeout for the incident workspace. Built only from what responders recorded; the response lead edits and submits it. */
+export async function aiDraftCloseout(reportId: string): Promise<SummaryDraft> {
+  const { v, report, facts } = await factsFor(reportId);
+  const incident = await prisma.incidentResponse.findUnique({ where: { reportId }, include: { responders: true } });
+  if (!incident) throw new Error("There's no incident response on this report.");
+  if (!canRunIncident(v, { ...report, incident })) throw new Error("Only the response lead or safety team can draft a closeout.");
+  await limit(v.userId);
+  const [events, actions] = await Promise.all([
+    // Restricted notes (medical or personal detail) are left out of the draft on purpose.
+    prisma.reportEvent.findMany({ where: { reportId, restricted: false, type: { in: ["DECISION", "UPDATE"] } }, orderBy: { createdAt: "asc" } }),
+    prisma.correctiveAction.findMany({ where: { reportId }, orderBy: { number: "asc" } }),
+  ]);
+  const line = (e: { createdAt: Date; message: string }) => `${e.createdAt.toISOString().slice(0, 16).replace("T", " ")} ${e.message}`;
+  return draftCloseout({
+    facts,
+    incident: { openedAt: incident.openedAt, summary: incident.summary, decisions: events.filter((e) => e.type === "DECISION").map(line), updates: events.filter((e) => e.type === "UPDATE").map(line) },
+    actions: actions.map((a) => ({ number: a.number, title: a.title, status: actionStatusInfo(a.status).label })),
+    investigation: report.investigation && canSeeInvestigation(v, report.investigation) ? { status: report.investigation.status, contributingFactors: report.investigation.contributingFactors } : report.investigation ? { status: report.investigation.status, contributingFactors: [] } : null,
+  });
+}
+
+/** A de-identified lesson draft. It uses only the topic, the investigator's selected factors and action titles, never the free-text report. */
+export async function aiDraftLesson(reportId: string): Promise<SummaryDraft> {
+  const { v, report } = await factsFor(reportId);
+  if (!v.isSafetyTeam) throw new Error("Only the safety team can draft shared lessons.");
+  await limit(v.userId);
+  const [actions, people] = await Promise.all([
+    prisma.correctiveAction.findMany({ where: { reportId, status: { not: "CANCELLED" } }, orderBy: { number: "asc" }, select: { title: true } }),
+    prisma.user.findMany({ where: { organizationId: v.organizationId }, select: { name: true } }),
+  ]);
+  const site = report.siteId ? await prisma.site.findUnique({ where: { id: report.siteId }, select: { kind: true } }) : null;
+  return draftLesson({
+    categoryLabel: categoryLabel(report.category, getPack()),
+    siteKind: SITE_KINDS.find((k) => k.key === site?.kind)?.label.split(" /")[0] ?? "work site",
+    factors: report.investigation?.contributingFactors ?? [],
+    actionTitles: actions.map((a) => a.title),
+    namesToScrub: people.map((p) => p.name),
+  });
 }

@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { saveInvestigation, noteAiDraftUsed, setInvestigationStatus } from "@/lib/actions/safetyInvestigations";
-import { aiSummarizeInvestigation } from "@/lib/actions/safetyAi";
+import { aiDraftLesson, aiSummarizeInvestigation } from "@/lib/actions/safetyAi";
 import { Field, Textarea } from "@/components/ui/Field";
 import { AiTextDraft } from "./AiTextDraft";
 import { useAct } from "./useAct";
@@ -24,6 +24,7 @@ export function InvestigationForm({
 }) {
   const [state, formAction, pending] = useActionState(saveInvestigation, undefined);
   const [sequence, setSequence] = useState(initial.sequenceNotes);
+  const [lesson, setLesson] = useState(initial.lessonText);
   const { run, pending: statusPending, error } = useAct();
   const locked = status === "COMPLETE" && !isSafetyTeam;
 
@@ -71,8 +72,11 @@ export function InvestigationForm({
 
         <div className="space-y-2 rounded-xl border border-ink-200 p-3">
           <Field label="Lesson to share with crews" hint="Write it without names, injuries or personal details. Only the safety team can publish it." optional>
-            <Textarea name="lessonText" defaultValue={initial.lessonText} rows={3} disabled={locked} />
+            <Textarea name="lessonText" value={lesson} onChange={(e) => setLesson(e.target.value)} rows={3} disabled={locked} />
           </Field>
+          {isSafetyTeam && !locked && (
+            <AiTextDraft label="Draft a de-identified lesson" generate={() => aiDraftLesson(reportId)} useLabel="Use as the lesson" onUse={(t) => setLesson(t)} />
+          )}
           {isSafetyTeam && (
             <label className="flex items-center gap-2 text-sm text-ink-800">
               <input type="checkbox" name="shareLesson" defaultChecked={initial.shareLesson} /> Share this lesson company-wide

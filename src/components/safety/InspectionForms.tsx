@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { completeInspection, createTemplate, scheduleInspection, addStarterTemplates, deleteTemplate } from "@/lib/actions/safetyInspections";
+import { completeInspection, createTemplate, scheduleInspection, addStarterTemplates, deleteTemplate, raiseReportFromInspection } from "@/lib/actions/safetyInspections";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { useAct } from "./useAct";
 
@@ -90,5 +90,18 @@ export function InspectionRunner({ inspectionId, items }: { inspectionId: string
         <button disabled={pending} className="w-full rounded-full bg-brand-700 px-6 py-3 text-base font-semibold text-white hover:bg-brand-800 disabled:opacity-50 sm:w-auto">{pending ? "Submitting…" : "Submit inspection"}</button>
       </div>
     </form>
+  );
+}
+
+/** Files one failed inspection item as a hazard report so it is routed and tracked like any other hazard. */
+export function RaiseReportButton({ inspectionId, itemId }: { inspectionId: string; itemId: string }) {
+  const { run, pending, error } = useAct();
+  return (
+    <div className="mt-1">
+      <button disabled={pending} onClick={() => run(() => raiseReportFromInspection(inspectionId, itemId))} className="text-xs font-medium text-orchid-deep hover:text-oxblood disabled:opacity-40">
+        {pending ? "Filing…" : "File as a hazard report"}
+      </button>
+      {error && <p role="alert" className="text-xs text-danger">{error}</p>}
+    </div>
   );
 }

@@ -13,6 +13,7 @@ export function ReportControls({
   reportId,
   status,
   severity,
+  severityConfirmed,
   category,
   ownerId,
   acknowledged,
@@ -25,6 +26,7 @@ export function ReportControls({
   reportId: string;
   status: string;
   severity: string;
+  severityConfirmed: boolean;
   category: string;
   ownerId: string | null;
   acknowledged: boolean;
@@ -67,7 +69,7 @@ export function ReportControls({
         )}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {isSafetyTeam && (
           <label className="block text-xs font-medium text-ink-600">
             Owner
@@ -84,14 +86,21 @@ export function ReportControls({
             </Select>
           </label>
         )}
-        <label className="block text-xs font-medium text-ink-600">
-          Seriousness
-          <Select value={severity} disabled={pending} onChange={(e) => run(() => updateTriage(reportId, { severity: e.target.value }))} className="mt-1">
-            {severities.map((s) => (
-              <option key={s.key} value={s.key}>{s.label}</option>
-            ))}
-          </Select>
-        </label>
+        <div>
+          <label className="block text-xs font-medium text-ink-600">
+            Seriousness {severityConfirmed ? "(confirmed)" : "(suggested, not yet confirmed)"}
+            <Select value={severity} disabled={pending} onChange={(e) => run(() => updateTriage(reportId, { severity: e.target.value }))} className="mt-1">
+              {severities.map((s) => (
+                <option key={s.key} value={s.key}>{s.label}</option>
+              ))}
+            </Select>
+          </label>
+          {!severityConfirmed && (
+            <button disabled={pending} onClick={() => run(() => updateTriage(reportId, { severity }))} className="mt-1.5 text-xs font-medium text-orchid-deep hover:text-oxblood disabled:opacity-40">
+              Confirm this level
+            </button>
+          )}
+        </div>
         <label className="block text-xs font-medium text-ink-600">
           Topic
           <Select value={category} disabled={pending} onChange={(e) => run(() => updateTriage(reportId, { category: e.target.value }))} className="mt-1">

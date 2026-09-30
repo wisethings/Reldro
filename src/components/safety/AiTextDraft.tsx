@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { DraftLabel } from "./ui";
 
-type Draft = { text: string; generatedBy: "model" | "rules" };
+type Draft = { text: string; generatedBy: "model" | "rules"; sources?: string[] };
 
 /**
  * Generic "ask for a draft, show it clearly labeled, let a person copy or
@@ -53,6 +53,11 @@ export function AiTextDraft({
       {draft && (
         <div className="space-y-2 rounded-xl border border-orchid bg-orchid-soft/40 p-3">
           <DraftLabel generatedBy={draft.generatedBy} />
+          {draft.sources && draft.sources.length > 0 && (
+            <p className="text-[11px] text-ink-600">
+              <span className="font-medium">Built from:</span> {draft.sources.join(" · ")}. Check it against these before you use it.
+            </p>
+          )}
           <textarea value={text} onChange={(e) => setText(e.target.value)} rows={Math.min(14, Math.max(4, text.split("\n").length + 1))} className="w-full rounded-lg border border-ink-200 bg-white p-2 text-sm text-ink-800" aria-label="Draft text (editable)" />
           <div className="flex gap-2">
             {onUse && useLabel && (

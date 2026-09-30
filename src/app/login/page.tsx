@@ -16,6 +16,10 @@ export default function LoginPage() {
             <LoginForm />
           </div>
         </div>
+        <p className="mt-5 text-center text-xs text-ink-500">
+          Filed a report without your name?{" "}
+          <Link href="/follow-up" className="font-medium text-orchid-deep underline-offset-2 hover:underline">Check on it with your case code</Link>
+        </p>
       </div>
     </div>
   );

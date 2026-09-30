@@ -15,8 +15,14 @@ export function SafetyOnboarding({ companyName }: { companyName: string }) {
       {state?.error && <p role="alert" className="rounded-lg bg-coral-soft px-3 py-2 text-sm text-danger">{state.error}</p>}
       <div className="space-y-4 rounded-2xl border border-ink-200 bg-white p-5">
         <h2 className="text-sm font-semibold text-ink-900">Your first site</h2>
-        <Field label="Jobsite, shop or yard name" required><Input name="siteName" required placeholder="e.g. Riverside Medical Center" /></Field>
+        <Field label="Jobsite, shop or yard name" required><Input name="siteName" required placeholder="e.g. Bayside Tower — Electrical Package" /></Field>
         <Field label="Address" optional><Input name="address" /></Field>
+      </div>
+      <div className="space-y-4 rounded-2xl border border-ink-200 bg-white p-5">
+        <h2 className="text-sm font-semibold text-ink-900">Your emergency instructions</h2>
+        <Field label="What should someone do first in an emergency?" optional hint="Every reporter sees this above the report form. Reldro doesn't contact emergency services, so this is your own plan. Leave blank to show: “Call your local emergency number (911 in the US) and follow your site's emergency plan.”">
+          <Textarea name="emergencyInstructions" rows={3} maxLength={600} placeholder="e.g. Call 911, then the site superintendent at 555-0142. Muster at the north gate." />
+        </Field>
       </div>
       <div className="space-y-4 rounded-2xl border border-ink-200 bg-white p-5">
         <h2 className="text-sm font-semibold text-ink-900">Add the standard starting checklists</h2>

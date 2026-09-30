@@ -58,8 +58,51 @@ export const investigationStatusInfo = (k: string) => INVESTIGATION_STATUSES.fin
 export const SITE_KINDS = [
   { key: "JOBSITE", label: "Jobsite" },
   { key: "SHOP", label: "Shop / fab shop" },
-  { key: "YARD", label: "Yard / warehouse" },
+  { key: "YARD", label: "Yard / laydown area" },
+  { key: "WAREHOUSE", label: "Warehouse / distribution" },
+  { key: "CUSTOMER_SITE", label: "Customer site (service work)" },
 ] as const;
+
+export const INCIDENT_STATUSES = [
+  { key: "ACTIVE", label: "Active response", tone: "red" as Tone, hint: "Responders are working the situation" },
+  { key: "MONITORING", label: "Monitoring", tone: "amber" as Tone, hint: "Immediate response done; watching and following up" },
+  { key: "RESOLVED", label: "Resolved", tone: "green" as Tone, hint: "Response finished and closed out" },
+] as const;
+export const incidentStatusInfo = (k: string) => INCIDENT_STATUSES.find((s) => s.key === k) ?? INCIDENT_STATUSES[0];
+
+/** Timeline entry types a person can add by hand in the incident workspace. */
+export const INCIDENT_ENTRY_TYPES = [
+  { key: "UPDATE", label: "Update", hint: "What has changed, for everyone responding" },
+  { key: "DECISION", label: "Decision", hint: "A call that was made, and by whom" },
+  { key: "EVIDENCE", label: "Photo / evidence", hint: "Photos with a short note about what they show" },
+  { key: "COMMENT", label: "Note", hint: "A working note" },
+] as const;
+
+export const RESPONDER_ROLE_SUGGESTIONS = ["Response lead", "Site lead", "Supervisor", "Safety", "Medical / first aid liaison", "Communications", "Records"];
+
+/** Best-guess topic for a piece of text, from the pack's keyword lists. Only ever a starting point. */
+export function guessCategory(text: string, pack: SafetyPack): string {
+  const t = ` ${text.toLowerCase()} `;
+  let best = { key: "OTHER", score: 0 };
+  for (const c of pack.categories) {
+    const score = c.keywords.reduce((n, k) => (t.includes(k) ? n + 1 : n), 0);
+    if (score > best.score) best = { key: c.key, score };
+  }
+  return best.key;
+}
+
+/**
+ * A starting suggestion for how serious a report might be, from the report kind, the words used
+ * and whether anyone was hurt. Reporters never choose this; a responder confirms or changes it.
+ */
+export function suggestSeverity(text: string, type: string, injuryInvolved: boolean, pack: SafetyPack): SeverityKey {
+  const t = ` ${text.toLowerCase()} `;
+  let sev: SeverityKey = type === "CONCERN" ? "LOW" : "MEDIUM";
+  if (injuryInvolved && sev === "LOW") sev = "MEDIUM";
+  if (pack.severityKeywords.HIGH.some((k) => t.includes(k))) sev = "HIGH";
+  if (pack.severityKeywords.CRITICAL.some((k) => t.includes(k))) sev = "CRITICAL";
+  return sev;
+}
 
 export type PackCategory = { key: string; label: string; keywords: string[] };
 
@@ -70,6 +113,8 @@ export type SafetyPack = {
   /** System-and-conditions prompts for an investigation - deliberately not "who to blame". */
   contributingFactors: string[];
   qualificationSuggestions: string[];
+  /** A neutral example shown as a placeholder when adding a site. */
+  siteExample: string;
   inspectionTemplates: { name: string; kind: "SITE_INSPECTION" | "READINESS" | "OBSERVATION"; frequencyDays: number | null; items: { label: string; critical?: boolean }[] }[];
   /** Words in a description that suggest higher severity. A hint for a person to confirm, never a decision. */
   severityKeywords: { CRITICAL: string[]; HIGH: string[] };
@@ -105,6 +150,7 @@ const CONSTRUCTION: SafetyPack = {
     "Coordination with other trades",
     "PPE availability or suitability",
   ],
+  siteExample: "Bayside Tower \u2014 Electrical Package",
   qualificationSuggestions: ["OSHA 10", "OSHA 30", "First aid / CPR", "Aerial lift", "Fall protection", "Confined space", "Electrical safety (NFPA 70E)", "Forklift"],
   severityKeywords: {
     CRITICAL: ["unconscious", "not breathing", "electrocut", "amputat", "fatal", "died", "collapse", "trapped", "hospital", "severe bleeding"],

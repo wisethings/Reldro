@@ -18,6 +18,8 @@ export async function addReportEvent(params: {
   message: string;
   actor?: { name: string; employeeId: string | null } | null;
   restricted?: boolean;
+  toReporter?: boolean;
+  attachments?: { name: string; dataUri: string }[];
 }) {
   await prisma.reportEvent.create({
     data: {
@@ -27,12 +29,22 @@ export async function addReportEvent(params: {
       actorName: params.actor?.name ?? "",
       actorId: params.actor?.employeeId ?? null,
       restricted: params.restricted ?? false,
+      toReporter: params.toReporter ?? false,
+      attachments: params.attachments ?? [],
     },
   });
 }
 
 export async function audit(v: Viewer, action: AuditAction, entityType: string, entityId: string, metadata?: Record<string, unknown>) {
   await logAudit({ organizationId: v.organizationId, userId: v.userId, action, entityType, entityId, metadata });
+}
+
+/**
+ * Audit entry for something an anonymous reporter did. Deliberately stores no user, so the
+ * activity log can never be used to work out who filed an anonymous report.
+ */
+export async function auditAnonymous(organizationId: string, action: AuditAction, entityType: string, entityId: string, metadata?: Record<string, unknown>) {
+  await logAudit({ organizationId, userId: null, action, entityType, entityId, metadata });
 }
 
 /** Next per-organization sequence number, retried by callers on the (rare) unique-constraint race. */

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { requireViewer } from "@/lib/safety/context";
-import { OPEN_ACTION_STATUSES, SITE_KINDS } from "@/lib/safety/pack";
+import { getPack, OPEN_ACTION_STATUSES, SITE_KINDS } from "@/lib/safety/pack";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { dueLabel, EmptyState, NoAccess, PageHeader } from "@/components/safety/ui";
@@ -31,11 +31,11 @@ export default async function SitesPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-5 p-4 sm:p-6">
-      <PageHeader title="Sites" subtitle="Jobsites, shops and yards. Reports, inspections and actions are organized by site." actions={<SiteEditor people={peopleOpts} trigger="Add a site" />} />
+      <PageHeader title="Sites" subtitle="Jobsites, shops, yards and other places you work. Reports, inspections and actions are organized by site." actions={<SiteEditor people={peopleOpts} trigger="Add a site" siteExample={getPack().siteExample} kinds={SITE_KINDS.map((k) => ({ key: k.key, label: k.label }))} />} />
       {sites.length === 0 ? (
         <EmptyState title="No sites yet" body="Add the jobsites and shops your crews work at. Reports get routed to a site's safety lead, and inspections are scheduled per site." />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {sites.map((s) => {
             const next = nextBySite.get(s.id);
             const nd = next ? dueLabel(next, true) : null;
@@ -53,7 +53,7 @@ export default async function SitesPage() {
                     <div><dt className="text-ink-500">Overdue actions</dt><dd className={`text-sm ${(overdueBySite.get(s.id) ?? 0) > 0 ? "font-medium text-danger" : "text-ink-800"}`}>{overdueBySite.get(s.id) ?? 0}</dd></div>
                     <div className="col-span-2"><dt className="text-ink-500">Next inspection</dt><dd className={`text-sm ${nd?.overdue ? "font-medium text-danger" : "text-ink-800"}`}>{nd ? nd.text : "None scheduled"}</dd></div>
                   </dl>
-                  <div className="flex gap-4 border-t border-ink-100 pt-3"><SiteEditor site={{ id: s.id, name: s.name, address: s.address, kind: s.kind, safetyLeadId: s.safetyLeadId }} people={peopleOpts} trigger="Edit" /><SiteActiveToggle siteId={s.id} active={s.active} /></div>
+                  <div className="flex gap-4 border-t border-ink-100 pt-3"><SiteEditor site={{ id: s.id, name: s.name, address: s.address, kind: s.kind, safetyLeadId: s.safetyLeadId }} people={peopleOpts} trigger="Edit" siteExample={getPack().siteExample} kinds={SITE_KINDS.map((k) => ({ key: k.key, label: k.label }))} /><SiteActiveToggle siteId={s.id} active={s.active} /></div>
                 </div>
               </Card>
             );

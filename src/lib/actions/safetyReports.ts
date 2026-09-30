@@ -4,11 +4,14 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { canManageReport, canSeeReport } from "@/lib/safety/access";
-import { addReportEvent, audit, cleanAttachments, isoOrNull, nextReportNumber, requireViewer } from "@/lib/safety/context";
+import { addReportEvent, audit, auditAnonymous, cleanAttachments, isoOrNull, nextReportNumber, requireViewer } from "@/lib/safety/context";
 import { routeReport } from "@/lib/safety/routing";
-import { getPack, reportStatusInfo, severityInfo, REPORT_TYPES } from "@/lib/safety/pack";
+import { generateFollowUpCode, hashFollowUpCode } from "@/lib/safety/followUp";
+import { openIncidentOn } from "@/lib/safety/incident";
+import { getPack, reportStatusInfo, severityInfo, suggestSeverity, REPORT_TYPES } from "@/lib/safety/pack";
 
-export type ReportFormState = { error?: string } | undefined;
+/** `submitted` is returned (not redirected) for anonymous reports so the private case code is shown once and never put in a URL. */
+export type ReportFormState = { error?: string; submitted?: { number: number; followUpCode: string } } | undefined;
 
 function str(v: FormDataEntryValue | null) {
   return String(v ?? "").trim();
@@ -29,22 +32,31 @@ export async function createReport(_prev: ReportFormState, formData: FormData): 
   if (description.length < 5) return { error: "Tell us briefly what happened or what you saw." };
 
   const category = pack.categories.some((c) => c.key === str(formData.get("category"))) ? str(formData.get("category")) : "OTHER";
-  const severity = ["LOW", "MEDIUM", "HIGH", "CRITICAL"].includes(str(formData.get("severity"))) ? str(formData.get("severity")) : "MEDIUM";
   const privacy = ["NAMED", "CONFIDENTIAL", "ANONYMOUS"].includes(str(formData.get("privacy"))) ? str(formData.get("privacy")) : "NAMED";
-  const occurredAt = isoOrNull(formData.get("occurredAt")) ?? new Date();
+  const whenMode = str(formData.get("whenMode"));
+  const occurredAt = isoOrNull(formData.get("occurredAt")) ?? (whenMode === "earlier" ? null : new Date());
+  if (!occurredAt) return { error: "Pick the date and time it happened, or choose “Just now”." };
   if (occurredAt.getTime() > Date.now() + 5 * 60_000) return { error: "The time can't be in the future." };
+  if (occurredAt.getTime() < Date.now() - 366 * 86_400_000) return { error: "That's more than a year ago. Check the date." };
 
-  let siteId: string | null = str(formData.get("siteId")) || null;
+  const rawSite = str(formData.get("siteId"));
+  let siteId: string | null = rawSite && rawSite !== "__else" ? rawSite : null;
   if (siteId) {
     const site = await prisma.site.findFirst({ where: { id: siteId, organizationId: v.organizationId, active: true } });
     if (!site) siteId = null;
   }
+  let locationNote = str(formData.get("locationNote")).slice(0, 300);
+  if (!siteId && !locationNote) locationNote = rawSite === "__else" ? "Somewhere other than a listed site" : "Location not given";
 
-  const routing = await routeReport({ organizationId: v.organizationId, siteId, category, severity, createdAt: new Date() });
   const injuryInvolved = formData.get("injuryInvolved") === "on" || type === "INJURY";
+  // The reporter never picks seriousness. This is a starting suggestion that a responder confirms.
+  const severity = suggestSeverity(`${description} ${str(formData.get("immediateAction"))}`, type, injuryInvolved, pack);
+  const routing = await routeReport({ organizationId: v.organizationId, siteId, category, severity, createdAt: new Date() });
   const attachments = cleanAttachments(formData.getAll("attachment"));
   const aiAssisted = formData.get("aiAssisted") === "1";
-  const reporterId = privacy === "ANONYMOUS" ? null : v.employeeId;
+  const anonymous = privacy === "ANONYMOUS";
+  const reporterId = anonymous ? null : v.employeeId;
+  const followUpCode = anonymous ? generateFollowUpCode() : null;
 
   let created: { id: string; number: number } | null = null;
   for (let attempt = 0; attempt < 3 && !created; attempt++) {
@@ -59,6 +71,8 @@ export async function createReport(_prev: ReportFormState, formData: FormData): 
           description: description.slice(0, 4000),
           transcript: str(formData.get("transcript")).slice(0, 4000) || null,
           siteId,
+          locationNote,
+          followUpHash: followUpCode ? hashFollowUpCode(followUpCode) : null,
           occurredAt,
           severity,
           status: routing.ownerId ? "ASSIGNED" : "NEW",
@@ -82,7 +96,7 @@ export async function createReport(_prev: ReportFormState, formData: FormData): 
   await addReportEvent({
     reportId: created.id,
     type: "CREATED",
-    message: privacy === "ANONYMOUS" ? "Report filed anonymously." : "Report filed.",
+    message: anonymous ? "Report filed anonymously." : privacy === "CONFIDENTIAL" ? "Report filed confidentially." : "Report filed.",
     actor: privacy === "NAMED" ? { name: v.name, employeeId: v.employeeId } : null,
   });
   if (routing.ownerId) {
@@ -96,16 +110,33 @@ export async function createReport(_prev: ReportFormState, formData: FormData): 
     await addReportEvent({ reportId: created.id, type: "ASSIGNED", message: "No owner matched. Waiting for the safety team to assign." });
   }
   if (aiAssisted) await addReportEvent({ reportId: created.id, type: "AI_DRAFT", message: "The reporter used an AI-assisted draft and confirmed the details." });
-  await audit(v, "safety.report_created", "SafetyReport", created.id, { number: created.number, type, severity });
+  // Anonymous reports are logged without the user, so the activity log can't identify the reporter.
+  if (anonymous) await auditAnonymous(v.organizationId, "safety.report_created", "SafetyReport", created.id, { number: created.number, type });
+  else await audit(v, "safety.report_created", "SafetyReport", created.id, { number: created.number, type });
+
+  // A rule the company set up on purpose can open the incident workspace for serious events.
+  if (routing.openIncident) {
+    await openIncidentOn({
+      reportId: created.id,
+      organizationId: v.organizationId,
+      leadId: routing.ownerId,
+      responderIds: routing.escalateToId ? [routing.escalateToId] : [],
+      openedBy: "RULE",
+      openedById: null,
+      actor: null,
+      reason: `${severityInfo(severity).label} suggested`,
+    });
+  }
 
   revalidatePath("/dashboard/overview");
   revalidatePath("/dashboard/reports");
-  redirect(`/dashboard/reports/submitted?n=${created.number}&anon=${privacy === "ANONYMOUS" ? 1 : 0}`);
+  if (followUpCode) return { submitted: { number: created.number, followUpCode } };
+  redirect(`/dashboard/reports/submitted?n=${created.number}`);
 }
 
 async function loadReportForActor(reportId: string) {
   const v = await requireViewer();
-  const report = await prisma.safetyReport.findFirst({ where: { id: reportId, organizationId: v.organizationId } });
+  const report = await prisma.safetyReport.findFirst({ where: { id: reportId, organizationId: v.organizationId }, include: { incident: { include: { responders: true } } } });
   if (!report || !canSeeReport(v, report)) throw new Error("Report not found.");
   return { v, report };
 }
@@ -157,8 +188,13 @@ export async function updateTriage(reportId: string, changes: { severity?: strin
     data.type = changes.type;
     notes.push("Report type changed.");
   }
-  if (notes.length === 0) return;
-  await prisma.safetyReport.update({ where: { id: reportId }, data });
+  const confirming = Boolean(changes.severity) && !report.severityConfirmedAt;
+  if (notes.length === 0 && !confirming) return;
+  if (confirming && notes.length === 0) notes.push(`Severity confirmed as ${severityInfo(report.severity).label}.`);
+  await prisma.safetyReport.update({
+    where: { id: reportId },
+    data: { ...data, ...(changes.severity ? { severityConfirmedAt: new Date(), severityConfirmedById: v.employeeId } : {}) },
+  });
   await addReportEvent({ reportId, type: "STATUS", message: notes.join(" "), actor: { name: v.name, employeeId: v.employeeId } });
   await audit(v, "safety.report_updated", "SafetyReport", reportId, data);
   revalidatePath(`/dashboard/reports/${reportId}`);
@@ -170,7 +206,19 @@ export async function addComment(reportId: string, message: string, restricted: 
   const text = message.trim().slice(0, 2000);
   if (!text) throw new Error("Write a comment first.");
   const isRestricted = restricted && v.isSafetyTeam;
-  await addReportEvent({ reportId: report.id, type: "COMMENT", message: text, actor: { name: v.name, employeeId: v.employeeId }, restricted: isRestricted });
+  // A reply from the person who filed the report is recorded as a reporter reply. For a confidential report it
+  // carries no name or id, so supervisors reading the timeline can't learn who filed it.
+  const fromReporter = v.employeeId !== null && report.reporterId === v.employeeId && !v.isSafetyTeam && report.ownerId !== v.employeeId;
+  if (fromReporter) {
+    await addReportEvent({
+      reportId: report.id,
+      type: "REPORTER_REPLY",
+      message: text,
+      actor: report.privacy === "NAMED" ? { name: v.name, employeeId: v.employeeId } : { name: "The reporter", employeeId: null },
+    });
+  } else {
+    await addReportEvent({ reportId: report.id, type: "COMMENT", message: text, actor: { name: v.name, employeeId: v.employeeId }, restricted: isRestricted });
+  }
   revalidatePath(`/dashboard/reports/${reportId}`);
 }
 
@@ -181,6 +229,8 @@ export async function setReportStatus(reportId: string, status: string) {
   if (status === "CLOSED") {
     const open = await prisma.correctiveAction.count({ where: { reportId, status: { in: ["PROPOSED", "APPROVED", "IN_PROGRESS", "COMPLETED"] } } });
     if (open > 0) throw new Error(`${open} corrective action${open === 1 ? " is" : "s are"} not verified yet. Verify or cancel them before closing.`);
+    const inc = await prisma.incidentResponse.findUnique({ where: { reportId } });
+    if (inc && inc.status !== "RESOLVED") throw new Error("Resolve the incident response (with a closeout summary) before closing this report.");
     const inv = await prisma.investigation.findUnique({ where: { reportId } });
     if (inv && inv.status !== "COMPLETE") throw new Error("Complete the investigation before closing this report.");
   }

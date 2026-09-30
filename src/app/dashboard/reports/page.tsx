@@ -17,13 +17,15 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
 
   const where = {
     ...reportWhere(v),
-    ...(STATUS_GROUPS[status] ? { status: { in: STATUS_GROUPS[status]! } } : status !== "all" ? { status } : {}),
+    ...(status === "incidents"
+      ? { incident: { status: { not: "RESOLVED" } } }
+      : STATUS_GROUPS[status] ? { status: { in: STATUS_GROUPS[status]! } } : status !== "all" ? { status } : {}),
     ...(p.severity ? { severity: p.severity } : {}),
     ...(p.site ? { siteId: p.site } : {}),
     ...(p.q ? { OR: [{ title: { contains: p.q, mode: "insensitive" as const } }, { description: { contains: p.q, mode: "insensitive" as const } }] } : {}),
   };
   const [reports, sites] = await Promise.all([
-    prisma.safetyReport.findMany({ where, orderBy: { createdAt: "desc" }, take: 100, include: { site: true } }),
+    prisma.safetyReport.findMany({ where, orderBy: { createdAt: "desc" }, take: 100, include: { site: true, incident: { select: { status: true } } } }),
     v.isSafetyTeam ? prisma.site.findMany({ where: { organizationId: v.organizationId }, orderBy: { name: "asc" } }) : Promise.resolve([]),
   ]);
   const owners = await prisma.employee.findMany({ where: { id: { in: reports.map((r) => r.ownerId).filter((x): x is string => Boolean(x)) } }, include: { user: { select: { name: true } } } });
@@ -43,15 +45,15 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       <PageHeader
         title={title}
         subtitle={v.isSafetyTeam ? "Every hazard, near miss and injury reported across your sites." : v.isSupervisor ? "Reports from your site and ones you filed." : "What you've reported, and what happened next."}
-        actions={<Link href="/dashboard/reports/new" className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800">Report something</Link>}
       />
 
       <div className="flex flex-wrap items-center gap-2">
         <Link href={qs({ status: "open" })} className={chip(status === "open")}>Open</Link>
+        <Link href={qs({ status: "incidents" })} className={chip(status === "incidents")}>Incident responses</Link>
         <Link href={qs({ status: "closed" })} className={chip(status === "closed")}>Closed</Link>
         <Link href={qs({ status: "all" })} className={chip(status === "all")}>All</Link>
         <span className="mx-1 h-4 w-px bg-ink-200" />
-        {SEVERITIES.map((s) => (
+        {(v.isSafetyTeam || v.isSupervisor) && SEVERITIES.map((s) => (
           <Link key={s.key} href={qs({ severity: p.severity === s.key ? undefined : s.key })} className={chip(p.severity === s.key)}>{s.label}</Link>
         ))}
         {v.isSafetyTeam && sites.length > 0 && (
@@ -70,10 +72,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
 
       {reports.length === 0 ? (
         <EmptyState
-          title={status === "open" ? "No open reports" : "No reports match"}
+          title={status === "open" ? "No open reports" : status === "incidents" ? "No incident responses open" : "No reports match"}
           body={v.isSafetyTeam || v.isSupervisor ? "New reports will show up here as soon as someone files one." : "When you report something, you'll be able to follow it here."}
-          href="/dashboard/reports/new"
-          cta="Report something"
         />
       ) : (
         <Card>
@@ -85,8 +85,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                   <Link href={`/dashboard/reports/${r.id}`} className="block px-4 py-3 hover:bg-ink-50 sm:px-5">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <span className="font-mono text-xs text-ink-400">SR-{String(r.number).padStart(4, "0")}</span>
-                      <SeverityBadge severity={r.severity} />
+                      {(v.isSafetyTeam || v.isSupervisor) && <SeverityBadge severity={r.severity} suggested={!r.severityConfirmedAt} />}
                       <ReportStatusBadge status={r.status} />
+                      {r.incident && r.incident.status !== "RESOLVED" && <Badge tone="red">Incident response</Badge>}
                       {!r.ownerId && r.status !== "CLOSED" && <Badge tone="amber">Unassigned</Badge>}
                       {late && <Badge tone="red">Response overdue</Badge>}
                     </div>

@@ -2,9 +2,14 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { actionStatusInfo, investigationStatusInfo, reportStatusInfo, severityInfo } from "@/lib/safety/pack";
 
-export function SeverityBadge({ severity }: { severity: string }) {
+/** `suggested` marks a seriousness level nobody on the response side has confirmed yet, so it never reads as an official assessment. */
+export function SeverityBadge({ severity, suggested = false }: { severity: string; suggested?: boolean }) {
   const s = severityInfo(severity);
-  return <Badge tone={s.tone}>{s.label}</Badge>;
+  return (
+    <Badge tone={suggested ? "neutral" : s.tone}>
+      {suggested ? `${s.label} (suggested)` : s.label}
+    </Badge>
+  );
 }
 
 export function ReportStatusBadge({ status }: { status: string }) {
@@ -54,10 +59,11 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
   );
 }
 
-export function EmptyState({ title, body, href, cta }: { title: string; body?: string; href?: string; cta?: string }) {
+export function EmptyState({ title, body, href, cta, heading = false }: { title: string; body?: string; href?: string; cta?: string; heading?: boolean }) {
+  const Title = heading ? "h1" : "p";
   return (
     <div className="rounded-xl border border-dashed border-ink-200 bg-white px-6 py-10 text-center">
-      <p className="text-sm font-medium text-ink-800">{title}</p>
+      <Title className="text-sm font-medium text-ink-800">{title}</Title>
       {body && <p className="mx-auto mt-1 max-w-md text-sm text-ink-500">{body}</p>}
       {href && cta && (
         <Link href={href} className="mt-4 inline-block rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800">
@@ -71,7 +77,7 @@ export function EmptyState({ title, body, href, cta }: { title: string; body?: s
 export function NoAccess({ what = "this page" }: { what?: string }) {
   return (
     <div className="mx-auto max-w-lg p-6">
-      <EmptyState title="You don't have access to this" body={`Your role doesn't include ${what}. If you think that's a mistake, ask your safety lead or company admin.`} href="/dashboard/overview" cta="Back to home" />
+      <EmptyState heading title="You don't have access to this" body={`Your role doesn't include ${what}. If you think that's a mistake, ask your safety lead or company admin.`} href="/dashboard/overview" cta="Back to home" />
     </div>
   );
 }

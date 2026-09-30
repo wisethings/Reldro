@@ -1579,4 +1579,66 @@ DO $$ BEGIN ALTER TABLE "TalkAcknowledgement" ADD CONSTRAINT "TalkAcknowledgemen
 DO $$ BEGIN ALTER TABLE "Qualification" ADD CONSTRAINT "Qualification_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
 
 DO $$ BEGIN ALTER TABLE "EscalationRule" ADD CONSTRAINT "EscalationRule_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+-- incident workspace, private follow-up, severity confirmation, demo flag
+
+ALTER TABLE "Organization" ADD COLUMN IF NOT EXISTS     "emergencyInstructions" TEXT NOT NULL DEFAULT '',
+ADD COLUMN IF NOT EXISTS     "isDemo" BOOLEAN NOT NULL DEFAULT false;
+
+ALTER TABLE "SafetyReport" ADD COLUMN IF NOT EXISTS     "followUpHash" TEXT,
+ADD COLUMN IF NOT EXISTS     "inspectionId" TEXT,
+ADD COLUMN IF NOT EXISTS     "locationNote" TEXT NOT NULL DEFAULT '',
+ADD COLUMN IF NOT EXISTS     "severityConfirmedAt" TIMESTAMP(3),
+ADD COLUMN IF NOT EXISTS     "severityConfirmedById" TEXT;
+
+ALTER TABLE "ReportEvent" ADD COLUMN IF NOT EXISTS     "attachments" JSONB NOT NULL DEFAULT '[]',
+ADD COLUMN IF NOT EXISTS     "toReporter" BOOLEAN NOT NULL DEFAULT false;
+
+ALTER TABLE "EscalationRule" ADD COLUMN IF NOT EXISTS     "openIncident" BOOLEAN NOT NULL DEFAULT false;
+
+CREATE TABLE IF NOT EXISTS "IncidentResponse" (
+    "id" TEXT NOT NULL,
+    "organizationId" TEXT NOT NULL,
+    "reportId" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'ACTIVE',
+    "leadId" TEXT,
+    "summary" TEXT NOT NULL DEFAULT '',
+    "nextAction" TEXT NOT NULL DEFAULT '',
+    "nextActionDueAt" TIMESTAMP(3),
+    "closeoutSummary" TEXT NOT NULL DEFAULT '',
+    "standDownReason" TEXT NOT NULL DEFAULT '',
+    "openedBy" TEXT NOT NULL DEFAULT 'MANUAL',
+    "openedById" TEXT,
+    "openedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "resolvedAt" TIMESTAMP(3),
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "IncidentResponse_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "IncidentResponder" (
+    "id" TEXT NOT NULL,
+    "incidentId" TEXT NOT NULL,
+    "employeeId" TEXT NOT NULL,
+    "role" TEXT NOT NULL DEFAULT '',
+    "addedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "IncidentResponder_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "IncidentResponse_reportId_key" ON "IncidentResponse"("reportId");
+
+CREATE INDEX IF NOT EXISTS "IncidentResponse_organizationId_status_idx" ON "IncidentResponse"("organizationId", "status");
+
+CREATE INDEX IF NOT EXISTS "IncidentResponder_employeeId_idx" ON "IncidentResponder"("employeeId");
+
+CREATE UNIQUE INDEX IF NOT EXISTS "IncidentResponder_incidentId_employeeId_key" ON "IncidentResponder"("incidentId", "employeeId");
+
+CREATE UNIQUE INDEX IF NOT EXISTS "SafetyReport_followUpHash_key" ON "SafetyReport"("followUpHash");
+
+DO $$ BEGIN ALTER TABLE "IncidentResponse" ADD CONSTRAINT "IncidentResponse_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "IncidentResponse" ADD CONSTRAINT "IncidentResponse_reportId_fkey" FOREIGN KEY ("reportId") REFERENCES "SafetyReport"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "IncidentResponder" ADD CONSTRAINT "IncidentResponder_incidentId_fkey" FOREIGN KEY ("incidentId") REFERENCES "IncidentResponse"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
 `;

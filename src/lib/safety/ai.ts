@@ -219,7 +219,8 @@ export function findEvidenceGaps(input: {
   return { gaps };
 }
 
-export type SummaryDraft = { text: string; generatedBy: Generated };
+/** `sources` lists the records the draft was built from, so a reviewer can check it against them. */
+export type SummaryDraft = { text: string; generatedBy: Generated; sources?: string[] };
 
 export async function summarizeInvestigation(input: {
   facts: ReportFacts;
@@ -231,13 +232,99 @@ export async function summarizeInvestigation(input: {
     `Summarize this report's timeline in a short factual paragraph for a safety manager, then a bulleted list of open questions. Use only these facts.\n\n` +
       `Report: ${input.facts.title}\n${input.facts.description}\nSite: ${input.facts.siteName ?? "n/a"}\nTimeline:\n${lines.join("\n")}\nInvestigation facts: ${input.investigation?.facts || "none"}\nSequence: ${input.investigation?.sequenceNotes || "none"}\nSelected factors: ${input.investigation?.contributingFactors.join(", ") || "none"}`
   );
-  if (raw && raw.trim()) return { text: raw.trim(), generatedBy: "model" };
+  const sources = [
+    `Report SR-${String(input.facts.number).padStart(4, "0")} description`,
+    `${input.events.length} timeline entr${input.events.length === 1 ? "y" : "ies"}`,
+    ...(input.investigation ? ["Investigation facts, sequence and selected factors"] : []),
+  ];
+  if (raw && raw.trim()) return { text: raw.trim(), generatedBy: "model", sources };
   const parts = [
     `Report #${input.facts.number}: ${input.facts.title}. Reported ${input.facts.occurredAt.toDateString()}${input.facts.siteName ? ` at ${input.facts.siteName}` : ""}.`,
     ...lines.map((l) => `• ${l}`),
   ];
   if (input.investigation?.contributingFactors.length) parts.push(`Contributing factors selected so far: ${input.investigation.contributingFactors.join("; ")}.`);
-  return { text: parts.join("\n"), generatedBy: "rules" };
+  return { text: parts.join("\n"), generatedBy: "rules", sources };
+}
+
+// ---------------------------------------------------------------------------
+// Incident closeout and de-identified lesson
+// ---------------------------------------------------------------------------
+
+/** Replaces any known person name with a neutral phrase, as a last line of defense before a lesson is shown. */
+export function scrubNames(text: string, names: string[]): string {
+  let out = text;
+  for (const full of names) {
+    for (const part of [full, ...full.split(/\s+/).filter((p) => p.length > 2)]) {
+      const escaped = part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      out = out.replace(new RegExp(`\\b${escaped}\\b`, "gi"), "a crew member");
+    }
+  }
+  return out;
+}
+
+export async function draftCloseout(input: {
+  facts: ReportFacts;
+  incident: { openedAt: Date; summary: string; decisions: string[]; updates: string[] };
+  actions: { number: number; title: string; status: string }[];
+  investigation: { status: string; contributingFactors: string[] } | null;
+}): Promise<SummaryDraft> {
+  const ref = `SR-${String(input.facts.number).padStart(4, "0")}`;
+  const sources = [
+    `Report ${ref} description`,
+    "Incident situation summary",
+    `${input.incident.decisions.length} recorded decision${input.incident.decisions.length === 1 ? "" : "s"}`,
+    `${input.incident.updates.length} update${input.incident.updates.length === 1 ? "" : "s"}`,
+    `${input.actions.length} corrective action${input.actions.length === 1 ? "" : "s"}`,
+    ...(input.investigation ? ["Investigation status and selected contributing factors"] : []),
+  ];
+  const raw = await askModel(
+    `Draft a factual closeout summary for an incident response, 3 short paragraphs: what happened, how the response went (decisions and updates), and what is still open. ` +
+      `Use only these facts. Leave "[to be added]" where information is missing. Do not assign fault or state a root cause.\n\n` +
+      `Report ${ref}: ${input.facts.title}\n${input.facts.description}\nSite: ${input.facts.siteName ?? "n/a"}\nOccurred: ${input.facts.occurredAt.toISOString()}\n` +
+      `Situation summary: ${input.incident.summary || "none recorded"}\nDecisions:\n${input.incident.decisions.join("\n") || "none"}\nUpdates:\n${input.incident.updates.join("\n") || "none"}\n` +
+      `Actions:\n${input.actions.map((a) => `A-${a.number} ${a.title} (${a.status})`).join("\n") || "none"}\nInvestigation: ${input.investigation ? `${input.investigation.status}; factors selected by the investigator: ${input.investigation.contributingFactors.join(", ") || "none"}` : "none opened"}`
+  );
+  if (raw && raw.trim()) return { text: raw.trim(), generatedBy: "model", sources };
+  const open = input.actions.filter((a) => ["PROPOSED", "APPROVED", "IN_PROGRESS", "COMPLETED"].includes(a.status));
+  const verified = input.actions.filter((a) => a.status === "VERIFIED");
+  const lines = [
+    `${ref}: ${input.facts.title}. Reported for ${input.facts.occurredAt.toDateString()}${input.facts.siteName ? ` at ${input.facts.siteName}` : ""}. Response opened ${input.incident.openedAt.toDateString()}.`,
+    "",
+    input.incident.summary ? `Situation: ${input.incident.summary}` : "Situation: [to be added]",
+    "",
+    input.incident.decisions.length ? "Decisions made:" : "Decisions made: [none recorded]",
+    ...input.incident.decisions.map((d) => `• ${d}`),
+    "",
+    `Corrective actions: ${verified.length} verified complete, ${open.length} still open.`,
+    ...open.map((a) => `• Open: A-${a.number} ${a.title}`),
+    input.investigation ? `Investigation: ${input.investigation.status === "COMPLETE" ? "complete" : "not yet complete"}.` : "Investigation: none opened.",
+    "",
+    "What happens next: [to be added]",
+  ];
+  return { text: lines.join("\n"), generatedBy: "rules", sources };
+}
+
+export async function draftLesson(input: {
+  categoryLabel: string;
+  siteKind: string;
+  factors: string[];
+  actionTitles: string[];
+  namesToScrub: string[];
+}): Promise<SummaryDraft> {
+  const sources = ["Topic of the report", "Contributing factors the investigator selected", "Titles of the corrective actions"];
+  const raw = await askModel(
+    `Write a short lesson for all crews (3 to 5 sentences) about a past safety event. It must be fully de-identified: no names, no job titles of the people involved, no injury or medical details, no exact dates. ` +
+      `Cover: what kind of situation it was, what conditions contributed (from the list), what has changed, and one thing crews can do. Use only these facts.\n\n` +
+      `Topic: ${input.categoryLabel}\nWork setting: ${input.siteKind}\nContributing conditions selected by the investigator: ${input.factors.join("; ") || "none selected"}\nChanges made: ${input.actionTitles.join("; ") || "none yet"}`
+  );
+  if (raw && raw.trim()) return { text: scrubNames(raw.trim(), input.namesToScrub), generatedBy: "model", sources };
+  const parts = [
+    `A ${input.categoryLabel.toLowerCase()} event happened at one of our ${input.siteKind.toLowerCase()}s.`,
+    input.factors.length ? `Conditions that played a part: ${input.factors.join("; ").toLowerCase()}.` : "The conditions that played a part are still being worked out.",
+    input.actionTitles.length ? `What changed: ${input.actionTitles.join("; ")}.` : "Changes are still being decided.",
+    "What you can do: if something like this looks possible on your job, stop and speak up before starting.",
+  ];
+  return { text: scrubNames(parts.join(" "), input.namesToScrub), generatedBy: "rules", sources };
 }
 
 // ---------------------------------------------------------------------------
@@ -261,14 +348,15 @@ export async function summarizeThemes(input: {
     `Same category at same site (repeat): ${input.repeatPairs.map((p) => `${p.category} at ${p.site} x${p.count}`).join(", ") || "none"}`,
   ];
   const raw = await askModel(`Write 3 to 5 short bullet points describing recurring themes a safety leader should look at. Do not add facts or causes. Do not judge people.\n\n${facts.join("\n")}`);
-  if (raw && raw.trim()) return { text: raw.trim(), generatedBy: "model" };
+  const sources = [`Counts of reports, sites and topics from the last ${input.windowDays} days`, "Contributing factors chosen in investigations", `${input.overdueActions} overdue action${input.overdueActions === 1 ? "" : "s"}`];
+  if (raw && raw.trim()) return { text: raw.trim(), generatedBy: "model", sources };
   const bullets: string[] = [];
   for (const p of input.repeatPairs.slice(0, 3)) bullets.push(`${p.category} reports repeated ${p.count} times at ${p.site} in the last ${input.windowDays} days.`);
   if (input.byCategory[0]) bullets.push(`Most common category: ${input.byCategory[0].label} (${input.byCategory[0].count} reports).`);
   if (input.topFactors[0]) bullets.push(`Most selected contributing factor across investigations: ${input.topFactors[0].label} (${input.topFactors[0].count}).`);
   if (input.overdueActions > 0) bullets.push(`${input.overdueActions} corrective action${input.overdueActions === 1 ? " is" : "s are"} overdue.`);
   if (bullets.length === 0) bullets.push("Not enough recorded activity in this window to show patterns.");
-  return { text: bullets.map((b) => `• ${b}`).join("\n"), generatedBy: "rules" };
+  return { text: bullets.map((b) => `• ${b}`).join("\n"), generatedBy: "rules", sources };
 }
 
 // ---------------------------------------------------------------------------
@@ -285,7 +373,8 @@ export async function draftToolboxTalk(input: { topic: string; sourceMaterial: s
     `Draft a 5-minute toolbox talk outline titled for the topic below, using ONLY the approved material. Sections: Why it matters, Key points (max 5), Discussion questions (3), Sign-off line. ` +
       `If the material does not cover something, do not add it.\n\nTopic: ${input.topic}\n\nApproved material:\n${source}`
   );
-  if (raw && raw.trim()) return { text: raw.trim(), generatedBy: "model" };
+  const sources = [`The approved material you provided (${source.length} characters)`, `Topic: ${input.topic}`];
+  if (raw && raw.trim()) return { text: raw.trim(), generatedBy: "model", sources };
   const sentences = source.split(/(?<=[.!?])\s+|\n+/).map((s) => s.replace(/^[-•*\d.)\s]+/, "").trim()).filter((s) => s.length > 15);
   const points = sentences.slice(0, 5);
   const text = [
@@ -302,5 +391,5 @@ export async function draftToolboxTalk(input: { topic: string; sourceMaterial: s
     "",
     "Sign-off: Everyone attending confirms they heard and understood the points above.",
   ].join("\n");
-  return { text, generatedBy: "rules" };
+  return { text, generatedBy: "rules", sources };
 }

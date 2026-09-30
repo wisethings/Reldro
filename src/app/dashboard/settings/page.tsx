@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Building2, HardHat, History, Layers, ShieldCheck, Siren, LifeBuoy } from "lucide-react";
+import { Building2, HardHat, History, Layers, ShieldCheck, Siren, LifeBuoy, PhoneCall } from "lucide-react";
 import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { categoryLabel, getPack, severityInfo, SEVERITIES } from "@/lib/safety/pack";
@@ -10,7 +10,7 @@ import { OrgProfileForm } from "@/components/settings/OrgProfileForm";
 import { AddDepartmentForm } from "@/components/settings/AddDepartmentForm";
 import { InviteAdminForm } from "@/components/settings/InviteAdminForm";
 import { AdminRow } from "@/components/settings/AdminRow";
-import { DeleteRuleButton, EscalationRuleForm, SetupSupportForm } from "@/components/safety/SettingsForms";
+import { DeleteRuleButton, EmergencyInstructionsForm, EscalationRuleForm, SetupSupportForm } from "@/components/safety/SettingsForms";
 
 export default async function SettingsPage() {
   const session = await requireRole(["COMPANY_ADMIN"]);
@@ -44,6 +44,11 @@ export default async function SettingsPage() {
       </Card>
 
       <Card>
+        <CardHeader icon={<IconBadge icon={<PhoneCall size={18} />} tone="coral" />} title="Emergency instructions" subtitle="What every reporter sees before they submit. Reldro is not an emergency service; this is your own plan." />
+        <CardBody><EmergencyInstructionsForm initial={org.emergencyInstructions} /></CardBody>
+      </Card>
+
+      <Card>
         <CardHeader icon={<IconBadge icon={<Siren size={18} />} tone="coral" />} title="Escalation rules" subtitle="Who gets a new report, how fast it needs an acknowledgement, and who is alerted if it doesn't get one. The most specific matching rule wins." />
         <CardBody className="space-y-5">
           {rules.length === 0 ? (
@@ -54,6 +59,7 @@ export default async function SettingsPage() {
                 <li key={r.id} className="flex flex-wrap items-start justify-between gap-3 px-4 py-3 text-sm">
                   <p className="text-ink-800">
                     <strong>{severityInfo(r.minSeverity).label}</strong> or higher{r.category ? ` · ${categoryLabel(r.category, pack)}` : ""}{r.siteId ? ` · ${siteName(r.siteId)}` : ""}: assign to {nameOf(r.ownerId) ?? "the site safety lead"}, acknowledge within {r.respondWithinHours}h{r.escalateToId ? `, then alert ${nameOf(r.escalateToId)}` : ""}.
+                    {r.openIncident && <span className="ml-1 rounded bg-coral-soft px-1.5 py-0.5 text-[11px] font-medium text-danger">Opens an incident response</span>}
                   </p>
                   <DeleteRuleButton ruleId={r.id} />
                 </li>

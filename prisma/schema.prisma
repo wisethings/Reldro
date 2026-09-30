@@ -163,6 +163,10 @@ model Organization {
   // customer. Defaults to a reasonable blended estimate until an admin sets
   // their own in Settings.
   blendedHourlyRate          Float    @default(45)
+  // Shown to every reporter before they submit; the company's own emergency instructions.
+  emergencyInstructions      String   @default("")
+  // True only for the clearly labeled sample workspace. Never set for a customer workspace.
+  isDemo                     Boolean  @default(false)
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
 
@@ -195,6 +199,7 @@ model Organization {
   templates                    Template[]
   hiddenContent                HiddenContent[]
   sites                        Site[]
+  incidents                    IncidentResponse[]
   safetyReports                SafetyReport[]
   correctiveActions            CorrectiveAction[]
   inspectionTemplates          InspectionTemplate[]
@@ -1397,36 +1402,42 @@ model Site {
 }
 
 model SafetyReport {
-  id              String       @id @default(cuid())
-  organizationId  String
-  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  number          Int // human-friendly per-organization sequence (SR-0012)
-  type            String // HAZARD | NEAR_MISS | INJURY | EQUIPMENT | CONCERN
-  category        String
-  title           String
-  description     String
-  transcript      String? // raw voice-note text, kept so a person can compare with the structured version
-  siteId          String?
-  site            Site?        @relation(fields: [siteId], references: [id], onDelete: SetNull)
-  occurredAt      DateTime
-  severity        String // LOW | MEDIUM | HIGH | CRITICAL
-  status          String       @default("NEW") // NEW | ASSIGNED | INVESTIGATING | ACTIONS_OPEN | CLOSED
-  privacy         String       @default("NAMED") // NAMED | CONFIDENTIAL | ANONYMOUS
-  injuryInvolved  Boolean      @default(false)
-  immediateAction String       @default("")
-  attachments     Json         @default("[]") // [{ name, dataUri }]
-  reporterId      String? // Employee id; null when anonymous
-  ownerId         String? // Employee id currently responsible
-  respondBy       DateTime? // from the escalation rule that matched at creation
-  acknowledgedAt  DateTime? // when the owner first acknowledged the report
-  aiAssisted      Boolean      @default(false)
-  closedAt        DateTime?
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  id                    String       @id @default(cuid())
+  organizationId        String
+  organization          Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  number                Int // human-friendly per-organization sequence (SR-0012)
+  type                  String // HAZARD | NEAR_MISS | INJURY | EQUIPMENT | CONCERN
+  category              String
+  title                 String
+  description           String
+  transcript            String? // raw voice-note text, kept so a person can compare with the structured version
+  siteId                String?
+  site                  Site?        @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  occurredAt            DateTime
+  severity              String // LOW | MEDIUM | HIGH | CRITICAL
+  status                String       @default("NEW") // NEW | ASSIGNED | INVESTIGATING | ACTIONS_OPEN | CLOSED
+  privacy               String       @default("NAMED") // NAMED | CONFIDENTIAL | ANONYMOUS
+  injuryInvolved        Boolean      @default(false)
+  immediateAction       String       @default("")
+  attachments           Json         @default("[]") // [{ name, dataUri }]
+  reporterId            String? // Employee id; null when anonymous
+  ownerId               String? // Employee id currently responsible
+  respondBy             DateTime? // from the escalation rule that matched at creation
+  acknowledgedAt        DateTime? // when the owner first acknowledged the report
+  aiAssisted            Boolean      @default(false)
+  closedAt              DateTime?
+  locationNote          String       @default("") // free-text "where exactly", also used when the site is unknown
+  severityConfirmedAt   DateTime? // null = severity is still a suggestion; set when a responder confirms or changes it
+  severityConfirmedById String?
+  followUpHash          String?      @unique // SHA-256 of the private case code (anonymous reports only)
+  inspectionId          String? // set when the report was raised from a failed inspection item
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
 
   events        ReportEvent[]
   investigation Investigation?
   actions       CorrectiveAction[]
+  incident      IncidentResponse?
 
   @@unique([organizationId, number])
   @@index([organizationId, status])
@@ -1434,17 +1445,57 @@ model SafetyReport {
 }
 
 model ReportEvent {
-  id         String       @id @default(cuid())
-  reportId   String
-  report     SafetyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  type       String // CREATED | ASSIGNED | ACKNOWLEDGED | STATUS | COMMENT | ESCALATED | INVESTIGATION | ACTION | AI_DRAFT
-  message    String
-  actorName  String       @default("")
-  actorId    String?
-  restricted Boolean      @default(false) // safety-team-only note
-  createdAt  DateTime     @default(now())
+  id          String       @id @default(cuid())
+  reportId    String
+  report      SafetyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  type        String // CREATED | ASSIGNED | ACKNOWLEDGED | STATUS | COMMENT | ESCALATED | INVESTIGATION | ACTION | AI_DRAFT
+  message     String
+  actorName   String       @default("")
+  actorId     String?
+  restricted  Boolean      @default(false) // safety-team-only note
+  toReporter  Boolean      @default(false) // a message the reporter is meant to read (shown on their report or private follow-up page)
+  attachments Json         @default("[]") // [{ name, dataUri }] evidence added to the timeline
+  createdAt   DateTime     @default(now())
 
   @@index([reportId])
+}
+
+// The response workspace for an event that needs a coordinated response. It is a mode of the
+// report (one row per report), not a second record of the same event.
+model IncidentResponse {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  reportId        String       @unique
+  report          SafetyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  status          String       @default("ACTIVE") // ACTIVE | MONITORING | RESOLVED
+  leadId          String? // Employee id of the response lead
+  summary         String       @default("") // current situation, written by responders
+  nextAction      String       @default("")
+  nextActionDueAt DateTime?
+  closeoutSummary String       @default("")
+  standDownReason String       @default("") // set when responders decide it was not an incident
+  openedBy        String       @default("MANUAL") // MANUAL | RULE
+  openedById      String? // Employee id who opened it (null when opened by a rule)
+  openedAt        DateTime     @default(now())
+  resolvedAt      DateTime?
+  updatedAt       DateTime     @updatedAt
+
+  responders IncidentResponder[]
+
+  @@index([organizationId, status])
+}
+
+model IncidentResponder {
+  id         String           @id @default(cuid())
+  incidentId String
+  incident   IncidentResponse @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  employeeId String
+  role       String           @default("") // free text, e.g. "Site lead", "Medical liaison"
+  addedAt    DateTime         @default(now())
+
+  @@unique([incidentId, employeeId])
+  @@index([employeeId])
 }
 
 model Investigation {
@@ -1612,6 +1663,7 @@ model EscalationRule {
   ownerId            String? // Employee assigned when the rule matches (else the site's safety lead)
   respondWithinHours Int          @default(24)
   escalateToId       String? // Employee alerted when nobody has acknowledged in time
+  openIncident       Boolean      @default(false) // open the incident workspace automatically when this rule matches
   createdAt          DateTime     @default(now())
 
   @@index([organizationId])

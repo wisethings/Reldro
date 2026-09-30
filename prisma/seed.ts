@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { prisma } from "../src/lib/prisma";
 import { hashPassword } from "../src/lib/auth/password";
 import { SCHEMA_SQL } from "../src/lib/schema-sql";
@@ -33,8 +34,23 @@ async function ensureSchema() {
 }
 
 async function clearDatabase() {
+  // Seeding wipes every organization and user. Never do that to a database that holds a real customer workspace.
+  const real = await prisma.organization.count({ where: { isDemo: false } });
+  if (real > 0 && process.env.ALLOW_DESTRUCTIVE_SEED !== "true") {
+    throw new Error(
+      `Refusing to seed: this database has ${real} workspace${real === 1 ? "" : "s"} not marked as sample data. ` +
+        `Seeding deletes all organizations and users. If this is a throwaway database, set ALLOW_DESTRUCTIVE_SEED=true and run again.`
+    );
+  }
   await prisma.$executeRawUnsafe(`TRUNCATE TABLE "Organization", "User" RESTART IDENTITY CASCADE`);
 }
+
+/** Same formula as src/lib/safety/followUp.ts (that module is server-only, so the seed can't import it). */
+function followUpHash(code: string) {
+  const normalized = code.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  return crypto.createHash("sha256").update(`${process.env.AUTH_SECRET ?? ""}:followup:${normalized}`).digest("hex");
+}
+export const DEMO_FOLLOW_UP_CODE = "PLAY-SAFE-2026";
 
 type Person = { key: string; name: string; email: string; title: string; crew: string; site: string | null; supervisor?: boolean; safetyLead?: boolean };
 
@@ -80,6 +96,8 @@ export async function seedDatabase() {
       goals: [],
       onboardingDone: true,
       onboardingStep: 1,
+      isDemo: true,
+      emergencyInstructions: "Call 911 first, then the site superintendent (fictional line 555-0142). Muster at the north gate. Do not move an injured person unless they are in immediate danger.",
     },
   });
   await prisma.user.create({ data: { email: "admin@havenbrook.com", name: "Jordan Cole", passwordHash: hash, role: "COMPANY_ADMIN", organizationId: org.id, lastLoginAt: daysAgo(0) } });
@@ -119,7 +137,7 @@ export async function seedDatabase() {
 
   await prisma.escalationRule.createMany({
     data: [
-      { organizationId: org.id, minSeverity: "CRITICAL", respondWithinHours: 1, escalateToId: emp.maria },
+      { organizationId: org.id, minSeverity: "CRITICAL", respondWithinHours: 1, escalateToId: emp.kevin, ownerId: emp.maria, openIncident: true },
       { organizationId: org.id, minSeverity: "HIGH", respondWithinHours: 4, escalateToId: emp.maria },
       { organizationId: org.id, minSeverity: "MEDIUM", category: "ELECTRICAL", respondWithinHours: 12, escalateToId: emp.maria },
       { organizationId: org.id, minSeverity: "LOW", respondWithinHours: 48, escalateToId: emp.maria },
@@ -232,6 +250,85 @@ export async function seedDatabase() {
     });
   }
 
+  // ---- Incident responses (sample) -----------------------------------------
+  // Everything except the two newest reports has had its seriousness confirmed by a responder.
+  await prisma.safetyReport.updateMany({ where: { organizationId: org.id, number: { notIn: [15, 16] } }, data: { severityConfirmedAt: daysAgo(1), severityConfirmedById: emp.maria } });
+
+  // A resolved response that a rule opened automatically (report 2: the unprotected shaft opening).
+  const rep2 = await prisma.safetyReport.findUniqueOrThrow({ where: { id: created[2] } });
+  const inc2 = await prisma.incidentResponse.create({
+    data: {
+      organizationId: org.id, reportId: rep2.id, status: "RESOLVED", leadId: emp.maria, openedBy: "RULE", openedAt: rep2.createdAt, resolvedAt: daysAgo(38),
+      summary: "Temporary shaft cover was missing at grid C4. The opening was barricaded and watched until a fixed cover went in.",
+      closeoutSummary: "The shaft opening was found uncovered on the morning shift, barricaded within minutes and watched until a bolted cover was installed the same afternoon. Nobody was hurt. The crew lead confirmed with the other trades who had moved the cover. A permanent action (a bolted, painted cover) was created and later verified. Level 3 covers are now checked in the daily huddle.",
+    },
+  });
+  await prisma.incidentResponder.create({ data: { incidentId: inc2.id, employeeId: emp.kevin, role: "Alerted by rule" } });
+  await prisma.reportEvent.createMany({
+    data: [
+      { reportId: rep2.id, type: "INCIDENT", message: "Incident workspace opened automatically by an escalation rule (Life-threatening suggested). Severity is still a suggestion until a responder confirms it.", createdAt: new Date(rep2.createdAt.getTime() + 2000) },
+      { reportId: rep2.id, type: "DECISION", message: "Keep level 3 shaft area closed to all trades until a fixed cover is in.", actorName: "Maria Delgado", actorId: emp.maria, createdAt: new Date(rep2.createdAt.getTime() + 25 * 60_000) },
+      { reportId: rep2.id, type: "UPDATE", message: "Barricade and spotter in place. Superintendent has told the other trades.", actorName: "Tom Brennan", actorId: emp.tom, createdAt: new Date(rep2.createdAt.getTime() + 50 * 60_000) },
+      { reportId: rep2.id, type: "INCIDENT", message: "Incident response resolved. No corrective actions are open.", actorName: "Maria Delgado", actorId: emp.maria, createdAt: daysAgo(38) },
+    ],
+  });
+
+  // An active response opened by hand: report 17, a fall from a scaffold with a clinic visit.
+  const c17 = daysAgo(1, 7);
+  const rep17 = await prisma.safetyReport.create({
+    data: {
+      organizationId: org.id, number: 17, type: "INJURY", category: "LADDERS_LIFTS", severity: "HIGH", title: "Worker fell about 6 feet from scaffold access ladder",
+      description: "Coming down the access ladder on the east scaffold, my foot missed the rung and I fell about six feet to the slab. I was helped up and my ankle hurts. A foreman drove me to the clinic.",
+      siteId: sites.lakeshore, locationNote: "East scaffold, level 2 access", occurredAt: c17, status: "ASSIGNED", privacy: "CONFIDENTIAL", injuryInvolved: true,
+      immediateAction: "Work stopped at the east scaffold. Area barricaded.", reporterId: emp.fatima, ownerId: emp.kevin, respondBy: new Date(c17.getTime() + 4 * 3600_000), acknowledgedAt: new Date(c17.getTime() + 20 * 60_000),
+      severityConfirmedAt: new Date(c17.getTime() + 90 * 60_000), severityConfirmedById: emp.maria, createdAt: c17,
+    },
+  });
+  const at = (min: number) => new Date(c17.getTime() + min * 60_000);
+  const inc17 = await prisma.incidentResponse.create({
+    data: {
+      organizationId: org.id, reportId: rep17.id, status: "ACTIVE", leadId: emp.kevin, openedBy: "MANUAL", openedById: emp.maria, openedAt: at(45),
+      summary: "One worker was hurt in a fall from the east scaffold access ladder and was taken to a clinic by a foreman. The scaffold bay is barricaded. The other trades on level 2 have been told.",
+      nextAction: "Have a competent person inspect the east scaffold and the access ladder before anyone uses them again.", nextActionDueAt: new Date(Date.now() + 5 * 3600_000),
+    },
+  });
+  await prisma.incidentResponder.createMany({ data: [{ incidentId: inc17.id, employeeId: emp.danielle, role: "Supervisor" }, { incidentId: inc17.id, employeeId: emp.maria, role: "Safety" }] });
+  await prisma.reportEvent.createMany({
+    data: [
+      { reportId: rep17.id, type: "CREATED", message: "Report filed confidentially.", createdAt: c17 },
+      { reportId: rep17.id, type: "ASSIGNED", message: "Routed to Kevin Park as the site safety lead.", createdAt: at(0.5) },
+      { reportId: rep17.id, type: "ACKNOWLEDGED", message: "Report acknowledged.", actorName: "Kevin Park", actorId: emp.kevin, createdAt: at(20) },
+      { reportId: rep17.id, type: "INCIDENT", message: "Incident workspace opened: Injury, scaffold, other trades affected.", actorName: "Maria Delgado", actorId: emp.maria, createdAt: at(45) },
+      { reportId: rep17.id, type: "INCIDENT", message: "Sample workspace: no email is sent.", createdAt: at(46) },
+      { reportId: rep17.id, type: "UPDATE", message: "East scaffold barricaded and tagged out. Level 2 crews told to use the west stair.", actorName: "Danielle Okafor", actorId: emp.danielle, createdAt: at(60) },
+      { reportId: rep17.id, type: "DECISION", message: "The east scaffold stays closed until a competent person has inspected it and the access ladder.", actorName: "Kevin Park", actorId: emp.kevin, createdAt: at(75) },
+      { reportId: rep17.id, type: "COMMENT", message: "Clinic visit details and any work restrictions are recorded by HR. Keep out of the shared timeline.", actorName: "Maria Delgado", actorId: emp.maria, restricted: true, createdAt: at(100) },
+      { reportId: rep17.id, type: "MESSAGE_TO_REPORTER", message: "Thanks for reporting this. Kevin is leading the follow-up. Is there anything about the ladder or the scaffold that you noticed before the fall?", actorName: "Kevin Park", actorId: emp.kevin, toReporter: true, createdAt: at(120) },
+      { reportId: rep17.id, type: "STATUS", message: "Severity confirmed as Serious.", actorName: "Maria Delgado", actorId: emp.maria, createdAt: at(90) },
+    ],
+  });
+  await prisma.correctiveAction.create({
+    data: { organizationId: org.id, number: 12, reportId: rep17.id, title: "Inspect east scaffold and access ladder before reuse; replace worn rungs or ladder", priority: "HIGH", status: "IN_PROGRESS", ownerId: emp.danielle, dueDate: daysFromNow(1), proposedById: emp.kevin, approvedById: emp.maria, approvedAt: at(80), createdAt: at(80) },
+  });
+
+  // An anonymous report with a private case code and a reply from the safety team.
+  const c18 = daysAgo(3, 14);
+  const rep18 = await prisma.safetyReport.create({
+    data: {
+      organizationId: org.id, number: 18, type: "CONCERN", category: "PPE", severity: "MEDIUM", title: "Crew told to skip lockout on small panel jobs",
+      description: "On the smaller panel jobs the foreman has said we can skip the lock and tags if it's quick. A few of us aren't comfortable with that.",
+      siteId: sites.northgate, occurredAt: c18, status: "NEW", privacy: "ANONYMOUS", reporterId: null, ownerId: null, respondBy: new Date(c18.getTime() + 48 * 3600_000),
+      followUpHash: followUpHash(DEMO_FOLLOW_UP_CODE), createdAt: c18,
+    },
+  });
+  await prisma.reportEvent.createMany({
+    data: [
+      { reportId: rep18.id, type: "CREATED", message: "Report filed anonymously.", createdAt: c18 },
+      { reportId: rep18.id, type: "ASSIGNED", message: "No owner matched. Waiting for the safety team to assign.", createdAt: new Date(c18.getTime() + 1000) },
+      { reportId: rep18.id, type: "MESSAGE_TO_REPORTER", message: "Thank you for raising this. Lockout is required on all panel work, whatever the size. Can you tell us roughly how often this has been said, and on which type of job?", actorName: "Maria Delgado", actorId: emp.maria, toReporter: true, createdAt: daysAgo(2, 9) },
+    ],
+  });
+
   // ---- Inspections -------------------------------------------------------
   const tpls: Record<string, string> = {};
   for (const t of pack.inspectionTemplates) {
@@ -286,6 +383,7 @@ export async function seedDatabase() {
   console.log("  Safety manager: maria.delgado@havenbrook.com");
   console.log("  Supervisor:     tom.brennan@havenbrook.com");
   console.log("  Employee:       priya.shah@havenbrook.com");
+  console.log(`  Anonymous follow-up demo code (at /follow-up): ${DEMO_FOLLOW_UP_CODE}`);
 }
 
 if (typeof require !== "undefined" && require.main === module) {

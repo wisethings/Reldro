@@ -30,7 +30,7 @@ export async function createAction(_prev: ActionFormState, formData: FormData): 
   const reportId = String(formData.get("reportId") ?? "") || null;
   let report = null;
   if (reportId) {
-    report = await prisma.safetyReport.findFirst({ where: { id: reportId, organizationId: v.organizationId } });
+    report = await prisma.safetyReport.findFirst({ where: { id: reportId, organizationId: v.organizationId }, include: { incident: { include: { responders: true } } } });
     if (!report || !canSeeReport(v, report)) return { error: "Report not found." };
   } else if (!v.isSafetyTeam) {
     return { error: "Actions are created from a report or inspection." };

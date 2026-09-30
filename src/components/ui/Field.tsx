@@ -1,4 +1,5 @@
-import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
+import { Children, cloneElement, isValidElement, useId } from "react";
+import type { InputHTMLAttributes, ReactElement, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
 import { cn } from "./cn";
 
 /**
@@ -45,17 +46,26 @@ export function Field({
   className?: string;
   children: ReactNode;
 }) {
+  const autoId = useId();
+  // When the field wraps exactly one control, tie the label (and the hint) to it so screen readers and
+  // "click the label to focus" work. With several controls inside, the wrapper keeps its plain label.
+  const only = Children.count(children) === 1 && isValidElement(children) ? (children as ReactElement<{ id?: string; "aria-describedby"?: string }>) : null;
+  const controlId = only ? only.props.id ?? `f${autoId}` : undefined;
+  const hintId = hint && only ? `${controlId}-hint` : undefined;
+  const control = only
+    ? cloneElement(only, { id: controlId, "aria-describedby": [only.props["aria-describedby"], hintId].filter(Boolean).join(" ") || undefined })
+    : children;
   return (
     <div className={className}>
-      <label className="flex items-baseline justify-between gap-2">
+      <label htmlFor={controlId} className="flex items-baseline justify-between gap-2">
         <span className="text-xs font-medium text-ink-700">
           {label}
           {required && <span className="ml-0.5 text-danger">*</span>}
         </span>
-        {optional && <span className="text-[11px] text-ink-400">Optional</span>}
+        {optional && <span className="text-[11px] text-ink-500">Optional</span>}
       </label>
-      <div className="mt-1">{children}</div>
-      {hint && <p className="mt-1 text-[11px] leading-snug text-ink-400">{hint}</p>}
+      <div className="mt-1">{control}</div>
+      {hint && <p id={hintId} className="mt-1 text-[11px] leading-snug text-ink-500">{hint}</p>}
     </div>
   );
 }
@@ -63,7 +73,7 @@ export function Field({
 /** Packs short fields (title, select, number, date...) onto one row instead of stacking them full-width - the main lever against wasted vertical space. Falls back to a single column below `sm`. */
 export function FieldGrid({ columns = 2, className, children }: { columns?: 2 | 3 | 4; className?: string; children: ReactNode }) {
   const colsClass = { 2: "sm:grid-cols-2", 3: "sm:grid-cols-3", 4: "sm:grid-cols-2 lg:grid-cols-4" }[columns];
-  return <div className={cn("grid gap-3", colsClass, className)}>{children}</div>;
+  return <div className={cn("grid grid-cols-1 gap-3", colsClass, className)}>{children}</div>;
 }
 
 /** A form's own vertical rhythm - slightly tighter than a page's section spacing so a form of many small fields doesn't sprawl. */

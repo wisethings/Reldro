@@ -1,8 +1,8 @@
 import { cn } from "./cn";
 
-export function Card({ className, children }: { className?: string; children: React.ReactNode }) {
+export function Card({ className, id, children }: { className?: string; id?: string; children: React.ReactNode }) {
   return (
-    <div className={cn("rounded-xl border border-ink-200 bg-white", className)}>
+    <div id={id} className={cn("rounded-xl border border-ink-200 bg-white", className)}>
       {children}
     </div>
   );

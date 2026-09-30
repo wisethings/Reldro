@@ -37,11 +37,12 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
   const pack = getPack();
   const now = new Date();
 
-  const [reports, investigations, actions, lessons] = await Promise.all([
+  const [reports, investigations, actions, lessons, incidents] = await Promise.all([
     prisma.safetyReport.findMany({ where: { organizationId: v.organizationId, createdAt: { gte: since } }, include: { site: true } }),
     prisma.investigation.findMany({ where: { organizationId: v.organizationId, openedAt: { gte: since } }, select: { contributingFactors: true } }),
     prisma.correctiveAction.findMany({ where: { organizationId: v.organizationId, createdAt: { gte: since } } }),
     prisma.investigation.findMany({ where: { organizationId: v.organizationId, shareLesson: true }, include: { report: { select: { category: true } } }, orderBy: { completedAt: "desc" }, take: 10 }),
+    prisma.incidentResponse.findMany({ where: { organizationId: v.organizationId, openedAt: { gte: since } }, select: { status: true, openedAt: true, resolvedAt: true, standDownReason: true } }),
   ]);
 
   const byCategory = tally(reports.map((r) => categoryLabel(r.category, pack)));
@@ -61,6 +62,11 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
   const overdue = open.filter((a) => a.dueDate && a.dueDate < now);
   const verified = actions.filter((a) => a.status === "VERIFIED" && a.verifiedAt);
   const avgDaysToVerify = verified.length ? Math.round(verified.reduce((s, a) => s + (a.verifiedAt!.getTime() - a.createdAt.getTime()) / 86400_000, 0) / verified.length) : null;
+  const ackHours = reports.filter((r) => r.acknowledgedAt).map((r) => (r.acknowledgedAt!.getTime() - r.createdAt.getTime()) / 3600_000).sort((a, b) => a - b);
+  const medianAck = ackHours.length ? ackHours[Math.floor(ackHours.length / 2)] : null;
+  const incidentsResolved = incidents.filter((i) => i.status === "RESOLVED" && !i.standDownReason);
+  const incidentsStoodDown = incidents.filter((i) => i.standDownReason).length;
+  const incidentsOpen = incidents.filter((i) => i.status !== "RESOLVED").length;
   const chip = (active: boolean) => `rounded-full border px-3 py-1.5 text-xs font-medium ${active ? "border-brand-700 bg-orchid-soft text-orchid-deep" : "border-ink-200 bg-white text-ink-600 hover:bg-ink-50"}`;
 
   return (
@@ -74,17 +80,39 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
         {[30, 90, 365].map((n) => <Link key={n} href={`?days=${n}`} className={chip(days === n)}>Last {n === 365 ? "year" : `${n} days`}</Link>)}
       </div>
 
+      <details className="rounded-xl border border-ink-200 bg-white p-4 text-sm text-ink-700">
+        <summary className="cursor-pointer font-medium text-ink-900">How to read this page</summary>
+        <ul className="mt-2 list-disc space-y-1 pl-5">
+          <li>These are counts of what people reported. More reports can mean more people feel able to speak up, not that a site got less safe.</li>
+          <li>A site with few reports isn't necessarily safe; it may be quiet, small or under-reporting.</li>
+          <li>With small numbers, two similar reports can look like a pattern by chance. Check the reports before acting.</li>
+          <li>Anonymous and confidential reports are included in the counts but never tied to a person here.</li>
+          <li>Nothing on this page certifies that a site or process is safe or compliant with any regulation.</li>
+        </ul>
+      </details>
+
       <Card>
         <CardHeader title="Recurring themes" subtitle="A short written summary of the numbers below. A draft to check against them." />
         <CardBody><ThemesSummaryDraft days={days} /></CardBody>
       </Card>
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Card><CardHeader title="Repeated hazards" subtitle="Same topic at the same site, two or more times" /><CardBody><Bars rows={repeats} empty="No repeats in this period." /></CardBody></Card>
         <Card><CardHeader title="Reports by topic" /><CardBody><Bars rows={byCategory.slice(0, 8)} /></CardBody></Card>
         <Card><CardHeader title="Reports by site" /><CardBody><Bars rows={bySite.slice(0, 8)} /></CardBody></Card>
-        <Card><CardHeader title="Reports by kind" subtitle="Near misses and hazards reported early are a good sign; a lot of injuries and no near misses can mean under-reporting." /><CardBody><Bars rows={byType} /></CardBody></Card>
+        <Card><CardHeader title="Reports by kind" subtitle="Near misses and hazards reported early give a chance to fix things before someone is hurt. The mix shows what people chose to report, not everything that happened." /><CardBody><Bars rows={byType} /></CardBody></Card>
         <Card><CardHeader title="Contributing factors in investigations" /><CardBody><Bars rows={factors.slice(0, 8)} empty="No investigations with selected factors yet." /></CardBody></Card>
+        <Card>
+          <CardHeader title="Response" subtitle="How the team is handling what comes in" />
+          <CardBody>
+            <dl className="grid grid-cols-3 gap-3 text-center">
+              <div><dt className="text-xs text-ink-500">Median hours to acknowledge</dt><dd className="text-2xl font-medium tabular-nums text-ink-900">{medianAck === null ? "—" : medianAck < 10 ? medianAck.toFixed(1) : Math.round(medianAck)}</dd></div>
+              <div><dt className="text-xs text-ink-500">Incident responses opened</dt><dd className="text-2xl font-medium tabular-nums text-ink-900">{incidents.length}</dd></div>
+              <div><dt className="text-xs text-ink-500">Still open</dt><dd className="text-2xl font-medium tabular-nums text-ink-900">{incidentsOpen}</dd></div>
+            </dl>
+            <p className="mt-3 text-xs text-ink-400">{incidentsResolved.length} resolved with a closeout{incidentsStoodDown ? `, ${incidentsStoodDown} stood down as not needing one` : ""}. Acknowledgement time uses reports that have been acknowledged.</p>
+          </CardBody>
+        </Card>
         <Card>
           <CardHeader title="Corrective actions" />
           <CardBody>

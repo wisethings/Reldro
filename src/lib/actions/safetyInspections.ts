@@ -2,8 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { audit, isoOrNull, nextActionNumber, requireViewer } from "@/lib/safety/context";
-import { getPack } from "@/lib/safety/pack";
+import { addReportEvent, audit, isoOrNull, nextActionNumber, nextReportNumber, requireViewer } from "@/lib/safety/context";
+import { routeReport } from "@/lib/safety/routing";
+import { getPack, guessCategory } from "@/lib/safety/pack";
 
 export type InspectionFormState = { error?: string; success?: string } | undefined;
 type TemplateItem = { id: string; label: string; critical?: boolean };
@@ -148,4 +149,63 @@ export async function completeInspection(_prev: InspectionFormState, formData: F
   revalidatePath("/dashboard/actions");
   revalidatePath("/dashboard/overview");
   return { success: failures.length ? `Submitted. ${failures.length} failed item${failures.length === 1 ? "" : "s"}${formData.get("createActions") === "on" ? " turned into proposed actions" : ""}.` : "Submitted. No failed items." };
+}
+
+type StoredResult = { itemId: string; label: string; critical?: boolean; result: string; note: string; reportId?: string };
+
+/**
+ * Turns one failed inspection item into a hazard report, so it gets routed, owned and tracked like
+ * any other hazard. The item's proposed action (if any) is attached to the new report instead of
+ * staying a separate record. Does not open an incident response: an inspection finding is a hazard, not an emergency.
+ */
+export async function raiseReportFromInspection(inspectionId: string, itemId: string): Promise<string> {
+  const v = await requireViewer();
+  const inspection = await prisma.inspection.findFirst({ where: { id: inspectionId, organizationId: v.organizationId }, include: { template: true, site: true } });
+  if (!inspection) throw new Error("Inspection not found.");
+  const canRun = v.isSafetyTeam || (v.employeeId !== null && inspection.assigneeId === v.employeeId) || (v.isSupervisor && v.siteId === inspection.siteId);
+  if (!canRun) throw new Error("You don't have access to this inspection.");
+  if (inspection.status !== "COMPLETED") throw new Error("Complete the inspection first.");
+  const results = inspection.results as unknown as StoredResult[];
+  const item = results.find((r) => r.itemId === itemId);
+  if (!item || item.result !== "FAIL") throw new Error("That item didn't fail.");
+  if (item.reportId) throw new Error("A report was already filed for this item.");
+
+  const pack = getPack();
+  const description = `Found during "${inspection.template.name}" at ${inspection.site.name}: ${item.label}.${item.note ? ` Inspector's note: ${item.note}` : ""}`;
+  const category = guessCategory(`${item.label} ${item.note}`, pack);
+  const severity = item.critical ? "HIGH" : "MEDIUM";
+  const routing = await routeReport({ organizationId: v.organizationId, siteId: inspection.siteId, category, severity, createdAt: new Date() });
+
+  const report = await prisma.safetyReport.create({
+    data: {
+      organizationId: v.organizationId,
+      number: await nextReportNumber(v.organizationId),
+      type: "HAZARD",
+      category,
+      title: `Failed inspection item: ${item.label}`.slice(0, 120),
+      description,
+      siteId: inspection.siteId,
+      occurredAt: inspection.completedAt ?? new Date(),
+      severity,
+      status: routing.ownerId ? "ASSIGNED" : "NEW",
+      privacy: "NAMED",
+      reporterId: v.employeeId,
+      ownerId: routing.ownerId,
+      respondBy: routing.respondBy,
+      inspectionId: inspection.id,
+    },
+  });
+  await addReportEvent({ reportId: report.id, type: "CREATED", message: `Report raised from a failed inspection item (${inspection.template.name}).`, actor: { name: v.name, employeeId: v.employeeId } });
+  await addReportEvent({ reportId: report.id, type: "ASSIGNED", message: routing.ownerId ? "Routed to the site's owner." : "No owner matched. Waiting for the safety team to assign." });
+  // Attach the item's existing proposed action to the report so the hazard has one home.
+  await prisma.correctiveAction.updateMany({
+    where: { organizationId: v.organizationId, inspectionId: inspection.id, reportId: null, title: { startsWith: `Fix: ${item.label}`.slice(0, 160) } },
+    data: { reportId: report.id },
+  });
+  await prisma.inspection.update({ where: { id: inspection.id }, data: { results: results.map((r) => (r.itemId === itemId ? { ...r, reportId: report.id } : r)) } });
+  await audit(v, "safety.report_created", "SafetyReport", report.id, { number: report.number, fromInspection: inspection.id });
+  revalidatePath("/dashboard/reports");
+  revalidatePath("/dashboard/overview");
+  revalidatePath(`/dashboard/inspections/${inspection.id}`);
+  return report.id;
 }

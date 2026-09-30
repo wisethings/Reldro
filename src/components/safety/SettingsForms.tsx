@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createEscalationRule, deleteEscalationRule, requestSetupSupport, saveSite, setSiteActive } from "@/lib/actions/safetySettings";
+import { createEscalationRule, deleteEscalationRule, requestSetupSupport, saveEmergencyInstructions, saveSite, setSiteActive } from "@/lib/actions/safetySettings";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
 import { useAct } from "./useAct";
@@ -22,6 +22,16 @@ export function EscalationRuleForm({ severities, categories, sites, people }: { 
       <Field label="Assign to" optional hint="Blank uses the site's safety lead."><Select name="ownerId" defaultValue=""><option value="">Site safety lead</option>{people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select></Field>
       <Field label="Acknowledge within (hours)"><Input name="respondWithinHours" type="number" min={1} max={720} defaultValue={24} required /></Field>
       <Field label="Escalate to if late" optional><Select name="escalateToId" defaultValue=""><option value="">Nobody</option>{people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select></Field>
+      <label className="flex items-start gap-2 rounded-lg border border-ink-200 p-3 text-sm sm:col-span-2 lg:col-span-3">
+        <input type="checkbox" name="openIncident" className="mt-1" />
+        <span>
+          <span className="font-medium text-ink-900">Also open an incident response</span>
+          <span className="block text-xs text-ink-600">
+            When a new report matches, the shared incident workspace opens with the person in “Assign to” as lead, and the escalation contact is added to the response team. Both are emailed a link if email is set up.
+            Seriousness at this point is only a suggestion from the words in the report, so responders can stand it down if it isn't one. Leave this off for minor reports.
+          </span>
+        </span>
+      </label>
       <div className="sm:col-span-2 lg:col-span-3">
         <button disabled={pending} className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? "Adding…" : "Add rule"}</button>
         {state?.error && <p role="alert" className="mt-2 text-sm text-danger">{state.error}</p>}
@@ -48,7 +58,7 @@ export function SetupSupportForm() {
   );
 }
 
-export function SiteEditor({ site, people, trigger }: { site?: { id: string; name: string; address: string; kind: string; safetyLeadId: string | null }; people: Opt[]; trigger: string }) {
+export function SiteEditor({ site, people, trigger, siteExample = "Bayside Tower \u2014 Electrical Package", kinds = [{ key: "JOBSITE", label: "Jobsite" }, { key: "SHOP", label: "Shop / fab shop" }, { key: "YARD", label: "Yard / laydown area" }] }: { site?: { id: string; name: string; address: string; kind: string; safetyLeadId: string | null }; people: Opt[]; trigger: string; siteExample?: string; kinds?: KeyOpt[] }) {
   const [open, setOpen] = useState(false);
   const [state, formAction, pending] = useActionState(saveSite, undefined);
   const router = useRouter();
@@ -61,9 +71,9 @@ export function SiteEditor({ site, people, trigger }: { site?: { id: string; nam
           <form action={formAction} className="space-y-3">
             {site && <input type="hidden" name="siteId" value={site.id} />}
             {state?.error && <p role="alert" className="text-sm text-danger">{state.error}</p>}
-            <Field label="Name" required><Input name="name" defaultValue={site?.name} required placeholder="e.g. Riverside Medical Center (Level 3)" /></Field>
+            <Field label="Name" required><Input name="name" defaultValue={site?.name} required placeholder={`e.g. ${siteExample}`} /></Field>
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Type"><Select name="kind" defaultValue={site?.kind ?? "JOBSITE"}><option value="JOBSITE">Jobsite</option><option value="SHOP">Shop / fab shop</option><option value="YARD">Yard / warehouse</option></Select></Field>
+              <Field label="Type"><Select name="kind" defaultValue={site?.kind ?? kinds[0]?.key}>{kinds.map((k) => <option key={k.key} value={k.key}>{k.label}</option>)}</Select></Field>
               <Field label="Safety lead for this site" hint="Reports here route to this person unless a rule says otherwise."><Select name="safetyLeadId" defaultValue={site?.safetyLeadId ?? ""}><option value="">None yet</option>{people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select></Field>
             </div>
             <Field label="Address" optional><Input name="address" defaultValue={site?.address} /></Field>
@@ -78,4 +88,18 @@ export function SiteEditor({ site, people, trigger }: { site?: { id: string; nam
 export function SiteActiveToggle({ siteId, active }: { siteId: string; active: boolean }) {
   const { run, pending } = useAct();
   return <button disabled={pending} onClick={() => run(() => setSiteActive(siteId, !active))} className="text-xs font-medium text-ink-600 hover:text-ink-900">{active ? "Archive" : "Restore"}</button>;
+}
+
+export function EmergencyInstructionsForm({ initial }: { initial: string }) {
+  const [state, formAction, pending] = useActionState(saveEmergencyInstructions, undefined);
+  return (
+    <form action={formAction} className="space-y-3">
+      <Field label="Emergency instructions shown to reporters" hint="Shown at the top of every report form. Leave blank to show: “Call your local emergency number (911 in the US) and follow your site's emergency plan.” Reldro doesn't contact emergency services.">
+        <Textarea name="emergencyInstructions" rows={3} maxLength={600} defaultValue={initial} placeholder="e.g. Call 911, then the site superintendent at 555-0142. Muster at the north gate." />
+      </Field>
+      <button disabled={pending} className="rounded-full border border-ink-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-ink-50 disabled:opacity-50">{pending ? "Saving…" : "Save"}</button>
+      {state?.error && <p role="alert" className="text-sm text-danger">{state.error}</p>}
+      {state?.success && <p className="rounded-lg bg-sage px-3 py-2 text-sm text-sage-deep">{state.success}</p>}
+    </form>
+  );
 }

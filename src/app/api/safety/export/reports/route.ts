@@ -20,11 +20,12 @@ export async function GET(request: NextRequest) {
 
   const days = Math.min(3650, Math.max(1, Number(request.nextUrl.searchParams.get("days")) || 90));
   const since = new Date(Date.now() - days * 86400_000);
-  const reports = await prisma.safetyReport.findMany({ where: { organizationId: v.organizationId, createdAt: { gte: since } }, include: { site: true }, orderBy: { number: "asc" } });
+  const reports = await prisma.safetyReport.findMany({ where: { organizationId: v.organizationId, createdAt: { gte: since } }, include: { site: true, incident: { select: { status: true } } }, orderBy: { number: "asc" } });
 
   // Reporter names are deliberately not exported; confidential and anonymous reports stay that way.
-  const header = ["Reference", "Reported", "Occurred", "Kind", "Topic", "Seriousness", "Status", "Site", "Injury involved", "Title", "Description"];
-  const rows = reports.map((r) => [`SR-${String(r.number).padStart(4, "0")}`, r.createdAt.toISOString(), r.occurredAt.toISOString(), reportTypeLabel(r.type), categoryLabel(r.category), severityInfo(r.severity).label, r.status, r.site?.name ?? "", r.injuryInvolved ? "Yes" : "No", r.title, r.description]);
+  // The free-text title and description are exported as written, so they can still contain names people typed.
+  const header = ["Reference", "Reported", "Occurred", "Kind", "Topic", "Seriousness", "Seriousness confirmed", "Status", "Incident response", "Site", "Location detail", "Injury involved", "Title", "Description"];
+  const rows = reports.map((r) => [`SR-${String(r.number).padStart(4, "0")}`, r.createdAt.toISOString(), r.occurredAt.toISOString(), reportTypeLabel(r.type), categoryLabel(r.category), severityInfo(r.severity).label, r.severityConfirmedAt ? "Yes" : "No (suggested)", r.status, r.incident ? r.incident.status : "", r.site?.name ?? "", r.locationNote, r.injuryInvolved ? "Yes" : "No", r.title, r.description]);
   await logAudit({ organizationId: v.organizationId, userId: v.userId, action: "safety.exported", entityType: "SafetyReport", metadata: { days, rows: rows.length } });
 
   const csv = [header, ...rows].map((r) => r.map(cell).join(",")).join("\n");

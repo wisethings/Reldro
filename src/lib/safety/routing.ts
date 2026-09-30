@@ -6,6 +6,9 @@ export type Routing = {
   ownerId: string | null;
   respondBy: Date | null;
   ruleId: string | null;
+  /** The matching rule asks for the incident workspace to open automatically. */
+  openIncident: boolean;
+  escalateToId: string | null;
 };
 
 /**
@@ -38,9 +41,11 @@ export async function routeReport(params: {
     .sort((a, b) => b.specificity - a.specificity || b.threshold - a.threshold);
 
   const best = matching[0]?.r;
-  const ownerId = best?.ownerId ?? site?.safetyLeadId ?? null;
+  // A rule that opens the incident workspace applies even when a more specific routing rule wins the owner.
+  const incidentRule = matching.map((m) => m.r).find((r) => r.openIncident);
+  const ownerId = best?.ownerId ?? incidentRule?.ownerId ?? site?.safetyLeadId ?? null;
   const respondBy = best ? new Date(createdAt.getTime() + best.respondWithinHours * 3600_000) : null;
-  return { ownerId, respondBy, ruleId: best?.id ?? null };
+  return { ownerId, respondBy, ruleId: best?.id ?? null, openIncident: Boolean(incidentRule), escalateToId: incidentRule?.escalateToId ?? best?.escalateToId ?? null };
 }
 
 /** Who to alert when a report has gone unacknowledged past its deadline (the matching rule's escalateTo). */

@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { audit, requireViewer } from "@/lib/safety/context";
 import { sendEmail, escapeHtml } from "@/lib/email";
-import { getPack, SEVERITY_ORDER } from "@/lib/safety/pack";
+import { getPack, SEVERITY_ORDER, SITE_KINDS } from "@/lib/safety/pack";
 
 export type SettingsFormState = { error?: string; success?: string } | undefined;
 
@@ -15,7 +15,7 @@ export async function saveSite(_prev: SettingsFormState, formData: FormData): Pr
   const name = String(formData.get("name") ?? "").trim();
   if (!name) return { error: "Give the site a name." };
   const id = String(formData.get("siteId") ?? "");
-  const kind = ["JOBSITE", "SHOP", "YARD"].includes(String(formData.get("kind"))) ? String(formData.get("kind")) : "JOBSITE";
+  const kind = SITE_KINDS.some((k) => k.key === String(formData.get("kind"))) ? String(formData.get("kind")) : "JOBSITE";
   let safetyLeadId: string | null = String(formData.get("safetyLeadId") ?? "") || null;
   if (safetyLeadId) {
     const lead = await prisma.employee.findFirst({ where: { id: safetyLeadId, organizationId: v.organizationId } });
@@ -89,7 +89,12 @@ export async function createEscalationRule(_prev: SettingsFormState, formData: F
     const s = await prisma.site.findFirst({ where: { id: siteId, organizationId: v.organizationId } });
     if (!s) return { error: "Site not found." };
   }
-  await prisma.escalationRule.create({ data: { organizationId: v.organizationId, minSeverity, category, siteId, ownerId, escalateToId, respondWithinHours: hours } });
+  const openIncident = formData.get("openIncident") === "on";
+  if (openIncident && !ownerId) {
+    // An incident needs somebody to lead it, so a rule that opens one must name that person.
+    return { error: "To open an incident response automatically, choose who leads it in “Assign to”." };
+  }
+  await prisma.escalationRule.create({ data: { organizationId: v.organizationId, minSeverity, category, siteId, ownerId, escalateToId, respondWithinHours: hours, openIncident } });
   await audit(v, "safety.settings_changed", "EscalationRule", minSeverity, { created: true });
   revalidatePath("/dashboard/settings");
   return { success: "Rule added." };
@@ -138,7 +143,19 @@ export async function completeSafetyOnboarding(_prev: SettingsFormState, formDat
       });
     }
   }
-  await prisma.organization.update({ where: { id: v.organizationId }, data: { onboardingDone: true, onboardingStep: 1 } });
+  const emergencyInstructions = String(formData.get("emergencyInstructions") ?? "").trim().slice(0, 600);
+  await prisma.organization.update({ where: { id: v.organizationId }, data: { onboardingDone: true, onboardingStep: 1, ...(emergencyInstructions ? { emergencyInstructions } : {}) } });
   await audit(v, "safety.settings_changed", "Site", site.id, { onboarding: true });
   redirect("/dashboard/overview");
+}
+
+export async function saveEmergencyInstructions(_prev: SettingsFormState, formData: FormData): Promise<SettingsFormState> {
+  const v = await requireViewer();
+  if (!v.isAdmin) return { error: "Only company admins can change this." };
+  const text = String(formData.get("emergencyInstructions") ?? "").trim().slice(0, 600);
+  await prisma.organization.update({ where: { id: v.organizationId }, data: { emergencyInstructions: text } });
+  await audit(v, "safety.settings_changed", "Organization", v.organizationId, { emergencyInstructions: true });
+  revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard/reports/new");
+  return { success: text ? "Saved. Reporters will see this before they submit." : "Cleared. Reporters will see the default message." };
 }

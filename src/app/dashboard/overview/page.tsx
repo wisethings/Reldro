@@ -11,6 +11,44 @@ import { Queue, QueueRow } from "@/components/safety/Queue";
 
 const ACTIVE_REPORT = ["NEW", "ASSIGNED", "INVESTIGATING", "ACTIONS_OPEN"];
 
+/** Active incident responses this person is part of: all of them for the safety team, otherwise ones they lead, are on, or that are at the site they supervise. */
+async function loadActiveIncidents(v: Awaited<ReturnType<typeof requireViewer>>) {
+  const mine = v.employeeId
+    ? [{ leadId: v.employeeId }, { responders: { some: { employeeId: v.employeeId } } }, ...(v.isSupervisor && v.siteId ? [{ report: { siteId: v.siteId } }] : [])]
+    : [];
+  if (!v.isSafetyTeam && mine.length === 0) return [];
+  const rows = await prisma.incidentResponse.findMany({
+    where: { organizationId: v.organizationId, status: { not: "RESOLVED" }, ...(v.isSafetyTeam ? {} : { OR: mine }) },
+    include: { report: { include: { site: true } } },
+    orderBy: { openedAt: "asc" },
+    take: 10,
+  });
+  const leads = await prisma.employee.findMany({ where: { id: { in: rows.map((r) => r.leadId).filter((x): x is string => Boolean(x)) } }, include: { user: { select: { name: true } } } });
+  const leadName = new Map(leads.map((l) => [l.id, l.user.name]));
+  rows.sort((a, b) => severityRank(b.report.severity) - severityRank(a.report.severity));
+  return rows.map((r) => ({ ...r, leadName: r.leadId ? leadName.get(r.leadId) ?? null : null }));
+}
+
+function IncidentQueue({ incidents, always }: { incidents: Awaited<ReturnType<typeof loadActiveIncidents>>; always: boolean }) {
+  if (incidents.length === 0 && !always) return null;
+  return (
+    <Queue title="Active incident responses" count={incidents.length} href="/dashboard/reports?status=incidents" tone="alert" empty="No incident responses are open. They appear here when a serious event needs a coordinated response.">
+      {incidents.map((i) => {
+        const late = i.nextActionDueAt && i.nextActionDueAt < new Date();
+        return (
+          <QueueRow
+            key={i.id}
+            href={`/dashboard/reports/${i.reportId}`}
+            title={i.report.title}
+            meta={`SR-${String(i.report.number).padStart(4, "0")} · ${i.report.site?.name ?? "No site"} · Lead: ${i.leadName ?? "none yet"}${i.nextAction ? ` · Next: ${i.nextAction}` : ""}${late ? " (overdue)" : ""}`}
+            right={<SeverityBadge severity={i.report.severity} suggested={!i.report.severityConfirmedAt} />}
+          />
+        );
+      })}
+    </Queue>
+  );
+}
+
 export default async function OverviewPage() {
   const v = await requireViewer();
   const now = new Date();
@@ -31,6 +69,7 @@ export default async function OverviewPage() {
       prisma.inspection.findMany({ where: { organizationId: v.organizationId, status: "SCHEDULED", assigneeId: v.employeeId ?? "__none__" }, include: { template: true, site: true }, orderBy: { dueDate: "asc" }, take: 5 }),
       prisma.qualification.findMany({ where: { employeeId: v.employeeId ?? "__none__", expiresOn: { lte: in30 } }, orderBy: { expiresOn: "asc" } }),
     ]);
+    const activeIncidents = await loadActiveIncidents(v);
     const ackedIds = new Set(acked.map((a) => a.talkId));
     const toAck = talks.filter((t) => !ackedIds.has(t.id));
 
@@ -45,6 +84,7 @@ export default async function OverviewPage() {
         </Link>
         <p className="-mt-2 text-center text-xs text-ink-500">A hazard, near miss, injury or anything that doesn't feel right. About a minute.</p>
 
+        <IncidentQueue incidents={activeIncidents} always={false} />
         <Queue title="Toolbox talks to acknowledge" count={toAck.length} href="/dashboard/training" tone="alert" empty="You're up to date.">
           {toAck.slice(0, 3).map((t) => <QueueRow key={t.id} href="/dashboard/training" title={t.title} meta={fmtDate(t.scheduledFor)} right={<Badge tone="amber">Needs you</Badge>} />)}
         </Queue>
@@ -73,6 +113,7 @@ export default async function OverviewPage() {
   const scopedActions = actionWhere(v);
   const scopedSite = v.isSafetyTeam ? {} : { siteId: v.siteId ?? "__none__" };
 
+  const activeIncidents = await loadActiveIncidents(v);
   const [unassigned, overdueResponse, investigations, overdueActions, awaiting, proposed, inspections, qualsExpiring, talks, empCount, byCategory] = await Promise.all([
     prisma.safetyReport.findMany({ where: { AND: [scopedReports, { status: { in: ["NEW"] } }] }, orderBy: { createdAt: "asc" }, include: { site: true }, take: 6 }),
     prisma.safetyReport.findMany({ where: { AND: [scopedReports, { status: { in: ["NEW", "ASSIGNED"] }, acknowledgedAt: null, respondBy: { lt: now } }] }, orderBy: { respondBy: "asc" }, include: { site: true }, take: 6 }),
@@ -104,10 +145,11 @@ export default async function OverviewPage() {
           <h1 className="text-xl font-semibold text-ink-900">{v.isSafetyTeam ? "Safety overview" : "Your site"}</h1>
           <p className="text-sm text-ink-500">{org?.name} · what needs attention today</p>
         </div>
-        <Link href="/dashboard/reports/new" className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 sm:hidden">Report something</Link>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <IncidentQueue incidents={activeIncidents} always={v.isSafetyTeam} />
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Queue title="Response overdue" count={overdueResponse.length} href="/dashboard/reports?status=open" tone="alert" empty="Every report has been acknowledged within its response time.">
           {escalations.map(({ r, to }) => (
             <QueueRow key={r.id} href={`/dashboard/reports/${r.id}`} title={r.title} meta={`${r.site?.name ?? "No site"} · due ${fmtDate(r.respondBy)}${to ? ` · escalate to ${targetName.get(to) ?? "a lead"}` : " · no escalation contact set"}`} right={<SeverityBadge severity={r.severity} />} />

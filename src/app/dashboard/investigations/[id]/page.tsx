@@ -18,7 +18,7 @@ export default async function InvestigationPage({ params }: { params: Promise<{ 
   const { id } = await params;
   const inv = await prisma.investigation.findFirst({
     where: { id, organizationId: v.organizationId },
-    include: { report: { include: { site: true, actions: true } }, statements: { orderBy: { createdAt: "asc" } }, questions: { orderBy: { createdAt: "asc" } } },
+    include: { report: { include: { site: true, actions: true, incident: { select: { status: true } } } }, statements: { orderBy: { createdAt: "asc" } }, questions: { orderBy: { createdAt: "asc" } } },
   });
   if (!inv) notFound();
   if (!canSeeInvestigation(v, inv)) return <NoAccess what="this investigation" />;
@@ -47,13 +47,13 @@ export default async function InvestigationPage({ params }: { params: Promise<{ 
         <Link href="/dashboard/investigations" className="text-xs font-medium text-ink-500 hover:text-ink-800">← Investigations</Link>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <span className="font-mono text-xs text-ink-400">SR-{String(r.number).padStart(4, "0")}</span>
-          <SeverityBadge severity={r.severity} />
+          <SeverityBadge severity={r.severity} suggested={!r.severityConfirmedAt} />
           <InvestigationStatusBadge status={inv.status} />
           <Badge>{categoryLabel(r.category, pack)}</Badge>
         </div>
         <h1 className="mt-2 text-xl font-semibold text-ink-900">{r.title}</h1>
         <p className="mt-1 text-sm text-ink-500">
-          {r.site?.name ?? "No site"} · {fmtDate(r.occurredAt)} · <Link href={`/dashboard/reports/${r.id}`} className="text-orchid-deep hover:text-oxblood">View the original report</Link>
+          {r.site?.name ?? "No site"} · {fmtDate(r.occurredAt)} · <Link href={`/dashboard/reports/${r.id}`} className="text-orchid-deep hover:text-oxblood">View the original report{r.incident && r.incident.status !== "RESOLVED" ? " and incident response" : ""}</Link>
         </p>
       </div>
 
@@ -61,7 +61,7 @@ export default async function InvestigationPage({ params }: { params: Promise<{ 
         This workspace is for understanding what happened and why, so the conditions can be fixed. It is limited to the safety team and the investigation lead. Reldro drafts help with wording and questions; the findings and root-cause reasoning are yours.
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[1fr,18rem]">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr),18rem]">
         <div className="space-y-5">
           <Card>
             <CardHeader title="Findings" />
