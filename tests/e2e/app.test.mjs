@@ -251,3 +251,33 @@ test("deleting a person also removes their qualifications", async () => {
     await page.context().close();
   }
 });
+
+test("on a phone the Submit bar sits directly above the tab bar, is opaque, and never covers content", async () => {
+  const page = await signIn("priya", { phone: true });
+  try {
+    await page.goto(`${BASE}/dashboard/reports/new`, { waitUntil: "networkidle" });
+    const geometry = () =>
+      page.evaluate(() => {
+        const main = document.querySelector("main");
+        const nav = [...document.querySelectorAll('nav[aria-label="Primary"]')].pop();
+        const bar = [...main.querySelectorAll("div")].find((d) => getComputedStyle(d).position === "sticky" && d.textContent?.includes("Submit report"));
+        const n = nav.getBoundingClientRect();
+        const b = bar.getBoundingClientRect();
+        const bg = getComputedStyle(bar).backgroundColor;
+        return { mainBottom: main.getBoundingClientRect().bottom, navTop: n.top, barBottom: b.bottom, bg, sticky: getComputedStyle(bar).position };
+      });
+    // Scrolled to the top, the bar is pinned just above the tab bar, and the scroll area stops where the tab bar starts.
+    let g = await geometry();
+    assert.ok(Math.abs(g.mainBottom - g.navTop) <= 1, "content area overlaps or leaves a gap above the tab bar");
+    assert.ok(Math.abs(g.navTop - g.barBottom) <= 3, `the Submit bar is not directly above the tab bar (${g.navTop - g.barBottom}px apart)`);
+    assert.ok(/rgb\(/.test(g.bg) && !/rgba/.test(g.bg), `the Submit bar is translucent (${g.bg})`);
+    // Scrolled to the end, it is still flush against the tab bar, and the last field is reachable above it.
+    await page.evaluate(() => document.querySelector("main").scrollTo({ top: 1e7, behavior: "instant" }));
+    await page.waitForTimeout(250);
+    g = await geometry();
+    assert.ok(Math.abs(g.navTop - g.barBottom) <= 3, "the Submit bar drifts away from the tab bar at the end of the form");
+    assert.equal(await hasSideways(page), false);
+  } finally {
+    await page.context().close();
+  }
+});

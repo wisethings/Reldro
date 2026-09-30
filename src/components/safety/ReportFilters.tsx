@@ -39,11 +39,11 @@ export function ReportFilters({ statuses, severities, sites, showSeverity }: { s
   const status = get("status") || "open";
   const attention = get("attention");
   const active = Boolean(get("severity") || get("site") || get("q") || attention);
-  const select = "h-8 rounded-lg border border-ink-200 bg-white px-2.5 text-xs text-ink-800 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500";
+  const select = "h-10 w-full min-w-0 rounded-lg border border-ink-200 bg-white px-2.5 text-base md:h-8 md:w-auto md:text-xs text-ink-800 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500";
 
   return (
-    <div role="search" aria-busy={busy} className={`flex w-fit max-w-full flex-wrap items-center gap-2 surface p-1.5 transition-opacity ${busy ? "opacity-80" : ""}`}>
-      <div role="group" aria-label="Status" className="flex rounded-lg bg-ink-100 p-0.5">
+    <div role="search" aria-busy={busy} className={`flex w-full sm:w-fit max-w-full flex-wrap items-center gap-2 surface p-1.5 transition-opacity ${busy ? "opacity-80" : ""}`}>
+      <div role="group" aria-label="Status" className="flex rounded-lg bg-ink-100 p-0.5 max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0 [&>*]:whitespace-nowrap">
         {statuses.map((s) => (
           <button key={s.value} type="button" onClick={() => go({ status: s.value, attention: "" })} aria-pressed={status === s.value && !attention} className={`h-7 rounded-md px-3 text-xs font-medium transition-colors ${status === s.value && !attention ? "bg-white text-ink-900 shadow-[0_0_0_1px_rgba(42,10,12,0.08)]" : "text-ink-600 hover:text-ink-900"}`}>
             {s.label}
@@ -58,7 +58,7 @@ export function ReportFilters({ statuses, severities, sites, showSeverity }: { s
       </label>
 
       {showSeverity && (
-        <label>
+        <label className="min-w-0 flex-1 basis-[calc(50%-0.25rem)] sm:flex-none sm:basis-auto">
           <span className="sr-only">Seriousness</span>
           <select value={get("severity")} onChange={(e) => go({ severity: e.target.value })} className={select}>
             <option value="">Any seriousness</option>
@@ -67,7 +67,7 @@ export function ReportFilters({ statuses, severities, sites, showSeverity }: { s
         </label>
       )}
       {sites.length > 0 && (
-        <label>
+        <label className="min-w-0 flex-1 basis-[calc(50%-0.25rem)] sm:flex-none sm:basis-auto">
           <span className="sr-only">Site</span>
           <select value={get("site")} onChange={(e) => go({ site: e.target.value })} className={select}>
             <option value="">All sites</option>

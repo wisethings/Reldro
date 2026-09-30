@@ -24,7 +24,7 @@ export default async function InspectionPage({ params }: { params: Promise<{ id:
 
   return (
     <div className="min-h-full bg-surface-muted">
-    <div className="mx-auto max-w-2xl space-y-5 px-4 py-6 sm:px-8 sm:py-8">
+    <div className={`mx-auto max-w-2xl space-y-5 px-4 py-6 sm:px-8 sm:py-8 ${i.status === "SCHEDULED" ? "pb-0 sm:pb-8" : ""}`}>
       <div>
         <Link href="/dashboard/inspections" className="text-xs font-medium text-ink-500 hover:text-ink-800">← Inspections</Link>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight text-ink-900">{i.template.name}</h1>

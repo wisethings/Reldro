@@ -14,10 +14,10 @@ export function Topbar({ audience, onMenuClick, hideReportCta = false }: { audie
   const crumb = pathname.startsWith("/dashboard/account") ? { group: "Organization", label: "Account" } : here ? { group: here.group, label: here.label } : { group: undefined, label: "Reldro" };
 
   return (
-    <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-ink-200/70 px-3 sm:px-4">
+    <header className="flex h-[calc(3rem+env(safe-area-inset-top))] shrink-0 items-center justify-between gap-3 border-b border-ink-200/70 pl-[max(0.5rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] pt-[env(safe-area-inset-top)] sm:px-4 sm:pl-4 sm:pr-4 md:h-12 md:pt-0">
       <div className="flex min-w-0 items-center gap-2">
-        <button type="button" onClick={onMenuClick} aria-label="Open menu" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-ink-700 hover:bg-ink-100 md:hidden">
-          <Menu size={18} aria-hidden />
+        <button type="button" onClick={onMenuClick} aria-label="Open menu" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-ink-700 hover:bg-ink-100 md:hidden">
+          <Menu size={20} aria-hidden />
         </button>
         {Icon && (
           <span aria-hidden className="hidden h-6 w-6 shrink-0 items-center justify-center rounded-md bg-orchid-soft text-orchid-deep sm:flex">
@@ -31,7 +31,7 @@ export function Topbar({ audience, onMenuClick, hideReportCta = false }: { audie
               <ChevronRight size={13} aria-hidden className="hidden text-ink-300 sm:block" />
             </>
           )}
-          <span className="truncate font-medium text-ink-900">{crumb.label}</span>
+          <span className="truncate text-[15px] font-semibold text-ink-900 md:text-sm md:font-medium">{crumb.label}</span>
         </nav>
       </div>
       {!hideReportCta && (

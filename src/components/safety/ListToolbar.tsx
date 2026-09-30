@@ -42,7 +42,7 @@ export function ListToolbar({
   const owned = [searchParam, ...selects.map((s) => s.param)];
   const active = owned.some((k) => params.get(k));
   const clear = () => { setQ(""); push(Object.fromEntries(owned.map((k) => [k, ""]))); };
-  const sel = "h-8 rounded-lg border border-ink-300 bg-white px-2 text-xs text-ink-800 outline-none hover:border-ink-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20";
+  const sel = "h-10 min-w-0 max-w-full flex-1 basis-[calc(50%-0.25rem)] rounded-lg sm:flex-none sm:basis-auto border border-ink-300 bg-white px-2 text-base md:h-8 md:text-xs text-ink-800 outline-none hover:border-ink-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20";
 
   return (
     <div role="search" aria-busy={busy} className="flex flex-wrap items-center gap-2">
@@ -55,7 +55,7 @@ export function ListToolbar({
           value={q}
           placeholder={placeholder}
           onChange={(e) => { setQ(e.target.value); clearTimeout(timer.current); const val = e.target.value; timer.current = setTimeout(() => push({ [searchParam]: val.trim() }), 250); }}
-          className="h-8 w-full rounded-lg border border-ink-300 bg-white pl-8 pr-2.5 text-xs text-ink-900 outline-none placeholder:text-ink-400 hover:border-ink-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+          className="h-10 w-full rounded-lg border border-ink-300 bg-white pl-8 pr-2.5 text-base text-ink-900 md:h-8 md:flex-none md:basis-auto md:text-xs outline-none placeholder:text-ink-400 hover:border-ink-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
         />
       </div>
       {selects.map((s) => (

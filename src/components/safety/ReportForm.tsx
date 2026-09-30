@@ -12,6 +12,7 @@ import { DraftLabel } from "./ui";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { Alert } from "@/components/ui/Alert";
 import { Spinner } from "@/components/ui/Spinner";
+import { MobileStickyActionBar } from "@/components/ui/MobileStickyActionBar";
 
 type Option = { key: string; label: string; plain?: string };
 
@@ -260,7 +261,7 @@ export function ReportForm({
     `relative flex cursor-pointer select-none flex-col justify-center rounded-lg border px-3.5 py-2.5 text-left transition-all focus-within:ring-2 focus-within:ring-brand-500 focus-within:ring-offset-1 active:scale-[0.99] ${checked ? "border-brand-700 bg-orchid-soft/70" : "border-ink-200 bg-white hover:border-ink-300 hover:bg-surface-hover"}`;
 
   return (
-    <form action={formAction} className="space-y-9 pb-32 sm:pb-0" noValidate={false}>
+    <form action={formAction} className="space-y-9" noValidate={false}>
       <input type="hidden" name="type" value={type} />
       <input type="hidden" name="category" value={category} />
       <input type="hidden" name="title" value={title} />
@@ -401,7 +402,7 @@ export function ReportForm({
           </div>
           <fieldset>
             <legend className="text-xs font-medium text-ink-700">When did it happen?</legend>
-            <div className="mt-1 inline-flex w-full rounded-lg bg-ink-100 p-0.5">
+            <div className="mt-1 inline-flex w-full rounded-lg bg-ink-100 p-0.5 max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0 [&>*]:whitespace-nowrap">
               {(["now", "earlier"] as const).map((w) => (
                 <button
                   key={w}
@@ -487,20 +488,21 @@ export function ReportForm({
         </details>
       </fieldset>
 
-      <div id="submit" className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-30 border-t border-ink-200 bg-white/95 p-3 backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:p-0 md:bottom-0">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+      <MobileStickyActionBar bleed="-mx-9">
+        <div id="submit" className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
           <button
             type="submit"
             disabled={!canSubmit}
-            className={`w-full rounded-full px-7 py-3.5 text-base font-semibold transition-colors sm:w-auto ${canSubmit ? "bg-brand-700 text-white hover:bg-brand-800" : "cursor-not-allowed bg-ink-100 text-ink-400"}`}
+            className={`w-full rounded-full px-7 py-3 text-base font-semibold transition-colors sm:w-auto sm:py-3.5 ${canSubmit ? "bg-brand-700 text-white hover:bg-brand-800" : "cursor-not-allowed bg-ink-100 text-ink-600"}`}
           >
-            {submitting ? <><Spinner /> Submitting…</> : "Submit report"}
+            {/* On a phone the button itself says what is missing, so the bar stays one row tall. */}
+            {submitting ? <><Spinner /> Submitting…</> : canSubmit ? "Submit report" : <><span className="text-sm sm:hidden">{problem}</span><span className="hidden sm:inline">Submit report</span></>}
           </button>
-          <p className={`text-center text-xs sm:text-left ${canSubmit ? "text-sage-deep" : "text-ink-600"}`} aria-live="polite">
+          <p className={`hidden text-xs sm:block ${canSubmit ? "text-sage-deep" : "text-ink-600"}`} aria-live="polite">
             {canSubmit ? "Ready to submit. You can still add more details above." : problem}
           </p>
         </div>
-      </div>
+      </MobileStickyActionBar>
     </form>
   );
 }

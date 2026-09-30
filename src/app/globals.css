@@ -159,3 +159,36 @@ main,
 }
 /* Soft fade for content that is refreshing in place (filters, tabs). */
 [aria-busy="true"] { transition: opacity 150ms ease; }
+
+/* Indeterminate progress line for links/tabs whose data is loading: sits on the bottom edge, never inside the label. */
+@keyframes reldro-slide {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(250%); }
+}
+.pending-bar {
+  pointer-events: none;
+  position: absolute;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 1px;
+  height: 2px;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: color-mix(in srgb, currentColor 18%, transparent);
+}
+.pending-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  border-radius: inherit;
+  background: currentColor;
+  animation: reldro-slide 1s cubic-bezier(0.45, 0.15, 0.55, 0.85) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pending-bar::after { animation-duration: 2.4s; }
+}
+
+/* Phones: stop the browser inflating text and swiping the whole page sideways. */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body { overflow-x: clip; }

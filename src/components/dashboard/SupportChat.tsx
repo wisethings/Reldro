@@ -83,7 +83,7 @@ export function SupportChat() {
           type="button"
           onClick={() => setOpen(true)}
           aria-label={unread > 0 ? `Help and messages, ${unread} unread` : "Help and messages"}
-          className="fixed bottom-20 left-3 z-40 flex h-10 w-10 items-center justify-center rounded-full bg-oxblood text-bone shadow-lg outline-none transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 md:bottom-20 md:left-4"
+          className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-3 z-30 md:bottom-20 flex h-10 w-10 items-center justify-center rounded-full bg-oxblood text-bone shadow-lg outline-none transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 md:bottom-20 md:left-4"
         >
           <CircleHelp size={20} aria-hidden />
           {unread > 0 && <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-coral px-1 text-[10px] font-semibold text-oxblood">{unread}</span>}
@@ -93,7 +93,7 @@ export function SupportChat() {
         <section
           role="dialog"
           aria-label="Help with Reldro"
-          className="fixed inset-x-3 bottom-20 z-50 flex max-h-[min(34rem,calc(100dvh-6rem))] flex-col overflow-hidden rounded-2xl border border-ink-200 bg-white shadow-2xl sm:inset-x-auto sm:left-4 sm:w-96 md:bottom-4"
+          className="fixed inset-x-3 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-50 md:bottom-20 flex max-h-[min(34rem,calc(100dvh-6rem))] flex-col overflow-hidden rounded-2xl border border-ink-200 bg-white shadow-2xl sm:inset-x-auto sm:left-4 sm:w-96 md:bottom-4"
         >
           <header className="flex items-start gap-2 bg-oxblood px-4 py-3 text-bone">
             <div className="min-w-0 flex-1">

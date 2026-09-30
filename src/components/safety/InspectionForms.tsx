@@ -12,6 +12,7 @@ import { btnGhost, btnPrimary, btnSecondary, FormPanel, FormSection } from "@/co
 import { useAct } from "./useAct";
 import { Alert } from "@/components/ui/Alert";
 import { Spinner } from "@/components/ui/Spinner";
+import { MobileStickyActionBar } from "@/components/ui/MobileStickyActionBar";
 
 export function ScheduleInspectionForm({ templates, sites, people, onSuccess }: { onSuccess?: () => void; templates: { id: string; name: string }[]; sites: { id: string; name: string }[]; people: { id: string; name: string }[] }) {
   const [state, formAction, pending] = useActionState(scheduleInspection, undefined);
@@ -47,7 +48,7 @@ export function InspectionRunner({ inspectionId, items }: { inspectionId: string
   const router = useRouter();
   useEffect(() => { if (state?.success) router.refresh(); }, [state, router]);
   return (
-    <form action={formAction} className="space-y-4 pb-24 sm:pb-0">
+    <form action={formAction} className="space-y-4">
       <input type="hidden" name="inspectionId" value={inspectionId} />
       {state?.error && <Alert tone="error">{state.error}</Alert>}
       {state?.success && <p className="rounded-lg bg-sage px-3 py-2 text-sm text-sage-deep">{state.success}</p>}
@@ -69,9 +70,9 @@ export function InspectionRunner({ inspectionId, items }: { inspectionId: string
       </ul>
       <Field label="Overall notes" optional><Textarea name="notes" rows={2} /></Field>
       <label className="flex items-start gap-2 text-sm text-ink-800"><input type="checkbox" name="createActions" defaultChecked className="mt-1" /> Turn failed items into proposed corrective actions</label>
-      <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-30 border-t border-ink-200 bg-white p-3 sm:static sm:border-0 sm:bg-transparent sm:p-0 md:bottom-0">
+      <MobileStickyActionBar bleed="-mx-4">
         <button disabled={pending} className="w-full rounded-full bg-brand-700 px-6 py-3 text-base font-semibold text-white hover:bg-brand-800 disabled:opacity-50 sm:w-auto">{pending ? <><Spinner /> Submitting…</> : "Submit inspection"}</button>
-      </div>
+      </MobileStickyActionBar>
     </form>
   );
 }
@@ -198,7 +199,7 @@ export function ChecklistBuilder({ initial, onDone, onCancel }: { initial?: Chec
             <Field label="Checklist name" required error={nameError}><Input value={name} onChange={(e) => setName(e.target.value)} onBlur={() => setTouched(true)} placeholder="e.g. Electrical room readiness" autoFocus={!initial} /></Field>
             <div>
               <span className="text-xs font-semibold text-ink-800">Type</span>
-              <div role="radiogroup" aria-label="Type" className="mt-1 flex rounded-lg bg-ink-100 p-0.5">
+              <div role="radiogroup" aria-label="Type" className="mt-1 flex rounded-lg bg-ink-100 p-0.5 max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0 [&>*]:whitespace-nowrap">
                 {KINDS.map((k) => (
                   <button key={k.key} type="button" role="radio" aria-checked={kind === k.key} onClick={() => setKind(k.key)} className={`whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${kind === k.key ? "bg-white text-ink-900 shadow-[0_0_0_1px_rgba(42,10,12,0.1)]" : "text-ink-600 hover:text-ink-900"}`}>{k.label}</button>
                 ))}

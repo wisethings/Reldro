@@ -82,7 +82,7 @@ export default async function SitesPage({ searchParams }: { searchParams: Promis
 
       {showTools && (
         <div className="flex flex-wrap items-center gap-2">
-          <div role="group" aria-label="Filter sites" className="flex rounded-lg bg-ink-100 p-0.5">
+          <div role="group" aria-label="Filter sites" className="flex rounded-lg bg-ink-100 p-0.5 max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0 [&>*]:whitespace-nowrap">
             <QueryLink href="?" className={chip(view === "all")}>All</QueryLink>
             <QueryLink href="?view=attention" className={chip(view === "attention")}>Needs attention{needsAttention > 0 ? ` (${needsAttention})` : ""}</QueryLink>
             <QueryLink href="?view=track" className={chip(view === "track")}>On track</QueryLink>

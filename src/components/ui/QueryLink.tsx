@@ -2,11 +2,11 @@
 
 import Link, { useLinkStatus } from "next/link";
 import type { ComponentProps } from "react";
-import { Spinner } from "@/components/ui/Spinner";
 
 function Pending() {
   const { pending } = useLinkStatus();
-  return pending ? <Spinner className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 text-[0.7rem]" /> : null;
+  // A thin sliding line along the bottom edge: clearly "loading", but it sits outside the label, so it can't cover text or resize the control.
+  return pending ? <span aria-hidden className="pending-bar" /> : null;
 }
 
 /**

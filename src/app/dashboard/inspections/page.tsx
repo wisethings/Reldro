@@ -100,7 +100,7 @@ export default async function InspectionsPage({ searchParams }: { searchParams: 
       {inList ? (
         <>
           <div className="flex flex-wrap items-center gap-2">
-            <div role="group" aria-label="Filter inspections" className="flex rounded-lg bg-ink-100 p-0.5">
+            <div role="group" aria-label="Filter inspections" className="flex rounded-lg bg-ink-100 p-0.5 max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0 [&>*]:whitespace-nowrap">
               <QueryLink scroll={false} href={href({ view: undefined, page: undefined })} className={seg(view === "all")}>All ({nAll})</QueryLink>
               <QueryLink scroll={false} href={href({ view: "overdue", page: undefined })} className={`${seg(view === "overdue")} ${view !== "overdue" && nLate > 0 ? "!text-danger" : ""}`}>Overdue ({nLate})</QueryLink>
               <QueryLink scroll={false} href={href({ view: "soon", page: undefined })} className={`${seg(view === "soon")} ${view !== "soon" && nSoon > 0 ? "!text-amber-deep" : ""}`}>Due soon ({nSoon})</QueryLink>

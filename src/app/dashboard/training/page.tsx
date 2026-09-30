@@ -82,18 +82,18 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
         <li>
           <details className="group open:expand-band">
             <summary className={`grid cursor-pointer list-none grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-2.5 outline-none hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500 ${canManage ? "md:grid-cols-[minmax(0,1fr)_9.5rem_10.5rem_8rem]" : "md:grid-cols-[minmax(0,1fr)_auto_6.5rem]"} [&::-webkit-details-marker]:hidden`}>
-              <div className="min-w-0">
-                <p title={r.t.title} className="truncate text-sm font-semibold text-ink-900">{r.t.title}</p>
-                <p className="mt-0.5 truncate text-xs text-ink-500">{fmtDate(r.t.scheduledFor)} · {r.where} · {r.t.createdByName}{r.t.aiDrafted ? " · AI-assisted, reviewed" : ""}</p>
+              <div className="col-span-2 min-w-0 md:col-span-1">
+                <p title={r.t.title} className="line-clamp-2 text-sm font-semibold text-ink-900 md:line-clamp-1">{r.t.title}</p>
+                <p className="mt-0.5 line-clamp-2 text-xs text-ink-500 md:truncate">{fmtDate(r.t.scheduledFor)} · {r.where} · {r.t.createdByName}{r.t.aiDrafted ? " · AI-assisted, reviewed" : ""}</p>
               </div>
               {canManage ? (
-                <div className="order-3 col-span-2 flex items-center gap-2 group-open:invisible md:order-none md:col-span-1" title={`${r.acked} of ${r.audience} acknowledged`}>
+                <div className="order-4 col-span-2 flex items-center gap-2 group-open:invisible md:order-none md:col-span-1" title={`${r.acked} of ${r.audience} acknowledged`}>
                   <span aria-hidden className="h-1.5 w-full max-w-24 overflow-hidden rounded-full bg-ink-100"><span className={`block h-full rounded-full ${pct === 100 ? "bg-sage-deep" : "bg-orchid-deep"}`} style={{ width: `${pct}%` }} /></span>
                   <span className="shrink-0 text-xs tabular-nums text-ink-600">{r.acked} of {r.audience}</span>
                 </div>
               ) : null}
               <div className="order-2 md:order-none"><Badge tone={st.tone}>{r.status === "needs" && !canManage ? "Needs acknowledgment" : st.label}</Badge></div>
-              <div className="order-4 col-span-2 flex justify-start md:order-none md:col-span-1 md:justify-end">
+              <div className="order-3 flex justify-end md:order-none md:col-span-1">
                 {!canManage && r.status === "needs" && v.employeeId ? <AcknowledgeButton talkId={r.t.id} compact /> : <span className="text-xs font-medium text-orchid-deep group-hover:text-oxblood group-open:hidden">View talk →</span>}
               </div>
             </summary>
@@ -130,7 +130,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
     body = (
       <div className="space-y-6">
         <div className="flex flex-wrap items-center gap-2">
-          <div role="group" aria-label="Filter talks" className="flex rounded-lg bg-ink-100 p-0.5">
+          <div role="group" aria-label="Filter talks" className="flex rounded-lg bg-ink-100 p-0.5 max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0 [&>*]:whitespace-nowrap">
             <QueryLink href={href({ filter: undefined })} className={seg(filter === "all")}>All</QueryLink>
             <QueryLink href={href({ filter: "needs" })} className={seg(filter === "needs")}>Needs acknowledgment{counts.needs > 0 ? ` (${counts.needs})` : ""}</QueryLink>
             <QueryLink href={href({ filter: "upcoming" })} className={seg(filter === "upcoming")}>Upcoming</QueryLink>
@@ -205,9 +205,10 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
         <div className="space-y-3">
           <ul className="surface divide-y divide-ink-100">
             {mine.rows.map(({ q, status }) => (
-              <li key={q.id} className="flex min-h-[2.75rem] flex-wrap items-center justify-between gap-2 px-4 py-2.5">
-                <div className="min-w-0"><p className="truncate text-sm font-semibold text-ink-900">{q.name}</p><p className="text-xs text-ink-500">{q.issuedOn ? `Issued ${fmtDate(q.issuedOn)} · ` : ""}{q.expiresOn ? `Expires ${fmtDate(q.expiresOn)}` : "No expiry"}</p></div>
-                {status === "expired" ? <Badge tone="red">Expired</Badge> : status === "soon" ? <Badge tone="amber">Expires soon</Badge> : <Badge tone="green">Current</Badge>}
+              <li key={q.id} className="grid min-h-[2.75rem] grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 px-4 py-2.5">
+                <p className="truncate text-sm font-semibold text-ink-900">{q.name}</p>
+                <span className="row-span-2 self-start">{status === "expired" ? <Badge tone="red">Expired</Badge> : status === "soon" ? <Badge tone="amber">Expires soon</Badge> : <Badge tone="green">Current</Badge>}</span>
+                <p className="text-xs text-ink-500">{q.issuedOn ? `Issued ${fmtDate(q.issuedOn)} · ` : ""}{q.expiresOn ? `Expires ${fmtDate(q.expiresOn)}` : "No expiry"}</p>
               </li>
             ))}
           </ul>
@@ -272,7 +273,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
           </section>
 
           <div className="flex flex-wrap items-center gap-2">
-            <div role="group" aria-label="Filter by status" className="flex rounded-lg bg-ink-100 p-0.5">
+            <div role="group" aria-label="Filter by status" className="flex rounded-lg bg-ink-100 p-0.5 max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0 [&>*]:whitespace-nowrap">
               <QueryLink scroll={false} href={qHref({ qs: undefined, qpage: undefined })} className={seg2(!qs)}>All ({counts.all})</QueryLink>
               <QueryLink scroll={false} href={qHref({ qs: "expired", qpage: undefined })} className={`${seg2(qs === "expired", "red")} ${counts.expired > 0 && qs !== "expired" ? "!text-danger" : ""}`}>Expired ({counts.expired})</QueryLink>
               <QueryLink scroll={false} href={qHref({ qs: "soon", qpage: undefined })} className={`${seg2(qs === "soon", "amber")} ${counts.soon > 0 && qs !== "soon" ? "!text-amber-deep" : ""}`}>Expiring soon ({counts.soon})</QueryLink>

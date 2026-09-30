@@ -35,10 +35,13 @@ export function DashboardShell({
       <div className="flex min-w-0 flex-1 flex-col md:py-2 md:pr-2">
         <div className="flex min-h-0 flex-1 flex-col overflow-clip bg-white md:rounded-2xl md:border md:border-ink-200/70 md:shadow-[0_1px_2px_rgba(42,10,12,0.04)]">
           <Topbar audience={audience} onMenuClick={() => setMobileOpen(true)} hideReportCta={hideReportCta} />
-          <main className="min-w-0 flex-1 overflow-y-auto bg-surface-muted pb-24 [scrollbar-gutter:stable] md:pb-0">{children}</main>
+          {/* The scroll area ends exactly where the tab bar begins (the bar is part of the layout, not laid over it), so content
+              can never run underneath it. `scroll-pb` keeps a focused field clear of a sticky action bar when the browser
+              scrolls it into view. */}
+          <main className="min-w-0 flex-1 overflow-y-auto overscroll-contain bg-surface-muted [scrollbar-gutter:stable] scroll-pb-28 md:scroll-pb-0">{children}</main>
         </div>
+        <MobileTabBar onMenu={() => setMobileOpen(true)} />
       </div>
-      <MobileTabBar onMenu={() => setMobileOpen(true)} />
       {showSupport && <SupportChat />}
     </div>
   );

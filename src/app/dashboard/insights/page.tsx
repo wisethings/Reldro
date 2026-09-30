@@ -105,7 +105,7 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
           <p className="mt-0.5 max-w-2xl text-sm text-ink-500">Review reporting and follow-up patterns across sites, teams, and topics. Report counts alone do not show how safe a site is.</p>
         </div>
         <div className="flex items-center gap-2">
-          <div role="group" aria-label="Time period" className="flex rounded-lg bg-ink-100 p-0.5">
+          <div role="group" aria-label="Time period" className="flex rounded-lg bg-ink-100 p-0.5 max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0 [&>*]:whitespace-nowrap">
             {[30, 90, 365].map((n) => <QueryLink key={n} href={`?days=${n}`} className={seg(days === n)} aria-pressed={days === n}>{n === 365 ? "Last year" : `${n} days`}</QueryLink>)}
           </div>
           <Link href={`/api/safety/export/reports?days=${days}`} className="rounded-full border border-ink-300 px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-surface-hover">Export reports (CSV)</Link>
