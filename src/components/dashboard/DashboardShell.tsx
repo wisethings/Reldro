@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { FlaskConical } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { MobileTabBar } from "./MobileTabBar";
@@ -14,7 +13,6 @@ export function DashboardShell({
   orgName,
   name,
   roleLabel,
-  isDemo = false,
   showSupport = false,
   children,
 }: {
@@ -22,7 +20,6 @@ export function DashboardShell({
   orgName: string | null;
   name: string;
   roleLabel: string;
-  isDemo?: boolean;
   showSupport?: boolean;
   children: React.ReactNode;
 }) {
@@ -36,12 +33,6 @@ export function DashboardShell({
     <div className="fixed inset-0 flex overflow-clip bg-ink-100">
       <Sidebar audience={audience} orgName={orgName} name={name} roleLabel={roleLabel} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
       <div className="flex min-w-0 flex-1 flex-col md:py-2 md:pr-2">
-        {isDemo && (
-          <div role="status" className="flex items-center justify-center gap-2 bg-olive-soft px-4 py-1 text-center text-xs font-medium text-olive md:mb-2 md:rounded-lg">
-            <FlaskConical size={13} aria-hidden className="shrink-0" />
-            <span>Sample workspace. Everything here is made up for practice, and no email or message is sent to anyone.</span>
-          </div>
-        )}
         <div className="flex min-h-0 flex-1 flex-col overflow-clip bg-white md:rounded-2xl md:border md:border-ink-200/70 md:shadow-[0_1px_2px_rgba(42,10,12,0.04)]">
           <Topbar audience={audience} onMenuClick={() => setMobileOpen(true)} hideReportCta={hideReportCta} />
           <main className="flex-1 overflow-y-auto bg-surface-muted pb-24 md:pb-0">{children}</main>

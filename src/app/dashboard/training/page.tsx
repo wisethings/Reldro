@@ -74,7 +74,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
       const pct = r.audience ? Math.round((r.acked / r.audience) * 100) : 0;
       return (
         <li>
-          <details className="group open:bg-surface-muted">
+          <details className="group open:expand-band">
             <summary className="grid cursor-pointer list-none grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1.5 px-4 py-3 outline-none hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500 md:grid-cols-[minmax(0,1fr)_9.5rem_10.5rem_8rem] [&::-webkit-details-marker]:hidden">
               <div className="min-w-0">
                 <p title={r.t.title} className="truncate text-sm font-semibold text-ink-900">{r.t.title}</p>
@@ -91,12 +91,12 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
                 {!canManage && r.status === "needs" && v.employeeId ? <AcknowledgeButton talkId={r.t.id} /> : <span className="text-xs font-medium text-orchid-deep group-hover:text-oxblood group-open:hidden">View talk →</span>}
               </div>
             </summary>
-            <div className="px-4 pb-6 pt-2">
+            <div className="expand-panel mx-3 mb-3 mt-0.5 px-4 py-5 sm:mx-4 sm:px-6 sm:py-6">
               <div className="flex items-start justify-between gap-4">
                 <TalkContent content={r.t.content} />
                 {canManage && <TalkMenu talkId={r.t.id} />}
               </div>
-              <div className="mt-6 max-w-[46rem] border-t border-ink-200/60 pt-4">
+              <div className="mt-6 max-w-[46rem] border-t border-ink-100 pt-4">
                 {canManage ? (
                   <>
                     <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
