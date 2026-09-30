@@ -1,8 +1,9 @@
 import { cn } from "./cn";
 
 /**
- * Real Reldro brandmark: the dotted open-book glyph + the vector wordmark,
- * pulled directly from the Reldro UI kit's asset files (not re-created).
+ * Reldro brandmark: the dotted glyph and wordmark as one lockup (public/brand/logo-*.png), or the glyph alone.
+ * `height` is the size the mark has always been given; the lockup is drawn a little smaller inside it because
+ * its lettering is as tall as the glyph.
  */
 export function Logo({
   inverse = false,
@@ -15,16 +16,16 @@ export function Logo({
   height?: number;
   className?: string;
 }) {
-  const glyph = inverse ? "/brand/glyph-bone.svg" : "/brand/glyph-oxblood.svg";
-  const wordmark = inverse ? "/brand/wordmark-bone.svg" : "/brand/wordmark-oxblood.svg";
+  const tone = inverse ? "bone" : "oxblood";
 
   return (
-    <span className={cn("inline-flex items-center gap-2.5", className)} style={{ height }}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={glyph} alt={iconOnly ? "Reldro" : ""} style={{ height: "100%", width: "auto" }} />
-      {!iconOnly && (
+    <span className={cn("inline-flex items-center", className)} style={{ height }}>
+      {iconOnly ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={wordmark} alt="Reldro" style={{ height: "62%", width: "auto" }} />
+        <img src={`/brand/glyph-${tone}.png`} alt="Reldro" style={{ height: "100%", width: "auto" }} />
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={`/brand/logo-${tone}.png`} alt="Reldro" style={{ height: "80%", width: "auto" }} />
       )}
     </span>
   );
