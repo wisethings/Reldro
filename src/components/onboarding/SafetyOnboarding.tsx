@@ -10,7 +10,7 @@ export function SafetyOnboarding({ companyName }: { companyName: string }) {
   return (
     <form action={formAction} className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-ink-900">Welcome, {companyName}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-ink-900">Welcome, {companyName}</h1>
         <p className="mt-1 text-sm text-ink-600">Two minutes to get your first site ready so reports have somewhere to go. You can change everything later.</p>
       </div>
       {state?.error && <Alert tone="error">{state.error}</Alert>}

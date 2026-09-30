@@ -54,7 +54,7 @@ export function AiTextDraft({
         <div className="space-y-2 rounded-xl border border-orchid bg-orchid-soft/40 p-3">
           <DraftLabel generatedBy={draft.generatedBy} />
           {draft.sources && draft.sources.length > 0 && (
-            <p className="text-[11px] text-ink-600">
+            <p className="text-xs text-ink-600">
               <span className="font-medium">Built from:</span> {draft.sources.join(" · ")}. Check it against these before you use it.
             </p>
           )}

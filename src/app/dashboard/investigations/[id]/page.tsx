@@ -61,23 +61,23 @@ export default async function InvestigationPage({ params }: { params: Promise<{ 
       <header>
         <Link href="/dashboard/investigations" className="text-xs font-medium text-ink-500 hover:text-ink-800">← Investigations</Link>
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span className="font-mono text-xs text-ink-500">SR-{String(r.number).padStart(4, "0")}</span>
+          <span className="tabular-nums text-xs text-ink-500">SR-{String(r.number).padStart(4, "0")}</span>
           <SeverityBadge severity={r.severity} suggested={!r.severityConfirmedAt} />
           <InvestigationStatusBadge status={inv.status} />
           <Badge tone="teal">{categoryLabel(r.category, pack)}</Badge>
         </div>
-        <h1 className="mt-2 text-2xl font-semibold leading-tight text-ink-900">{r.title}</h1>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-ink-900">{r.title}</h1>
         <p className="mt-1.5 text-sm text-ink-600">
           {r.site?.name ?? "Site not given"} · {fmtDate(r.occurredAt)} · <Link href={`/dashboard/reports/${r.id}`} className="font-medium text-orchid-deep hover:text-oxblood">View the report{r.incident && r.incident.status !== "RESOLVED" ? " and incident response" : ""}</Link>
         </p>
-        <p className="mt-4 rounded-lg bg-surface-muted px-4 py-3 text-xs leading-relaxed text-ink-600">
+        <p className="mt-4 rounded-lg bg-white px-4 py-3 text-xs leading-relaxed text-ink-600">
           This review looks at what happened and which conditions contributed, so they can be fixed. It is not about finding fault. Only the safety team and the investigation lead can see it. AI drafts help with wording and questions. The findings and reasoning are yours.
         </p>
       </header>
 
       <div className="grid grid-cols-1 gap-x-8 gap-y-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
         <div className="space-y-8">
-          <section aria-labelledby="findings" className="overflow-hidden rounded-xl border border-ink-200/80 bg-white">
+          <section aria-labelledby="findings" className="overflow-hidden rounded-xl bg-white">
             <SectionHead n={1} title="Findings" subtitle="What happened, and why the conditions existed." tint="bg-orchid-soft text-orchid-deep" right={<Progress done={findingsDone} total={findings.length} />} />
             <div className="px-4 py-5 sm:px-5">
               <InvestigationForm
@@ -91,14 +91,14 @@ export default async function InvestigationPage({ params }: { params: Promise<{ 
             </div>
           </section>
 
-          <section aria-labelledby="questions" className="overflow-hidden rounded-xl border border-ink-200/80 bg-white">
+          <section aria-labelledby="questions" className="overflow-hidden rounded-xl bg-white">
             <SectionHead n={2} title="Questions" subtitle="Collect answers from supervisors, workers, and managers." tint="bg-sky-soft text-sky-deep" right={inv.questions.length > 0 ? <Progress done={answered} total={inv.questions.length} /> : undefined} />
             <div className="px-4 py-5 sm:px-5">
               <QuestionsPanel investigationId={inv.id} reportId={r.id} canEdit={inv.status !== "COMPLETE" || v.isSafetyTeam} questions={inv.questions.map((q) => ({ id: q.id, text: q.text, answer: q.answer, aiDrafted: q.aiDrafted }))} />
             </div>
           </section>
 
-          <section aria-labelledby="statements" className="overflow-hidden rounded-xl border border-ink-200/80 bg-white">
+          <section aria-labelledby="statements" className="overflow-hidden rounded-xl bg-white">
             <SectionHead n={3} title="Statements" subtitle="What people involved or nearby said, in their own words." tint="bg-gold-soft text-gold-deep" right={<span className="text-xs tabular-nums text-ink-600">{inv.statements.length} recorded</span>} />
             <div className="px-4 py-5 sm:px-5">
               <StatementsPanel investigationId={inv.id} statements={inv.statements.map((s) => ({ id: s.id, providedBy: s.providedBy, content: s.content, addedByName: s.addedByName, createdAt: s.createdAt.toISOString() }))} />
@@ -107,7 +107,7 @@ export default async function InvestigationPage({ params }: { params: Promise<{ 
         </div>
 
         <aside className="space-y-4 lg:sticky lg:top-4 lg:self-start">
-          <Card tone="muted">
+          <Card tone="plain">
             <CardBody className="space-y-2">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-ink-500">Lead</h2>
               {v.isSafetyTeam ? (
@@ -118,7 +118,7 @@ export default async function InvestigationPage({ params }: { params: Promise<{ 
             </CardBody>
           </Card>
 
-          <Card tone="muted">
+          <Card tone="plain">
             <CardBody className="space-y-3">
               <div className="flex items-baseline justify-between">
                 <h2 className="text-xs font-semibold uppercase tracking-wide text-ink-500">Evidence check</h2>
@@ -129,7 +129,7 @@ export default async function InvestigationPage({ params }: { params: Promise<{ 
               </div>
               <ul className="space-y-2">
                 {checks.map((c) => (
-                  <li key={c.key} className="flex items-start gap-2.5 text-[13px]">
+                  <li key={c.key} className="flex items-start gap-2.5 text-sm">
                     <span aria-hidden className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${c.done ? "bg-sage-deep text-white" : "border border-amber-deep/60 bg-white text-transparent"}`}>{c.done ? "✓" : "·"}</span>
                     <span className={c.done ? "text-ink-700" : "text-ink-900"}>
                       {c.label}
@@ -139,11 +139,11 @@ export default async function InvestigationPage({ params }: { params: Promise<{ 
                   </li>
                 ))}
               </ul>
-              <p className="text-[11px] leading-snug text-ink-500">Simple checks on what is recorded. These are not AI.{doneCount === checks.length ? " Nothing obvious is missing. That does not mean the investigation is complete." : ""}</p>
+              <p className="text-xs leading-snug text-ink-500">Simple checks on what is recorded. These are not AI.{doneCount === checks.length ? " Nothing obvious is missing. That does not mean the investigation is complete." : ""}</p>
             </CardBody>
           </Card>
 
-          <Card tone="muted">
+          <Card tone="plain">
             <CardBody className="space-y-2">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-ink-500">Linked corrective actions</h2>
               {r.actions.length === 0 ? (
@@ -151,8 +151,8 @@ export default async function InvestigationPage({ params }: { params: Promise<{ 
               ) : (
                 <ul className="space-y-2">
                   {r.actions.map((a) => (
-                    <li key={a.id} className="flex items-start justify-between gap-2 text-[13px]">
-                      <Link href={`/dashboard/actions/${a.id}`} className="min-w-0 text-ink-900 hover:text-orchid-deep"><span className="font-mono text-xs text-ink-500">A-{a.number}</span> <span className="line-clamp-2">{a.title}</span></Link>
+                    <li key={a.id} className="flex items-start justify-between gap-2 text-sm">
+                      <Link href={`/dashboard/actions/${a.id}`} className="min-w-0 text-ink-900 hover:text-orchid-deep"><span className="tabular-nums text-xs text-ink-500">A-{a.number}</span> <span className="line-clamp-2">{a.title}</span></Link>
                       <ActionStatusBadge status={a.status} />
                     </li>
                   ))}

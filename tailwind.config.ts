@@ -62,12 +62,11 @@ const config: Config = {
         pine: "#1F3A2E",
         stone: "#BFB5A3",
         danger: "#A33828",
-        surface: { DEFAULT: "#F7F4EC", raised: "#FFFFFF", sunken: "#E6E1D3", inverse: "#2A0A0C", muted: "#F7F6F3" },
+        surface: { DEFAULT: "#F7F4EC", raised: "#FFFFFF", sunken: "#E6E1D3", inverse: "#2A0A0C", muted: "#F7F6F3", hover: "#E8E8E4" },
       },
+      // One typeface for the whole product. Inter first, with the standard system fallbacks after it.
       fontFamily: {
-        sans: ["var(--font-inter)", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
-        display: ["var(--font-inter-tight)", "var(--font-inter)", "-apple-system", "sans-serif"],
-        wordmark: ["var(--font-parkinsans)", "var(--font-inter)", "sans-serif"],
+        sans: ["var(--font-inter)", "Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Open Sans", "Helvetica Neue", "sans-serif"],
       },
       borderRadius: {
         none: "0px",

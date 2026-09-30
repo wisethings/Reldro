@@ -66,7 +66,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       key={label}
       href={href}
       aria-current={on ? "true" : undefined}
-      className={`flex flex-1 items-baseline gap-2 px-3.5 py-2 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500 ${on ? "bg-orchid-soft/60" : "hover:bg-ink-50"}`}
+      className={`flex flex-1 items-baseline gap-2 px-3.5 py-2 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500 ${on ? "bg-orchid-soft/60" : "hover:bg-surface-hover"}`}
     >
       <span className={`text-lg font-semibold tabular-nums ${hot && value > 0 ? "text-danger" : "text-ink-900"}`}>{value}</span>
       <span className={`text-xs ${on ? "font-medium text-orchid-deep" : "text-ink-600"}`}>{label}</span>
@@ -80,7 +80,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         subtitle={v.isSafetyTeam ? "Hazards, near misses, injuries, and other safety concerns reported across your sites." : v.isSupervisor ? "Safety concerns reported at your site, and ones you submitted." : "Safety concerns you submitted, and what happened next."}
       />
       {staff && (
-        <nav aria-label="Quick filters" className="grid grid-cols-2 divide-x divide-y divide-ink-200/80 overflow-hidden rounded-xl border border-ink-200/80 bg-white sm:flex sm:divide-y-0">
+        <nav aria-label="Quick filters" className="grid grid-cols-2 divide-x divide-y divide-ink-100 overflow-hidden rounded-xl bg-white sm:flex sm:divide-y-0">
           {metric("Open", sOpen, qs({ status: "open", attention: undefined, severity: undefined, site: undefined, q: undefined }), status === "open" && !attention && !filtered)}
           {metric("Response overdue", sLate, qs({ status: "open", attention: "overdue" }), attention === "overdue", true)}
           {metric("Without an owner", sNoOwner, qs({ status: "open", attention: "unowned" }), attention === "unowned", true)}
@@ -99,7 +99,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         filtered ? (
           <div className="rounded-xl border border-dashed border-ink-200 bg-white px-6 py-10 text-center">
             <p className="text-sm font-medium text-ink-900">No reports match these filters</p>
-            <p className="mt-1 text-[13px] text-ink-600">Try a different search, or clear the filters to see everything.</p>
+            <p className="mt-1 text-sm text-ink-600">Try a different search, or clear the filters to see everything.</p>
           </div>
         ) : (
           <EmptyHero
@@ -144,7 +144,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                   <>
                     <p title={r.title} className="truncate text-sm font-semibold text-ink-900">{r.title}</p>
                     <div className="mt-0.5 flex items-center gap-1.5 text-xs text-ink-500">
-                      <span className="shrink-0 font-mono text-ink-400">SR-{String(r.number).padStart(4, "0")}</span>
+                      <span className="shrink-0 tabular-nums text-ink-400">SR-{String(r.number).padStart(4, "0")}</span>
                       <span aria-hidden className="text-ink-300">·</span>
                       <span className="min-w-0 truncate">{reportTypeLabel(r.type)}<span className="hidden md:inline"> · {categoryLabel(r.category, pack)}</span></span>
                       <span className="hidden shrink-0 items-center gap-2 md:flex">{(incident || late) && <span aria-hidden className="text-ink-300">·</span>}{flags}</span>
@@ -167,7 +167,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           })}
         </DataTable>
       )}
-      {staff && reports.some((r) => !r.severityConfirmedAt) && <p className="text-[11px] text-ink-500">A dashed outline means the seriousness is a suggestion that no responder has confirmed yet.</p>}
+      {staff && reports.some((r) => !r.severityConfirmedAt) && <p className="text-xs text-ink-500">A dashed outline means the seriousness is a suggestion that no responder has confirmed yet.</p>}
       <Pagination page={page} total={total} noun="reports" hrefFor={(n) => qs({ page: n > 1 ? String(n) : undefined })} />
     </div>
   );

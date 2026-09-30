@@ -60,8 +60,8 @@ export default async function SitesPage({ searchParams }: { searchParams: Promis
     <div className="mx-auto w-full max-w-6xl space-y-5 px-4 py-4 sm:px-6 sm:py-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-lg font-semibold text-ink-900">Sites</h1>
-          <p className="mt-0.5 text-[13px] text-ink-500">Manage the jobsites, shops, and yards where your crews work. Reports, inspections, and corrective actions are organized by site.</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-ink-900">Sites</h1>
+          <p className="mt-0.5 text-sm text-ink-500">Manage the jobsites, shops, and yards where your crews work. Reports, inspections, and corrective actions are organized by site.</p>
           {sites.length > 0 && (
             <p className="mt-2 text-sm text-ink-700">
               <span className="font-medium text-ink-900">{totals.sites} {totals.sites === 1 ? "site" : "sites"}</span>
@@ -99,7 +99,7 @@ export default async function SitesPage({ searchParams }: { searchParams: Promis
             const h = HEALTH[health];
             const reportsHref = `/dashboard/reports?status=open&site=${s.id}`;
             return (
-              <article key={s.id} className={`group relative overflow-hidden rounded-xl border border-ink-200/80 bg-white transition-colors hover:border-ink-300 hover:bg-ink-50/40 ${s.active ? "" : "opacity-70"}`}>
+              <article key={s.id} className={`group relative overflow-hidden rounded-xl bg-white ring-1 ring-transparent transition-shadow hover:ring-ink-300 ${s.active ? "" : "opacity-70"}`}>
                 <span aria-hidden className={`absolute inset-x-0 top-0 h-0.5 ${h.edge}`} />
                 <div className="space-y-4 p-4 sm:p-5">
                   <div className="min-w-0">
@@ -111,14 +111,14 @@ export default async function SitesPage({ searchParams }: { searchParams: Promis
 
                   <div>
                     <p className={`flex items-center gap-1.5 text-sm font-medium ${h.text}`}><span aria-hidden className={`h-2 w-2 rounded-full ${h.dot}`} />{h.label}{health === "attention" && !s.safetyLeadId && <span className="font-normal text-ink-600"> · no safety lead</span>}</p>
-                    <p className="mt-1 text-[13px] text-ink-700">
+                    <p className="mt-1 text-sm text-ink-700">
                       <Link href={reportsHref} className="relative z-10 hover:underline">{open} open {open === 1 ? "report" : "reports"}</Link>
                       <span aria-hidden className="mx-1.5 text-ink-300">·</span>
                       <span className={overdue > 0 ? "font-medium text-danger" : "text-ink-500"}>{overdue === 0 ? "no overdue actions" : `${overdue} overdue corrective ${overdue === 1 ? "action" : "actions"}`}</span>
                     </p>
                   </div>
 
-                  <div className="flex items-baseline justify-between gap-3 border-t border-ink-100 pt-3 text-[13px]">
+                  <div className="flex items-baseline justify-between gap-3 border-t border-ink-100 pt-3 text-sm">
                     <span className="text-ink-500">Next inspection</span>
                     <span className={nd?.overdue ? "font-medium text-danger" : nd ? "text-ink-800" : "text-ink-500"}>{nd ? nd.text : "None scheduled"}</span>
                   </div>

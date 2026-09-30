@@ -86,7 +86,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
     return (
       <div className="mx-auto max-w-3xl space-y-5 p-4 sm:p-6">
         <div>
-          <h1 className="text-xl font-semibold text-ink-900">Hi {firstName}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-ink-900">Hi {firstName}</h1>
           <p className="text-sm text-ink-500">{org?.name}</p>
         </div>
         <Link href="/dashboard/reports/new" className="flex items-center justify-center gap-3 rounded-2xl bg-brand-700 px-6 py-6 text-lg font-semibold text-white shadow-sm hover:bg-brand-800">
@@ -281,22 +281,22 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   return (
     <div className="mx-auto max-w-6xl p-4 sm:p-6 lg:p-8">
       <header>
-        <h1 className="text-xl font-semibold text-ink-900">{v.isSafetyTeam ? "Safety overview" : "Your site"}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-ink-900">{v.isSafetyTeam ? "Safety overview" : "Your site"}</h1>
         <p className="mt-1 flex items-center gap-2 text-sm text-ink-600">
           <span aria-hidden className={`h-2 w-2 rounded-full ${attention === 0 ? "bg-sage-deep" : urgent ? "bg-danger" : "bg-amber-deep"}`} />
           {org?.name} · {summary}
         </p>
       </header>
 
-      <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,1fr)_18rem]">
-        <section aria-labelledby="attention">
+      <div className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start">
+        <section aria-labelledby="attention" className="rounded-xl bg-white p-4 sm:p-5">
           <SectionTitle>
             <span id="attention">Needs your attention</span>
           </SectionTitle>
           {shown.length === 0 ? (
             <div className="rounded-lg border border-dashed border-ink-200 px-5 py-8 text-center">
               <p className="text-sm font-medium text-ink-900">You’re caught up</p>
-              <p className="mt-1 text-[13px] text-ink-600">No incident responses, late responses, unowned reports or overdue corrective actions. Upcoming work is on the right.</p>
+              <p className="mt-1 text-sm text-ink-600">No incident responses, late responses, unowned reports or overdue corrective actions. Upcoming work is on the right.</p>
             </div>
           ) : (
             <FocusList entries={shown} />
@@ -309,15 +309,15 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
           )}
         </section>
 
-        <aside aria-labelledby="coming-up" className="space-y-8 lg:pt-0">
-          <section className="rounded-xl bg-surface-muted p-4">
+        <aside aria-labelledby="coming-up" className="space-y-4">
+          <section className="rounded-xl bg-white p-4 sm:p-5">
             <SectionTitle action={<TextLink href="/dashboard/inspections">All inspections</TextLink>}>
               <span id="coming-up">Coming up</span>
             </SectionTitle>
             {up.length === 0 ? (
-              <p className="text-[13px] text-ink-500">No inspections due or qualifications expiring soon.</p>
+              <p className="text-sm text-ink-500">No inspections due or qualifications expiring soon.</p>
             ) : (
-              <ul className="-mx-1 divide-y divide-ink-200/50 px-1">
+              <ul className="-mx-1 divide-y divide-ink-100 px-1">
                 {up.map((u) => <UpcomingRow key={u.key} href={u.href} when={u.when} title={u.title} detail={u.detail} warn={u.warn} />)}
               </ul>
             )}
@@ -330,14 +330,14 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
         </aside>
       </div>
 
-      <section className="mt-12" aria-labelledby="recent">
+      <section className="mt-8 rounded-xl bg-white p-4 sm:p-5" aria-labelledby="recent">
         <SectionTitle action={<TextLink href="/dashboard/reports?status=all">View all reports</TextLink>}>
           <span id="recent">Recent activity</span>
         </SectionTitle>
         <QuietActivity items={recent.slice(0, 6)} empty="No recent activity yet. Updates appear here as reports come in and work moves." />
       </section>
 
-      <section className="mt-12 rounded-xl bg-surface-muted p-5" aria-labelledby="pulse">
+      <section className="mt-8 rounded-xl bg-white p-5" aria-labelledby="pulse">
         <SectionTitle
           action={
             <div className="flex gap-0.5" role="group" aria-label="Time period">

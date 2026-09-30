@@ -85,7 +85,7 @@ test("an anonymous report returns a private case code that works on the follow-u
     await page.locator('label:has-text("Submit without my name")').click();
     await page.getByRole("button", { name: "Submit report" }).click();
     await page.getByText("Your private case code").waitFor({ timeout: 30_000 });
-    const code = (await page.locator("p.font-mono").first().innerText()).trim();
+    const code = (await page.locator("p.type-code").first().innerText()).trim();
     assert.match(code, /^[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}$/);
 
     const b = await launch();

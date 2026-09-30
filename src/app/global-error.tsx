@@ -6,7 +6,7 @@ export default function GlobalError({ reset }: { error: Error & { digest?: strin
       <body className="bg-ink-100 font-sans text-ink-900 antialiased">
         <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center">
           <div>
-            <h1 className="text-xl font-semibold">Something went wrong</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Something went wrong</h1>
             <p className="mt-2 text-sm text-ink-500">Please try again.</p>
           </div>
           <button

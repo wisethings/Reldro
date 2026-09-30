@@ -38,7 +38,7 @@ export function TemplateForm() {
       <Field label="Items" hint="One per line. Start a line with * to mark it critical."><Textarea name="items" rows={5} required placeholder={"* Lockout/tagout applied\nWalkways clear"} /></Field>
       {state?.error && <p role="alert" className="text-sm text-danger">{state.error}</p>}
       {state?.success && <p className="text-sm text-sage-deep">{state.success}</p>}
-      <button disabled={pending} className="rounded-full border border-ink-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-ink-50 disabled:opacity-50">{pending ? "Saving…" : "Save checklist"}</button>
+      <button disabled={pending} className="rounded-full border border-ink-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-surface-hover disabled:opacity-50">{pending ? "Saving…" : "Save checklist"}</button>
     </form>
   );
 }

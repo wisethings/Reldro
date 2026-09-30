@@ -20,9 +20,39 @@ body {
   }
 }
 
+/*
+ * Typography system (one family, Inter). Sizes are rem so they follow the 15px desktop / 16px phone root above.
+ *   Page title        text-2xl  semibold  -0.02em     (h1)
+ *   Section heading   text-base semibold  -0.01em     (h2 on a page)
+ *   Panel title       text-sm   semibold              (card and panel headers)
+ *   Body              text-sm   regular
+ *   Label / control   text-xs   medium
+ *   Metadata          text-xs   regular, text-ink-500
+ *   Metric            text-2xl  semibold  tabular-nums
+ *   Small caps label  text-xs   semibold uppercase tracking-wide
+ * Weights: 400 body, 500 labels and controls, 600 headings and metrics, 700 only for rare emphasis.
+ */
 @layer base {
+  html {
+    font-optical-sizing: auto;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    line-height: 1.5;
+    font-feature-settings: "cv11", "calt";
+  }
+
   h1, h2, h3, h4 {
-    font-family: var(--font-inter-tight), var(--font-inter), sans-serif;
+    line-height: 1.25;
+    text-wrap: balance;
+  }
+  h1 { letter-spacing: -0.02em; }
+  h2, h3 { letter-spacing: -0.01em; }
+
+  /* Numbers line up in columns and stay the same width as they change. */
+  table, dl dd, time {
+    font-variant-numeric: tabular-nums;
   }
 
   ::selection {
@@ -31,20 +61,10 @@ body {
   }
 }
 
-/* Unlayered so it wins over Tailwind's layered .font-semibold utility
-   regardless of class order: semibold text uses the display face at the
-   kit's weight, not default Inter at weight 600. */
-.font-semibold {
-  font-family: var(--font-inter-tight), var(--font-inter), sans-serif;
-  font-weight: 500;
-}
-
-/* !important because Tailwind's tracking-* utilities (tracking-tight,
-   tracking-wide, etc.) are plain classes with higher specificity than this
-   universal selector. Flat 0 so nothing gets tracking-tight's exaggerated
-   negative spacing, and nothing gets extra positive spacing either. */
-* {
-  letter-spacing: 0 !important;
+/* Case codes and other short codes: Inter with tabular, slashed-zero figures, so they read clearly without a second typeface. */
+.type-code {
+  font-feature-settings: "tnum", "zero", "case";
+  letter-spacing: 0.06em;
 }
 
 /* Without this, touch browsers wait ~300ms after a tap before firing click

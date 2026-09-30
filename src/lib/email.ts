@@ -121,7 +121,7 @@ export async function sendBulkEmail({
 
 export function productUpdateEmailHtml({ subject, bodyHtml }: { subject: string; bodyHtml: string }) {
   return `
-    <div style="font-family: -apple-system, sans-serif; max-width: 560px; margin: 0 auto; color: #2A0A0C;">
+    <div style="font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; max-width: 560px; margin: 0 auto; color: #2A0A0C;">
       <h2 style="margin-bottom: 4px;">${escapeHtml(subject)}</h2>
       <p style="color: #6B5A55; font-size: 13px;">An update from the Reldro team</p>
       <div style="margin-top: 16px; font-size: 14px; line-height: 1.6;">${bodyHtml}</div>
@@ -132,7 +132,7 @@ export function productUpdateEmailHtml({ subject, bodyHtml }: { subject: string;
 
 export function inviteEmailHtml({ name, orgName, loginUrl, tempPassword }: { name: string; orgName: string; loginUrl: string; tempPassword: string }) {
   return `
-    <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; color: #2A0A0C;">
+    <div style="font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; max-width: 480px; margin: 0 auto; color: #2A0A0C;">
       <h2 style="margin-bottom: 4px;">You have been invited to Reldro</h2>
       <p style="color: #6B5A55;">${escapeHtml(orgName)} added you to Reldro, their workspace for frontline safety reporting and follow-up.</p>
       <p>Hi ${escapeHtml(name)},</p>
@@ -150,7 +150,7 @@ export function inviteEmailHtml({ name, orgName, loginUrl, tempPassword }: { nam
 /** Shared frame for short transactional emails: one plain paragraph or two, one button, and a clear sender line. */
 export function emailShell({ bodyHtml, button, footer }: { bodyHtml: string; button?: { label: string; url: string }; footer?: string }) {
   return `
-    <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; color: #2A0A0C; font-size: 14px; line-height: 1.6;">
+    <div style="font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; max-width: 480px; margin: 0 auto; color: #2A0A0C; font-size: 14px; line-height: 1.6;">
       ${bodyHtml}
       ${button ? `<p style="margin: 20px 0;"><a href="${button.url}" style="display: inline-block; background: #2A0A0C; color: #EFEBE0; padding: 10px 20px; border-radius: 999px; text-decoration: none; font-weight: 500;">${escapeHtml(button.label)}</a></p>` : ""}
       <p style="color: #8C7F6C; font-size: 12px; margin-top: 24px;">${footer ?? "Sent by Reldro."}</p>

@@ -59,7 +59,7 @@ export function ActionForm({
       <button disabled={pending} className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">
         {pending ? "Saving…" : isSafetyTeam ? "Create corrective action" : "Propose corrective action"}
       </button>
-      {!isSafetyTeam && <p className="text-[11px] text-ink-500">The safety team reviews a proposed corrective action before work starts.</p>}
+      {!isSafetyTeam && <p className="text-xs text-ink-500">The safety team reviews a proposed corrective action before work starts.</p>}
     </form>
   );
 }

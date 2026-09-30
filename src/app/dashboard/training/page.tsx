@@ -22,7 +22,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
   const in30 = new Date(Date.now() + 30 * 86400_000);
 
   const tabs = [["talks", v.isSafetyTeam || v.isSupervisor ? "Toolbox talks" : "Toolbox talks"], ...(canManage ? [["qualifications", "Qualifications"]] : [["mine", "My qualifications"]]), ...(v.isAdmin ? [["people", "People"]] : [])];
-  const chip = (active: boolean) => `rounded-full border px-3 py-1.5 text-xs font-medium ${active ? "border-brand-700 bg-orchid-soft text-orchid-deep" : "border-ink-200 bg-white text-ink-600 hover:bg-ink-50"}`;
+  const chip = (active: boolean) => `rounded-full border px-3 py-1.5 text-xs font-medium ${active ? "border-brand-700 bg-orchid-soft text-orchid-deep" : "border-ink-200 bg-white text-ink-600 hover:bg-surface-hover"}`;
   const activeTab = tabs.some(([k]) => k === tab) ? tab : "talks";
 
   const sites = await prisma.site.findMany({ where: { organizationId: v.organizationId, active: true }, orderBy: { name: "asc" } });
@@ -74,7 +74,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
       return (
         <li>
           <details className="group">
-            <summary className="grid cursor-pointer list-none grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1.5 px-4 py-3 outline-none hover:bg-ink-50/70 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500 md:grid-cols-[minmax(0,1fr)_9.5rem_10.5rem_8rem] [&::-webkit-details-marker]:hidden">
+            <summary className="grid cursor-pointer list-none grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1.5 px-4 py-3 outline-none hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500 md:grid-cols-[minmax(0,1fr)_9.5rem_10.5rem_8rem] [&::-webkit-details-marker]:hidden">
               <div className="min-w-0">
                 <p title={r.t.title} className="truncate text-sm font-semibold text-ink-900">{r.t.title}</p>
                 <p className="mt-0.5 truncate text-xs text-ink-500">{fmtDate(r.t.scheduledFor)} · {r.where} · {r.t.createdByName}{r.t.aiDrafted ? " · AI-assisted, reviewed" : ""}</p>
@@ -139,12 +139,12 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
           <>
             {featured.length > 0 && (
               <section aria-labelledby="needs-attention">
-                <h2 id="needs-attention" className="mb-2 text-[13px] font-semibold text-ink-900">Needs attention</h2>
+                <h2 id="needs-attention" className="mb-2 text-sm font-semibold text-ink-900">Needs attention</h2>
                 <ul className="divide-y divide-ink-100 overflow-hidden rounded-xl bg-white">{featured.map((r) => <TalkRow key={r.t.id} r={r} />)}</ul>
               </section>
             )}
             <section aria-labelledby="all-talks">
-              <h2 id="all-talks" className="mb-2 text-[13px] font-semibold text-ink-900">{filter === "all" ? "All toolbox talks" : STATUS[filter].label}</h2>
+              <h2 id="all-talks" className="mb-2 text-sm font-semibold text-ink-900">{filter === "all" ? "All toolbox talks" : STATUS[filter].label}</h2>
               {pageRows.length === 0 ? (
                 <p className="rounded-xl bg-white px-4 py-8 text-center text-sm text-ink-600">{featured.length > 0 ? "No other talks." : "No talks match."} {(filter !== "all" || term) && <Link href="?tab=talks" className="font-medium text-orchid-deep hover:text-oxblood">Show all talks</Link>}</p>
               ) : (
@@ -162,7 +162,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
               <span aria-hidden className="text-ink-400 transition-transform group-open:rotate-180">⌄</span>
             </summary>
             <ul className="divide-y divide-ink-100 border-t border-ink-100">
-              {lessons.map((l) => <li key={l.id} className="px-4 py-3 text-sm text-ink-800"><span className="mr-2 rounded bg-surface-muted px-1.5 py-0.5 text-[11px] text-ink-600">{pack.categories.find((c) => c.key === l.report.category)?.label ?? "Other"}</span>{l.lessonText}</li>)}
+              {lessons.map((l) => <li key={l.id} className="px-4 py-3 text-sm text-ink-800"><span className="mr-2 rounded bg-surface-muted px-1.5 py-0.5 text-xs text-ink-600">{pack.categories.find((c) => c.key === l.report.category)?.label ?? "Other"}</span>{l.lessonText}</li>)}
             </ul>
             <p className="border-t border-ink-100 px-4 py-2 text-xs text-ink-500">Approved for sharing with your team. The safety team removes personal details before publishing.</p>
           </details>

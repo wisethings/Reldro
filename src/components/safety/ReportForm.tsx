@@ -217,11 +217,11 @@ export function ReportForm({
         </div>
         <div className="rounded-xl border-2 border-dashed border-brand-700 bg-orchid-soft/40 p-4">
           <p className="text-xs font-medium uppercase tracking-wide text-ink-600">Your private case code</p>
-          <p className="mt-1 select-all font-mono text-2xl font-semibold tracking-wider text-ink-900">{followUpCode}</p>
+          <p className="mt-1 select-all type-code text-2xl font-semibold text-ink-900">{followUpCode}</p>
           <button
             type="button"
             onClick={() => navigator.clipboard?.writeText(followUpCode).then(() => setCopied(true)).catch(() => undefined)}
-            className="mt-2 rounded-full border border-ink-300 bg-white px-3 py-1.5 text-xs font-medium text-ink-800 hover:bg-ink-50"
+            className="mt-2 rounded-full border border-ink-300 bg-white px-3 py-1.5 text-xs font-medium text-ink-800 hover:bg-surface-hover"
           >
             {copied ? "Copied" : "Copy code"}
           </button>
@@ -232,7 +232,7 @@ export function ReportForm({
         </p>
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
           <Link href="/dashboard/reports/new" className="rounded-full bg-brand-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-800">Report another</Link>
-          <Link href="/dashboard/overview" className="rounded-full border border-ink-300 px-5 py-2.5 text-sm font-medium text-ink-800 hover:bg-ink-50">Back to home</Link>
+          <Link href="/dashboard/overview" className="rounded-full border border-ink-300 px-5 py-2.5 text-sm font-medium text-ink-800 hover:bg-surface-hover">Back to home</Link>
         </div>
         <p className="text-xs text-ink-500">Submitting this report did not call anyone. If someone still needs help, call your local emergency number now.</p>
       </div>
@@ -255,7 +255,7 @@ export function ReportForm({
     { id: "submit", label: "Submit" },
   ];
   const tile = (checked: boolean) =>
-    `relative flex cursor-pointer select-none flex-col justify-center rounded-lg border px-3.5 py-2.5 text-left transition-all focus-within:ring-2 focus-within:ring-brand-500 focus-within:ring-offset-1 active:scale-[0.99] ${checked ? "border-brand-700 bg-orchid-soft/70" : "border-ink-200 bg-white hover:border-ink-300 hover:bg-ink-50"}`;
+    `relative flex cursor-pointer select-none flex-col justify-center rounded-lg border px-3.5 py-2.5 text-left transition-all focus-within:ring-2 focus-within:ring-brand-500 focus-within:ring-offset-1 active:scale-[0.99] ${checked ? "border-brand-700 bg-orchid-soft/70" : "border-ink-200 bg-white hover:border-ink-300 hover:bg-surface-hover"}`;
 
   return (
     <form action={formAction} className="space-y-9 pb-32 sm:pb-0" noValidate={false}>
@@ -331,7 +331,7 @@ export function ReportForm({
               disabled={!voiceSupported}
               aria-pressed={listening}
               title={voiceSupported ? undefined : "Voice input is not available in this browser"}
-              className={`absolute bottom-3 right-3 flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${listening ? "border-danger bg-coral-soft text-danger" : "border-ink-200 bg-white text-ink-700 hover:bg-ink-50"}`}
+              className={`absolute bottom-3 right-3 flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${listening ? "border-danger bg-coral-soft text-danger" : "border-ink-200 bg-white text-ink-700 hover:bg-surface-hover"}`}
             >
               {listening ? <><span aria-hidden className="h-2 w-2 animate-pulse rounded-full bg-danger" /> Listening. Tap to stop</> : <><Mic size={13} aria-hidden /> Speak instead</>}
             </button>
@@ -422,7 +422,7 @@ export function ReportForm({
           </fieldset>
         </div>
 
-        <label className={`flex cursor-pointer items-start gap-3 rounded-lg border px-3.5 py-3 transition-colors focus-within:ring-2 focus-within:ring-brand-500 ${injury ? "border-danger/40 bg-coral-soft/50" : "border-ink-200 bg-white hover:bg-ink-50"}`}>
+        <label className={`flex cursor-pointer items-start gap-3 rounded-lg border px-3.5 py-3 transition-colors focus-within:ring-2 focus-within:ring-brand-500 ${injury ? "border-danger/40 bg-coral-soft/50" : "border-ink-200 bg-white hover:bg-surface-hover"}`}>
           <input type="checkbox" name="injuryInvolved" checked={injury} onChange={(e) => setInjury(e.target.checked)} className="mt-0.5 h-5 w-5 rounded border-ink-300 accent-[#2A0A0C]" />
           <span>
             <span className="text-sm font-medium text-ink-900">Someone was injured or became ill</span>
@@ -461,7 +461,7 @@ export function ReportForm({
         <legend className="text-base font-semibold text-ink-900">How should we identify you?</legend>
         <div className="mt-3 divide-y divide-ink-100 overflow-hidden rounded-lg border border-ink-200 bg-white">
           {PRIVACY_OPTIONS.map((o) => (
-            <label key={o.key} className={`relative flex cursor-pointer items-start gap-3 px-3.5 py-3 transition-colors focus-within:ring-2 focus-within:ring-inset focus-within:ring-brand-500 ${privacy === o.key ? "bg-orchid-soft/70" : "hover:bg-ink-50"}`}>
+            <label key={o.key} className={`relative flex cursor-pointer items-start gap-3 px-3.5 py-3 transition-colors focus-within:ring-2 focus-within:ring-inset focus-within:ring-brand-500 ${privacy === o.key ? "bg-orchid-soft/70" : "hover:bg-surface-hover"}`}>
               <input type="radio" name="privacy" value={o.key} className="sr-only" checked={privacy === o.key} onChange={() => setPrivacy(o.key)} />
               <span aria-hidden className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${privacy === o.key ? "border-brand-700" : "border-ink-300"}`}>
                 {privacy === o.key && <span className="h-2 w-2 rounded-full bg-brand-700" />}

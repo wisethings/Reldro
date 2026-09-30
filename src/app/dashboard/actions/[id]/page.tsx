@@ -32,11 +32,11 @@ export default async function ActionDetailPage({ params }: { params: Promise<{ i
       <div>
         <Link href="/dashboard/actions" className="text-xs font-medium text-ink-500 hover:text-ink-800">← Actions</Link>
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <span className="font-mono text-xs text-ink-400">A-{a.number}</span>
+          <span className="tabular-nums text-xs text-ink-400">A-{a.number}</span>
           <ActionStatusBadge status={a.status} />
           <SeverityBadge severity={a.priority} />
         </div>
-        <h1 className="mt-2 text-xl font-semibold text-ink-900">{a.title}</h1>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-ink-900">{a.title}</h1>
         {!a.report && a.inspectionId && v.isSafetyTeam && <p className="mt-1 text-sm text-ink-500">From a failed item on <Link href={`/dashboard/inspections/${a.inspectionId}`} className="text-orchid-deep hover:text-oxblood">an inspection</Link></p>}
         {a.report && <p className="mt-1 text-sm text-ink-500">From <Link href={`/dashboard/reports/${a.report.id}`} className="text-orchid-deep hover:text-oxblood">SR-{String(a.report.number).padStart(4, "0")} · {a.report.title}</Link></p>}
       </div>

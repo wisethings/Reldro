@@ -41,8 +41,8 @@ export function ReportFilters({ statuses, severities, sites, showSeverity }: { s
   const select = "h-8 rounded-lg border border-ink-200 bg-white px-2.5 text-xs text-ink-800 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500";
 
   return (
-    <div role="search" className="flex flex-wrap items-center gap-2 rounded-xl bg-surface-muted p-1.5">
-      <div role="group" aria-label="Status" className="flex rounded-lg bg-ink-200/50 p-0.5">
+    <div role="search" className="flex flex-wrap items-center gap-2 rounded-xl bg-white p-1.5">
+      <div role="group" aria-label="Status" className="flex rounded-lg bg-ink-100 p-0.5">
         {statuses.map((s) => (
           <button key={s.value} type="button" onClick={() => go({ status: s.value, attention: "" })} aria-pressed={status === s.value && !attention} className={`h-7 rounded-md px-3 text-xs font-medium transition-colors ${status === s.value && !attention ? "bg-white text-ink-900 shadow-[0_0_0_1px_rgba(42,10,12,0.08)]" : "text-ink-600 hover:text-ink-900"}`}>
             {s.label}

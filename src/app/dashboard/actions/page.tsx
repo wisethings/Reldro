@@ -38,7 +38,7 @@ export default async function ActionsPage({ searchParams }: { searchParams: Prom
   const views = v.isSafetyTeam
     ? [["attention", "Needs attention"], ["overdue", "Overdue"], ["open", "All open"], ["mine", "Mine"], ["done", "Done"]]
     : [["open", "Open"], ["overdue", "Overdue"], ["done", "Done"]];
-  const chip = (active: boolean) => `rounded-full border px-2.5 py-1 text-xs font-medium ${active ? "border-brand-700 bg-orchid-soft text-orchid-deep" : "border-ink-200 bg-white text-ink-600 hover:bg-ink-50"}`;
+  const chip = (active: boolean) => `rounded-full border px-2.5 py-1 text-xs font-medium ${active ? "border-brand-700 bg-orchid-soft text-orchid-deep" : "border-ink-200 bg-white text-ink-600 hover:bg-surface-hover"}`;
 
   const day30 = new Date(Date.now() - 30 * 86400_000);
   const [sOpen, sOverdue, sReady, sVerified] = await Promise.all([
@@ -75,9 +75,9 @@ export default async function ActionsPage({ searchParams }: { searchParams: Prom
                 template="minmax(0,1fr) 8.5rem 9.5rem 9rem 9rem"
                 main={
                   <>
-                    <p title={a.title} className="truncate text-[13px] font-medium text-ink-900">{a.title}</p>
+                    <p title={a.title} className="truncate text-sm font-medium text-ink-900">{a.title}</p>
                     <p className="mt-0.5 text-xs text-ink-500">
-                      <span className="font-mono">A-{a.number}</span> · {a.report ? `From SR-${String(a.report.number).padStart(4, "0")}` : "From an inspection"}
+                      <span className="tabular-nums">A-{a.number}</span> · {a.report ? `From SR-${String(a.report.number).padStart(4, "0")}` : "From an inspection"}
                     </p>
                   </>
                 }

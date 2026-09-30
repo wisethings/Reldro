@@ -19,7 +19,7 @@ export default async function AccountPage() {
       <div className="flex items-center gap-3">
         <Avatar name={session.name} size={40} />
         <div>
-          <h1 className="text-xl font-semibold text-ink-900">Account</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-ink-900">Account</h1>
           <p className="text-sm text-ink-500">{session.name} · {session.email}</p>
         </div>
       </div>

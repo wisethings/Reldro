@@ -62,10 +62,10 @@ export function Field({
           {label}
           {required && <span className="ml-0.5 text-danger">*</span>}
         </span>
-        {optional && <span className="text-[11px] text-ink-500">Optional</span>}
+        {optional && <span className="text-xs text-ink-500">Optional</span>}
       </label>
       <div className="mt-1">{control}</div>
-      {hint && <p id={hintId} className="mt-1 text-[11px] leading-snug text-ink-500">{hint}</p>}
+      {hint && <p id={hintId} className="mt-1 text-xs leading-snug text-ink-500">{hint}</p>}
     </div>
   );
 }
@@ -89,7 +89,7 @@ export function FormStack({ className, children }: { className?: string; childre
 export function FieldSection({ title, children }: { title?: string; children: ReactNode }) {
   return (
     <div className={cn("space-y-3", title && "border-t border-ink-100 pt-4 first:border-0 first:pt-0")}>
-      {title && <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-400">{title}</p>}
+      {title && <p className="text-xs font-semibold uppercase tracking-wide text-ink-400">{title}</p>}
       {children}
     </div>
   );

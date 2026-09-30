@@ -24,7 +24,7 @@ export function Topbar({ audience, onMenuClick, hideReportCta = false }: { audie
             <Icon size={14} />
           </span>
         )}
-        <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 text-[13px]">
+        <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 text-sm">
           {crumb.group && (
             <>
               <span className="hidden text-ink-500 sm:inline">{crumb.group}</span>
@@ -35,7 +35,7 @@ export function Topbar({ audience, onMenuClick, hideReportCta = false }: { audie
         </nav>
       </div>
       {!hideReportCta && (
-        <Link href="/dashboard/reports/new" className="hidden shrink-0 items-center gap-1.5 rounded-full bg-brand-700 px-3.5 py-1.5 text-[13px] font-medium text-white hover:bg-brand-800 sm:inline-flex">
+        <Link href="/dashboard/reports/new" className="hidden shrink-0 items-center gap-1.5 rounded-full bg-brand-700 px-3.5 py-1.5 text-sm font-medium text-white hover:bg-brand-800 sm:inline-flex">
           <Plus size={14} aria-hidden /> Report a safety concern
         </Link>
       )}

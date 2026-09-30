@@ -54,17 +54,17 @@ export function ReportControls({
           <button
             disabled={pending}
             onClick={() => run(async () => { const id = await startInvestigation(reportId); router.push(`/dashboard/investigations/${id}`); })}
-            className="rounded-full border border-ink-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-ink-50 disabled:opacity-50"
+            className="rounded-full border border-ink-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-surface-hover disabled:opacity-50"
           >
             Open investigation
           </button>
         )}
         {status !== "CLOSED" ? (
-          <button disabled={pending} onClick={() => run(() => setReportStatus(reportId, "CLOSED"))} className="rounded-full border border-ink-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-ink-50 disabled:opacity-50">
+          <button disabled={pending} onClick={() => run(() => setReportStatus(reportId, "CLOSED"))} className="rounded-full border border-ink-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-surface-hover disabled:opacity-50">
             Close report
           </button>
         ) : (
-          <button disabled={pending} onClick={() => run(() => setReportStatus(reportId, "ASSIGNED"))} className="rounded-full border border-ink-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-ink-50 disabled:opacity-50">
+          <button disabled={pending} onClick={() => run(() => setReportStatus(reportId, "ASSIGNED"))} className="rounded-full border border-ink-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-surface-hover disabled:opacity-50">
             Reopen
           </button>
         )}

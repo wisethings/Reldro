@@ -10,7 +10,7 @@ export default function LoginPage() {
           <Logo height={30} />
         </Link>
         <div className="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
-          <h1 className="text-lg font-semibold text-ink-900">Sign in</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-ink-900">Sign in</h1>
           <p className="mt-1 text-xs text-ink-500">Report safety concerns, coordinate the response, and track follow-up.</p>
           <div className="mt-5">
             <LoginForm />

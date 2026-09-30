@@ -38,7 +38,7 @@ export function StatementsPanel({
         <Field label="From (role or name)"><Input name="providedBy" placeholder="e.g. Apprentice electrician, witness" /></Field>
         <Field label="What they said"><Textarea name="content" rows={3} required /></Field>
         {state?.error && <p className="text-xs text-danger">{state.error}</p>}
-        <button disabled={pending} className="rounded-full border border-ink-300 px-4 py-1.5 text-sm font-medium text-ink-800 hover:bg-ink-50 disabled:opacity-50">{pending ? "Adding…" : "Add statement"}</button>
+        <button disabled={pending} className="rounded-full border border-ink-300 px-4 py-1.5 text-sm font-medium text-ink-800 hover:bg-surface-hover disabled:opacity-50">{pending ? "Adding…" : "Add statement"}</button>
       </form>
     </div>
   );
@@ -90,7 +90,7 @@ export function QuestionsPanel({
         <>
           <div className="flex gap-2">
             <Input value={custom} onChange={(e) => setCustom(e.target.value)} placeholder="Add your own question" />
-            <button disabled={pending || !custom.trim()} onClick={() => run(() => addQuestions(investigationId, [custom], false), () => setCustom(""))} className="shrink-0 rounded-full border border-ink-300 px-4 py-1.5 text-sm font-medium text-ink-800 hover:bg-ink-50 disabled:opacity-40">Add</button>
+            <button disabled={pending || !custom.trim()} onClick={() => run(() => addQuestions(investigationId, [custom], false), () => setCustom(""))} className="shrink-0 rounded-full border border-ink-300 px-4 py-1.5 text-sm font-medium text-ink-800 hover:bg-surface-hover disabled:opacity-40">Add</button>
           </div>
           <div className="space-y-2">
             <button

@@ -46,7 +46,7 @@ export default async function ActivityLogPage({ searchParams }: { searchParams: 
     const s = q.toString();
     return `/dashboard/settings/activity${s ? `?${s}` : ""}`;
   };
-  const chip = (on: boolean) => `rounded-full border px-3 py-1 text-xs font-medium ${on ? "border-brand-700 bg-orchid-soft text-orchid-deep" : "border-ink-200 bg-white text-ink-700 hover:bg-ink-50"}`;
+  const chip = (on: boolean) => `rounded-full border px-3 py-1 text-xs font-medium ${on ? "border-brand-700 bg-orchid-soft text-orchid-deep" : "border-ink-200 bg-white text-ink-700 hover:bg-surface-hover"}`;
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-4 p-4 sm:p-6">
@@ -69,12 +69,12 @@ export default async function ActivityLogPage({ searchParams }: { searchParams: 
               <option value="system">System</option>
               {people.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
             </select>
-            <button type="submit" className="h-8 rounded-full border border-ink-300 px-3 text-xs font-medium text-ink-700 hover:bg-ink-50">Apply</button>
+            <button type="submit" className="h-8 rounded-full border border-ink-300 px-3 text-xs font-medium text-ink-700 hover:bg-surface-hover">Apply</button>
           </form>
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-ink-200/80 bg-white">
+      <div className="overflow-hidden rounded-xl bg-white">
         {rows.length === 0 ? (
           <p className="p-5 text-sm text-ink-500">Nothing matches these filters.</p>
         ) : (
@@ -82,7 +82,7 @@ export default async function ActivityLogPage({ searchParams }: { searchParams: 
             {rows.map((log) => (
               <li key={log.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 px-4 py-2.5">
                 <div className="min-w-0">
-                  <p className="text-[13px] text-ink-900">{describeAuditAction(log.action)}</p>
+                  <p className="text-sm text-ink-900">{describeAuditAction(log.action)}</p>
                   <p className="text-xs text-ink-500">{log.user?.name ?? "System"}</p>
                 </div>
                 <span className="shrink-0 text-xs text-ink-500"><LocalTime value={log.createdAt} /></span>
@@ -95,8 +95,8 @@ export default async function ActivityLogPage({ searchParams }: { searchParams: 
       <div className="flex items-center justify-between text-xs text-ink-600">
         <span>{total === 0 ? "0 entries" : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, total)} of ${total}`}</span>
         <span className="flex items-center gap-2">
-          {page > 1 && <Link href={href({ page: String(page - 1) })} className="inline-flex items-center gap-1 rounded-full border border-ink-300 px-3 py-1 font-medium hover:bg-ink-50"><ChevronLeft size={14} aria-hidden /> Newer</Link>}
-          {page < pages && <Link href={href({ page: String(page + 1) })} className="inline-flex items-center gap-1 rounded-full border border-ink-300 px-3 py-1 font-medium hover:bg-ink-50">Older <ChevronRight size={14} aria-hidden /></Link>}
+          {page > 1 && <Link href={href({ page: String(page - 1) })} className="inline-flex items-center gap-1 rounded-full border border-ink-300 px-3 py-1 font-medium hover:bg-surface-hover"><ChevronLeft size={14} aria-hidden /> Newer</Link>}
+          {page < pages && <Link href={href({ page: String(page + 1) })} className="inline-flex items-center gap-1 rounded-full border border-ink-300 px-3 py-1 font-medium hover:bg-surface-hover">Older <ChevronRight size={14} aria-hidden /></Link>}
         </span>
       </div>
     </div>

@@ -21,7 +21,7 @@ export default async function SupportInbox() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-ink-900">Support inbox</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-ink-900">Support inbox</h1>
         <p className="text-sm text-ink-500">Product questions from company admins, sent from the help button in their workspace. Each company sees only its own conversation. Reply here and the admin sees it in the app.</p>
       </div>
       {latest.length === 0 ? (
@@ -35,7 +35,7 @@ export default async function SupportInbox() {
               const n = unreadBy.get(l.userId) ?? 0;
               return (
                 <li key={l.userId}>
-                  <Link href={`/platform-admin/support/${l.userId}`} className="flex items-start gap-3 px-5 py-4 hover:bg-ink-50">
+                  <Link href={`/platform-admin/support/${l.userId}`} className="flex items-start gap-3 px-5 py-4 hover:bg-surface-hover">
                     <div className="min-w-0 flex-1">
                       <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-ink-900">
                         {u?.name ?? "Unknown admin"}

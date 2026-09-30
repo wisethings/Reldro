@@ -14,13 +14,13 @@ export default async function PlatformOrganizationsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-ink-900">Organizations</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-ink-900">Organizations</h1>
           <p className="text-sm text-ink-500">{organizations.length} organizations on Reldro.</p>
         </div>
         <div className="flex items-center gap-2">
           <Link
             href="/api/platform-admin/export/organizations"
-            className="rounded-full border border-ink-300 px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-ink-50"
+            className="rounded-full border border-ink-300 px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-surface-hover"
           >
             Export CSV
           </Link>

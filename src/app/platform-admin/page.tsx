@@ -26,7 +26,7 @@ export default async function PlatformAdminOverview() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-ink-900">Platform overview</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-ink-900">Platform overview</h1>
         <p className="text-sm text-ink-500">Customers on Reldro. Counts only: report and investigation content stays inside each customer's organization.</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -30,7 +30,7 @@ export function Pagination({ page, total, pageSize = PAGE_SIZE, hrefFor, noun = 
   if (total <= pageSize) return total > 0 ? <p className="text-xs text-ink-500">{total} {total === 1 ? noun.replace(/s$/, "") : noun}</p> : null;
   const from = (page - 1) * pageSize + 1;
   const to = Math.min(page * pageSize, total);
-  const item = "flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-[13px] font-medium";
+  const item = "flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-sm font-medium";
   return (
     <nav aria-label="Pagination" className="flex flex-col items-center justify-between gap-3 sm:flex-row">
       <p className="text-xs text-ink-600">Showing <span className="font-medium text-ink-900">{from}–{to}</span> of {total} {noun}</p>

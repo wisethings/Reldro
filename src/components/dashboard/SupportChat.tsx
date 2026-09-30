@@ -104,15 +104,15 @@ export function SupportChat() {
             ) : (
               messages.map((m) => (
                 <div key={m.id} className={`flex flex-col ${m.fromStaff ? "items-start" : "items-end"}`}>
-                  <p className={`max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-3 py-2 text-[13px] leading-snug ${m.fromStaff ? "rounded-bl-md bg-white text-ink-900 ring-1 ring-ink-200" : "rounded-br-md bg-orchid-soft text-ink-900"}`}>{m.body}</p>
-                  <span className="mt-0.5 px-1 text-[11px] text-ink-500">{m.fromStaff ? m.senderName : "You"} · {when(m.createdAt)}</span>
+                  <p className={`max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-3 py-2 text-sm leading-snug ${m.fromStaff ? "rounded-bl-md bg-white text-ink-900 ring-1 ring-ink-200" : "rounded-br-md bg-orchid-soft text-ink-900"}`}>{m.body}</p>
+                  <span className="mt-0.5 px-1 text-xs text-ink-500">{m.fromStaff ? m.senderName : "You"} · {when(m.createdAt)}</span>
                 </div>
               ))
             )}
             <div ref={endRef} />
           </div>
           <form onSubmit={send} className="border-t border-ink-200 bg-white p-2.5">
-            <p className="mb-2 text-[11px] leading-snug text-ink-500">This is for help using Reldro. Do not include names or details from reports. For an emergency, call your local emergency number.</p>
+            <p className="mb-2 text-xs leading-snug text-ink-500">This is for help using Reldro. Do not include names or details from reports. For an emergency, call your local emergency number.</p>
             {sample && <p className="mb-2 rounded-lg bg-olive-soft px-2.5 py-1.5 text-xs text-olive">This is a sample conversation. Sending is turned off in the sample workspace.</p>}
             {error && <p role="alert" className="mb-2 rounded-lg bg-coral-soft px-2.5 py-1.5 text-xs text-danger">{error}</p>}
             <div className="flex items-end gap-2">

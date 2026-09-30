@@ -27,7 +27,7 @@ export default async function InspectionPage({ params }: { params: Promise<{ id:
     <div className="mx-auto max-w-2xl space-y-5 px-4 py-6 sm:px-8 sm:py-8">
       <div>
         <Link href="/dashboard/inspections" className="text-xs font-medium text-ink-500 hover:text-ink-800">← Inspections</Link>
-        <h1 className="mt-2 text-xl font-semibold text-ink-900">{i.template.name}</h1>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-ink-900">{i.template.name}</h1>
         <p className="text-sm text-ink-500">{i.site.name} · due {fmtDate(i.dueDate)}</p>
       </div>
       {i.status === "SCHEDULED" ? (

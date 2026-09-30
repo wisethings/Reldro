@@ -85,17 +85,17 @@ export function InvestigationForm({
       <div className="flex flex-wrap items-center gap-2 border-t border-ink-200 pt-4">
         {error && <p role="alert" className="w-full text-sm text-danger">{error}</p>}
         {status === "OPEN" && (
-          <button disabled={statusPending} onClick={() => run(() => setInvestigationStatus(investigationId, "IN_REVIEW"))} className="rounded-full border border-ink-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-ink-50">
+          <button disabled={statusPending} onClick={() => run(() => setInvestigationStatus(investigationId, "IN_REVIEW"))} className="rounded-full border border-ink-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-surface-hover">
             Send for review
           </button>
         )}
         {status !== "COMPLETE" && isSafetyTeam && (
-          <button disabled={statusPending} onClick={() => run(() => setInvestigationStatus(investigationId, "COMPLETE"))} className="rounded-full border border-ink-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-ink-50">
+          <button disabled={statusPending} onClick={() => run(() => setInvestigationStatus(investigationId, "COMPLETE"))} className="rounded-full border border-ink-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-surface-hover">
             Mark complete
           </button>
         )}
         {status !== "OPEN" && isSafetyTeam && (
-          <button disabled={statusPending} onClick={() => run(() => setInvestigationStatus(investigationId, "OPEN"))} className="rounded-full border border-ink-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-ink-50">
+          <button disabled={statusPending} onClick={() => run(() => setInvestigationStatus(investigationId, "OPEN"))} className="rounded-full border border-ink-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-surface-hover">
             Reopen
           </button>
         )}
@@ -114,14 +114,14 @@ function FactorChips({ factors, initial, locked }: { factors: string[]; initial:
     <fieldset>
       <div className="flex items-baseline justify-between gap-3">
         <legend className="text-xs font-medium text-ink-700">Contributing factors</legend>
-        <span className="text-[11px] tabular-nums text-ink-500" aria-live="polite">{picked.size === 0 ? "None selected" : `${picked.size} selected`}</span>
+        <span className="text-xs tabular-nums text-ink-500" aria-live="polite">{picked.size === 0 ? "None selected" : `${picked.size} selected`}</span>
       </div>
-      <p className="mt-0.5 text-[11px] text-ink-500">Select everything that played a part. Focus on the conditions around the work, not on who to blame.</p>
+      <p className="mt-0.5 text-xs text-ink-500">Select everything that played a part. Focus on the conditions around the work, not on who to blame.</p>
       <div className="mt-2 grid gap-2 sm:grid-cols-2">
         {factors.map((f) => {
           const on = picked.has(f);
           return (
-            <label key={f} className={`relative flex cursor-pointer items-start gap-2.5 rounded-lg border px-3 py-2.5 text-sm transition-all focus-within:ring-2 focus-within:ring-brand-500 active:scale-[0.99] ${on ? "border-brand-700 bg-orchid-soft/70 text-ink-900" : "border-ink-200 bg-white text-ink-700 hover:border-ink-300 hover:bg-ink-50"} ${locked ? "cursor-not-allowed opacity-70" : ""}`}>
+            <label key={f} className={`relative flex cursor-pointer items-start gap-2.5 rounded-lg border px-3 py-2.5 text-sm transition-all focus-within:ring-2 focus-within:ring-brand-500 active:scale-[0.99] ${on ? "border-brand-700 bg-orchid-soft/70 text-ink-900" : "border-ink-200 bg-white text-ink-700 hover:border-ink-300 hover:bg-surface-hover"} ${locked ? "cursor-not-allowed opacity-70" : ""}`}>
               <input type="checkbox" name="factor" value={f} checked={on} disabled={locked} className="sr-only" onChange={(e) => setPicked((prev) => { const n = new Set(prev); e.target.checked ? n.add(f) : n.delete(f); return n; })} />
               <span aria-hidden className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border ${on ? "border-brand-700 bg-brand-700 text-white" : "border-ink-300 bg-white"}`}>{on && <Check size={12} strokeWidth={3} />}</span>
               <span className="leading-snug">{f}</span>

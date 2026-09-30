@@ -80,7 +80,7 @@ export function PhotoField({ name = "attachment", label = "Add photos", max = 3 
               type="button"
               disabled={busy}
               onClick={() => inputRef.current?.click()}
-              className="flex h-20 min-w-[5rem] cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-ink-300 px-3 text-center text-xs font-medium text-ink-600 hover:bg-ink-50 disabled:opacity-60"
+              className="flex h-20 min-w-[5rem] cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-ink-300 px-3 text-center text-xs font-medium text-ink-600 hover:bg-surface-hover disabled:opacity-60"
             >
               {busy ? "Adding…" : label}
             </button>

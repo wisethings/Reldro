@@ -76,7 +76,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
       <div>
         <Link href="/dashboard/reports" className="text-xs font-medium text-ink-500 hover:text-ink-800">← Reports</Link>
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <span className="font-mono text-xs text-ink-400">SR-{String(report.number).padStart(4, "0")}</span>
+          <span className="tabular-nums text-xs text-ink-400">SR-{String(report.number).padStart(4, "0")}</span>
           {!isReporterOnly && <SeverityBadge severity={report.severity} suggested={!report.severityConfirmedAt} />}
           <ReportStatusBadge status={report.status} />
           <Badge>{reportTypeLabel(report.type)}</Badge>
@@ -84,7 +84,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
           {report.injuryInvolved && <Badge tone="red">Injury involved</Badge>}
           {report.privacy !== "NAMED" && <Badge tone="blue">{report.privacy === "ANONYMOUS" ? "Anonymous" : "Confidential"}</Badge>}
         </div>
-        <h1 className="mt-2 text-xl font-semibold text-ink-900">{report.title}</h1>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-ink-900">{report.title}</h1>
       </div>
 
       {late && (
@@ -146,7 +146,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
               This reporter submitted without a name and holds a private case code. They see your messages only when they check the follow-up page with that code, so a reply may take time.
             </p>
           )}
-          {report.aiAssisted && <p className="text-[11px] text-ink-400">The reporter used an AI draft and reviewed the details before submitting.</p>}
+          {report.aiAssisted && <p className="text-xs text-ink-400">The reporter used an AI draft and reviewed the details before submitting.</p>}
         </CardBody>
       </Card>
 
@@ -202,9 +202,9 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
                 const due = dueLabel(a.dueDate, OPEN_ACTION_STATUSES.includes(a.status));
                 return (
                   <li key={a.id}>
-                    <Link href={`/dashboard/actions/${a.id}`} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 hover:bg-ink-50">
+                    <Link href={`/dashboard/actions/${a.id}`} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 hover:bg-surface-hover">
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-ink-900"><span className="font-mono text-xs text-ink-400">A-{a.number}</span> {a.title}</p>
+                        <p className="text-sm font-medium text-ink-900"><span className="tabular-nums text-xs text-ink-400">A-{a.number}</span> {a.title}</p>
                         <p className={`text-xs ${due.overdue ? "font-medium text-danger" : "text-ink-500"}`}>{nameOf(a.ownerId) ?? "No owner"} · {due.text}</p>
                       </div>
                       <ActionStatusBadge status={a.status} />

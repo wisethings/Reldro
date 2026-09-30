@@ -24,7 +24,7 @@ import { Alert } from "@/components/ui/Alert";
 type Person = { id: string; name: string };
 
 const primary = "rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-40";
-const secondary = "rounded-full border border-ink-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-ink-50 disabled:opacity-40";
+const secondary = "rounded-full border border-ink-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-surface-hover disabled:opacity-40";
 
 function ErrorLine({ error }: { error: string | null }) {
   return error ? <Alert tone="error">{error}</Alert> : null;
@@ -129,7 +129,7 @@ export function IncidentDetailsForm({
           <button disabled={pending} onClick={() => run(() => setIncidentStatus(reportId, "ACTIVE"))} className={secondary}>Back to active response</button>
         )}
       </div>
-      <p className="text-[11px] text-ink-500">Monitoring means the immediate response is done and people are following up.</p>
+      <p className="text-xs text-ink-500">Monitoring means the immediate response is done and people are following up.</p>
     </div>
   );
 }
@@ -186,7 +186,7 @@ export function ResponderManager({
           <button disabled={pending || !who} onClick={() => run(() => addResponder(reportId, who, role), () => { setWho(""); setRole(""); })} className={primary}>Add</button>
         </div>
       )}
-      <p className="text-[11px] text-ink-500">Responders can read this report and the timeline and post updates. Investigation statements and safety-team-only notes stay restricted.</p>
+      <p className="text-xs text-ink-500">Responders can read this report and the timeline and post updates. Investigation statements and safety-team-only notes stay restricted.</p>
     </div>
   );
 }
@@ -217,7 +217,7 @@ export function IncidentComposer({ reportId, isSafetyTeam }: { reportId: string;
             role="radio"
             aria-checked={kind === t.key}
             onClick={() => setKind(t.key)}
-            className={`rounded-full border px-3 py-1.5 text-xs font-medium ${kind === t.key ? "border-brand-700 bg-orchid-soft text-orchid-deep" : "border-ink-200 bg-white text-ink-600 hover:bg-ink-50"}`}
+            className={`rounded-full border px-3 py-1.5 text-xs font-medium ${kind === t.key ? "border-brand-700 bg-orchid-soft text-orchid-deep" : "border-ink-200 bg-white text-ink-600 hover:bg-surface-hover"}`}
           >
             {t.label}
           </button>
@@ -243,7 +243,7 @@ export function ReporterMessageBox({ reportId, anonymous }: { reportId: string; 
     <div className="space-y-2">
       <ErrorLine error={error} />
       <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} maxLength={2000} placeholder="Ask a question or share what's happening, in plain words" aria-label="Message to the reporter" />
-      <p className="text-[11px] text-ink-500">
+      <p className="text-xs text-ink-500">
         {anonymous
           ? "The reporter submitted without a name. They see this only if they open their private follow-up page with their case code. Do not include anything that could identify them."
           : "The reporter can read this on their report."}

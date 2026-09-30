@@ -51,7 +51,7 @@ export default async function InspectionsPage() {
               const d = dueLabel(i.dueDate, true);
               return (
                 <li key={i.id}>
-                  <Link href={`/dashboard/inspections/${i.id}`} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 hover:bg-ink-50 sm:px-5">
+                  <Link href={`/dashboard/inspections/${i.id}`} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 hover:bg-surface-hover sm:px-5">
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-ink-900">{i.template.name}</p>
                       <p className="text-xs text-ink-500">{i.site.name} · {INSPECTION_KIND_LABEL[i.template.kind]}</p>
@@ -89,7 +89,7 @@ export default async function InspectionsPage() {
               const failed = (i.results as { result: string }[]).filter((r) => r.result === "FAIL").length;
               return (
                 <li key={i.id}>
-                  <Link href={`/dashboard/inspections/${i.id}`} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 hover:bg-ink-50 sm:px-5">
+                  <Link href={`/dashboard/inspections/${i.id}`} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 hover:bg-surface-hover sm:px-5">
                     <div><p className="text-sm font-medium text-ink-900">{i.template.name}</p><p className="text-xs text-ink-500">{i.site.name} · {fmtDate(i.completedAt)}</p></div>
                     {failed > 0 ? <Badge tone="red">{failed} failed</Badge> : <Badge tone="green">No failed items</Badge>}
                   </Link>

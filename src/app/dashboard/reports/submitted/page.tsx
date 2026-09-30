@@ -11,7 +11,7 @@ export default async function ReportSubmittedPage({ searchParams }: { searchPara
     <div className="mx-auto max-w-md space-y-5 p-6 text-center">
       <CheckCircle2 size={48} className="mx-auto text-sage-deep" />
       <div>
-        <h1 className="text-xl font-semibold text-ink-900">Your report was submitted</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-ink-900">Your report was submitted</h1>
         {ref && <p className="mt-1 text-sm text-ink-500">Reference {ref}</p>}
       </div>
       <p className="text-sm text-ink-600">
@@ -19,7 +19,7 @@ export default async function ReportSubmittedPage({ searchParams }: { searchPara
       </p>
       <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
         <Link href="/dashboard/reports/new" className="rounded-full bg-brand-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-800">Report another</Link>
-        <Link href="/dashboard/overview" className="rounded-full border border-ink-300 px-5 py-2.5 text-sm font-medium text-ink-800 hover:bg-ink-50">Back to home</Link>
+        <Link href="/dashboard/overview" className="rounded-full border border-ink-300 px-5 py-2.5 text-sm font-medium text-ink-800 hover:bg-surface-hover">Back to home</Link>
       </div>
       <p className="text-xs text-ink-500">Submitting this report did not call anyone. If someone still needs help, call your local emergency number now.</p>
     </div>

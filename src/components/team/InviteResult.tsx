@@ -10,7 +10,7 @@ export function InviteResult({ result, className = "" }: { result: ({ error?: st
     return (
       <p className={`rounded-lg bg-sage px-3 py-2 text-sm text-sage-deep ${className}`}>
         Account created, but the email wasn&apos;t sent{result.emailError ? ` (${result.emailError})` : ""}. Share this temporary password with them directly:{" "}
-        <span className="font-mono font-semibold">{result.tempPassword}</span>
+        <span className="tabular-nums font-semibold">{result.tempPassword}</span>
       </p>
     );
   }

@@ -22,7 +22,7 @@ type Props = {
 
 const btn = "rounded-full px-4 py-2 text-sm font-medium disabled:opacity-50";
 const primary = `${btn} bg-brand-700 text-white hover:bg-brand-800`;
-const secondary = `${btn} border border-ink-300 text-ink-800 hover:bg-ink-50`;
+const secondary = `${btn} border border-ink-300 text-ink-800 hover:bg-surface-hover`;
 
 /** What to do now, in plain words, with the one main button; everything else is tucked under "More options". */
 export function ActionControls({ actionId, status, ownerId, ownerName, isSafetyTeam, isOwner }: Props) {
@@ -75,7 +75,7 @@ export function ActionControls({ actionId, status, ownerId, ownerName, isSafetyT
           <span aria-hidden className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${iconStyle}`}><step.Icon size={18} /></span>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-ink-900">{step.title}</p>
-            <p className="mt-0.5 text-[13px] leading-snug text-ink-600">{step.body}</p>
+            <p className="mt-0.5 text-sm leading-snug text-ink-600">{step.body}</p>
             {step.button && <div className="mt-3">{step.button}</div>}
           </div>
         </div>
@@ -104,7 +104,7 @@ export function ActionControls({ actionId, status, ownerId, ownerName, isSafetyT
 
       {hasMore && (
         <details className="group rounded-xl border border-ink-200">
-          <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 text-sm font-medium text-ink-700 hover:bg-ink-50 [&::-webkit-details-marker]:hidden">
+          <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 text-sm font-medium text-ink-700 hover:bg-surface-hover [&::-webkit-details-marker]:hidden">
             More options
             <span aria-hidden className="text-ink-400 transition-transform group-open:rotate-180">⌄</span>
           </summary>

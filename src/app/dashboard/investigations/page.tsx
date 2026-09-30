@@ -31,7 +31,7 @@ export default async function InvestigationsPage({ searchParams }: { searchParam
   const loaded = await prisma.investigation.findMany({ where: { id: { in: pageIds } }, include: { report: { include: { site: true } } } });
   const list = pageIds.map((id) => loaded.find((l) => l.id === id)).filter((l): l is (typeof loaded)[number] => Boolean(l));
 
-  const chip = (active: boolean) => `rounded-full border px-2.5 py-1 text-xs font-medium ${active ? "border-brand-700 bg-orchid-soft text-orchid-deep" : "border-ink-200 bg-white text-ink-600 hover:bg-ink-50"}`;
+  const chip = (active: boolean) => `rounded-full border px-2.5 py-1 text-xs font-medium ${active ? "border-brand-700 bg-orchid-soft text-orchid-deep" : "border-ink-200 bg-white text-ink-600 hover:bg-surface-hover"}`;
 
   const orgWhere = { organizationId: v.organizationId, ...(v.isSafetyTeam ? {} : { leadId: v.employeeId ?? "__none__" }) };
   const [sOpen, sReview, sDone, sShared] = await Promise.all([
@@ -66,8 +66,8 @@ export default async function InvestigationsPage({ searchParams }: { searchParam
               template="minmax(0,1fr) 8.5rem 8rem 12rem 5rem"
               main={
                 <>
-                  <p title={i.report.title} className="truncate text-[13px] font-medium text-ink-900">{i.report.title}</p>
-                  <p className="mt-0.5 text-xs text-ink-500"><span className="font-mono">SR-{String(i.report.number).padStart(4, "0")}</span> · {categoryLabel(i.report.category, pack)}</p>
+                  <p title={i.report.title} className="truncate text-sm font-medium text-ink-900">{i.report.title}</p>
+                  <p className="mt-0.5 text-xs text-ink-500"><span className="tabular-nums">SR-{String(i.report.number).padStart(4, "0")}</span> · {categoryLabel(i.report.category, pack)}</p>
                 </>
               }
               chips={

@@ -61,8 +61,8 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0">
-        <h1 className="text-lg font-semibold text-ink-900">{title}</h1>
-        {subtitle && <p className="mt-0.5 text-[13px] text-ink-500">{subtitle}</p>}
+        <h1 className="text-2xl font-semibold tracking-tight text-ink-900">{title}</h1>
+        {subtitle && <p className="mt-0.5 text-sm text-ink-500">{subtitle}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
@@ -103,7 +103,7 @@ export function EmptyHero({
   const prefix = kind === "reports" ? "SR" : kind === "investigations" ? "INV" : "A";
   const bar = "h-2 rounded-full bg-ink-200/70";
   return (
-    <div className="overflow-hidden rounded-2xl border border-ink-200/80 bg-white">
+    <div className="overflow-hidden rounded-2xl bg-white">
       <div className="relative bg-gradient-to-b from-orchid-soft/70 via-orchid-soft/30 to-white px-4 pt-8 text-center">
         <div aria-hidden className="mx-auto flex h-40 max-w-xl items-start justify-center gap-3 overflow-hidden px-1 pt-1 [mask-image:linear-gradient(to_bottom,black_50%,transparent)]">
           {[0.55, 1, 0.55].map((scale, idx) => (
@@ -112,9 +112,9 @@ export function EmptyHero({
                 <span className="h-5 w-5 rounded-md bg-orchid-soft" />
                 <span className={`${bar} w-16`} />
               </div>
-              <p className="mt-3 text-[11px] font-medium text-orchid-deep">{idx === 1 ? chip : ""}</p>
+              <p className="mt-3 text-xs font-medium text-orchid-deep">{idx === 1 ? chip : ""}</p>
               <div className="mt-2 space-y-1.5 rounded-lg bg-ink-50 p-2">
-                <p className="text-[10px] font-mono text-ink-400">{prefix}-0{idx + 1}</p>
+                <p className="text-[10px] tabular-nums text-ink-400">{prefix}-0{idx + 1}</p>
                 <span className={`${bar} block w-full`} />
                 <span className={`${bar} block w-2/3`} />
               </div>
@@ -124,14 +124,14 @@ export function EmptyHero({
         </div>
         <div className="-mt-3 pb-8">
           <h2 className="text-lg font-semibold text-ink-900">{title}</h2>
-          <p className="mx-auto mt-1 max-w-md text-[13px] text-ink-600">{body}</p>
+          <p className="mx-auto mt-1 max-w-md text-sm text-ink-600">{body}</p>
         </div>
       </div>
       {steps.length > 0 && (
         <div className="grid grid-cols-1 gap-3 border-t border-ink-100 p-3 sm:grid-cols-3">
           {steps.map((st) => (
-            <Link key={st.href + st.title} href={st.href} className="group rounded-xl border border-ink-200/80 p-3 hover:bg-ink-50 focus-visible:ring-2 focus-visible:ring-brand-500">
-              <p className="text-[13px] font-medium text-ink-900">{st.title}</p>
+            <Link key={st.href + st.title} href={st.href} className="group rounded-xl border border-ink-200/80 p-3 hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-brand-500">
+              <p className="text-sm font-medium text-ink-900">{st.title}</p>
               <p className="mt-0.5 text-xs text-ink-600">{st.body}</p>
               <p className="mt-2 text-xs font-medium text-orchid-deep group-hover:text-oxblood">Open →</p>
             </Link>
@@ -166,7 +166,7 @@ export function Photos({ items }: { items: unknown }) {
 /** Shown wherever AI text appears, so nobody mistakes a draft for a finding. */
 export function DraftLabel({ generatedBy }: { generatedBy: "model" | "rules" }) {
   return (
-    <p className="text-[11px] font-medium uppercase tracking-wide text-orchid-deep">
+    <p className="text-xs font-medium uppercase tracking-wide text-orchid-deep">
       {generatedBy === "model" ? "AI-assisted draft" : "Draft from built-in checklists"} · review and edit before using
     </p>
   );

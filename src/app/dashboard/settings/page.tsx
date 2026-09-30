@@ -50,7 +50,7 @@ export default async function SettingsPage() {
     <div className="min-h-full bg-surface-muted">
     <div className="mx-auto max-w-3xl space-y-10 px-4 py-6 sm:px-8 sm:py-8">
       <div>
-        <h1 className="text-xl font-semibold text-ink-900">Settings</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-ink-900">Settings</h1>
         <p className="mt-0.5 text-sm text-ink-600">Manage company details, emergency instructions, escalation rules, and admin access.</p>
       </div>
 
@@ -78,7 +78,7 @@ export default async function SettingsPage() {
                 <li key={r.id} className="flex flex-wrap items-start justify-between gap-3 px-4 py-3 text-sm">
                   <p className="text-ink-800">
                     <strong>{severityInfo(r.minSeverity).label}</strong> or higher{r.category ? ` · ${categoryLabel(r.category, pack)}` : ""}{r.siteId ? ` · ${siteName(r.siteId)}` : ""}: assign to {nameOf(r.ownerId) ?? "the site safety lead"}, acknowledge within {r.respondWithinHours}h{r.escalateToId ? `, then alert ${nameOf(r.escalateToId)}` : ""}.
-                    {r.openIncident && <span className="ml-1 rounded bg-coral-soft px-1.5 py-0.5 text-[11px] font-medium text-danger">Opens an incident response</span>}
+                    {r.openIncident && <span className="ml-1 rounded bg-coral-soft px-1.5 py-0.5 text-xs font-medium text-danger">Opens an incident response</span>}
                   </p>
                   <DeleteRuleButton ruleId={r.id} />
                 </li>
@@ -137,7 +137,7 @@ export default async function SettingsPage() {
             </div>
           ))}
           {auditLogs.length === 0 && <p className="p-5 text-sm text-ink-500">No activity recorded yet.</p>}
-          <Link href="/dashboard/settings/activity" className="flex items-center justify-between px-4 py-3 text-sm font-medium text-orchid-deep hover:bg-ink-50 hover:text-oxblood sm:px-5">
+          <Link href="/dashboard/settings/activity" className="flex items-center justify-between px-4 py-3 text-sm font-medium text-orchid-deep hover:bg-surface-hover hover:text-oxblood sm:px-5">
             View the full activity log, with filters <ArrowRight size={14} aria-hidden />
           </Link>
         </CardBody>

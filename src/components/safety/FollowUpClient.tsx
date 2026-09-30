@@ -48,7 +48,7 @@ export function FollowUpClient() {
             autoCapitalize="characters"
             spellCheck={false}
             inputMode="text"
-            className="font-mono text-base uppercase tracking-wider"
+            className="type-code text-base uppercase"
             required
           />
         </Field>
@@ -62,7 +62,7 @@ export function FollowUpClient() {
   return (
     <div className="space-y-4">
       <div className="rounded-xl border border-ink-200 bg-white p-5">
-        <p className="font-mono text-xs text-ink-400">{view.reference}</p>
+        <p className="tabular-nums text-xs text-ink-400">{view.reference}</p>
         <p className="mt-1 text-lg font-semibold text-ink-900">{view.status}</p>
         <p className="text-xs text-ink-500">Sent {fmt(view.submittedAt)}</p>
       </div>
@@ -70,7 +70,7 @@ export function FollowUpClient() {
       <ol className="space-y-3 rounded-xl border border-ink-200 bg-white p-5" aria-label="Updates on your report">
         {view.steps.map((s, i) => (
           <li key={i} className="text-sm">
-            <p className="text-[11px] font-medium uppercase tracking-wide text-ink-400">{s.from === "you" ? "You" : s.from === "team" ? "Safety team" : "Update"} · {fmt(s.at)}</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-ink-400">{s.from === "you" ? "You" : s.from === "team" ? "Safety team" : "Update"} · {fmt(s.at)}</p>
             <p className={`mt-0.5 whitespace-pre-wrap ${s.from === "team" ? "rounded-lg bg-orchid-soft/50 px-3 py-2 text-ink-900" : "text-ink-800"}`}>{s.text}</p>
           </li>
         ))}

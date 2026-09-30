@@ -19,7 +19,7 @@ export function Queue({
   children?: React.ReactNode;
 }) {
   return (
-    <Card className={tone === "alert" && count > 0 ? "border-coral" : ""}>
+    <Card tone="plain" className={tone === "alert" && count > 0 ? "ring-1 ring-coral/60" : ""}>
       <div className="flex items-center justify-between gap-3 border-b border-ink-200 px-4 py-3 sm:px-5">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-semibold text-ink-900">{title}</h2>
@@ -35,7 +35,7 @@ export function Queue({
 export function QueueRow({ href, title, meta, right }: { href: string; title: string; meta?: string; right?: React.ReactNode }) {
   return (
     <li>
-      <Link href={href} className="flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-ink-50 sm:px-5">
+      <Link href={href} className="flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-surface-hover sm:px-5">
         <div className="min-w-0">
           <p title={title} className="line-clamp-2 break-words text-sm font-medium text-ink-900">{title}</p>
           {meta && <p title={meta} className="line-clamp-2 break-words text-xs text-ink-500">{meta}</p>}

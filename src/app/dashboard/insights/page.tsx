@@ -13,13 +13,13 @@ function Bars({ rows, empty = "Nothing to show yet." }: { rows: { label: string;
       {rows.map((r, i) => {
         const inner = (
           <>
-            <span title={r.label} className={`min-w-0 text-[13px] leading-snug ${i === 0 ? "font-medium text-ink-900" : "text-ink-700"} line-clamp-2 break-words`}>{r.label}</span>
+            <span title={r.label} className={`min-w-0 text-sm leading-snug ${i === 0 ? "font-medium text-ink-900" : "text-ink-700"} line-clamp-2 break-words`}>{r.label}</span>
             <span aria-hidden className="h-1.5 overflow-hidden rounded-full bg-ink-100"><span className={`block h-full rounded-full ${i === 0 ? "bg-orchid-deep" : "bg-orchid-deep/55"}`} style={{ width: `${(r.count / max) * 100}%` }} /></span>
-            <span className={`text-right text-[13px] tabular-nums ${i === 0 ? "font-semibold text-ink-900" : "text-ink-600"}`}>{r.count}</span>
+            <span className={`text-right text-sm tabular-nums ${i === 0 ? "font-semibold text-ink-900" : "text-ink-600"}`}>{r.count}</span>
           </>
         );
         const cls = "grid grid-cols-[minmax(0,1fr)_5.5rem_1.75rem] items-center gap-3 rounded-md px-1 py-1.5 sm:grid-cols-[minmax(0,1fr)_8rem_2rem]";
-        return <li key={r.label}>{r.href ? <Link href={r.href} className={`${cls} hover:bg-ink-50`}>{inner}</Link> : <div className={cls}>{inner}</div>}</li>;
+        return <li key={r.label}>{r.href ? <Link href={r.href} className={`${cls} hover:bg-surface-hover`}>{inner}</Link> : <div className={cls}>{inner}</div>}</li>;
       })}
     </ul>
   );
@@ -27,8 +27,8 @@ function Bars({ rows, empty = "Nothing to show yet." }: { rows: { label: string;
 
 function Block({ title, note, children, className = "" }: { title: string; note?: string; children: React.ReactNode; className?: string }) {
   return (
-    <section className={`border-t border-ink-100 pt-4 ${className}`}>
-      <h2 className="text-[13px] font-semibold text-ink-900">{title}</h2>
+    <section className={`rounded-xl bg-white p-5 ${className}`}>
+      <h2 className="text-sm font-semibold text-ink-900">{title}</h2>
       {note && <p className="mt-0.5 text-xs leading-snug text-ink-500">{note}</p>}
       <div className="mt-3">{children}</div>
     </section>
@@ -40,7 +40,7 @@ function Figure({ label, value, tone, note }: { label: string; value: string | n
     <div>
       <dd className={`text-2xl font-semibold tabular-nums ${tone === "bad" ? "text-danger" : "text-ink-900"}`}>{value}</dd>
       <dt className="text-xs text-ink-600">{label}</dt>
-      {note && <p className="text-[11px] text-ink-400">{note}</p>}
+      {note && <p className="text-xs text-ink-400">{note}</p>}
     </div>
   );
 }
@@ -94,21 +94,21 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
   const seg = (active: boolean) => `rounded-md px-3 py-1 text-xs font-medium transition-colors ${active ? "bg-white text-ink-900 shadow-[0_0_0_1px_rgba(42,10,12,0.08)]" : "text-ink-600 hover:text-ink-900"}`;
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-8 px-4 py-4 sm:px-6 sm:py-6">
+    <div className="mx-auto w-full max-w-6xl space-y-4 px-4 py-6 sm:px-8 sm:py-8">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-lg font-semibold text-ink-900">Insights</h1>
-          <p className="mt-0.5 max-w-2xl text-[13px] text-ink-500">Review reporting and follow-up patterns across sites, teams, and topics. Report counts alone do not show how safe a site is.</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-ink-900">Insights</h1>
+          <p className="mt-0.5 max-w-2xl text-sm text-ink-500">Review reporting and follow-up patterns across sites, teams, and topics. Report counts alone do not show how safe a site is.</p>
         </div>
         <div className="flex items-center gap-2">
           <div role="group" aria-label="Time period" className="flex rounded-lg bg-ink-100 p-0.5">
             {[30, 90, 365].map((n) => <Link key={n} href={`?days=${n}`} className={seg(days === n)} aria-pressed={days === n}>{n === 365 ? "Last year" : `${n} days`}</Link>)}
           </div>
-          <Link href={`/api/safety/export/reports?days=${days}`} className="rounded-full border border-ink-300 px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-ink-50">Export reports (CSV)</Link>
+          <Link href={`/api/safety/export/reports?days=${days}`} className="rounded-full border border-ink-300 px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-surface-hover">Export reports (CSV)</Link>
         </div>
       </div>
 
-      <section aria-label="Key figures" className="rounded-xl bg-surface-muted p-5">
+      <section aria-label="Key figures" className="rounded-xl bg-white p-5">
         <dl className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3 lg:grid-cols-6">
           <Figure label="Reports" value={reports.length} />
           <Figure label="Median hours to acknowledge" value={medianAck === null ? "—" : medianAck < 10 ? medianAck.toFixed(1) : Math.round(medianAck)} />
@@ -117,12 +117,12 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
           <Figure label="Overdue" value={overdue.length} tone={overdue.length ? "bad" : undefined} />
           <Figure label="Avg days to verify" value={avgDaysToVerify ?? "—"} />
         </dl>
-        <p className="mt-4 text-[11px] leading-snug text-ink-500">
+        <p className="mt-4 text-xs leading-snug text-ink-500">
           {incidentsResolved.length} incident {incidentsResolved.length === 1 ? "response" : "responses"} resolved with a closeout{incidentsStoodDown ? `, ${incidentsStoodDown} stood down as not needing one` : ""}. Acknowledgement time uses reports that have been acknowledged. Corrective action figures count actions created in this period; verified means someone confirmed the fix is in place.
         </p>
       </section>
 
-      <div className="grid gap-x-10 gap-y-8 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2">
         <Block title="Repeated hazards" note="Same topic at the same site, two or more times. The strongest signal on this page.">
           <Bars rows={repeats} empty="No repeats in this period." />
         </Block>
@@ -138,12 +138,12 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
         </Block>
       </div>
 
-      <details className="group rounded-xl bg-surface-muted text-sm text-ink-700">
+      <details className="group rounded-xl bg-white text-sm text-ink-700">
         <summary className="flex cursor-pointer list-none items-center justify-between px-5 py-3 font-medium text-ink-900 [&::-webkit-details-marker]:hidden">
           How to read this page
           <span aria-hidden className="text-ink-400 transition-transform group-open:rotate-180">⌄</span>
         </summary>
-        <ul className="list-disc space-y-1 px-5 pb-4 pl-10 text-[13px]">
+        <ul className="list-disc space-y-1 px-5 pb-4 pl-10 text-sm">
           <li>Reporting patterns can reflect both workplace conditions and how comfortable people feel reporting concerns.</li>
           <li>Fewer reports do not mean fewer hazards, and more reports do not mean more hazards.</li>
           <li>With small numbers, two similar reports can look like a pattern by chance. Read the reports before acting.</li>
@@ -152,15 +152,15 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
         </ul>
       </details>
 
-      <section className="rounded-xl bg-surface-muted p-5">
-        <h2 className="text-[13px] font-semibold text-ink-900">Summary of reported themes</h2>
+      <section className="rounded-xl bg-white p-5">
+        <h2 className="text-sm font-semibold text-ink-900">Summary of reported themes</h2>
         <p className="mt-0.5 text-xs text-ink-500">A draft based on the reports in this period. Check it against the source reports before sharing.</p>
         <div className="mt-3"><ThemesSummaryDraft days={days} /></div>
       </section>
 
       <Block title="Shared lessons" note="Lessons approved for sharing with your team. Check that personal details have been removed before publishing.">
         {lessons.length === 0 ? <p className="text-sm text-ink-500">No lessons have been shared yet. Complete an investigation, then write a lesson without names or personal details.</p> : (
-          <ul className="divide-y divide-ink-100">{lessons.map((l) => <li key={l.id} className="py-2.5 text-sm text-ink-800"><span className="mr-2 rounded bg-surface-muted px-1.5 py-0.5 text-[11px] text-ink-600">{categoryLabel(l.report.category, pack)}</span>{l.lessonText}</li>)}</ul>
+          <ul className="divide-y divide-ink-100">{lessons.map((l) => <li key={l.id} className="py-2.5 text-sm text-ink-800"><span className="mr-2 rounded bg-surface-muted px-1.5 py-0.5 text-xs text-ink-600">{categoryLabel(l.report.category, pack)}</span>{l.lessonText}</li>)}</ul>
         )}
       </Block>
     </div>

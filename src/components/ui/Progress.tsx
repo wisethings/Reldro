@@ -53,7 +53,7 @@ export function MilestoneProgressBar({
         {milestones.map((m) => (
           <div key={m.value} className="flex flex-col items-center gap-1 text-center">
             <span className={cn("h-2 w-2 rounded-full", value >= m.value ? "bg-orchid-deep" : "bg-ink-200")} />
-            <span className="text-[11px] font-medium text-ink-700">{m.value} pts</span>
+            <span className="text-xs font-medium text-ink-700">{m.value} pts</span>
             <span className="text-[10px] text-ink-400">{m.label}</span>
           </div>
         ))}

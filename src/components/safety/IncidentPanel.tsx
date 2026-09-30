@@ -56,7 +56,7 @@ export function IncidentPanel(props: {
               <dt className="text-xs text-ink-500">Seriousness</dt>
               <dd className="flex flex-wrap items-center gap-1.5">
                 <SeverityBadge severity={props.severity} suggested={!props.severityConfirmed} />
-                {!props.severityConfirmed && <span className="text-[11px] text-ink-500">Waiting for a responder to confirm</span>}
+                {!props.severityConfirmed && <span className="text-xs text-ink-500">Waiting for a responder to confirm</span>}
               </dd>
             </div>
             <div>
@@ -90,7 +90,7 @@ export function IncidentPanel(props: {
                     </Link>
                     {props.investigation.factors.length > 0 && (
                       <ul className="mt-2 flex flex-wrap gap-1" aria-label="Contributing factors chosen by the investigator">
-                        {props.investigation.factors.map((f) => <li key={f} className="rounded-full bg-surface-sunken px-2 py-0.5 text-[11px] text-ink-700">{f}</li>)}
+                        {props.investigation.factors.map((f) => <li key={f} className="rounded-full bg-surface-sunken px-2 py-0.5 text-xs text-ink-700">{f}</li>)}
                       </ul>
                     )}
                   </>
@@ -101,7 +101,7 @@ export function IncidentPanel(props: {
                 <p className="mt-1 text-ink-600">{props.canRun || props.isSafetyTeam ? "Not opened. Open an investigation from the report when it needs a closer review." : "Not opened."}</p>
               )}
             </div>
-            <a href="#actions" className="rounded-xl bg-surface-muted p-3 text-sm hover:bg-ink-50">
+            <a href="#actions" className="rounded-xl bg-surface-muted p-3 text-sm hover:bg-surface-hover">
               <p className="flex items-center gap-1.5 text-xs font-medium text-ink-500"><ClipboardList size={13} aria-hidden /> Corrective actions</p>
               <p className="mt-1 text-ink-800">
                 {props.actionCounts.total === 0

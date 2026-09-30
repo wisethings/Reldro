@@ -22,7 +22,7 @@ export function Avatar({ name, size = 28, className }: { name: string; size?: nu
 
   return (
     <div
-      className={cn("flex shrink-0 items-center justify-center rounded-full text-[11px] font-semibold", tone, className)}
+      className={cn("flex shrink-0 items-center justify-center rounded-full text-xs font-semibold", tone, className)}
       style={{ width: size, height: size }}
     >
       {initials}

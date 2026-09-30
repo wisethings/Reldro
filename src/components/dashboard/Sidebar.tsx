@@ -34,13 +34,13 @@ function NavContent({ audience, orgName, name, roleLabel, onNavigate }: { audien
       {orgName && (
         <div className="mx-3 mb-2 flex items-center gap-2 rounded-lg bg-white/60 px-2 py-1.5">
           <span aria-hidden className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-oxblood text-[10px] font-semibold text-bone">{orgName.slice(0, 1).toUpperCase()}</span>
-          <span className="truncate text-[13px] font-medium text-ink-900">{orgName}</span>
+          <span className="truncate text-sm font-medium text-ink-900">{orgName}</span>
         </div>
       )}
       <nav aria-label="Primary" className="flex-1 space-y-4 overflow-y-auto px-3 pb-3 pt-1">
         {groups.map((g, gi) => (
           <div key={gi} className="space-y-0.5">
-            {g.label && <p className="px-2 pb-1 text-[11px] font-medium text-ink-500">{g.label}</p>}
+            {g.label && <p className="px-2 pb-1 text-xs font-medium text-ink-500">{g.label}</p>}
             {g.items.map((item) => {
               const active = pathname === item.href || pathname.startsWith(item.href + "/");
               const Icon = item.icon;
@@ -50,7 +50,7 @@ function NavContent({ audience, orgName, name, roleLabel, onNavigate }: { audien
                   href={item.href}
                   onClick={onNavigate}
                   aria-current={active ? "page" : undefined}
-                  className={`flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-[13px] font-medium transition-colors ${
+                  className={`flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors ${
                     active ? "bg-white text-ink-900 shadow-[0_0_0_1px_rgba(42,10,12,0.06)]" : "text-ink-600 hover:bg-white/60 hover:text-ink-900"
                   }`}
                 >
@@ -65,10 +65,10 @@ function NavContent({ audience, orgName, name, roleLabel, onNavigate }: { audien
       <div className="shrink-0 border-t border-ink-200/70 p-3">
         <div className="flex items-center gap-2.5">
           <Link href="/dashboard/account" onClick={onNavigate} className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg p-1 hover:bg-white/60" aria-label="Your account">
-            <span aria-hidden className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-orchid-soft text-[11px] font-semibold text-orchid-deep">{initialsOf(name)}</span>
+            <span aria-hidden className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-orchid-soft text-xs font-semibold text-orchid-deep">{initialsOf(name)}</span>
             <span className="min-w-0">
-              <span className="block truncate text-[13px] font-medium leading-tight text-ink-900">{name}</span>
-              <span className="block truncate text-[11px] leading-tight text-ink-500">{roleLabel}</span>
+              <span className="block truncate text-sm font-medium leading-tight text-ink-900">{name}</span>
+              <span className="block truncate text-xs leading-tight text-ink-500">{roleLabel}</span>
             </span>
           </Link>
           <form action={logout}>

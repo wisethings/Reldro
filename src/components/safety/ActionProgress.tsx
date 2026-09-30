@@ -42,7 +42,7 @@ export function ActionProgress({ actionId, status, backTo }: { actionId: string;
               {done ? <Check size={14} aria-hidden /> : i + 1}
             </span>
           );
-          const text = <span className={`mt-1.5 block text-[11px] leading-tight sm:text-xs ${isCurrent ? "font-semibold text-ink-900" : done ? "text-ink-700" : "text-ink-400"}`}>{s.label}</span>;
+          const text = <span className={`mt-1.5 block text-xs leading-tight sm:text-xs ${isCurrent ? "font-semibold text-ink-900" : done ? "text-ink-700" : "text-ink-400"}`}>{s.label}</span>;
           return (
             <li key={s.key} className="relative flex-1 text-center" aria-current={isCurrent ? "step" : undefined}>
               {i > 0 && <span aria-hidden className={`absolute right-1/2 top-3.5 h-0.5 w-full -translate-y-1/2 ${!cancelled && i <= current ? "bg-sage-deep/60" : "bg-ink-200"}`} />}
@@ -61,7 +61,7 @@ export function ActionProgress({ actionId, status, backTo }: { actionId: string;
           );
         })}
       </ol>
-      {backTo.length > 0 && !target && !cancelled && current > 0 && <p className="text-center text-[11px] text-ink-500">Need to undo a step? Select an earlier one.</p>}
+      {backTo.length > 0 && !target && !cancelled && current > 0 && <p className="text-center text-xs text-ink-500">Need to undo a step? Select an earlier one.</p>}
 
       {target && (
         <div className="space-y-2 rounded-xl border border-orchid-deep/30 bg-orchid-soft/50 p-3">
@@ -72,7 +72,7 @@ export function ActionProgress({ actionId, status, backTo }: { actionId: string;
           <textarea id="move-reason" value={reason} onChange={(e) => setReason(e.target.value)} rows={2} maxLength={300} placeholder="Why? (optional, for example: fix did not hold, plan changed)" className="w-full rounded-lg border border-ink-200 bg-white px-3 py-2 text-base outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30 sm:text-sm" />
           <div className="flex gap-2">
             <button type="button" disabled={pending} onClick={() => run(() => setActionStatus(actionId, target, reason), () => { setTarget(null); setReason(""); })} className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? "Moving…" : "Confirm"}</button>
-            <button type="button" onClick={() => { setTarget(null); setReason(""); }} className="rounded-full border border-ink-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-ink-50">Keep as is</button>
+            <button type="button" onClick={() => { setTarget(null); setReason(""); }} className="rounded-full border border-ink-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-surface-hover">Keep as is</button>
           </div>
         </div>
       )}
