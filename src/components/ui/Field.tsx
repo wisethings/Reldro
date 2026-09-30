@@ -1,6 +1,7 @@
 import { Children, cloneElement, isValidElement, useId } from "react";
 import type { InputHTMLAttributes, ReactElement, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
 import { cn } from "./cn";
+import { AutoTextarea } from "./AutoTextarea";
 
 /**
  * Shared, compact control styling for every text input/select/textarea in
@@ -10,15 +11,16 @@ import { cn } from "./cn";
  * stay comfortable to click, not so much that a form of 6 short fields
  * forces a page of scrolling.
  */
-export const controlClass =
-  "w-full rounded-lg border border-ink-300 bg-white px-2.5 py-2 text-sm md:py-1.5 text-ink-900 outline-none transition-[border-color,box-shadow] placeholder:text-ink-400 hover:border-ink-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 aria-[invalid=true]:border-danger aria-[invalid=true]:ring-danger/20 disabled:cursor-not-allowed disabled:bg-ink-50 disabled:text-ink-400";
+import { controlClass } from "./controls";
+export { controlClass };
 
 export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
   return <input {...props} className={cn(controlClass, props.className)} />;
 }
 
-export function Textarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea {...props} className={cn(controlClass, "resize-y", props.className)} />;
+/** Starts compact (at most 4 rows) and grows as the person types, instead of a big empty box. */
+export function Textarea({ rows = 3, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return <AutoTextarea {...props} minRows={Math.min(rows, 4)} maxRows={Math.max(rows * 2, 10)} />;
 }
 
 export function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {

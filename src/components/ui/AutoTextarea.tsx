@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { TextareaHTMLAttributes } from "react";
-import { controlClass } from "./Field";
+import { controlClass } from "./controls";
 import { cn } from "./cn";
 
 /** A textarea that starts at a small, deliberate height and grows with what is typed, up to `maxRows`. */
