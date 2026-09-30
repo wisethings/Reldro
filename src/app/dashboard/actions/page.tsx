@@ -7,9 +7,10 @@ import { DataRow, DataTable } from "@/components/safety/Table";
 import { Badge } from "@/components/ui/Badge";
 import { ActionStatusBadge, dueLabel, EmptyHero, PageHeader, SeverityBadge } from "@/components/safety/ui";
 import { StatStrip } from "@/components/safety/Dashboard";
-export default async function ActionsPage({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
+import { PAGE_SIZE, Pagination, readPage } from "@/components/safety/Pagination";
+export default async function ActionsPage({ searchParams }: { searchParams: Promise<{ view?: string; page?: string }> }) {
   const v = await requireViewer();
-  const { view = v.isSafetyTeam ? "attention" : "open" } = await searchParams;
+  const { view = v.isSafetyTeam ? "attention" : "open", page: pageParam } = await searchParams;
   const now = new Date();
   const base = actionWhere(v);
   const filters: Record<string, object> = {
@@ -20,11 +21,15 @@ export default async function ActionsPage({ searchParams }: { searchParams: Prom
     done: { status: { in: ["VERIFIED", "CANCELLED"] } },
     all: {},
   };
+  const listWhere = { AND: [base, filters[view] ?? {}] };
+  const total = await prisma.correctiveAction.count({ where: listWhere });
+  const page = Math.min(readPage(pageParam), Math.max(1, Math.ceil(total / PAGE_SIZE)));
   const actions = await prisma.correctiveAction.findMany({
-    where: { AND: [base, filters[view] ?? {}] },
+    where: listWhere,
     include: { report: { select: { id: true, number: true, title: true } } },
     orderBy: [{ dueDate: "asc" }, { number: "desc" }],
-    take: 150,
+    skip: (page - 1) * PAGE_SIZE,
+    take: PAGE_SIZE,
   });
   const ownerIds = [...new Set(actions.map((a) => a.ownerId).filter((x): x is string => Boolean(x)))];
   const owners = await prisma.employee.findMany({ where: { id: { in: ownerIds } }, include: { user: { select: { name: true } } } });
@@ -95,6 +100,7 @@ export default async function ActionsPage({ searchParams }: { searchParams: Prom
           })}
         </DataTable>
       )}
+      <Pagination page={page} total={total} noun="corrective actions" hrefFor={(n) => `?view=${view}${n > 1 ? `&page=${n}` : ""}`} />
     </div>
   );
 }

@@ -149,3 +149,22 @@ test("the safety team can move a corrective action back to Proposed and forward 
     await page.context().close();
   }
 });
+
+test("long lists use numbered pages, keep filters, and never scroll sideways", async () => {
+  const page = await signIn("admin", { phone: true });
+  try {
+    for (const path of ["reports?status=all", "actions?view=all"]) {
+      await page.goto(`${BASE}/dashboard/${path}`, { waitUntil: "networkidle" });
+      const nav = page.getByRole("navigation", { name: "Pagination" });
+      assert.equal(await nav.count(), 1, `${path} has numbered pages`);
+      assert.ok(/Showing 1–25 of \d+/.test(await nav.innerText()));
+      await nav.getByRole("link", { name: "Page 2" }).click();
+      await page.waitForURL(/page=2/, { timeout: 30_000 });
+      await page.getByText(/Showing 26–/).waitFor({ timeout: 30_000 });
+      assert.ok(/Showing 26–/.test(await page.getByRole("navigation", { name: "Pagination" }).innerText()));
+      assert.equal(await hasSideways(page), false);
+    }
+  } finally {
+    await page.context().close();
+  }
+});

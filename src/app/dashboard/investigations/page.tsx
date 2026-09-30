@@ -6,9 +6,10 @@ import { DataRow, DataTable } from "@/components/safety/Table";
 import { EmptyHero, fmtShort, InvestigationStatusBadge, NoAccess, PageHeader, SeverityBadge } from "@/components/safety/ui";
 
 import { StatStrip } from "@/components/safety/Dashboard";
-export default async function InvestigationsPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
+import { PAGE_SIZE, Pagination, readPage } from "@/components/safety/Pagination";
+export default async function InvestigationsPage({ searchParams }: { searchParams: Promise<{ status?: string; page?: string }> }) {
   const v = await requireViewer();
-  const { status = "active" } = await searchParams;
+  const { status = "active", page: pageParam } = await searchParams;
   const pack = getPack();
   const where = {
     organizationId: v.organizationId,
@@ -21,8 +22,14 @@ export default async function InvestigationsPage({ searchParams }: { searchParam
     const leads = await prisma.investigation.count({ where: { organizationId: v.organizationId, leadId: v.employeeId } });
     if (leads === 0) return <NoAccess what="investigations" />;
   }
-  const list = await prisma.investigation.findMany({ where, include: { report: { include: { site: true } } }, orderBy: { openedAt: "desc" } });
-  list.sort((a, b) => severityRank(b.report.severity) - severityRank(a.report.severity));
+  // Highest severity first, then newest. Severity is ranked in code, so rank a light list of ids and load only the page shown.
+  const ranked = await prisma.investigation.findMany({ where, select: { id: true, openedAt: true, report: { select: { severity: true } } }, orderBy: { openedAt: "desc" } });
+  ranked.sort((a, b) => severityRank(b.report.severity) - severityRank(a.report.severity));
+  const total = ranked.length;
+  const page = Math.min(readPage(pageParam), Math.max(1, Math.ceil(total / PAGE_SIZE)));
+  const pageIds = ranked.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((r) => r.id);
+  const loaded = await prisma.investigation.findMany({ where: { id: { in: pageIds } }, include: { report: { include: { site: true } } } });
+  const list = pageIds.map((id) => loaded.find((l) => l.id === id)).filter((l): l is (typeof loaded)[number] => Boolean(l));
 
   const chip = (active: boolean) => `rounded-full border px-2.5 py-1 text-xs font-medium ${active ? "border-brand-700 bg-orchid-soft text-orchid-deep" : "border-ink-200 bg-white text-ink-600 hover:bg-ink-50"}`;
 
@@ -80,6 +87,7 @@ export default async function InvestigationsPage({ searchParams }: { searchParam
           ))}
         </DataTable>
       )}
+      <Pagination page={page} total={total} noun="investigations" hrefFor={(n) => `?status=${status}${n > 1 ? `&page=${n}` : ""}`} />
     </div>
   );
 }

@@ -10,7 +10,8 @@ import { EmptyHero, fmtShort, PageHeader, ReportStatusBadge, SeverityBadge } fro
 const STATUS_GROUPS: Record<string, string[] | undefined> = { open: ["NEW", "ASSIGNED", "INVESTIGATING", "ACTIONS_OPEN"], closed: ["CLOSED"] };
 
 import { StatStrip } from "@/components/safety/Dashboard";
-export default async function ReportsPage({ searchParams }: { searchParams: Promise<{ status?: string; severity?: string; site?: string; q?: string }> }) {
+import { PAGE_SIZE, Pagination, readPage } from "@/components/safety/Pagination";
+export default async function ReportsPage({ searchParams }: { searchParams: Promise<{ status?: string; severity?: string; site?: string; q?: string; page?: string }> }) {
   const v = await requireViewer();
   const p = await searchParams;
   const pack = getPack();
@@ -25,8 +26,10 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     ...(p.site ? { siteId: p.site } : {}),
     ...(p.q ? { OR: [{ title: { contains: p.q, mode: "insensitive" as const } }, { description: { contains: p.q, mode: "insensitive" as const } }] } : {}),
   };
+  const total = await prisma.safetyReport.count({ where });
+  const page = Math.min(readPage(p.page), Math.max(1, Math.ceil(total / PAGE_SIZE)));
   const [reports, sites] = await Promise.all([
-    prisma.safetyReport.findMany({ where, orderBy: { createdAt: "desc" }, take: 100, include: { site: true, incident: { select: { status: true } } } }),
+    prisma.safetyReport.findMany({ where, orderBy: { createdAt: "desc" }, skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE, include: { site: true, incident: { select: { status: true } } } }),
     v.isSafetyTeam ? prisma.site.findMany({ where: { organizationId: v.organizationId }, orderBy: { name: "asc" } }) : Promise.resolve([]),
   ]);
   const owners = await prisma.employee.findMany({ where: { id: { in: reports.map((r) => r.ownerId).filter((x): x is string => Boolean(x)) } }, include: { user: { select: { name: true } } } });
@@ -34,7 +37,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
 
   const qs = (over: Record<string, string | undefined>) => {
     const sp = new URLSearchParams();
-    const merged = { status, severity: p.severity, site: p.site, q: p.q, ...over };
+    // Changing a filter starts again at page 1; only page links pass `page`.
+    const merged = { status, severity: p.severity, site: p.site, q: p.q, page: undefined, ...over };
     for (const [k, val] of Object.entries(merged)) if (val) sp.set(k, val);
     return `?${sp.toString()}`;
   };
@@ -148,7 +152,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           })}
         </DataTable>
       )}
-      {reports.length === 100 && <p className="text-center text-xs text-ink-400">Showing the 100 most recent reports. Use the filters to narrow the list.</p>}
+      <Pagination page={page} total={total} noun="reports" hrefFor={(n) => qs({ page: n > 1 ? String(n) : undefined })} />
     </div>
   );
 }
