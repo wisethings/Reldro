@@ -36,30 +36,44 @@ export default async function SettingsPage() {
   const nameOf = (id: string | null) => (id ? people.find((p) => p.id === id)?.user.name ?? "Someone" : null);
   const siteName = (id: string | null) => (id ? sites.find((s) => s.id === id)?.name ?? "A site" : null);
 
+  const Group = ({ title, note, children }: { title: string; note?: string; children: React.ReactNode }) => (
+    <section className="space-y-3">
+      <div className="px-1">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-ink-500">{title}</h2>
+        {note && <p className="mt-0.5 text-xs text-ink-500">{note}</p>}
+      </div>
+      <div className="space-y-4">{children}</div>
+    </section>
+  );
+
   return (
-    <div className="mx-auto max-w-3xl space-y-6 p-4 sm:p-6">
+    <div className="min-h-full bg-surface-muted">
+    <div className="mx-auto max-w-3xl space-y-10 px-4 py-6 sm:px-8 sm:py-8">
       <div>
         <h1 className="text-xl font-semibold text-ink-900">Settings</h1>
-        <p className="text-sm text-ink-500">Manage company details, emergency instructions, escalation rules, and admin access.</p>
+        <p className="mt-0.5 text-sm text-ink-600">Manage company details, emergency instructions, escalation rules, and admin access.</p>
       </div>
 
-      <Card>
+      <Group title="Company">
+      <Card tone="plain">
         <CardHeader icon={<IconBadge icon={<Building2 size={18} />} tone="orchid" />} title="Company" />
         <CardBody><OrgProfileForm org={org} /></CardBody>
       </Card>
 
-      <Card>
+      <Card tone="plain">
         <CardHeader icon={<IconBadge icon={<PhoneCall size={18} />} tone="coral" />} title="Emergency instructions" subtitle="Shown to every reporter on the report form. Reldro does not contact emergency services, so this text should reflect your own plan." />
         <CardBody><EmergencyInstructionsForm initial={org.emergencyInstructions} /></CardBody>
       </Card>
+      </Group>
 
-      <Card>
+      <Group title="Response" note="How new reports are routed and escalated.">
+      <Card tone="plain">
         <CardHeader icon={<IconBadge icon={<Siren size={18} />} tone="coral" />} title="Escalation rules" subtitle="Choose who receives a new report, how quickly it must be acknowledged, and who is alerted if it is not. The most specific matching rule applies." />
         <CardBody className="space-y-5">
           {rules.length === 0 ? (
-            <p className="rounded-lg bg-surface-sunken px-3 py-2 text-sm text-ink-600">No rules yet. New reports go to the safety lead of their site. If a site has no safety lead, the report has no owner and appears on the Overview for the safety team.</p>
+            <p className="rounded-lg bg-surface-muted px-3 py-2 text-sm text-ink-600">No rules yet. New reports go to the safety lead of their site. If a site has no safety lead, the report has no owner and appears on the Overview for the safety team.</p>
           ) : (
-            <ul className="divide-y divide-ink-200 rounded-lg border border-ink-200">
+            <ul className="divide-y divide-ink-200/60 overflow-hidden rounded-lg bg-surface-muted">
               {rules.map((r) => (
                 <li key={r.id} className="flex flex-wrap items-start justify-between gap-3 px-4 py-3 text-sm">
                   <p className="text-ink-800">
@@ -71,7 +85,7 @@ export default async function SettingsPage() {
               ))}
             </ul>
           )}
-          <details className="rounded-lg border border-ink-200 p-3">
+          <details className="rounded-lg bg-surface-muted p-3">
             <summary className="cursor-pointer text-sm font-medium text-ink-800">Add a rule</summary>
             <div className="mt-3">
               <EscalationRuleForm
@@ -84,14 +98,16 @@ export default async function SettingsPage() {
           </details>
         </CardBody>
       </Card>
+      </Group>
 
-      <Card>
+      <Group title="People" note="Who your crews and admins are.">
+      <Card tone="plain">
         <CardHeader icon={<IconBadge icon={<Layers size={18} />} tone="sage" />} title="Crews" subtitle="Groups such as a prewire crew or service team. Rename or delete a crew here. Sites and roles are managed under People & Training and Sites." />
         <CardBody className="space-y-4">
           {crews.length === 0 ? (
             <p className="text-sm text-ink-500">No crews yet. Add a crew below, such as a prewire crew or a service team.</p>
           ) : (
-            <ul className="divide-y divide-ink-200 rounded-lg border border-ink-200">
+            <ul className="divide-y divide-ink-200/60 overflow-hidden rounded-lg bg-surface-muted">
               {crews.map((d) => <CrewRow key={d.id} id={d.id} name={d.name} people={crewCounts.get(d.id) ?? 0} />)}
             </ul>
           )}
@@ -99,7 +115,7 @@ export default async function SettingsPage() {
         </CardBody>
       </Card>
 
-      <Card>
+      <Card tone="plain">
         <CardHeader icon={<IconBadge icon={<ShieldCheck size={18} />} tone="orchid" />} title="Company admins" subtitle="Admins see everything and manage settings. Add more so no single account is a bottleneck." />
         <CardBody className="space-y-4">
           <div className="divide-y divide-ink-200">
@@ -108,10 +124,12 @@ export default async function SettingsPage() {
           <InviteAdminForm />
         </CardBody>
       </Card>
+      </Group>
 
-      <Card>
+      <Group title="Records">
+      <Card tone="plain">
         <CardHeader icon={<IconBadge icon={<History size={18} />} tone="sage" />} title="Activity log" subtitle="The latest changes in your workspace." />
-        <CardBody className="divide-y divide-ink-200 p-0">
+        <CardBody className="divide-y divide-ink-100 p-0">
           {auditLogs.map((log) => (
             <div key={log.id} className="px-4 py-3 sm:px-5">
               <p className="truncate text-sm text-ink-800">{describeAuditAction(log.action)}</p>
@@ -124,8 +142,10 @@ export default async function SettingsPage() {
           </Link>
         </CardBody>
       </Card>
+      </Group>
 
       <p className="flex items-center gap-2 px-1 text-xs text-ink-400"><HardHat size={14} /> Your reports and investigations stay within your company. The Reldro admin console shows account-level counts only, not report contents.</p>
+    </div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CheckCircle2, Siren } from "lucide-react";
+import { CheckCircle2, Mic, Siren } from "lucide-react";
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { createReport } from "@/lib/actions/safetyReports";
 import { aiStructureReport } from "@/lib/actions/safetyAi";
@@ -46,12 +46,14 @@ const PRIVACY_OPTIONS = [
   {
     key: "NAMED",
     label: "Share my name with my supervisor and the safety team",
+    short: "They can follow up with you.",
     hint: "They can follow up with you. You'll see updates under My reports.",
     details: ["Your name is saved with the report. Your supervisor and the safety team can see it, along with what you wrote.", "They can ask you questions directly."],
   },
   {
     key: "CONFIDENTIAL",
     label: "Share my name with the safety team only",
+    short: "Your supervisor will not see your name.",
     hint: "Your supervisor will not see your name. You'll see updates under My reports.",
     details: [
       "Company admins and safety leads can see your name. Your supervisor sees “Withheld”.",
@@ -61,6 +63,7 @@ const PRIVACY_OPTIONS = [
   {
     key: "ANONYMOUS",
     label: "Submit without my name",
+    short: "Your name and account are not saved with the report.",
     hint: "Your name and account are not saved with the report. You get a private case code to read replies.",
     details: [
       "Reldro does not link the report to your account, and the activity log does not record who submitted it.",
@@ -201,8 +204,6 @@ export function ReportForm({
 
   const occurredAt = when === "earlier" && whenValue ? new Date(whenValue).toISOString() : "";
   const nowLocal = localInputValue(new Date());
-  const chip = (checked: boolean) =>
-    `relative flex min-h-[3.25rem] cursor-pointer flex-col justify-center rounded-xl border px-3 py-2 text-left transition-colors focus-within:ring-2 focus-within:ring-brand-500 ${checked ? "border-brand-700 bg-orchid-soft" : "border-ink-200 bg-white hover:bg-ink-50"}`;
   const privacyInfo = PRIVACY_OPTIONS.find((o) => o.key === privacy) ?? PRIVACY_OPTIONS[0];
 
   if (state?.submitted) {
@@ -238,8 +239,26 @@ export function ReportForm({
     );
   }
 
+  const problem = !type
+    ? "Choose what you are reporting to continue."
+    : description.trim().length < 5
+      ? "Describe what happened to continue."
+      : when === "earlier" && !whenValue
+        ? "Add when it happened to continue."
+        : "";
+  const canSubmit = !problem && !submitting;
+  const stepDone = [Boolean(type) && description.trim().length >= 5, !(when === "earlier" && !whenValue), true, canSubmit];
+  const steps = [
+    { id: "what", label: "What happened" },
+    { id: "where", label: "Where & when" },
+    { id: "more", label: "More details" },
+    { id: "submit", label: "Submit" },
+  ];
+  const tile = (checked: boolean) =>
+    `relative flex cursor-pointer select-none flex-col justify-center rounded-lg border px-3.5 py-2.5 text-left transition-all focus-within:ring-2 focus-within:ring-brand-500 focus-within:ring-offset-1 active:scale-[0.99] ${checked ? "border-brand-700 bg-orchid-soft/70" : "border-ink-200 bg-white hover:border-ink-300 hover:bg-ink-50"}`;
+
   return (
-    <form action={formAction} className="space-y-6 pb-32 sm:pb-0" noValidate={false}>
+    <form action={formAction} className="space-y-9 pb-32 sm:pb-0" noValidate={false}>
       <input type="hidden" name="type" value={type} />
       <input type="hidden" name="category" value={category} />
       <input type="hidden" name="title" value={title} />
@@ -248,7 +267,19 @@ export function ReportForm({
       <input type="hidden" name="whenMode" value={when} />
       <input type="hidden" name="aiAssisted" value={aiAssisted ? "1" : "0"} />
 
-      <div role="note" className="flex gap-3 rounded-xl border border-coral bg-coral-soft px-4 py-3 text-sm text-ink-900">
+      <ol aria-label="Steps" className="-mt-2 flex flex-wrap items-center gap-x-1 gap-y-1 text-xs text-ink-500">
+        {steps.map((st, i) => (
+          <li key={st.id} className="flex items-center gap-1">
+            {i > 0 && <span aria-hidden className="mx-1 text-ink-300">→</span>}
+            <a href={`#${st.id}`} className={`flex items-center gap-1.5 rounded px-1 py-0.5 hover:text-ink-900 ${stepDone[i] && i !== 2 ? "text-ink-700" : ""}`}>
+              <span aria-hidden className={`flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-semibold ${stepDone[i] && i !== 2 ? "bg-sage-deep text-white" : "bg-ink-100 text-ink-500"}`}>{stepDone[i] && i !== 2 ? "✓" : i + 1}</span>
+              {st.label}
+            </a>
+          </li>
+        ))}
+      </ol>
+
+      <div role="note" className="flex gap-3 rounded-lg border-l-4 border-danger bg-coral-soft/60 px-4 py-3 text-sm text-ink-900">
         <Siren size={18} className="mt-0.5 shrink-0 text-danger" aria-hidden />
         <div>
           <p className="font-semibold">If anyone is in immediate danger or needs urgent medical help, call your local emergency number or follow your site's emergency procedure now.</p>
@@ -263,190 +294,210 @@ export function ReportForm({
         </div>
       )}
 
-      <fieldset>
-        <legend className="text-sm font-semibold text-ink-900">What are you reporting?</legend>
-        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {types.map((t) => (
-            <label key={t.key} className={chip(type === t.key)}>
-              <input type="radio" name="_type" className="sr-only" checked={type === t.key} onChange={() => { setType(t.key); if (t.key === "INJURY") setInjury(true); }} />
-              <span className="text-sm font-medium text-ink-900">{t.label}</span>
-              {t.plain && <span className="text-[11px] leading-tight text-ink-500">{t.plain}</span>}
-            </label>
-          ))}
-        </div>
-      </fieldset>
-
-      <section aria-labelledby="what-happened">
-        <div className="flex items-center justify-between gap-2">
-          <label htmlFor="description" id="what-happened" className="text-sm font-semibold text-ink-900">
-            Describe what happened
-          </label>
-          <button
-            type="button"
-            onClick={toggleVoice}
-            disabled={!voiceSupported}
-            aria-pressed={listening}
-            className={`rounded-full border px-3 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50 ${listening ? "border-danger bg-coral-soft text-danger" : "border-ink-300 text-ink-700 hover:bg-ink-50"}`}
-          >
-            {listening ? "● Listening. Tap to stop" : "🎤 Use voice input"}
-          </button>
-        </div>
-        <Textarea
-          id="description"
-          name="description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          rows={5}
-          required
-          minLength={5}
-          placeholder="Include what you saw, where it happened, and when, if you know."
-          className="mt-2 text-base"
-        />
-        {voiceError && <Alert tone="warning" className="mt-1 text-xs">{voiceError}</Alert>}
-        <p className="mt-1 text-[11px] text-ink-500" aria-live="polite">
-          {!voiceSupported
-            ? "Voice input is not available in this browser. Use the microphone on your keyboard to dictate instead, then review and edit the text before you submit."
-            : listening
-              ? "Listening. Your words appear above as a draft. Tap to stop, then review and edit the text."
-              : "Voice input types your words above as a draft. Review and edit it before you submit. Nothing is submitted until you choose Submit report."}
-        </p>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            disabled={drafting || description.trim().length < 5}
-            onClick={askAi}
-            className="rounded-full border border-orchid-deep px-3 py-1.5 text-xs font-medium text-orchid-deep hover:bg-orchid-soft disabled:opacity-40"
-          >
-            {drafting ? "Drafting…" : "Draft details with AI"}
-          </button>
-          <span className="text-[11px] text-ink-500">Review and edit the draft before submitting it. AI tidies what you wrote and does not add facts.</span>
-        </div>
-        {aiError && <p role="alert" className="mt-1 text-xs text-danger">{aiError}</p>}
-        {draft && (
-          <div className="mt-3 space-y-2 rounded-xl border border-orchid bg-orchid-soft/40 p-3 text-sm">
-            <DraftLabel generatedBy={draft.generatedBy} />
-            <dl className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-1 text-ink-800">
-              <dt className="text-ink-500">Kind</dt><dd>{types.find((t) => t.key === draft.type)?.label}</dd>
-              <dt className="text-ink-500">Topic</dt><dd>{categories.find((c) => c.key === draft.category)?.label}</dd>
-              <dt className="text-ink-500">Title</dt><dd>{draft.title}</dd>
-            </dl>
-            <p className="text-[11px] text-ink-500">Based only on what you wrote above. The safety team decides how serious it is.</p>
-            {draft.missing.length > 0 && (
-              <div>
-                <p className="text-xs font-medium text-ink-700">Details that would help, if you know them:</p>
-                <ul className="list-disc pl-5 text-xs text-ink-700">{draft.missing.map((m) => <li key={m}>{m}</li>)}</ul>
-              </div>
-            )}
-            <div className="flex gap-2">
-              <button type="button" onClick={applyDraft} className="rounded-full bg-brand-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-800">Use this draft</button>
-              <button type="button" onClick={() => setDraft(null)} className="rounded-full border border-ink-300 px-3 py-1.5 text-xs font-medium text-ink-700">Discard</button>
-            </div>
-          </div>
-        )}
-      </section>
-
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Field label="Where did it happen?" hint={`Choose the closest ${siteLabel}. “Not sure” is fine and will not stop you submitting.`}>
-            <Select name="siteId" value={siteChoice} onChange={(e) => setSiteChoice(e.target.value)} className="text-base">
-              <option value="">Not sure</option>
-              {sites.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-              <option value="__else">Somewhere else</option>
-            </Select>
-          </Field>
-          <Field label={siteChoice === "__else" || siteChoice === "" ? "Describe the location" : "Where exactly?"} optional>
-            <Input name="locationNote" maxLength={300} placeholder={siteChoice === "__else" || siteChoice === "" ? "e.g. Customer's parking lot, 5th & Main" : "e.g. Level 3, east stair"} />
-          </Field>
-        </div>
+      <section id="what" className="scroll-mt-20 space-y-5">
         <fieldset>
-          <legend className="text-xs font-medium text-ink-700">When did it happen?</legend>
-          <div className="mt-1 flex gap-2">
+          <legend className="text-base font-semibold text-ink-900">What are you reporting?</legend>
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {types.map((t) => (
+              <label key={t.key} className={tile(type === t.key)}>
+                <input type="radio" name="_type" className="sr-only" checked={type === t.key} onChange={() => { setType(t.key); if (t.key === "INJURY") setInjury(true); }} />
+                <span className="flex items-center justify-between gap-2 text-sm font-medium text-ink-900">
+                  {t.label}
+                  {type === t.key && <CheckCircle2 size={16} className="shrink-0 text-brand-700" aria-hidden />}
+                </span>
+                {t.plain && <span className="mt-0.5 text-xs leading-snug text-ink-500">{t.plain}</span>}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        <div aria-labelledby="what-happened">
+          <label htmlFor="description" id="what-happened" className="text-base font-semibold text-ink-900">What happened?</label>
+          <div className="relative mt-3">
+            <Textarea
+              id="description"
+              name="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={6}
+              required
+              minLength={5}
+              placeholder="Tell us in your own words: what you saw, and anything that helps someone understand it."
+              className="rounded-xl p-3.5 pb-14 text-base leading-relaxed"
+            />
             <button
               type="button"
-              aria-pressed={when === "now"}
-              onClick={() => setWhen("now")}
-              className={`flex-1 rounded-lg border px-3 py-2 text-sm ${when === "now" ? "border-brand-700 bg-orchid-soft" : "border-ink-200"}`}
+              onClick={toggleVoice}
+              disabled={!voiceSupported}
+              aria-pressed={listening}
+              title={voiceSupported ? undefined : "Voice input is not available in this browser"}
+              className={`absolute bottom-3 right-3 flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${listening ? "border-danger bg-coral-soft text-danger" : "border-ink-200 bg-white text-ink-700 hover:bg-ink-50"}`}
             >
-              Just now
-            </button>
-            <button
-              type="button"
-              aria-pressed={when === "earlier"}
-              onClick={() => { setWhen("earlier"); if (!whenValue) setWhenValue(localInputValue(new Date(Date.now() - 3600_000))); }}
-              className={`flex-1 rounded-lg border px-3 py-2 text-sm ${when === "earlier" ? "border-brand-700 bg-orchid-soft" : "border-ink-200"}`}
-            >
-              Earlier
+              {listening ? <><span aria-hidden className="h-2 w-2 animate-pulse rounded-full bg-danger" /> Listening. Tap to stop</> : <><Mic size={13} aria-hidden /> Speak instead</>}
             </button>
           </div>
-          {when === "earlier" && (
-            <div className="mt-2">
-              <label htmlFor="whenValue" className="sr-only">Date and time it happened</label>
-              <Input id="whenValue" type="datetime-local" value={whenValue} max={nowLocal} onChange={(e) => setWhenValue(e.target.value)} required />
-              <p className="mt-1 text-[11px] text-ink-500">Add the date and approximate time, if known.</p>
+          {voiceError && <Alert tone="warning" className="mt-2 text-xs">{voiceError}</Alert>}
+          <p className="mt-1.5 text-xs text-ink-500" aria-live="polite">
+            {!voiceSupported
+              ? "Speaking is not available in this browser. Use the microphone on your keyboard, then review the text."
+              : listening
+                ? "Listening. Your words appear above as a draft. Review and edit them before you submit."
+                : "Speaking types your words as a draft. Review it before you submit. Nothing is sent until you choose Submit report."}
+          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <button
+              type="button"
+              disabled={drafting || description.trim().length < 5}
+              onClick={askAi}
+              className="rounded-full border border-orchid-deep/60 px-3 py-1 text-xs font-medium text-orchid-deep hover:bg-orchid-soft disabled:opacity-40"
+            >
+              {drafting ? "Drafting…" : "Draft details with AI"}
+            </button>
+            <span className="text-xs text-ink-500">AI tidies what you wrote and does not add facts. You review it first.</span>
+          </div>
+          {aiError && <p role="alert" className="mt-1 text-xs text-danger">{aiError}</p>}
+          {draft && (
+            <div className="mt-3 space-y-2 rounded-lg bg-orchid-soft/50 p-3.5 text-sm">
+              <DraftLabel generatedBy={draft.generatedBy} />
+              <dl className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-1 text-ink-800">
+                <dt className="text-ink-500">Kind</dt><dd>{types.find((t) => t.key === draft.type)?.label}</dd>
+                <dt className="text-ink-500">Topic</dt><dd>{categories.find((c) => c.key === draft.category)?.label}</dd>
+                <dt className="text-ink-500">Title</dt><dd>{draft.title}</dd>
+              </dl>
+              <p className="text-xs text-ink-500">Based only on what you wrote above. The safety team decides how serious it is.</p>
+              {draft.missing.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-ink-700">Details that would help, if you know them:</p>
+                  <ul className="list-disc pl-5 text-xs text-ink-700">{draft.missing.map((m) => <li key={m}>{m}</li>)}</ul>
+                </div>
+              )}
+              <div className="flex gap-2">
+                <button type="button" onClick={applyDraft} className="rounded-full bg-brand-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-800">Use this draft</button>
+                <button type="button" onClick={() => setDraft(null)} className="rounded-full border border-ink-300 px-3 py-1.5 text-xs font-medium text-ink-700">Discard</button>
+              </div>
             </div>
           )}
-        </fieldset>
+        </div>
       </section>
 
-      <section className="space-y-2">
-        <label className="flex items-start gap-3 rounded-xl border border-ink-200 bg-white p-3">
-          <input type="checkbox" name="injuryInvolved" checked={injury} onChange={(e) => setInjury(e.target.checked)} className="mt-1 h-5 w-5 rounded border-ink-300" />
+      <section id="where" className="scroll-mt-20 space-y-4">
+        <h2 className="text-base font-semibold text-ink-900">Where and when?</h2>
+        <div className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Field label="Where did it happen?" hint={`Choose the closest ${siteLabel}. “Not sure” is fine.`}>
+              <Select name="siteId" value={siteChoice} onChange={(e) => setSiteChoice(e.target.value)} className="text-base">
+                <option value="">Not sure</option>
+                {sites.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+                <option value="__else">Somewhere else</option>
+              </Select>
+            </Field>
+            <Field label={siteChoice === "__else" || siteChoice === "" ? "Describe the location" : "Where exactly?"} optional>
+              <Input name="locationNote" maxLength={300} placeholder={siteChoice === "__else" || siteChoice === "" ? "e.g. Customer's parking lot, 5th & Main" : "e.g. Level 3, east stair"} />
+            </Field>
+          </div>
+          <fieldset>
+            <legend className="text-xs font-medium text-ink-700">When did it happen?</legend>
+            <div className="mt-1 inline-flex w-full rounded-lg bg-ink-100 p-0.5">
+              {(["now", "earlier"] as const).map((w) => (
+                <button
+                  key={w}
+                  type="button"
+                  aria-pressed={when === w}
+                  onClick={() => { setWhen(w); if (w === "earlier" && !whenValue) setWhenValue(localInputValue(new Date(Date.now() - 3600_000))); }}
+                  className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${when === w ? "bg-white text-ink-900 shadow-[0_0_0_1px_rgba(42,10,12,0.08)]" : "text-ink-600 hover:text-ink-900"}`}
+                >
+                  {w === "now" ? "Just now" : "Earlier"}
+                </button>
+              ))}
+            </div>
+            {when === "earlier" && (
+              <div className="mt-2">
+                <label htmlFor="whenValue" className="sr-only">Date and time it happened</label>
+                <Input id="whenValue" type="datetime-local" value={whenValue} max={nowLocal} onChange={(e) => setWhenValue(e.target.value)} required />
+                <p className="mt-1 text-xs text-ink-500">Add the date and approximate time, if known.</p>
+              </div>
+            )}
+          </fieldset>
+        </div>
+
+        <label className={`flex cursor-pointer items-start gap-3 rounded-lg border px-3.5 py-3 transition-colors focus-within:ring-2 focus-within:ring-brand-500 ${injury ? "border-danger/40 bg-coral-soft/50" : "border-ink-200 bg-white hover:bg-ink-50"}`}>
+          <input type="checkbox" name="injuryInvolved" checked={injury} onChange={(e) => setInjury(e.target.checked)} className="mt-0.5 h-5 w-5 rounded border-ink-300 accent-[#2A0A0C]" />
           <span>
             <span className="text-sm font-medium text-ink-900">Someone was injured or became ill</span>
-            <span className="block text-xs text-ink-500">Leave out medical details and the names of injured people unless you need them. The safety team will ask for what they need.</span>
+            <span className="mt-0.5 block text-xs leading-snug text-ink-500">Leave out medical details and names unless you need them. The safety team will ask for what they need.</span>
           </span>
         </label>
+
         <div>
-          <p className="mb-1 text-sm font-semibold text-ink-900">Photos <span className="text-xs font-normal text-ink-400">optional</span></p>
+          <p className="mb-1.5 text-sm font-medium text-ink-900">Photos <span className="text-xs font-normal text-ink-500">optional</span></p>
           <PhotoField />
         </div>
       </section>
 
-      <details className="rounded-xl border border-ink-200 bg-white p-3">
-        <summary className="cursor-pointer text-sm font-medium text-ink-800">More details (optional)</summary>
-        <div className="mt-3 space-y-4">
-          <Field label="Topic" hint="Your best guess is fine. The safety team can change it.">
-            <Select value={category} onChange={(e) => setCategory(e.target.value)}>
-              {categories.map((c) => (
-                <option key={c.key} value={c.key}>{c.label}</option>
-              ))}
-            </Select>
-          </Field>
-          <Field label="What was done right away?" optional>
-            <Textarea name="immediateAction" value={immediateAction} onChange={(e) => setImmediateAction(e.target.value)} rows={2} placeholder="e.g. Area blocked off, tool tagged out" />
-          </Field>
-        </div>
-      </details>
+      <section id="more" className="scroll-mt-20">
+        <details className="group rounded-lg border border-ink-200 bg-white">
+          <summary className="flex cursor-pointer list-none items-center justify-between px-3.5 py-3 text-sm font-medium text-ink-800 [&::-webkit-details-marker]:hidden">
+            <span>Add more details <span className="font-normal text-ink-500">· topic, what was done right away</span></span>
+            <span aria-hidden className="text-ink-400 transition-transform group-open:rotate-180">⌄</span>
+          </summary>
+          <div className="space-y-4 border-t border-ink-100 px-3.5 py-4">
+            <Field label="Topic" hint="Your best guess is fine. The safety team can change it.">
+              <Select value={category} onChange={(e) => setCategory(e.target.value)}>
+                {categories.map((c) => (
+                  <option key={c.key} value={c.key}>{c.label}</option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="What was done right away?" optional>
+              <Textarea name="immediateAction" value={immediateAction} onChange={(e) => setImmediateAction(e.target.value)} rows={2} placeholder="e.g. Area blocked off, tool tagged out" />
+            </Field>
+          </div>
+        </details>
+      </section>
 
-      <fieldset className="space-y-2">
-        <legend className="text-sm font-semibold text-ink-900">Who can see your name?</legend>
-        {PRIVACY_OPTIONS.map((p) => (
-          <label key={p.key} className={chip(privacy === p.key)}>
-            <input type="radio" name="privacy" value={p.key} className="sr-only" checked={privacy === p.key} onChange={() => setPrivacy(p.key)} />
-            <span className="text-sm font-medium text-ink-900">{p.label}</span>
-            <span className="text-[11px] text-ink-500">{p.hint}</span>
-          </label>
-        ))}
-        <div className="rounded-lg bg-surface-sunken px-3 py-2 text-xs text-ink-700" aria-live="polite">
-          <p className="font-medium text-ink-800">What this means</p>
-          <ul className="mt-1 list-disc space-y-0.5 pl-4">
+      <fieldset className="space-y-2.5">
+        <legend className="text-base font-semibold text-ink-900">How should we identify you?</legend>
+        <div className="mt-3 divide-y divide-ink-100 overflow-hidden rounded-lg border border-ink-200 bg-white">
+          {PRIVACY_OPTIONS.map((o) => (
+            <label key={o.key} className={`relative flex cursor-pointer items-start gap-3 px-3.5 py-3 transition-colors focus-within:ring-2 focus-within:ring-inset focus-within:ring-brand-500 ${privacy === o.key ? "bg-orchid-soft/70" : "hover:bg-ink-50"}`}>
+              <input type="radio" name="privacy" value={o.key} className="sr-only" checked={privacy === o.key} onChange={() => setPrivacy(o.key)} />
+              <span aria-hidden className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${privacy === o.key ? "border-brand-700" : "border-ink-300"}`}>
+                {privacy === o.key && <span className="h-2 w-2 rounded-full bg-brand-700" />}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-ink-900">{o.label}</span>
+                <span className="block text-xs leading-snug text-ink-600">{o.short}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+        {privacy === "ANONYMOUS" && <p className="text-xs text-ink-700" aria-live="polite">You get a private case code once, right after you submit. Save it to read replies.</p>}
+        <details className="group text-xs text-ink-600">
+          <summary className="cursor-pointer list-none font-medium text-orchid-deep hover:text-oxblood [&::-webkit-details-marker]:hidden">
+            How {privacy === "ANONYMOUS" ? "reports without a name" : "this choice"} works
+          </summary>
+          <ul className="mt-2 list-disc space-y-1 pl-4 leading-snug" aria-live="polite">
             {privacyInfo.details.map((d) => <li key={d}>{d}</li>)}
             <li>Photos are shrunk in your browser and location data in them is dropped before sending.</li>
           </ul>
-        </div>
+        </details>
       </fieldset>
 
-      <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-30 border-t border-ink-200 bg-white p-3 sm:static sm:border-0 sm:bg-transparent sm:p-0 md:bottom-0">
-        <button
-          type="submit"
-          disabled={submitting || !type || description.trim().length < 5 || (when === "earlier" && !whenValue)}
-          className="w-full rounded-full bg-brand-700 px-6 py-3.5 text-base font-semibold text-white hover:bg-brand-800 disabled:opacity-40 sm:w-auto"
-        >
-          {submitting ? "Submitting…" : "Submit report"}
-        </button>
-        {!type && <p className="mt-1 text-center text-[11px] text-ink-500 sm:text-left">Choose what you are reporting to continue.</p>}
+      <div id="submit" className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-30 border-t border-ink-200 bg-white/95 p-3 backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:p-0 md:bottom-0">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+          <button
+            type="submit"
+            disabled={!canSubmit}
+            className={`w-full rounded-full px-7 py-3.5 text-base font-semibold transition-colors sm:w-auto ${canSubmit ? "bg-brand-700 text-white hover:bg-brand-800" : "cursor-not-allowed bg-ink-100 text-ink-400"}`}
+          >
+            {submitting ? "Submitting…" : "Submit report"}
+          </button>
+          <p className={`text-center text-xs sm:text-left ${canSubmit ? "text-sage-deep" : "text-ink-600"}`} aria-live="polite">
+            {canSubmit ? "Ready to submit. You can still add more details above." : problem}
+          </p>
+        </div>
       </div>
     </form>
   );

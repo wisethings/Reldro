@@ -1,0 +1,84 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Search, X } from "lucide-react";
+
+type Opt = { value: string; label: string };
+
+/**
+ * One toolbar for everything that narrows the Reports table: status, seriousness, site and search. The state lives in the
+ * address bar, so a filtered view can be bookmarked, and changing any filter returns to page 1.
+ */
+export function ReportFilters({ statuses, severities, sites, showSeverity }: { statuses: Opt[]; severities: Opt[]; sites: Opt[]; showSeverity: boolean }) {
+  const router = useRouter();
+  const path = usePathname();
+  const sp = useSearchParams();
+  const get = (k: string) => sp.get(k) ?? "";
+  const [q, setQ] = useState(get("q"));
+  const first = useRef(true);
+
+  const go = (over: Record<string, string>) => {
+    const next = new URLSearchParams(sp.toString());
+    for (const [k, val] of Object.entries(over)) (val ? next.set(k, val) : next.delete(k));
+    next.delete("page");
+    const s = next.toString();
+    router.push(s ? `${path}?${s}` : path);
+  };
+
+  // Search as you type, after a short pause.
+  useEffect(() => {
+    if (first.current) { first.current = false; return; }
+    if (q === get("q")) return;
+    const t = setTimeout(() => go({ q: q.trim() }), 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q]);
+
+  const status = get("status") || "open";
+  const attention = get("attention");
+  const active = Boolean(get("severity") || get("site") || get("q") || attention);
+  const select = "h-8 rounded-lg border border-ink-200 bg-white px-2.5 text-xs text-ink-800 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500";
+
+  return (
+    <div role="search" className="flex flex-wrap items-center gap-2 rounded-xl bg-surface-muted p-1.5">
+      <div role="group" aria-label="Status" className="flex rounded-lg bg-ink-200/50 p-0.5">
+        {statuses.map((s) => (
+          <button key={s.value} type="button" onClick={() => go({ status: s.value, attention: "" })} aria-pressed={status === s.value && !attention} className={`h-7 rounded-md px-3 text-xs font-medium transition-colors ${status === s.value && !attention ? "bg-white text-ink-900 shadow-[0_0_0_1px_rgba(42,10,12,0.08)]" : "text-ink-600 hover:text-ink-900"}`}>
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      <label className="relative min-w-[10rem] flex-1 sm:max-w-xs">
+        <span className="sr-only">Search reports</span>
+        <Search size={14} aria-hidden className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-400" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} type="search" placeholder="Search title or details" className="h-8 w-full rounded-lg border border-ink-200 bg-white pl-8 pr-2.5 text-xs text-ink-900 outline-none placeholder:text-ink-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-500" />
+      </label>
+
+      {showSeverity && (
+        <label>
+          <span className="sr-only">Seriousness</span>
+          <select value={get("severity")} onChange={(e) => go({ severity: e.target.value })} className={select}>
+            <option value="">Any seriousness</option>
+            {severities.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+          </select>
+        </label>
+      )}
+      {sites.length > 0 && (
+        <label>
+          <span className="sr-only">Site</span>
+          <select value={get("site")} onChange={(e) => go({ site: e.target.value })} className={select}>
+            <option value="">All sites</option>
+            {sites.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+          </select>
+        </label>
+      )}
+      {active && (
+        <button type="button" onClick={() => { setQ(""); go({ severity: "", site: "", q: "", attention: "" }); }} className="ml-auto flex h-8 items-center gap-1 rounded-lg px-2.5 text-xs font-medium text-orchid-deep hover:bg-orchid-soft/60">
+          <X size={13} aria-hidden /> Clear filters
+        </button>
+      )}
+    </div>
+  );
+}

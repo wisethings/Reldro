@@ -46,7 +46,7 @@ export default async function ActionDetailPage({ params }: { params: Promise<{ i
         </CardBody>
       </Card>
 
-      <Card>
+      <Card tone="muted">
         <CardHeader title="Details" />
         <CardBody className="space-y-3">
           {a.description && <p className="whitespace-pre-wrap text-sm text-ink-800">{a.description}</p>}

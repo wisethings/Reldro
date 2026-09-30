@@ -2,12 +2,16 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { actionStatusInfo, investigationStatusInfo, reportStatusInfo, severityInfo } from "@/lib/safety/pack";
 
-/** `suggested` marks a seriousness level nobody on the response side has confirmed yet, so it never reads as an official assessment. */
-export function SeverityBadge({ severity, suggested = false }: { severity: string; suggested?: boolean }) {
+/**
+ * `suggested` marks a seriousness level nobody on the response side has confirmed yet, so it never reads as an official
+ * assessment. It keeps its colour (so urgency still shows) but gets a dashed outline; `compact` drops the words for dense tables.
+ */
+export function SeverityBadge({ severity, suggested = false, compact = false }: { severity: string; suggested?: boolean; compact?: boolean }) {
   const s = severityInfo(severity);
   return (
-    <Badge tone={suggested ? "neutral" : s.tone}>
-      {suggested ? `${s.label} (suggested)` : s.label}
+    <Badge tone={s.tone} className={suggested ? "border border-dashed border-current/50" : undefined}>
+      {s.label}
+      {suggested && (compact ? <span className="sr-only"> (suggested)</span> : " (suggested)")}
     </Badge>
   );
 }

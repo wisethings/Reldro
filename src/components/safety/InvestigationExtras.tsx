@@ -19,12 +19,12 @@ export function StatementsPanel({
   const { run, error } = useAct();
   return (
     <div className="space-y-4">
-      <p className="rounded-lg bg-surface-sunken px-3 py-2 text-xs text-ink-600">Statements are visible only to the safety team and the investigation lead. Use a role (for example "Journeyman electrician") if you don't need a name.</p>
+      <p className="rounded-lg bg-surface-muted px-3 py-2 text-xs text-ink-600">Statements are visible only to the safety team and the investigation lead. Use a role (for example "Journeyman electrician") if you don't need a name.</p>
       {error && <p className="text-xs text-danger">{error}</p>}
       {statements.length === 0 && <p className="text-sm text-ink-500">No statements yet.</p>}
       <ul className="space-y-3">
         {statements.map((s) => (
-          <li key={s.id} className="rounded-lg border border-ink-200 p-3">
+          <li key={s.id} className="rounded-lg bg-surface-muted p-3">
             <div className="flex items-start justify-between gap-2">
               <p className="text-xs font-medium text-ink-600">{s.providedBy} · added by {s.addedByName} · {new Date(s.createdAt).toLocaleDateString()}</p>
               <button onClick={() => confirm("Remove this statement?") && run(() => deleteStatement(s.id))} className="text-xs text-danger hover:underline">Remove</button>
@@ -69,7 +69,7 @@ export function QuestionsPanel({
       {questions.length === 0 && <p className="text-sm text-ink-500">No questions yet. Add your own or draft some from the report facts.</p>}
       <ul className="space-y-3">
         {questions.map((q) => (
-          <li key={q.id} className="rounded-lg border border-ink-200 p-3">
+          <li key={q.id} className="rounded-lg bg-surface-muted p-3">
             <div className="flex items-start justify-between gap-2">
               <p className="text-sm font-medium text-ink-900">{q.text}{q.aiDrafted && <span className="ml-2 rounded bg-orchid-soft px-1.5 py-0.5 text-[10px] font-medium text-orchid-deep">AI-drafted, reviewed</span>}</p>
               {canEdit && <button onClick={() => run(() => deleteQuestion(q.id))} className="shrink-0 text-xs text-danger hover:underline">Remove</button>}

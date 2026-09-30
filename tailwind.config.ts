@@ -62,7 +62,7 @@ const config: Config = {
         pine: "#1F3A2E",
         stone: "#BFB5A3",
         danger: "#A33828",
-        surface: { DEFAULT: "#F7F4EC", raised: "#FFFFFF", sunken: "#E6E1D3", inverse: "#2A0A0C" },
+        surface: { DEFAULT: "#F7F4EC", raised: "#FFFFFF", sunken: "#E6E1D3", inverse: "#2A0A0C", muted: "#F7F6F3" },
       },
       fontFamily: {
         sans: ["var(--font-inter)", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],

@@ -168,3 +168,43 @@ test("long lists use numbered pages, keep filters, and never scroll sideways", a
     await page.context().close();
   }
 });
+
+test("searching reports can never reveal reports the person may not see", async () => {
+  const page = await signIn("priya");
+  try {
+    await page.goto(`${BASE}/dashboard/reports?status=all&q=scaffold`, { waitUntil: "networkidle" });
+    assert.ok(!(await page.locator("body").innerText()).includes("Worker fell about 6 feet"), "a worker saw someone else's report through search");
+    await page.goto(`${BASE}/dashboard/reports?status=all&attention=unowned`, { waitUntil: "networkidle" });
+    assert.ok(!(await page.locator("body").innerText()).includes("Worker fell about 6 feet"));
+  } finally {
+    await page.context().close();
+  }
+});
+
+test("the reports toolbar filters by status and clears", async () => {
+  const page = await signIn("admin");
+  try {
+    await page.goto(`${BASE}/dashboard/reports`, { waitUntil: "networkidle" });
+    await page.getByRole("button", { name: "Incident responses" }).click();
+    await page.waitForURL(/status=incidents/);
+    await page.getByPlaceholder("Search title or details").fill("zzzz-nothing-matches");
+    await page.getByText("No reports match these filters").waitFor({ timeout: 20_000 });
+    await page.getByRole("button", { name: "Clear filters" }).click();
+    await page.waitForURL((u) => !u.search.includes("q="), { timeout: 20_000 });
+  } finally {
+    await page.context().close();
+  }
+});
+
+test("toolbox talks show as a compact list that opens on demand", async () => {
+  const page = await signIn("admin");
+  try {
+    await page.goto(`${BASE}/dashboard/training`, { waitUntil: "networkidle" });
+    assert.ok(await page.getByText("Needs attention").first().isVisible());
+    const first = page.locator("details summary").filter({ hasText: "View talk" }).first();
+    await first.click();
+    await page.getByText(/Not yet acknowledged|Everyone in scope/).first().waitFor({ timeout: 10_000 });
+  } finally {
+    await page.context().close();
+  }
+});

@@ -310,14 +310,14 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
         </section>
 
         <aside aria-labelledby="coming-up" className="space-y-8 lg:pt-0">
-          <section>
+          <section className="rounded-xl bg-surface-muted p-4">
             <SectionTitle action={<TextLink href="/dashboard/inspections">All inspections</TextLink>}>
               <span id="coming-up">Coming up</span>
             </SectionTitle>
             {up.length === 0 ? (
               <p className="text-[13px] text-ink-500">No inspections due or qualifications expiring soon.</p>
             ) : (
-              <ul className="-mx-1 divide-y divide-ink-100 px-1">
+              <ul className="-mx-1 divide-y divide-ink-200/50 px-1">
                 {up.map((u) => <UpcomingRow key={u.key} href={u.href} when={u.when} title={u.title} detail={u.detail} warn={u.warn} />)}
               </ul>
             )}
@@ -337,7 +337,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
         <QuietActivity items={recent.slice(0, 6)} empty="No recent activity yet. Updates appear here as reports come in and work moves." />
       </section>
 
-      <section className="mt-12 border-t border-ink-100 pt-6" aria-labelledby="pulse">
+      <section className="mt-12 rounded-xl bg-surface-muted p-5" aria-labelledby="pulse">
         <SectionTitle
           action={
             <div className="flex gap-0.5" role="group" aria-label="Time period">
