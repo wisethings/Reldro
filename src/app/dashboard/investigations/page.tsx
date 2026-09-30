@@ -59,7 +59,7 @@ export default async function InvestigationsPage({ searchParams }: { searchParam
               template="minmax(0,1fr) 8.5rem 8rem 12rem 5rem"
               main={
                 <>
-                  <p className="truncate text-[13px] font-medium text-ink-900">{i.report.title}</p>
+                  <p title={i.report.title} className="truncate text-[13px] font-medium text-ink-900">{i.report.title}</p>
                   <p className="mt-0.5 text-xs text-ink-500"><span className="font-mono">SR-{String(i.report.number).padStart(4, "0")}</span> · {categoryLabel(i.report.category, pack)}</p>
                 </>
               }

@@ -37,8 +37,8 @@ export function QueueRow({ href, title, meta, right }: { href: string; title: st
     <li>
       <Link href={href} className="flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-ink-50 sm:px-5">
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-ink-900">{title}</p>
-          {meta && <p className="truncate text-xs text-ink-500">{meta}</p>}
+          <p title={title} className="line-clamp-2 break-words text-sm font-medium text-ink-900">{title}</p>
+          {meta && <p title={meta} className="line-clamp-2 break-words text-xs text-ink-500">{meta}</p>}
         </div>
         {right && <div className="shrink-0">{right}</div>}
       </Link>

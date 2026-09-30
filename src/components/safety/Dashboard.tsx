@@ -109,7 +109,7 @@ export function AttentionRow({ href, icon, tint, title, count, detail, alert = f
           <span className={`text-[13px] font-medium leading-snug ${quiet ? "text-ink-700" : "text-ink-900"}`}>{title}</span>
           <span className={`shrink-0 rounded-md px-1.5 text-[11px] font-semibold leading-[18px] tabular-nums ${!quiet ? TINT[tint] : "bg-ink-100 text-ink-700"}`}>{count}</span>
         </span>
-        <span className="mt-px block truncate text-xs text-ink-500">{detail}</span>
+        <span title={detail} className="mt-px line-clamp-2 break-words text-xs leading-snug text-ink-500">{detail}</span>
       </span>
       <ChevronRight size={14} aria-hidden className="shrink-0 text-ink-300 transition-transform group-hover:translate-x-0.5" />
     </Link>
@@ -139,8 +139,8 @@ export function ActivityList({ items, empty }: { items: ActivityItem[]; empty: s
           <Link href={a.href} className="flex items-start gap-3 border-b border-ink-100 px-3.5 py-2 outline-none last:border-b-0 hover:bg-ink-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500">
             <span className="mt-0.5"><IconTile tint={a.tint} size="sm">{a.icon}</IconTile></span>
             <span className="min-w-0 flex-1">
-              <span className="block text-[13px] leading-snug text-ink-900">{a.text}</span>
-              <span className="block truncate text-xs text-ink-500">{a.meta}</span>
+              <span className="line-clamp-3 break-words text-[13px] leading-snug text-ink-900">{a.text}</span>
+              <span title={a.meta} className="line-clamp-2 break-words text-xs leading-snug text-ink-500">{a.meta}</span>
             </span>
             <time dateTime={a.at.toISOString()} className="shrink-0 pt-0.5 text-xs text-ink-500">{timeAgo(a.at)}</time>
           </Link>
@@ -188,5 +188,106 @@ export function StatStrip({ items }: { items: { label: string; value: number | s
         );
       })}
     </div>
+  );
+}
+
+/* ---- Command-centre pieces: text and dividers rather than cards. Colour appears only where it means urgency. ---- */
+
+export type FocusTier = "urgent" | "overdue" | "next";
+export type FocusEntry = { key: string; tier: FocusTier; title: string; tag: string; reason: string; action: string; href: string };
+
+const TIER_DOT: Record<FocusTier, string> = { urgent: "bg-danger", overdue: "bg-amber-deep", next: "bg-ink-300" };
+const TIER_TEXT: Record<FocusTier, string> = { urgent: "text-danger", overdue: "text-amber-deep", next: "text-ink-700" };
+
+/** The one list the page is about: the specific things that need a person, most urgent first. */
+export function FocusList({ entries }: { entries: FocusEntry[] }) {
+  return (
+    <ul className="divide-y divide-ink-100 border-y border-ink-100">
+      {entries.map((e) => (
+        <li key={e.key}>
+          <Link href={e.href} className="group flex items-center gap-3.5 py-3 pr-1 outline-none hover:bg-ink-50/70 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500 sm:gap-4">
+            <span aria-hidden className={`h-2 w-2 shrink-0 rounded-full ${TIER_DOT[e.tier]}`} />
+            <span className="min-w-0 flex-1">
+              <span title={e.title} className="block truncate text-sm font-medium text-ink-900">{e.title}</span>
+              <span className="mt-0.5 line-clamp-2 break-words text-[13px] leading-snug text-ink-600">
+                <span className={`font-medium ${TIER_TEXT[e.tier]}`}>{e.tag}</span>
+                {e.reason && <> · {e.reason}</>}
+              </span>
+            </span>
+            <span className="hidden shrink-0 items-center gap-1 text-[13px] font-medium text-orchid-deep group-hover:text-oxblood sm:flex">
+              {e.action}
+              <ChevronRight size={14} aria-hidden className="transition-transform group-hover:translate-x-0.5" />
+            </span>
+            <ChevronRight size={16} aria-hidden className="shrink-0 text-ink-300 sm:hidden" />
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function SectionTitle({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
+  return (
+    <div className="mb-2 flex items-baseline justify-between gap-3">
+      <h2 className="text-[13px] font-semibold text-ink-900">{children}</h2>
+      {action}
+    </div>
+  );
+}
+
+export function TextLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return <Link href={href} className="text-xs font-medium text-orchid-deep hover:text-oxblood">{children}</Link>;
+}
+
+/** A dated line for the "Coming up" list. */
+export function UpcomingRow({ href, when, title, detail, warn = false }: { href: string; when: string; title: string; detail?: string; warn?: boolean }) {
+  return (
+    <li>
+      <Link href={href} className="flex gap-3 rounded-md py-2 outline-none hover:bg-ink-50/70 focus-visible:ring-2 focus-visible:ring-brand-500">
+        <span className={`w-16 shrink-0 pt-px text-xs font-medium tabular-nums ${warn ? "text-amber-deep" : "text-ink-500"}`}>{when}</span>
+        <span className="min-w-0 flex-1">
+          <span title={title} className="line-clamp-2 break-words text-[13px] leading-snug text-ink-900">{title}</span>
+          {detail && <span className="mt-0.5 block truncate text-xs text-ink-500">{detail}</span>}
+        </span>
+      </Link>
+    </li>
+  );
+}
+
+/** Recent activity as a plain timeline: a time, one sentence, one line of context. No icons. */
+export function QuietActivity({ items, empty }: { items: ActivityItem[]; empty: string }) {
+  if (items.length === 0) return <p className="py-3 text-sm text-ink-500">{empty}</p>;
+  return (
+    <ol className="divide-y divide-ink-100 border-y border-ink-100">
+      {items.map((a) => (
+        <li key={a.key}>
+          <Link href={a.href} className="flex items-baseline gap-4 py-2.5 outline-none hover:bg-ink-50/70 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500">
+            <time dateTime={a.at.toISOString()} className="w-20 shrink-0 text-xs tabular-nums text-ink-500">{timeAgo(a.at)}</time>
+            <span className="min-w-0 flex-1">
+              <span className="line-clamp-2 break-words text-[13px] leading-snug text-ink-900">{a.text}</span>
+              <span title={a.meta} className="mt-0.5 block truncate text-xs text-ink-500">{a.meta}</span>
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** Volume over a period as one quiet line of plain numbers, so it informs without competing with the work. */
+export function PulseLine({ items, days }: { items: { label: string; value: number; previous: number }[]; days: number }) {
+  return (
+    <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3 lg:grid-cols-6">
+      {items.map((i) => {
+        const diff = i.value - i.previous;
+        return (
+          <div key={i.label}>
+            <dd className="text-lg font-semibold tabular-nums text-ink-900">{i.value}</dd>
+            <dt className="text-xs text-ink-600">{i.label}</dt>
+            <p className="text-[11px] text-ink-400" title={`Compared with the previous ${days} days`}>{diff === 0 ? "no change" : `${diff > 0 ? "+" : "−"}${Math.abs(diff)} vs before`}</p>
+          </div>
+        );
+      })}
+    </dl>
   );
 }

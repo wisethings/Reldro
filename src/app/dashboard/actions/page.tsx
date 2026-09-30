@@ -70,7 +70,7 @@ export default async function ActionsPage({ searchParams }: { searchParams: Prom
                 template="minmax(0,1fr) 8.5rem 9.5rem 9rem 9rem"
                 main={
                   <>
-                    <p className="truncate text-[13px] font-medium text-ink-900">{a.title}</p>
+                    <p title={a.title} className="truncate text-[13px] font-medium text-ink-900">{a.title}</p>
                     <p className="mt-0.5 text-xs text-ink-500">
                       <span className="font-mono">A-{a.number}</span> · {a.report ? `From SR-${String(a.report.number).padStart(4, "0")}` : "From an inspection"}
                     </p>

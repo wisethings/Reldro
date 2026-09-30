@@ -132,3 +132,20 @@ test("a supervisor cannot see who filed a confidential report", async () => {
     await page.context().close();
   }
 });
+
+test("the safety team can move a corrective action back to Proposed and forward again", async () => {
+  const page = await signIn("admin");
+  try {
+    await page.goto(`${BASE}/dashboard/actions?view=all`, { waitUntil: "networkidle" });
+    await page.getByText("Assign a daily housekeeping walk on level 4 and 5").first().click();
+    await page.waitForSelector("text=Next step");
+    await page.getByRole("button", { name: "Move back to Proposed" }).click();
+    await page.fill("#move-reason", "E2E: plan changed");
+    await page.getByRole("button", { name: "Confirm" }).click();
+    await page.getByText("Review this proposal").waitFor({ timeout: 20_000 });
+    await page.getByRole("button", { name: "Approve corrective action" }).click();
+    await page.getByText(/Ready for .* to start/).waitFor({ timeout: 20_000 });
+  } finally {
+    await page.context().close();
+  }
+});

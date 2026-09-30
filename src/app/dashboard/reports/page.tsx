@@ -125,7 +125,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                 template={staff ? "minmax(0,1fr) 9rem 9.5rem 10rem 7rem 3.5rem" : "minmax(0,1fr) 9.5rem 11rem 4.5rem"}
                 main={
                   <>
-                    <p className="truncate text-[13px] font-medium text-ink-900">{r.title}</p>
+                    <p title={r.title} className="truncate text-[13px] font-medium text-ink-900">{r.title}</p>
                     <div className="mt-0.5 flex items-center gap-1.5 text-xs text-ink-500">
                       <span className="shrink-0 font-mono">SR-{String(r.number).padStart(4, "0")}</span>
                       <span className="min-w-0 truncate">{reportTypeLabel(r.type)}<span className="hidden md:inline"> · {categoryLabel(r.category, pack)}</span></span>

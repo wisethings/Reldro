@@ -7,7 +7,7 @@ import { actionStatusInfo, getPack, OPEN_ACTION_STATUSES, severityRank } from "@
 import { Badge } from "@/components/ui/Badge";
 import { ActionStatusBadge, dueLabel, fmtDate, ReportStatusBadge, SeverityBadge } from "@/components/safety/ui";
 import { Queue, QueueRow } from "@/components/safety/Queue";
-import { ActivityList, AttentionRow, Panel, PulseGrid, PulseItem, StatBar, StatCard, StatStrip, StatusBanner, type ActivityItem } from "@/components/safety/Dashboard";
+import { ActivityList, FocusList, Panel, PulseLine, QuietActivity, SectionTitle, StatStrip, TextLink, UpcomingRow, type ActivityItem, type FocusEntry } from "@/components/safety/Dashboard";
 
 const ACTIVE_REPORT = ["NEW", "ASSIGNED", "INVESTIGATING", "ACTIONS_OPEN"];
 
@@ -160,25 +160,25 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   const FEED_TYPES = ["CREATED", "ACKNOWLEDGED", "STATUS", "INCIDENT", "INVESTIGATION", "UPDATE", "DECISION", "ACTION"];
 
   const [
-    activeIncidents, respCount, respFirst, noOwnerCount, noOwnerFirst, invCount, invFirst, overdueCount, overdueFirst, waitCount, waitFirst,
-    inspCount, inspFirst, qualCount, qualFirst, talks, empCount, events, doneInspections,
+    activeIncidents, respCount, respItems, noOwnerCount, noOwnerItems, invCount, invFirst, overdueCount, overdueItems, waitCount, waitItems,
+    inspCount, inspItems, qualCount, qualItems, talks, empCount, events, doneInspections,
     repNow, repPrev, invNow, invPrev, actNow, actPrev, inspNow, inspPrev, verNow, verPrev, incNow, incPrev,
   ] = await Promise.all([
     loadActiveIncidents(v),
     prisma.safetyReport.count({ where: respWhere }),
-    prisma.safetyReport.findFirst({ where: respWhere, orderBy: { respondBy: "asc" }, include: { site: true } }),
+    prisma.safetyReport.findMany({ where: respWhere, orderBy: { respondBy: "asc" }, include: { site: true }, take: 3 }),
     prisma.safetyReport.count({ where: noOwnerWhere }),
-    prisma.safetyReport.findFirst({ where: noOwnerWhere, orderBy: { createdAt: "asc" }, include: { site: true } }),
+    prisma.safetyReport.findMany({ where: noOwnerWhere, orderBy: { createdAt: "asc" }, include: { site: true }, take: 3 }),
     v.isSafetyTeam ? prisma.investigation.count({ where: invWhere }) : Promise.resolve(0),
     v.isSafetyTeam ? prisma.investigation.findFirst({ where: invWhere, orderBy: { openedAt: "asc" }, include: { report: true } }) : Promise.resolve(null),
     prisma.correctiveAction.count({ where: overdueWhere }),
-    prisma.correctiveAction.findFirst({ where: overdueWhere, orderBy: { dueDate: "asc" } }),
+    prisma.correctiveAction.findMany({ where: overdueWhere, orderBy: { dueDate: "asc" }, take: 3 }),
     v.isSafetyTeam ? prisma.correctiveAction.count({ where: waitWhere }) : Promise.resolve(0),
-    v.isSafetyTeam ? prisma.correctiveAction.findFirst({ where: waitWhere, orderBy: { updatedAt: "asc" } }) : Promise.resolve(null),
+    v.isSafetyTeam ? prisma.correctiveAction.findMany({ where: waitWhere, orderBy: { updatedAt: "asc" }, take: 3 }) : Promise.resolve([]),
     prisma.inspection.count({ where: inspWhere }),
-    prisma.inspection.findFirst({ where: inspWhere, orderBy: { dueDate: "asc" }, include: { template: true, site: true } }),
+    prisma.inspection.findMany({ where: inspWhere, orderBy: { dueDate: "asc" }, include: { template: true, site: true }, take: 3 }),
     prisma.qualification.count({ where: qualWhere }),
-    prisma.qualification.findFirst({ where: qualWhere, orderBy: { expiresOn: "asc" } }),
+    prisma.qualification.findMany({ where: qualWhere, orderBy: { expiresOn: "asc" }, take: 3 }),
     prisma.toolboxTalk.findMany({ where: { organizationId: v.organizationId, scheduledFor: { gte: new Date(Date.now() - 14 * 86400_000) } }, include: { _count: { select: { acknowledgements: true } } }, orderBy: { scheduledFor: "desc" }, take: 3 }),
     prisma.employee.count({ where: { organizationId: v.organizationId } }),
     prisma.reportEvent.findMany({
@@ -202,7 +202,8 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
     prisma.incidentResponse.count({ where: { organizationId: v.organizationId, openedAt: win(before, since), ...(v.isSafetyTeam ? {} : { report: scopedReports }) } }),
   ]);
 
-  const qualPerson = qualFirst ? await prisma.employee.findUnique({ where: { id: qualFirst.employeeId }, include: { user: { select: { name: true } } } }) : null;
+  const qualPeople = qualItems.length ? await prisma.employee.findMany({ where: { id: { in: qualItems.map((q) => q.employeeId) } }, include: { user: { select: { name: true } } } }) : [];
+  const personName = (id: string) => qualPeople.find((p) => p.id === id)?.user.name ?? "Someone";
   const refOf = (n: number) => `SR-${String(n).padStart(4, "0")}`;
   const topIncident = activeIncidents[0];
 
@@ -239,103 +240,126 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   feed.sort((a, b) => b.at.getTime() - a.at.getTime());
   const recent = feed.slice(0, 8);
 
-  const chip = (active: boolean) => `rounded-full border px-2.5 py-1 text-xs font-medium ${active ? "border-brand-700 bg-orchid-soft text-orchid-deep" : "border-ink-200 bg-white text-ink-600 hover:bg-ink-50"}`;
+  const chip = (active: boolean) => `rounded-full px-2.5 py-1 text-xs font-medium ${active ? "bg-ink-900 text-white" : "text-ink-600 hover:bg-ink-100"}`;
+  const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+  const overdueBy = (d: Date | null) => (d ? dueLabel(d, true).text : "");
+
+  // The list the page exists for: specific items, most urgent first. Incidents and late responses come before the rest.
+  const focus: FocusEntry[] = [
+    ...activeIncidents.map((i): FocusEntry => ({
+      key: `inc${i.id}`, tier: "urgent", title: i.report.title, tag: "Incident response",
+      reason: `${i.report.site ? `${i.report.site.name} · ` : ""}Lead: ${i.leadName ?? "none yet"}${i.nextAction ? ` · Next: ${i.nextAction}` : ""}`,
+      action: "Open workspace", href: `/dashboard/reports/${i.reportId}`,
+    })),
+    ...respItems.map((r): FocusEntry => ({ key: `resp${r.id}`, tier: "urgent", title: r.title, tag: "Response overdue", reason: `${r.site ? `${r.site.name} · ` : ""}not yet acknowledged`, action: "Respond", href: `/dashboard/reports/${r.id}` })),
+    ...overdueItems.map((a): FocusEntry => ({ key: `od${a.id}`, tier: "overdue", title: a.title, tag: overdueBy(a.dueDate), reason: `Corrective action A-${a.number}`, action: "Open", href: `/dashboard/actions/${a.id}` })),
+    ...noOwnerItems.map((r): FocusEntry => ({ key: `own${r.id}`, tier: "next", title: r.title, tag: "No owner", reason: `${r.site ? `${r.site.name} · ` : ""}new report`, action: "Assign an owner", href: `/dashboard/reports/${r.id}` })),
+    ...waitItems.map((a): FocusEntry => ({ key: `wait${a.id}`, tier: "next", title: a.title, tag: a.status === "PROPOSED" ? "Needs approval" : "Ready to verify", reason: `Corrective action A-${a.number}`, action: a.status === "PROPOSED" ? "Review" : "Verify", href: `/dashboard/actions/${a.id}` })),
+  ];
+  const shown = focus.slice(0, 8);
+  // Where to see everything, with a count only where it helps decide which list to open.
+  const seeAll = [
+    { n: activeIncidents.length, text: plural(activeIncidents.length, "incident response"), href: "/dashboard/reports?status=incidents" },
+    { n: respCount, text: `${respCount} late ${respCount === 1 ? "response" : "responses"}`, href: "/dashboard/reports?status=open" },
+    { n: overdueCount, text: `${overdueCount} overdue ${overdueCount === 1 ? "action" : "actions"}`, href: "/dashboard/actions?view=overdue" },
+    { n: noOwnerCount, text: `${noOwnerCount} without an owner`, href: "/dashboard/reports?status=open" },
+    { n: waitCount, text: `${waitCount} waiting on you`, href: "/dashboard/actions?view=attention" },
+  ].filter((m) => m.n > 0);
+
+  const summary = attention === 0
+    ? "Nothing needs your attention right now."
+    : `${plural(attention, "item")} ${attention === 1 ? "needs" : "need"} your attention${urgent ? `, ${activeIncidents.length + respCount} of them urgent` : ""}.`;
+
+  // Coming up: dated items, soonest first, capped so it stays a glance.
+  type Up = { key: string; at: number; when: string; title: string; detail?: string; href: string; warn: boolean };
+  const shortDate = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+  const up: Up[] = [
+    ...inspItems.map((i): Up => ({ key: `i${i.id}`, at: i.dueDate.getTime(), when: i.dueDate < now ? "Overdue" : shortDate(i.dueDate), title: `${i.template.name}`, detail: i.site.name, href: `/dashboard/inspections/${i.id}`, warn: i.dueDate < now })),
+    ...qualItems.map((q): Up => ({ key: `q${q.id}`, at: q.expiresOn?.getTime() ?? 0, when: q.expiresOn && q.expiresOn < now ? "Expired" : q.expiresOn ? shortDate(q.expiresOn) : "", title: `${personName(q.employeeId)}: ${q.name}`, detail: "Qualification", href: "/dashboard/training?tab=qualifications", warn: Boolean(q.expiresOn && q.expiresOn < now) })),
+  ].sort((a, b) => a.at - b.at).slice(0, 4);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-3 p-4 sm:p-5">
-      <div>
-        <h1 className="text-lg font-semibold text-ink-900">{v.isSafetyTeam ? "Safety overview" : "Your site"}</h1>
-        <p className="text-sm text-ink-500">{org?.name} · what needs attention today</p>
+    <div className="mx-auto max-w-6xl p-4 sm:p-6 lg:p-8">
+      <header>
+        <h1 className="text-xl font-semibold text-ink-900">{v.isSafetyTeam ? "Safety overview" : "Your site"}</h1>
+        <p className="mt-1 flex items-center gap-2 text-sm text-ink-600">
+          <span aria-hidden className={`h-2 w-2 rounded-full ${attention === 0 ? "bg-sage-deep" : urgent ? "bg-danger" : "bg-amber-deep"}`} />
+          {org?.name} · {summary}
+        </p>
+      </header>
+
+      <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,1fr)_18rem]">
+        <section aria-labelledby="attention">
+          <SectionTitle>
+            <span id="attention">Needs your attention</span>
+          </SectionTitle>
+          {shown.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-ink-200 px-5 py-8 text-center">
+              <p className="text-sm font-medium text-ink-900">You’re caught up</p>
+              <p className="mt-1 text-[13px] text-ink-600">No incident responses, late responses, unowned reports or overdue corrective actions. Upcoming work is on the right.</p>
+            </div>
+          ) : (
+            <FocusList entries={shown} />
+          )}
+          {focus.length > shown.length && (
+            <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-600">
+              <span>Showing {shown.length} of {attention}. See all:</span>
+              {seeAll.map((m) => <Link key={m.text} href={m.href} className="font-medium text-orchid-deep hover:text-oxblood">{m.text}</Link>)}
+            </p>
+          )}
+        </section>
+
+        <aside aria-labelledby="coming-up" className="space-y-8 lg:pt-0">
+          <section>
+            <SectionTitle action={<TextLink href="/dashboard/inspections">All inspections</TextLink>}>
+              <span id="coming-up">Coming up</span>
+            </SectionTitle>
+            {up.length === 0 ? (
+              <p className="text-[13px] text-ink-500">No inspections due or qualifications expiring soon.</p>
+            ) : (
+              <ul className="-mx-1 divide-y divide-ink-100 px-1">
+                {up.map((u) => <UpcomingRow key={u.key} href={u.href} when={u.when} title={u.title} detail={u.detail} warn={u.warn} />)}
+              </ul>
+            )}
+            {v.isSafetyTeam && invCount > 0 && (
+              <p className="mt-3 text-xs text-ink-600">
+                <Link href="/dashboard/investigations" className="font-medium text-orchid-deep hover:text-oxblood">{plural(invCount, "investigation")} in progress →</Link>
+              </p>
+            )}
+          </section>
+        </aside>
       </div>
 
-      <StatBar cols={v.isSafetyTeam ? 5 : 4}>
-        <StatCard href="/dashboard/reports?status=incidents" icon={<Bell size={22} />} tint="coral" value={activeIncidents.length} label="Active incidents" alert={activeIncidents.length > 0} />
-        <StatCard href="/dashboard/reports?status=open" icon={<Clock size={22} />} tint="amber" value={respCount} label="Response overdue" alert={respCount > 0} />
-        <StatCard href="/dashboard/reports?status=open" icon={<UserRound size={22} />} tint="sky" value={noOwnerCount} label="Unowned reports" alert={noOwnerCount > 0} />
-        {v.isSafetyTeam && <StatCard href="/dashboard/investigations" icon={<Search size={22} />} tint="orchid" value={invCount} label="Active investigations" />}
-        <StatCard href="/dashboard/actions?view=overdue" icon={<TriangleAlert size={22} />} tint="gold" value={overdueCount} label="Overdue actions" alert={overdueCount > 0} />
-      </StatBar>
+      <section className="mt-12" aria-labelledby="recent">
+        <SectionTitle action={<TextLink href="/dashboard/reports?status=all">View all reports</TextLink>}>
+          <span id="recent">Recent activity</span>
+        </SectionTitle>
+        <QuietActivity items={recent.slice(0, 6)} empty="No recent activity yet. Updates appear here as reports come in and work moves." />
+      </section>
 
-      {attention === 0 ? (
-        <StatusBanner tone="calm" title="Nothing needs attention right now" body="There are no active incident responses, overdue items, or reports waiting for an owner. Upcoming deadlines are listed below." />
-      ) : (
-        <StatusBanner tone={urgent ? "urgent" : "watch"} title={`${attention} ${attention === 1 ? "item needs" : "items need"} attention`} body={`${parts.join(", ")}.`} />
-      )}
-
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <Panel icon={<TriangleAlert size={20} />} tint="coral" title="Needs attention" subtitle="Items that need a decision or follow-up.">
-          <AttentionRow
-            href="/dashboard/reports?status=incidents" icon={<Bell size={18} />} tint="coral" alert title="Active incident responses" count={activeIncidents.length}
-            detail={topIncident ? `${topIncident.report.title} · Lead: ${topIncident.leadName ?? "none yet"}` : "No incident responses are open. One appears here when an event needs a coordinated response."}
-          />
-          <AttentionRow
-            href={respFirst ? `/dashboard/reports/${respFirst.id}` : "/dashboard/reports?status=open"} icon={<Clock size={18} />} tint="amber" alert title="Response overdue" count={respCount}
-            detail={respFirst ? `${respFirst.title} · ${respFirst.site?.name ?? "Site not given"}` : "Every report was acknowledged within its response time."}
-          />
-          <AttentionRow
-            href={noOwnerFirst ? `/dashboard/reports/${noOwnerFirst.id}` : "/dashboard/reports?status=open"} icon={<UserRound size={18} />} tint="sky" alert title="New reports without an owner" count={noOwnerCount}
-            detail={noOwnerFirst ? `${noOwnerFirst.title} · ${noOwnerFirst.site?.name ?? "Site not given"}` : "No new reports are waiting for an owner."}
-          />
-          {v.isSafetyTeam && (
-            <AttentionRow
-              href="/dashboard/actions?view=attention" icon={<ClipboardCheck size={18} />} tint="indigo" title="Corrective actions waiting for you" count={waitCount}
-              detail={waitFirst ? `${waitFirst.title} · ${waitFirst.status === "PROPOSED" ? "Needs approval" : actionStatusInfo(waitFirst.status).label}` : "No corrective actions are waiting for approval or verification."}
-            />
-          )}
-          <AttentionRow
-            href="/dashboard/actions?view=overdue" icon={<TriangleAlert size={18} />} tint="gold" alert title="Overdue corrective actions" count={overdueCount}
-            detail={overdueFirst ? `${overdueFirst.title} · ${dueLabel(overdueFirst.dueDate, true).text}` : "No corrective actions are overdue."}
-          />
-        </Panel>
-
-        <Panel icon={<CalendarDays size={20} />} tint="teal" title="Upcoming and in progress" subtitle="Deadlines and work under way.">
-          <AttentionRow
-            href="/dashboard/inspections" icon={<CalendarDays size={18} />} tint="teal" title="Inspections due in the next 7 days" count={inspCount}
-            detail={inspFirst ? `${inspFirst.template.name} · ${inspFirst.site.name} · ${dueLabel(inspFirst.dueDate, true).text}` : "No inspections are due in the next 7 days."}
-          />
-          <AttentionRow
-            href="/dashboard/training?tab=qualifications" icon={<BadgeCheck size={18} />} tint="gold" title="Qualifications expiring in the next 30 days" count={qualCount}
-            detail={qualFirst ? `${qualPerson?.user.name ?? "Someone"} · ${qualFirst.name} · ${qualFirst.expiresOn && qualFirst.expiresOn < now ? "expired" : "expires"} ${fmtDate(qualFirst.expiresOn)}` : "No qualifications expire in the next 30 days."}
-          />
-          {v.isSafetyTeam && (
-            <AttentionRow
-              href="/dashboard/investigations" icon={<Search size={18} />} tint="orchid" title="Active investigations" count={invCount}
-              detail={invFirst ? `${invFirst.report.title} · opened ${fmtDate(invFirst.openedAt)}` : "No investigations are active."}
-            />
-          )}
-          <AttentionRow
-            href="/dashboard/training" icon={<Megaphone size={18} />} tint="sky" title="Recent toolbox talks" count={talks.length}
-            detail={talks[0] ? `${talks[0].title} · ${talks[0]._count.acknowledgements} of ${empCount} acknowledged` : "No toolbox talks in the last two weeks."}
-          />
-        </Panel>
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <Panel
-          icon={<FileText size={20} />} tint="orchid" title="Recent activity" subtitle="Latest updates across reports, investigations, and corrective actions."
-          action={<Link href="/dashboard/reports?status=all" className="shrink-0 rounded-lg border border-ink-200 px-3 py-1.5 text-xs font-medium text-ink-800 hover:bg-ink-50">View all</Link>}
-        >
-          <ActivityList items={recent} empty="No recent activity. New activity appears here as reports are submitted, investigations are opened, or corrective actions are updated." />
-        </Panel>
-
-        <Panel
-          icon={<ChartNoAxesColumn size={20} />} tint="sky" title="Activity pulse" subtitle="Counts of what was reported and done. They show volume, not how safe a site is."
+      <section className="mt-12 border-t border-ink-100 pt-6" aria-labelledby="pulse">
+        <SectionTitle
           action={
-            <div className="flex shrink-0 gap-1" role="group" aria-label="Time period">
+            <div className="flex gap-0.5" role="group" aria-label="Time period">
               {[7, 30, 90].map((n) => <Link key={n} href={`?pulse=${n}`} className={chip(pulseDays === n)} aria-pressed={pulseDays === n}>{n} days</Link>)}
             </div>
           }
         >
-          <PulseGrid>
-            <PulseItem icon={<FileText size={16} />} tint="sky" value={repNow} previous={repPrev} days={pulseDays} label="Reports submitted" />
-            <PulseItem icon={<Search size={16} />} tint="orchid" value={invNow} previous={invPrev} days={pulseDays} label="Investigations opened" />
-            <PulseItem icon={<ClipboardCheck size={16} />} tint="indigo" value={actNow} previous={actPrev} days={pulseDays} label="Corrective actions created" />
-            <PulseItem icon={<CalendarCheck size={16} />} tint="teal" value={inspNow} previous={inspPrev} days={pulseDays} label="Inspections completed" />
-            <PulseItem icon={<CheckCircle2 size={16} />} tint="sage" value={verNow} previous={verPrev} days={pulseDays} label="Corrective actions verified" />
-            <PulseItem icon={<Bell size={16} />} tint="coral" value={incNow} previous={incPrev} days={pulseDays} label="Incident responses opened" />
-          </PulseGrid>
-        </Panel>
-      </div>
+          <span id="pulse">Last {pulseDays} days</span>
+        </SectionTitle>
+        <p className="mb-4 text-xs text-ink-500">Volume of what was reported and done. It does not show how safe a site is.</p>
+        <PulseLine
+          days={pulseDays}
+          items={[
+            { label: "Reports submitted", value: repNow, previous: repPrev },
+            { label: "Investigations opened", value: invNow, previous: invPrev },
+            { label: "Corrective actions created", value: actNow, previous: actPrev },
+            { label: "Corrective actions verified", value: verNow, previous: verPrev },
+            { label: "Inspections completed", value: inspNow, previous: inspPrev },
+            { label: "Incident responses", value: incNow, previous: incPrev },
+          ]}
+        />
+      </section>
     </div>
   );
 }

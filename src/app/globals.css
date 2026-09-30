@@ -87,3 +87,9 @@ select {
     border-radius: 9999px;
   }
 }
+
+/* Long words, URLs and pasted text never push a page wider than the screen or spill out of their card. */
+main,
+[role="dialog"] {
+  overflow-wrap: anywhere;
+}

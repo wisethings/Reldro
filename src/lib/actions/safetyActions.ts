@@ -149,6 +149,41 @@ export async function cancelAction(actionId: string) {
   refresh(action);
 }
 
+const STAGES = ["PROPOSED", "APPROVED", "IN_PROGRESS", "COMPLETED", "VERIFIED"];
+
+/**
+ * Moves a corrective action back to an earlier stage, or reopens a cancelled one. The safety team can go back to any
+ * earlier stage. An owner can undo their own progress by one step (in progress to open, or done to in progress).
+ * Going forward still uses the normal steps (approve, start, mark done, verify) so nothing is skipped.
+ */
+export async function setActionStatus(actionId: string, target: string, reason: string) {
+  const { v, action } = await loadAction(actionId);
+  if (!STAGES.includes(target) || target === action.status) throw new Error("Choose a different stage.");
+  const from = STAGES.indexOf(action.status);
+  const to = STAGES.indexOf(target);
+  if (v.isSafetyTeam) {
+    const reopening = action.status === "CANCELLED" && to <= 2;
+    if (!reopening && !(from > to)) throw new Error("A corrective action can only move back to an earlier stage.");
+  } else if (isOwner(v, action)) {
+    const oneStepBack = (action.status === "IN_PROGRESS" && target === "APPROVED") || (action.status === "COMPLETED" && target === "IN_PROGRESS");
+    if (!oneStepBack) throw new Error("You can undo your own progress by one step. Ask the safety team to move it further back.");
+  } else {
+    throw new Error("Only the owner or the safety team can change the stage.");
+  }
+
+  const data: Record<string, unknown> = { status: target };
+  if (to <= 0) Object.assign(data, { approvedById: null, approvedAt: null });
+  if (to >= 1 && !action.approvedAt) Object.assign(data, { approvedById: v.employeeId, approvedAt: new Date() });
+  if (to <= 2) Object.assign(data, { completedAt: null });
+  if (to <= 3) Object.assign(data, { verifiedAt: null, verifiedById: null });
+  await prisma.correctiveAction.update({ where: { id: actionId }, data });
+  const label = actionStatusInfo(target).label;
+  const note = reason.trim().slice(0, 300);
+  await logOnReport(action.reportId, `Corrective action A-${action.number} ${action.status === "CANCELLED" ? "reopened as" : "moved back to"} ${label}${note ? `: ${note}` : "."}`, v);
+  await audit(v, "safety.action_updated", "CorrectiveAction", actionId, { status: target, movedBack: true });
+  refresh(action);
+}
+
 export async function updateActionPlan(actionId: string, changes: { ownerId?: string | null; dueDate?: string | null }) {
   const { v, action } = await loadAction(actionId);
   if (!v.isSafetyTeam) throw new Error("Only the safety team can change the owner or due date of a corrective action.");
