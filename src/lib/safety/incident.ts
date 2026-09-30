@@ -1,6 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
-import { escapeHtml, getAppUrl, isEmailConfigured, sendEmail } from "@/lib/email";
+import { emailShell, escapeHtml, getAppUrl, isEmailConfigured, sendEmail } from "@/lib/email";
 import { addReportEvent } from "./context";
 
 export type NotifyResult = { sent: number; failed: number; skippedReason: string | null };
@@ -28,10 +28,12 @@ export async function notifyResponders(params: { reportId: string; employeeIds: 
     const res = await sendEmail({
       to: p.user.email,
       subject: `${report.organization.name}: incident response ${params.reason} (${ref})`,
-      html: `<p>Hi ${escapeHtml(p.user.name.split(" ")[0] ?? "there")},</p>
-<p>You've been named on an incident response for <strong>${ref}</strong>${report.site ? ` at ${escapeHtml(report.site.name)}` : ""}.</p>
-<p><a href="${link}">Open the incident workspace</a></p>
-<p style="color:#666;font-size:12px">Details are not included in this email. Sign in to read them. Reldro does not contact emergency services. If someone needs urgent help, call your local emergency number.</p>`,
+      html: emailShell({
+        bodyHtml: `<p>Hi ${escapeHtml(p.user.name.split(" ")[0] ?? "there")},</p>
+<p>You have been named on an incident response for <strong>${ref}</strong>${report.site ? ` at ${escapeHtml(report.site.name)}` : ""}. Sign in to read the details and add updates.</p>`,
+        button: { label: "Open the incident workspace", url: link },
+        footer: "Details are not included in this email. Reldro does not contact emergency services. If someone needs urgent help, call your local emergency number.",
+      }),
     });
     if (res.sent) sent++;
     else failed++;

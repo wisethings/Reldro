@@ -1,0 +1,60 @@
+name: CI
+
+# Runs on every push and pull request: type check, unit tests, a production build, and the browser tests against a
+# freshly seeded database. A change that breaks sign-in, a page, or the privacy rules fails here before it ships.
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: reldro
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/reldro
+      AUTH_SECRET: ci-only-secret-not-used-anywhere-else-0123456789
+      APP_URL: http://localhost:3100
+      ALLOW_DESTRUCTIVE_SEED: "true"
+      BASE_URL: http://localhost:3100
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - name: Type check
+        run: npm run typecheck
+      - name: Unit tests
+        run: npm test
+      - name: Create the database and load sample data
+        run: |
+          npx prisma db push --skip-generate
+          npx tsx prisma/seed.ts
+      - name: Build
+        run: npm run build
+      - name: Install a browser
+        run: npx playwright install --with-deps chromium
+      - name: Start the app
+        run: |
+          npx next start -p 3100 &
+          for i in $(seq 1 40); do curl -sf http://localhost:3100/api/health && break || sleep 2; done
+      - name: Post-deploy checks (same script used against production)
+        run: npm run smoke -- http://localhost:3100
+      - name: Browser tests
+        run: npm run test:e2e

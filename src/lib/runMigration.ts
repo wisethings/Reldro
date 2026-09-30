@@ -3,13 +3,14 @@ import crypto from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { SCHEMA_SQL } from "@/lib/schema-sql";
 
-const SCHEMA_SQL_HASH = crypto.createHash("sha256").update(SCHEMA_SQL).digest("hex");
+export const SCHEMA_SQL_HASH = crypto.createHash("sha256").update(SCHEMA_SQL).digest("hex");
 
 // Postgres error codes for "this already exists" (duplicate_object /
 // duplicate_table) - expected and harmless every time this re-runs the full
 // schema, since most statements were already applied by an earlier run.
 // Only failures outside this set are worth ever looking at.
-const ALREADY_EXISTS_CODES = ["42710", "42P07"];
+// 23505 shows up when two cold instances run CREATE TABLE IF NOT EXISTS at the same moment; the other one won.
+const ALREADY_EXISTS_CODES = ["42710", "42P07", "23505"];
 
 function isAlreadyExists(error: string): boolean {
   return ALREADY_EXISTS_CODES.some((code) => error.includes(`Code: \`${code}\``));

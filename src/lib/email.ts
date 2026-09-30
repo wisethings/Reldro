@@ -29,6 +29,14 @@ export function escapeHtml(input: string): string {
     .replace(/'/g, "&#39;");
 }
 
+/**
+ * The sender. Resend's shared onboarding@resend.dev address can only deliver to the Resend account owner, so it is
+ * never used as a default: set EMAIL_FROM to an address on a domain verified in Resend.
+ */
+export function fromAddress(): string {
+  return process.env.EMAIL_FROM || "Reldro <noreply@reldro.com>";
+}
+
 let client: Resend | null = null;
 function getResend(): Resend | null {
   const key = process.env.RESEND_API_KEY;
@@ -52,7 +60,7 @@ export async function sendEmail({
   const resend = getResend();
   if (!resend) return { sent: false, error: "RESEND_API_KEY is not set" };
 
-  const from = process.env.EMAIL_FROM || "Reldro <onboarding@resend.dev>";
+  const from = fromAddress();
   const { error } = await resend.emails.send({ from, to, cc: cc && cc.length > 0 ? cc : undefined, subject, html });
   if (error) {
     console.error(`sendEmail failed (to=${to}, from=${from}):`, error);
@@ -80,7 +88,7 @@ export async function sendBulkEmail({
   if (!resend) return { sent: 0, failed: recipients.length, errors: ["RESEND_API_KEY is not set"] };
   if (recipients.length === 0) return { sent: 0, failed: 0, errors: [] };
 
-  const from = process.env.EMAIL_FROM || "Reldro <onboarding@resend.dev>";
+  const from = fromAddress();
   let sent = 0;
   let failed = 0;
   const errors: string[] = [];
@@ -114,7 +122,7 @@ export async function sendBulkEmail({
 export function productUpdateEmailHtml({ subject, bodyHtml }: { subject: string; bodyHtml: string }) {
   return `
     <div style="font-family: -apple-system, sans-serif; max-width: 560px; margin: 0 auto; color: #2A0A0C;">
-      <h2 style="margin-bottom: 4px;">${subject}</h2>
+      <h2 style="margin-bottom: 4px;">${escapeHtml(subject)}</h2>
       <p style="color: #6B5A55; font-size: 13px;">An update from the Reldro team</p>
       <div style="margin-top: 16px; font-size: 14px; line-height: 1.6;">${bodyHtml}</div>
       <p style="color: #8C7F6C; font-size: 12px; margin-top: 32px;">You are receiving this because you have a Reldro account.</p>
@@ -135,6 +143,17 @@ export function inviteEmailHtml({ name, orgName, loginUrl, tempPassword }: { nam
       </table>
       <a href="${loginUrl}" style="display: inline-block; background: #2A0A0C; color: #EFEBE0; padding: 10px 20px; border-radius: 999px; text-decoration: none; font-weight: 500;">Sign in to Reldro</a>
       <p style="color: #8C7F6C; font-size: 12px; margin-top: 24px;">If you were not expecting this email, you can ignore it.</p>
+    </div>
+  `;
+}
+
+/** Shared frame for short transactional emails: one plain paragraph or two, one button, and a clear sender line. */
+export function emailShell({ bodyHtml, button, footer }: { bodyHtml: string; button?: { label: string; url: string }; footer?: string }) {
+  return `
+    <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; color: #2A0A0C; font-size: 14px; line-height: 1.6;">
+      ${bodyHtml}
+      ${button ? `<p style="margin: 20px 0;"><a href="${button.url}" style="display: inline-block; background: #2A0A0C; color: #EFEBE0; padding: 10px 20px; border-radius: 999px; text-decoration: none; font-weight: 500;">${escapeHtml(button.label)}</a></p>` : ""}
+      <p style="color: #8C7F6C; font-size: 12px; margin-top: 24px;">${footer ?? "Sent by Reldro."}</p>
     </div>
   `;
 }

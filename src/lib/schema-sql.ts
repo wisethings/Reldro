@@ -1641,4 +1641,25 @@ DO $$ BEGIN ALTER TABLE "IncidentResponse" ADD CONSTRAINT "IncidentResponse_orga
 DO $$ BEGIN ALTER TABLE "IncidentResponse" ADD CONSTRAINT "IncidentResponse_reportId_fkey" FOREIGN KEY ("reportId") REFERENCES "SafetyReport"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
 
 DO $$ BEGIN ALTER TABLE "IncidentResponder" ADD CONSTRAINT "IncidentResponder_incidentId_fkey" FOREIGN KEY ("incidentId") REFERENCES "IncidentResponse"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+CREATE TABLE IF NOT EXISTS "SupportMessage" (
+    "id" TEXT NOT NULL,
+    "organizationId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "fromStaff" BOOLEAN NOT NULL DEFAULT false,
+    "senderName" TEXT NOT NULL,
+    "body" TEXT NOT NULL,
+    "readAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "SupportMessage_pkey" PRIMARY KEY ("id")
+);
+
+CREATE INDEX IF NOT EXISTS "SupportMessage_userId_createdAt_idx" ON "SupportMessage"("userId", "createdAt");
+
+CREATE INDEX IF NOT EXISTS "SupportMessage_organizationId_idx" ON "SupportMessage"("organizationId");
+
+DO $$ BEGIN ALTER TABLE "SupportMessage" ADD CONSTRAINT "SupportMessage_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "SupportMessage" ADD CONSTRAINT "SupportMessage_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
 `;

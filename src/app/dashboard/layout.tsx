@@ -31,6 +31,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       name={session.name}
       roleLabel={roleLabel}
       isDemo={org.isDemo}
+      showSupport={isAdmin}
     >
       {children}
     </DashboardShell>

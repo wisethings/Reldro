@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { actionWhere, canSeeReport } from "@/lib/safety/access";
 import { addReportEvent, audit, cleanAttachments, isoOrNull, nextActionNumber, requireViewer } from "@/lib/safety/context";
 import { actionStatusInfo } from "@/lib/safety/pack";
-import { sendEmail, getAppUrl, escapeHtml } from "@/lib/email";
+import { sendEmail, getAppUrl, escapeHtml, emailShell } from "@/lib/email";
 
 export type ActionFormState = { error?: string; success?: string } | undefined;
 
@@ -176,8 +176,11 @@ export async function remindOwner(actionId: string): Promise<{ message: string }
   if (!owner) return { message: "Owner not found." };
   const { sent } = await sendEmail({
     to: owner.user.email,
-    subject: `Reminder: corrective action A-${action.number} is ${action.dueDate && action.dueDate < new Date() ? "overdue" : "due soon"}`,
-    html: `<p>Hi ${escapeHtml(owner.user.name)},</p><p>${escapeHtml(action.title)} is assigned to you${action.dueDate ? ` and due ${action.dueDate.toDateString()}` : ""}. Status: ${escapeHtml(actionStatusInfo(action.status).label)}.</p><p><a href="${getAppUrl()}/dashboard/actions/${action.id}">Open the action</a></p>`,
+    subject: `Corrective action A-${action.number} is ${action.dueDate && action.dueDate < new Date() ? "overdue" : "due soon"}`,
+    html: emailShell({
+      bodyHtml: `<p>Hi ${escapeHtml(owner.user.name.split(" ")[0] ?? "there")},</p><p>The corrective action <strong>${escapeHtml(action.title)}</strong> is assigned to you${action.dueDate ? ` and due ${action.dueDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })}` : ""}. Its status is ${escapeHtml(actionStatusInfo(action.status).label)}.</p>`,
+      button: { label: "Open the corrective action", url: `${getAppUrl()}/dashboard/actions/${action.id}` },
+    }),
   });
   await logOnReport(action.reportId, `Reminder ${sent ? "emailed" : "recorded (email is not set up)"} for A-${action.number}.`, v);
   revalidatePath(`/dashboard/actions/${actionId}`);

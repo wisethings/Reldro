@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createEscalationRule, deleteEscalationRule, requestSetupSupport, saveEmergencyInstructions, saveSite, setSiteActive } from "@/lib/actions/safetySettings";
+import { createEscalationRule, deleteEscalationRule, saveEmergencyInstructions, saveSite, setSiteActive } from "@/lib/actions/safetySettings";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
 import { useAct } from "./useAct";
@@ -44,18 +44,6 @@ export function EscalationRuleForm({ severities, categories, sites, people }: { 
 export function DeleteRuleButton({ ruleId }: { ruleId: string }) {
   const { run, pending } = useAct();
   return <button disabled={pending} onClick={() => confirm("Delete this rule?") && run(() => deleteEscalationRule(ruleId))} className="text-xs text-danger hover:underline">Delete</button>;
-}
-
-export function SetupSupportForm() {
-  const [state, formAction, pending] = useActionState(requestSetupSupport, undefined);
-  return (
-    <form action={formAction} className="space-y-3">
-      <Field label="What would you like help with?"><Textarea name="need" rows={3} placeholder="e.g. Setting up our sites and escalation rules, or reviewing our incident categories" required /></Field>
-      <button disabled={pending} className="rounded-full border border-ink-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-ink-50 disabled:opacity-50">{pending ? "Sending…" : "Request setup help"}</button>
-      {state?.error && <p role="alert" className="text-sm text-danger">{state.error}</p>}
-      {state?.success && <p className="rounded-lg bg-sage px-3 py-2 text-sm text-sage-deep">{state.success}</p>}
-    </form>
-  );
 }
 
 export function SiteEditor({ site, people, trigger, siteExample = "Bayside Tower \u2014 Electrical Package", kinds = [{ key: "JOBSITE", label: "Jobsite" }, { key: "SHOP", label: "Shop or fabrication shop" }, { key: "YARD", label: "Yard or laydown area" }] }: { site?: { id: string; name: string; address: string; kind: string; safetyLeadId: string | null }; people: Opt[]; trigger: string; siteExample?: string; kinds?: KeyOpt[] }) {

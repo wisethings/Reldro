@@ -11,7 +11,9 @@ on:
     # GitHub Actions won't run a schedule more often than every 5 minutes
     # (and can delay it further under load) - the closest we can get to the
     # "every 4 minutes or so" the route's own comment recommends.
-    - cron: "*/5 * * * *"
+    # Working hours only (about 6 am to 11 pm US Eastern, Monday to Saturday). Nights and Sundays cost nothing; the
+    # first visit after a quiet spell pays a few seconds of database wake-up instead.
+    - cron: "*/5 11-23,0-3 * * 1-6"
   workflow_dispatch: {}
 
 jobs:

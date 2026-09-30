@@ -6,6 +6,7 @@ import { FlaskConical } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { MobileTabBar } from "./MobileTabBar";
+import { SupportChat } from "./SupportChat";
 import type { NavAudience } from "./nav";
 
 export function DashboardShell({
@@ -14,6 +15,7 @@ export function DashboardShell({
   name,
   roleLabel,
   isDemo = false,
+  showSupport = false,
   children,
 }: {
   audience: NavAudience;
@@ -21,6 +23,7 @@ export function DashboardShell({
   name: string;
   roleLabel: string;
   isDemo?: boolean;
+  showSupport?: boolean;
   children: React.ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -45,6 +48,7 @@ export function DashboardShell({
         </div>
       </div>
       <MobileTabBar onMenu={() => setMobileOpen(true)} />
+      {showSupport && <SupportChat />}
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 
-const MAX_DIMENSION = 1280;
+const MAX_DIMENSION = 1024;
 
 function compress(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -19,7 +19,7 @@ function compress(file: File): Promise<string> {
         const ctx = canvas.getContext("2d");
         if (!ctx) return reject(new Error("Couldn't process that photo."));
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL("image/jpeg", 0.78));
+        resolve(canvas.toDataURL("image/jpeg", 0.72));
       };
       img.src = reader.result as string;
     };

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, Building2, HardHat, History, Layers, ShieldCheck, Siren, LifeBuoy, PhoneCall } from "lucide-react";
+import { ArrowRight, Building2, HardHat, History, Layers, ShieldCheck, Siren, PhoneCall } from "lucide-react";
 import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/prisma";
 import { categoryLabel, getPack, severityInfo, SEVERITIES } from "@/lib/safety/pack";
@@ -13,7 +13,7 @@ import { AddDepartmentForm } from "@/components/settings/AddDepartmentForm";
 import { CrewRow } from "@/components/settings/CrewRow";
 import { InviteAdminForm } from "@/components/settings/InviteAdminForm";
 import { AdminRow } from "@/components/settings/AdminRow";
-import { DeleteRuleButton, EmergencyInstructionsForm, EscalationRuleForm, SetupSupportForm } from "@/components/safety/SettingsForms";
+import { DeleteRuleButton, EmergencyInstructionsForm, EscalationRuleForm } from "@/components/safety/SettingsForms";
 
 export default async function SettingsPage() {
   const session = await requireRole(["COMPANY_ADMIN"]);
@@ -107,11 +107,6 @@ export default async function SettingsPage() {
           </div>
           <InviteAdminForm />
         </CardBody>
-      </Card>
-
-      <Card>
-        <CardHeader icon={<IconBadge icon={<LifeBuoy size={18} />} tone="olive" />} title="Optional setup and advisor help" subtitle="Get paid help setting up sites, escalation rules, or checklists, or talking through a safety program. Reldro works without it. Scope and price are agreed separately." />
-        <CardBody><SetupSupportForm /></CardBody>
       </Card>
 
       <Card>

@@ -62,7 +62,7 @@ export async function nextActionNumber(organizationId: string) {
 export function cleanAttachments(values: FormDataEntryValue[], max = 3): { name: string; dataUri: string }[] {
   return values
     .map(String)
-    .filter((v) => v.startsWith("data:image/") && v.length < 1_200_000)
+    .filter((v) => /^data:image\/(jpeg|png|webp);base64,/.test(v) && v.length < 800_000)
     .slice(0, max)
     .map((dataUri, i) => ({ name: `Photo ${i + 1}`, dataUri }));
 }

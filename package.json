@@ -11,7 +11,10 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "test": "node --require ./tests/setup.cjs --import tsx --test tests/unit/*.test.ts",
+    "test:e2e": "node --test --test-concurrency=1 tests/e2e/*.test.mjs",
+    "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
     "@netlify/database": "^2.0.1",

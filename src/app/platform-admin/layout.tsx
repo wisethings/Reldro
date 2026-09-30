@@ -7,7 +7,7 @@ import { Logo } from "@/components/ui/Logo";
 const NAV = [
   { href: "/platform-admin", label: "Overview" },
   { href: "/platform-admin/organizations", label: "Organizations" },
-  { href: "/platform-admin/setup-support", label: "Setup support" },
+  { href: "/platform-admin/support", label: "Support inbox" },
   { href: "/platform-admin/product-updates", label: "Product updates" },
 ];
 

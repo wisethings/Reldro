@@ -19,7 +19,7 @@ export default async function PlatformAdminOverview() {
     prisma.site.count({ where: { active: true } }),
     prisma.safetyReport.count({ where: { createdAt: { gte: since } } }),
     prisma.subscription.findMany(),
-    prisma.auditLog.count({ where: { action: "setup_support.requested", createdAt: { gte: since } } }),
+    prisma.supportMessage.count({ where: { fromStaff: false, readAt: null } }),
   ]);
   const mrr = subscriptions.reduce((sum, s) => sum + s.pricePerMonth, 0);
 
@@ -38,10 +38,10 @@ export default async function PlatformAdminOverview() {
       </div>
       {supportOpen > 0 && (
         <Card>
-          <CardHeader icon={<IconBadge icon={<LifeBuoy size={18} />} tone="coral" />} title="Setup support requests" />
+          <CardHeader icon={<IconBadge icon={<LifeBuoy size={18} />} tone="coral" />} title="Support inbox" />
           <CardBody>
-            <p className="text-sm text-ink-700">{supportOpen} request{supportOpen > 1 ? "s" : ""} for optional setup or advisor help in the last 30 days.</p>
-            <Link href="/platform-admin/setup-support" className="mt-2 inline-block text-xs font-medium text-orchid-deep hover:text-oxblood">Review requests →</Link>
+            <p className="text-sm text-ink-700">{supportOpen} unread message{supportOpen > 1 ? "s" : ""} from company admins.</p>
+            <Link href="/platform-admin/support" className="mt-2 inline-block text-xs font-medium text-orchid-deep hover:text-oxblood">Open the inbox →</Link>
           </CardBody>
         </Card>
       )}

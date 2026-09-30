@@ -117,21 +117,6 @@ export async function deleteEscalationRule(ruleId: string) {
   revalidatePath("/dashboard/settings");
 }
 
-/** Optional, paid safety setup or advisor help. A request is recorded for the Reldro team; nothing is bought by asking. */
-export async function requestSetupSupport(_prev: SettingsFormState, formData: FormData): Promise<SettingsFormState> {
-  const v = await requireViewer();
-  if (!v.isAdmin) return { error: "Only company admins can request support." };
-  const need = String(formData.get("need") ?? "").trim();
-  if (!need) return { error: "Describe briefly what you would like help with." };
-  await audit(v, "setup_support.requested", "Organization", v.organizationId, { need: need.slice(0, 1000), by: v.name });
-  const to = process.env.SUPPORT_EMAIL;
-  if (to) {
-    await sendEmail({ to, subject: "Optional setup support requested", html: `<p>${escapeHtml(v.name)} asked for setup support:</p><p>${escapeHtml(need)}</p>` });
-  }
-  revalidatePath("/dashboard/settings");
-  return { success: "Request recorded. Someone from Reldro will follow up about scope and pricing. Asking doesn't commit you to anything." };
-}
-
 /** First-run setup: one site (with the admin as its safety lead), optional starter checklists, then mark onboarding done. */
 export async function completeSafetyOnboarding(_prev: SettingsFormState, formData: FormData): Promise<SettingsFormState> {
   const v = await requireViewer();

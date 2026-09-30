@@ -213,6 +213,7 @@ model Organization {
   workflowTimeSavedLogs        WorkflowTimeSavedLog[]
 
   @@index([industry])
+  supportMessages SupportMessage[]
 }
 
 model Department {
@@ -257,6 +258,7 @@ model User {
   recognitionsGiven Recognition[]
 
   @@index([organizationId])
+  supportMessages SupportMessage[]
 }
 
 model Employee {
@@ -1136,6 +1138,24 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+/// A support conversation between a company admin and the Reldro team. One thread per admin.
+model SupportMessage {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fromStaff      Boolean      @default(false)
+  senderName     String
+  body           String
+  /// When the admin saw a message from staff, and when staff saw a message from the admin.
+  readAt         DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@index([userId, createdAt])
+  @@index([organizationId])
 }
 
 model AuditLog {
