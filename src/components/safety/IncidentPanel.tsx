@@ -80,7 +80,7 @@ export function IncidentPanel(props: {
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="rounded-xl border border-ink-200 p-3 text-sm">
+            <div className="rounded-xl bg-surface-muted p-3 text-sm">
               <p className="flex items-center gap-1.5 text-xs font-medium text-ink-500"><Search size={13} aria-hidden /> Investigation</p>
               {props.investigation ? (
                 props.investigation.accessible ? (
@@ -101,7 +101,7 @@ export function IncidentPanel(props: {
                 <p className="mt-1 text-ink-600">{props.canRun || props.isSafetyTeam ? "Not opened. Open an investigation from the report when it needs a closer review." : "Not opened."}</p>
               )}
             </div>
-            <a href="#actions" className="rounded-xl border border-ink-200 p-3 text-sm hover:bg-ink-50">
+            <a href="#actions" className="rounded-xl bg-surface-muted p-3 text-sm hover:bg-ink-50">
               <p className="flex items-center gap-1.5 text-xs font-medium text-ink-500"><ClipboardList size={13} aria-hidden /> Corrective actions</p>
               <p className="mt-1 text-ink-800">
                 {props.actionCounts.total === 0
@@ -112,7 +112,7 @@ export function IncidentPanel(props: {
           </div>
 
           {props.canRun && !resolved && (
-            <details className="rounded-lg border border-ink-200 p-3">
+            <details className="rounded-lg bg-surface-muted p-3">
               <summary className="cursor-pointer text-sm font-medium text-ink-800">Update the summary, next action, and lead</summary>
               <div className="mt-3">
                 <IncidentDetailsForm

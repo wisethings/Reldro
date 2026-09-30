@@ -37,7 +37,7 @@ export default async function PlatformAdminOverview() {
         <StatTile label="MRR (subscriptions)" value={`$${mrr.toLocaleString()}`} />
       </div>
       {supportOpen > 0 && (
-        <Card>
+        <Card tone="plain">
           <CardHeader icon={<IconBadge icon={<LifeBuoy size={18} />} tone="coral" />} title="Support inbox" />
           <CardBody>
             <p className="text-sm text-ink-700">{supportOpen} unread message{supportOpen > 1 ? "s" : ""} from company admins.</p>

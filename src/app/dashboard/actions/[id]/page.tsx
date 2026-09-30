@@ -27,7 +27,8 @@ export default async function ActionDetailPage({ params }: { params: Promise<{ i
   const backTo = v.isSafetyTeam ? (a.status === "CANCELLED" ? STEPS.slice(0, 3) : STEPS.slice(0, Math.max(0, STEPS.indexOf(a.status)))) : isOwnerViewer && a.status === "IN_PROGRESS" ? ["APPROVED"] : isOwnerViewer && a.status === "COMPLETED" ? ["IN_PROGRESS"] : [];
 
   return (
-    <div className="mx-auto max-w-3xl space-y-5 p-4 sm:p-6">
+    <div className="min-h-full bg-surface-muted">
+    <div className="mx-auto max-w-3xl space-y-5 px-4 py-6 sm:px-8 sm:py-8">
       <div>
         <Link href="/dashboard/actions" className="text-xs font-medium text-ink-500 hover:text-ink-800">← Actions</Link>
         <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -40,13 +41,13 @@ export default async function ActionDetailPage({ params }: { params: Promise<{ i
         {a.report && <p className="mt-1 text-sm text-ink-500">From <Link href={`/dashboard/reports/${a.report.id}`} className="text-orchid-deep hover:text-oxblood">SR-{String(a.report.number).padStart(4, "0")} · {a.report.title}</Link></p>}
       </div>
 
-      <Card>
+      <Card tone="plain">
         <CardBody className="py-4">
           <ActionProgress actionId={a.id} status={a.status} backTo={backTo} />
         </CardBody>
       </Card>
 
-      <Card tone="muted">
+      <Card tone="plain">
         <CardHeader title="Details" />
         <CardBody className="space-y-3">
           {a.description && <p className="whitespace-pre-wrap text-sm text-ink-800">{a.description}</p>}
@@ -67,7 +68,7 @@ export default async function ActionDetailPage({ params }: { params: Promise<{ i
       </Card>
 
       {(a.completionNotes || (Array.isArray(a.evidence) && a.evidence.length > 0)) && (
-        <Card>
+        <Card tone="plain">
           <CardHeader title={["COMPLETED", "VERIFIED"].includes(a.status) ? "Completion evidence" : "Earlier completion notes"} subtitle={a.completedAt ? `Marked done ${fmtDateTime(a.completedAt)}` : "From before it was moved back"} />
           <CardBody className="space-y-3">
             <p className="whitespace-pre-wrap text-sm text-ink-800">{a.completionNotes}</p>
@@ -89,6 +90,7 @@ export default async function ActionDetailPage({ params }: { params: Promise<{ i
           people={people.map((p) => ({ id: p.id, name: p.user.name }))}
         />
       </section>
+    </div>
     </div>
   );
 }

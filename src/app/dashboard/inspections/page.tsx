@@ -31,7 +31,8 @@ export default async function InspectionsPage() {
   ]);
   const sFailed = doneRows.reduce((n, r) => n + (r.results as { result: string }[]).filter((x) => x.result === "FAIL").length, 0);
   return (
-    <div className="mx-auto max-w-5xl space-y-5 p-4 sm:p-6">
+    <div className="min-h-full bg-surface-muted">
+    <div className="mx-auto max-w-5xl space-y-5 px-4 py-6 sm:px-8 sm:py-8">
       <PageHeader title="Inspections" subtitle="Schedule recurring site inspections and job-start checks. Failed items can become corrective actions." />
       <StatStrip items={[
         { label: "Due in the next 7 days", value: sDue },
@@ -40,7 +41,7 @@ export default async function InspectionsPage() {
         { label: "Failed items in the last 30 days", value: sFailed },
       ]} />
 
-      <Card>
+      <Card tone="plain">
         <CardHeader title="Due and upcoming" />
         {upcoming.length === 0 ? (
           <CardBody><p className="text-sm font-medium text-ink-800">No inspections scheduled</p><p className="mt-0.5 text-sm text-ink-500">{canSchedule ? "Schedule an inspection or create a checklist to get started." : "Inspections assigned to you will appear here."}</p></CardBody>
@@ -65,7 +66,7 @@ export default async function InspectionsPage() {
       </Card>
 
       {canSchedule && (
-        <Card>
+        <Card tone="plain">
           <CardHeader title="Schedule an inspection" subtitle="Choose a checklist, site, owner, and due date." />
           <CardBody>
             {templates.length === 0 ? (
@@ -81,7 +82,7 @@ export default async function InspectionsPage() {
       )}
 
       {recent.length > 0 ? (
-        <Card>
+        <Card tone="plain">
           <CardHeader title="Recently completed" />
           <ul className="divide-y divide-ink-200">
             {recent.map((i) => {
@@ -102,11 +103,11 @@ export default async function InspectionsPage() {
       ) : null}
 
       {v.isSafetyTeam && (
-        <Card>
+        <Card tone="plain">
           <CardHeader title="Checklists" subtitle="Checklists used to run inspections." />
           <CardBody className="space-y-4">
             {templates.length > 0 && (
-              <ul className="divide-y divide-ink-200 rounded-lg border border-ink-200">
+              <ul className="divide-y divide-ink-200/60 overflow-hidden rounded-lg bg-surface-muted">
                 {templates.map((t) => (
                   <li key={t.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
                     <span>{t.name} <span className="text-xs text-ink-400">· {(t.items as unknown[]).length} items{t.frequencyDays ? ` · every ${t.frequencyDays} days` : ""}</span></span>
@@ -115,10 +116,11 @@ export default async function InspectionsPage() {
                 ))}
               </ul>
             )}
-            <details className="rounded-lg border border-ink-200 p-3"><summary className="cursor-pointer text-sm font-medium text-ink-800">Create a checklist</summary><div className="mt-3"><TemplateForm /></div></details>
+            <details className="rounded-lg bg-surface-muted p-3"><summary className="cursor-pointer text-sm font-medium text-ink-800">Create a checklist</summary><div className="mt-3"><TemplateForm /></div></details>
           </CardBody>
         </Card>
       )}
+    </div>
     </div>
   );
 }

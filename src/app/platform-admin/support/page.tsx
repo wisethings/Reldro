@@ -27,7 +27,7 @@ export default async function SupportInbox() {
       {latest.length === 0 ? (
         <p className="rounded-xl border border-dashed border-ink-200 bg-white px-6 py-10 text-center text-sm text-ink-500">No messages yet.</p>
       ) : (
-        <Card>
+        <Card tone="plain">
           <ul className="divide-y divide-ink-200">
             {latest.map((l) => {
               const u = userBy.get(l.userId);

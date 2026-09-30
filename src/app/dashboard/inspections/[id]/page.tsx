@@ -23,7 +23,8 @@ export default async function InspectionPage({ params }: { params: Promise<{ id:
   const linkedReports = reportIds.length ? await prisma.safetyReport.findMany({ where: { id: { in: reportIds }, organizationId: v.organizationId }, select: { id: true, number: true } }) : [];
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5 p-4 sm:p-6">
+    <div className="min-h-full bg-surface-muted">
+    <div className="mx-auto max-w-2xl space-y-5 px-4 py-6 sm:px-8 sm:py-8">
       <div>
         <Link href="/dashboard/inspections" className="text-xs font-medium text-ink-500 hover:text-ink-800">← Inspections</Link>
         <h1 className="mt-2 text-xl font-semibold text-ink-900">{i.template.name}</h1>
@@ -32,7 +33,7 @@ export default async function InspectionPage({ params }: { params: Promise<{ id:
       {i.status === "SCHEDULED" ? (
         <InspectionRunner inspectionId={i.id} items={i.template.items as unknown as Item[]} />
       ) : (
-        <Card>
+        <Card tone="plain">
           <CardHeader title="Completed" subtitle={`Submitted ${fmtDate(i.completedAt)}`} />
           <CardBody className="space-y-3">
             <ul className="divide-y divide-ink-200">
@@ -63,6 +64,7 @@ export default async function InspectionPage({ params }: { params: Promise<{ id:
           </CardBody>
         </Card>
       )}
+    </div>
     </div>
   );
 }

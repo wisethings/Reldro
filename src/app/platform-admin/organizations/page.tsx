@@ -27,7 +27,7 @@ export default async function PlatformOrganizationsPage() {
           <CreateOrgToggle />
         </div>
       </div>
-      <Card>
+      <Card tone="plain">
         <CardBody className="divide-y divide-ink-200 p-0">
           {organizations.map((org) => (
             <div key={org.id} className="flex flex-col gap-2 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">

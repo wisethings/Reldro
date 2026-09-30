@@ -71,7 +71,8 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
   const isReporterOnly = isOwnReport && !manage && !v.isSupervisor && !isResponder(v, report);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-5 p-4 sm:p-6">
+    <div className="min-h-full bg-surface-muted">
+    <div className="mx-auto max-w-4xl space-y-5 px-4 py-6 sm:px-8 sm:py-8">
       <div>
         <Link href="/dashboard/reports" className="text-xs font-medium text-ink-500 hover:text-ink-800">← Reports</Link>
         <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -115,7 +116,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
         />
       )}
 
-      <Card>
+      <Card tone="plain">
         <CardHeader title="What was reported" />
         <CardBody className="space-y-4">
           <p className="whitespace-pre-wrap text-sm text-ink-800">{report.description}</p>
@@ -150,7 +151,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
       </Card>
 
       {manage && (
-        <Card>
+        <Card tone="plain">
           <CardHeader title="Response" subtitle="Acknowledge, assign, and track this report." />
           <CardBody>
             <ReportControls
@@ -178,7 +179,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
       )}
 
       {inv && (
-        <Card>
+        <Card tone="plain">
           <CardHeader title="Investigation" action={<InvestigationStatusBadge status={inv.status} />} />
           <CardBody>
             {invAccess ? (
@@ -196,7 +197,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
           {shownActions.length === 0 ? (
             <p className="text-sm text-ink-500">No corrective actions yet.</p>
           ) : (
-            <ul className="divide-y divide-ink-200 rounded-lg border border-ink-200">
+            <ul className="divide-y divide-ink-200/60 overflow-hidden rounded-lg bg-surface-muted">
               {shownActions.map((a) => {
                 const due = dueLabel(a.dueDate, OPEN_ACTION_STATUSES.includes(a.status));
                 return (
@@ -214,7 +215,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
             </ul>
           )}
           {canPropose && report.status !== "CLOSED" && (
-            <details className="rounded-lg border border-ink-200 p-3">
+            <details className="rounded-lg bg-surface-muted p-3">
               <summary className="cursor-pointer text-sm font-medium text-ink-800">{v.isSafetyTeam ? "Add a corrective action" : "Propose a corrective action"}</summary>
               <div className="mt-3">
                 <ActionForm reportId={report.id} people={people.map((p) => ({ id: p.id, name: p.user.name }))} severities={SEVERITIES.map((s) => ({ key: s.key, label: s.label }))} isSafetyTeam={v.isSafetyTeam} />
@@ -224,7 +225,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
         </CardBody>
       </Card>
 
-      <Card>
+      <Card tone="plain">
         <CardHeader title="Timeline" subtitle="Events in time order." />
         <CardBody className="space-y-4">
           {manage && (
@@ -268,7 +269,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
       </Card>
 
       {inc && onTeam && runIncident && (
-        <Card>
+        <Card tone="plain">
           <CardHeader title="Closeout" subtitle={inc.status === "RESOLVED" ? "How this response ended." : "Close out the response when the immediate situation is under control."} />
           <CardBody>
             <CloseoutForm reportId={report.id} resolved={inc.status === "RESOLVED"} closeoutSummary={inc.closeoutSummary} standDownReason={inc.standDownReason} openActions={actionCounts.open} />
@@ -282,11 +283,12 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
         </Card>
       )}
       {inc && onTeam && !runIncident && inc.status === "RESOLVED" && inc.closeoutSummary && (
-        <Card>
+        <Card tone="plain">
           <CardHeader title="Closeout" />
           <CardBody><p className="whitespace-pre-wrap text-sm text-ink-800">{inc.closeoutSummary}</p></CardBody>
         </Card>
       )}
+    </div>
     </div>
   );
 }

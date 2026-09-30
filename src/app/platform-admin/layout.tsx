@@ -16,7 +16,7 @@ export default async function PlatformAdminLayout({ children }: { children: Reac
   if (!session) redirect("/login");
 
   return (
-    <div className="min-h-screen bg-ink-50">
+    <div className="min-h-screen bg-surface-muted">
       <header className="border-b border-ink-200 bg-ink-950 text-white">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3 sm:px-6 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-6">

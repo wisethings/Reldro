@@ -121,7 +121,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
         </div>
 
         {canManage && (
-          <details className="group rounded-xl bg-surface-muted" open={createOpen}>
+          <details className="group rounded-xl bg-white" open={createOpen}>
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
               <span>
                 <span className="block text-sm font-semibold text-ink-900">Create toolbox talk</span>
@@ -129,7 +129,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
               </span>
               <span className="shrink-0 rounded-full bg-brand-700 px-4 py-1.5 text-xs font-medium text-white group-open:hidden">New talk</span>
             </summary>
-            <div className="border-t border-ink-200/50 px-4 py-4"><TalkForm sites={sites.map((s) => ({ id: s.id, name: s.name }))} lockSiteId={v.isSafetyTeam ? null : v.siteId} /></div>
+            <div className="border-t border-ink-100 px-4 py-4"><TalkForm sites={sites.map((s) => ({ id: s.id, name: s.name }))} lockSiteId={v.isSafetyTeam ? null : v.siteId} /></div>
           </details>
         )}
 
@@ -140,15 +140,15 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
             {featured.length > 0 && (
               <section aria-labelledby="needs-attention">
                 <h2 id="needs-attention" className="mb-2 text-[13px] font-semibold text-ink-900">Needs attention</h2>
-                <ul className="divide-y divide-ink-100 overflow-hidden rounded-xl border border-ink-200/80 bg-white">{featured.map((r) => <TalkRow key={r.t.id} r={r} />)}</ul>
+                <ul className="divide-y divide-ink-100 overflow-hidden rounded-xl bg-white">{featured.map((r) => <TalkRow key={r.t.id} r={r} />)}</ul>
               </section>
             )}
             <section aria-labelledby="all-talks">
               <h2 id="all-talks" className="mb-2 text-[13px] font-semibold text-ink-900">{filter === "all" ? "All toolbox talks" : STATUS[filter].label}</h2>
               {pageRows.length === 0 ? (
-                <p className="rounded-xl bg-surface-muted px-4 py-8 text-center text-sm text-ink-600">{featured.length > 0 ? "No other talks." : "No talks match."} {(filter !== "all" || term) && <Link href="?tab=talks" className="font-medium text-orchid-deep hover:text-oxblood">Show all talks</Link>}</p>
+                <p className="rounded-xl bg-white px-4 py-8 text-center text-sm text-ink-600">{featured.length > 0 ? "No other talks." : "No talks match."} {(filter !== "all" || term) && <Link href="?tab=talks" className="font-medium text-orchid-deep hover:text-oxblood">Show all talks</Link>}</p>
               ) : (
-                <ul className="divide-y divide-ink-100 overflow-hidden rounded-xl border border-ink-200/80 bg-white">{pageRows.map((r) => <TalkRow key={r.t.id} r={r} />)}</ul>
+                <ul className="divide-y divide-ink-100 overflow-hidden rounded-xl bg-white">{pageRows.map((r) => <TalkRow key={r.t.id} r={r} />)}</ul>
               )}
               <div className="mt-3"><Pagination page={page} total={rest.length} pageSize={perPage} noun="talks" hrefFor={(n) => href({ page: n > 1 ? String(n) : undefined })} /></div>
             </section>
@@ -156,15 +156,15 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
         )}
 
         {lessons.length > 0 && (
-          <details className="group rounded-xl bg-surface-muted">
+          <details className="group rounded-xl bg-white">
             <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold text-ink-900 [&::-webkit-details-marker]:hidden">
               <span>Lessons from recent incidents <span className="font-normal text-ink-500">· {lessons.length}</span></span>
               <span aria-hidden className="text-ink-400 transition-transform group-open:rotate-180">⌄</span>
             </summary>
-            <ul className="divide-y divide-ink-200/50 border-t border-ink-200/50">
-              {lessons.map((l) => <li key={l.id} className="px-4 py-3 text-sm text-ink-800"><span className="mr-2 rounded bg-white px-1.5 py-0.5 text-[11px] text-ink-600">{pack.categories.find((c) => c.key === l.report.category)?.label ?? "Other"}</span>{l.lessonText}</li>)}
+            <ul className="divide-y divide-ink-100 border-t border-ink-100">
+              {lessons.map((l) => <li key={l.id} className="px-4 py-3 text-sm text-ink-800"><span className="mr-2 rounded bg-surface-muted px-1.5 py-0.5 text-[11px] text-ink-600">{pack.categories.find((c) => c.key === l.report.category)?.label ?? "Other"}</span>{l.lessonText}</li>)}
             </ul>
-            <p className="border-t border-ink-200/50 px-4 py-2 text-xs text-ink-500">Approved for sharing with your team. The safety team removes personal details before publishing.</p>
+            <p className="border-t border-ink-100 px-4 py-2 text-xs text-ink-500">Approved for sharing with your team. The safety team removes personal details before publishing.</p>
           </details>
         )}
       </div>
@@ -181,7 +181,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
     body = (
       <div className="space-y-5">
         {canManage && (
-          <Card>
+          <Card tone="plain">
             <CardHeader title="Record a qualification" subtitle="Record certifications and authorizations with an expiry date. Reldro flags them 30 days before they expire." />
             <CardBody><QualificationForm people={people.map((p) => ({ id: p.id, name: p.user.name }))} suggestions={pack.qualificationSuggestions} /></CardBody>
           </Card>
@@ -189,7 +189,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
         {quals.length === 0 ? (
           <EmptyState title="No qualifications recorded" body={canManage ? "Add the certifications your crews need, such as aerial lift, first aid, or OSHA 30, so expiry dates are not missed." : "Your supervisor records your certifications."} />
         ) : (
-          <Card>
+          <Card tone="plain">
             <ul className="divide-y divide-ink-200">
               {quals.map((q) => {
                 const expired = q.expiresOn && q.expiresOn < now;
@@ -215,11 +215,11 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
     void users;
     body = (
       <div className="space-y-5">
-        <Card>
+        <Card tone="plain">
           <CardHeader title="Add a person" subtitle="They receive a temporary password by email. If email is not set up, you can share it with them directly." />
           <CardBody><InviteEmployeeForm crews={crews.map((c) => ({ id: c.id, name: c.name }))} sites={sites.map((s) => ({ id: s.id, name: s.name }))} /></CardBody>
         </Card>
-        <Card>
+        <Card tone="plain">
           <CardHeader title={`People (${people.length})`} subtitle="Supervisors see their own site. Safety leads see every report and investigation. Only company admins change these roles." />
           <ul className="divide-y divide-ink-200">
             {people.map((p) => (
@@ -251,7 +251,8 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
   const ackRate = nTalks > 0 && nPeople > 0 ? Math.min(100, Math.round((nAcks / (nTalks * nPeople)) * 100)) : null;
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-5 px-4 py-4 sm:px-6 sm:py-6">
+    <div className="min-h-full bg-surface-muted">
+    <div className="mx-auto w-full max-w-5xl space-y-5 px-4 py-6 sm:px-8 sm:py-8">
       <PageHeader title={v.isAdmin || v.isSafetyTeam ? "People & Training" : v.isSupervisor ? "Training" : "Toolbox talks"} subtitle={canManage ? "Manage worker qualifications, toolbox talks, and training acknowledgements." : "Toolbox talks shared with your team, and your acknowledgements."} />
       {canManage && (
         <StatStrip items={[
@@ -267,6 +268,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
         </div>
       )}
       {body}
+    </div>
     </div>
   );
 }
