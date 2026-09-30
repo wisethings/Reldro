@@ -177,7 +177,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
             <ul className="divide-y divide-ink-100 border-t border-ink-100">
               {lessons.map((l) => <li key={l.id} className="px-4 py-3 text-sm text-ink-800"><span className="mr-2 rounded bg-surface-muted px-1.5 py-0.5 text-xs text-ink-600">{pack.categories.find((c) => c.key === l.report.category)?.label ?? "Other"}</span>{l.lessonText}</li>)}
             </ul>
-            <p className="border-t border-ink-100 px-4 py-2 text-xs text-ink-500">Approved for sharing with your team. The safety team removes personal details before publishing.</p>
+            <p className="card-footer px-4 py-2 text-xs text-ink-500">Approved for sharing with your team. The safety team removes personal details before publishing.</p>
           </details>
         )}
       </div>

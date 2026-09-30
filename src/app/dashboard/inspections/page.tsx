@@ -168,7 +168,7 @@ export default async function InspectionsPage({ searchParams }: { searchParams: 
                   );
                 })}
               </ul>
-              {nDone > recent.length && <div className="border-t border-ink-100 px-4 py-2"><QueryLink href="?view=done" className="text-xs font-medium text-orchid-deep hover:text-oxblood">View all completed →</QueryLink></div>}
+              {nDone > recent.length && <div className="card-footer px-4 py-2"><QueryLink href="?view=done" className="text-xs font-medium text-orchid-deep hover:text-oxblood">View all completed →</QueryLink></div>}
             </details>
           )}
         </>
@@ -202,7 +202,7 @@ function ChecklistSection({ templates, full, pageParam }: { templates: Awaited<R
           })}
         </ul>
       )}
-      {!full && templates.length > preview && <div className="border-t border-ink-100 px-4 py-2"><QueryLink href="?view=checklists" className="text-xs font-medium text-orchid-deep hover:text-oxblood">View all {templates.length} checklists →</QueryLink></div>}
+      {!full && templates.length > preview && <div className="card-footer px-4 py-2"><QueryLink href="?view=checklists" className="text-xs font-medium text-orchid-deep hover:text-oxblood">View all {templates.length} checklists →</QueryLink></div>}
     </>
   );
   if (full) {

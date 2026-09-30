@@ -136,7 +136,7 @@ export default async function SitesPage({ searchParams }: { searchParams: Promis
                     <span aria-hidden className="text-xs font-medium text-orchid-deep group-hover:text-oxblood">View site →</span>
                   </div>
                 </div>
-                <div className="relative z-10 flex items-center gap-1 border-t border-ink-200 bg-surface-muted px-3 py-2.5 text-xs sm:px-4">
+                <div className="card-footer relative z-10 flex items-center gap-1 px-3 py-2.5 text-xs sm:px-4">
                   <SiteEditor site={{ id: s.id, name: s.name, address: s.address, kind: s.kind, safetyLeadId: s.safetyLeadId }} people={peopleOpts} trigger="Edit" siteExample={getPack().siteExample} kinds={kinds} />
                   <SiteActiveToggle siteId={s.id} active={s.active} />
                 </div>

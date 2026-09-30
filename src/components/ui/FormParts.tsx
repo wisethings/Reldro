@@ -21,7 +21,7 @@ export function FormPanel({ title, description, onClose, children, actions, clas
         {onClose && <button type="button" onClick={onClose} className="shrink-0 rounded-md px-2 py-1 text-xs font-medium text-ink-600 hover:bg-surface-hover hover:text-ink-900">Close</button>}
       </div>
       <div className="divide-y divide-ink-100">{children}</div>
-      {actions && <div className="flex flex-wrap items-center gap-2 border-t border-ink-200 bg-surface-muted px-4 py-3 sm:px-5">{actions}</div>}
+      {actions && <div className="card-footer flex flex-wrap items-center gap-2 px-4 py-3 sm:px-5">{actions}</div>}
     </div>
   );
 }

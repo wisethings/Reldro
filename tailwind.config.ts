@@ -62,7 +62,7 @@ const config: Config = {
         pine: "#1F3A2E",
         stone: "#BFB5A3",
         danger: "#A33828",
-        surface: { DEFAULT: "#F7F4EC", raised: "#FFFFFF", sunken: "#E6E1D3", inverse: "#2A0A0C", muted: "#F7F6F3", hover: "#E8E8E4" },
+        surface: { DEFAULT: "#F7F4EC", raised: "#FFFFFF", sunken: "#E6E1D3", inverse: "#2A0A0C", muted: "#F7F6F3", hover: "#E8E8E4", footer: "#F3F1EC" },
       },
       // One typeface for the whole product. Inter first, with the standard system fallbacks after it.
       fontFamily: {
