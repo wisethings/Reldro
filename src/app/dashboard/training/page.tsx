@@ -8,7 +8,8 @@ import { Avatar } from "@/components/ui/Avatar";
 import { EmptyState, fmtDate, PageHeader } from "@/components/safety/ui";
 import { StatStrip } from "@/components/safety/Dashboard";
 import { Pagination, readPage } from "@/components/safety/Pagination";
-import { AcknowledgeButton, DeleteQualificationButton, DeleteTalkButton, PersonRoleControls, QualificationForm, TalkForm } from "@/components/safety/TrainingForms";
+import { TalkContent } from "@/components/safety/TalkContent";
+import { AcknowledgeButton, DeleteQualificationButton, PersonRoleControls, QualificationForm, TalkForm, TalkMenu } from "@/components/safety/TrainingForms";
 import { InviteEmployeeForm } from "@/components/team/InviteEmployeeForm";
 import { ResendInviteButton } from "@/components/team/ResendInviteButton";
 
@@ -73,7 +74,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
       const pct = r.audience ? Math.round((r.acked / r.audience) * 100) : 0;
       return (
         <li>
-          <details className="group">
+          <details className="group open:bg-surface-muted">
             <summary className="grid cursor-pointer list-none grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1.5 px-4 py-3 outline-none hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500 md:grid-cols-[minmax(0,1fr)_9.5rem_10.5rem_8rem] [&::-webkit-details-marker]:hidden">
               <div className="min-w-0">
                 <p title={r.t.title} className="truncate text-sm font-semibold text-ink-900">{r.t.title}</p>
@@ -90,13 +91,33 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
                 {!canManage && r.status === "needs" && v.employeeId ? <AcknowledgeButton talkId={r.t.id} /> : <span className="text-xs font-medium text-orchid-deep group-hover:text-oxblood group-open:hidden">View talk →</span>}
               </div>
             </summary>
-            <div className="space-y-3 border-t border-ink-100 bg-surface-muted px-4 py-4">
-              <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink-800">{r.t.content}</p>
-              <div className="flex flex-wrap items-center gap-3">
-                {v.employeeId && (r.mineDone ? <Badge tone="green">You acknowledged this</Badge> : canManage && <AcknowledgeButton talkId={r.t.id} />)}
-                {canManage && <DeleteTalkButton talkId={r.t.id} />}
+            <div className="px-4 pb-6 pt-2">
+              <div className="flex items-start justify-between gap-4">
+                <TalkContent content={r.t.content} />
+                {canManage && <TalkMenu talkId={r.t.id} />}
               </div>
-              {canManage && (r.missing.length > 0 ? <p className="text-xs text-ink-600">Not yet acknowledged: {r.missing.join(", ")}</p> : <p className="text-xs text-sage-deep">Everyone in scope has acknowledged this talk.</p>)}
+              <div className="mt-6 max-w-[46rem] border-t border-ink-200/60 pt-4">
+                {canManage ? (
+                  <>
+                    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                      <p className="text-sm font-semibold text-ink-900">{r.acked} of {r.audience} acknowledged</p>
+                      {v.employeeId && (r.mineDone ? <Badge tone="green">You acknowledged this</Badge> : <AcknowledgeButton talkId={r.t.id} />)}
+                    </div>
+                    <div aria-hidden className="mt-2 h-1.5 overflow-hidden rounded-full bg-ink-200/70"><div className={`h-full rounded-full ${r.acked === r.audience ? "bg-sage-deep" : "bg-orchid-deep"}`} style={{ width: `${r.audience ? Math.round((r.acked / r.audience) * 100) : 0}%` }} /></div>
+                    {r.missing.length > 0 ? (
+                      <div className="mt-3">
+                        <p className="text-xs text-ink-600">Still to acknowledge</p>
+                        <ul className="mt-1.5 flex flex-wrap gap-1.5">
+                          {r.missing.slice(0, 12).map((n) => <li key={n} className="rounded-full bg-white px-2.5 py-1 text-xs text-ink-800 ring-1 ring-ink-200">{n}</li>)}
+                          {r.missing.length > 12 && <li className="px-1 py-1 text-xs text-ink-500">and {r.missing.length - 12} more</li>}
+                        </ul>
+                      </div>
+                    ) : <p className="mt-3 text-xs text-sage-deep">Everyone in scope has acknowledged this talk.</p>}
+                  </>
+                ) : (
+                  v.employeeId && (r.mineDone ? <Badge tone="green">You acknowledged this</Badge> : <AcknowledgeButton talkId={r.t.id} />)
+                )}
+              </div>
             </div>
           </details>
         </li>

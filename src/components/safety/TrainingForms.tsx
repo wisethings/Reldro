@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { MoreHorizontal } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { acknowledgeTalk, addQualification, createToolboxTalk, deleteQualification, deleteToolboxTalk } from "@/lib/actions/safetyTraining";
 import { aiDraftToolboxTalk } from "@/lib/actions/safetyAi";
@@ -63,6 +64,33 @@ export function AcknowledgeButton({ talkId }: { talkId: string }) {
 export function DeleteTalkButton({ talkId }: { talkId: string }) {
   const { run, pending } = useAct();
   return <button disabled={pending} onClick={() => confirm("Delete this toolbox talk and its acknowledgements?") && run(() => deleteToolboxTalk(talkId))} className="text-xs text-danger hover:underline">Delete</button>;
+}
+
+/** Secondary actions for a talk, kept out of the way of the main workflow. */
+export function TalkMenu({ talkId }: { talkId: string }) {
+  const [open, setOpen] = useState(false);
+  const { run, pending } = useAct();
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false); };
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", away);
+    document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", away); document.removeEventListener("keydown", esc); };
+  }, [open]);
+  return (
+    <div ref={box} className="relative">
+      <button type="button" aria-label="More actions for this talk" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-500 hover:bg-surface-hover hover:text-ink-900">
+        <MoreHorizontal size={16} aria-hidden />
+      </button>
+      {open && (
+        <div role="menu" className="absolute right-0 z-20 mt-1 w-44 rounded-lg bg-white py-1 text-sm shadow-lg ring-1 ring-ink-200">
+          <button role="menuitem" disabled={pending} onClick={() => confirm("Delete this toolbox talk and its acknowledgements?") && run(() => deleteToolboxTalk(talkId))} className="block w-full px-3 py-2 text-left text-danger hover:bg-coral-soft/50 disabled:opacity-50">Delete talk</button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function QualificationForm({ people, suggestions }: { people: { id: string; name: string }[]; suggestions: string[] }) {
