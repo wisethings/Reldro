@@ -375,6 +375,182 @@ export async function seedDatabase() {
   ];
   for (const q of quals) await prisma.qualification.create({ data: { organizationId: org.id, employeeId: emp[q.who], name: q.name, issuedOn: daysFromNow(q.issued), expiresOn: q.expires === null ? null : daysFromNow(q.expires) } });
 
+
+  // ---- Ninety days of history so every screen has something real to show ------------------------
+  const nameOf = (k: string) => PEOPLE.find((x) => x.key === k)?.name ?? "";
+  const hoursAgo = (h: number) => new Date(Date.now() - h * 3600_000);
+  const siteOwnerKey: Record<string, string | null> = { riverside: "maria", lakeshore: "kevin", shop: "maria", northgate: null };
+  const crewAt: Record<string, string[]> = {
+    riverside: ["priya", "marcus", "sofia", "james"],
+    lakeshore: ["wei", "isabella", "noah", "fatima"],
+    shop: ["liam", "aiko", "daniel"],
+    northgate: ["grace", "mateo"],
+  };
+  // [type, category, severity, title, description, site, hours ago, injury?]
+  type H = [string, string, string, string, string, string, number, boolean?];
+  const history: H[] = [
+    ["HAZARD", "HOUSEKEEPING", "MEDIUM", "Scrap conduit piled at the base of the north stair", "Cut conduit and wire spools are stacked on the bottom three steps of the north stair. People are stepping around them carrying material.", "riverside", 2200],
+    ["NEAR_MISS", "STRUCK_BY", "MEDIUM", "Unsecured conduit bundle slid off a cart", "A bundle of 3/4 inch EMT slid off the material cart while it was pushed over the threshold. It landed next to my foot.", "lakeshore", 2050],
+    ["EQUIPMENT", "TOOLS", "MEDIUM", "Damaged cord on the hammer drill", "The cord jacket is cracked near the strain relief and copper is showing. I tagged it out and returned it to the crib.", "shop", 1900],
+    ["HAZARD", "PPE", "LOW", "Hearing protection dispenser empty", "The earplug dispenser by the fab shop door has been empty since Monday.", "shop", 1750],
+    ["INJURY", "MANUAL_HANDLING", "MEDIUM", "Strained back lifting a wire reel", "Lifted a full 500 ft reel from the floor to the cart without help and felt a pull in my lower back. Took ibuprofen and finished the shift.", "riverside", 1600, true],
+    ["HAZARD", "FALLS", "HIGH", "Guardrail removed at level 4 slab edge", "A section of temporary guardrail on the east slab edge was taken down for a concrete pour and not put back.", "lakeshore", 1500],
+    ["NEAR_MISS", "VEHICLES", "MEDIUM", "Forklift and pedestrian crossed paths at the dock door", "A forklift came through the dock door as two of us were walking out. No horn and no spotter.", "shop", 1420],
+    ["CONCERN", "ENVIRONMENT", "LOW", "Rooftop crew had no shade during heat advisory", "It was over 90 degrees. We had water but no shade and no scheduled breaks on the roof.", "lakeshore", 1330],
+    ["HAZARD", "ELECTRICAL", "HIGH", "Exposed energized terminals in temporary panel", "The cover on the temporary distribution panel is missing and the lugs are exposed at knee height.", "riverside", 1240],
+    ["EQUIPMENT", "LADDERS_LIFTS", "MEDIUM", "Scissor lift alarm not sounding", "The descent alarm on the 19 ft scissor lift did not sound when lowering. Lift tagged out.", "northgate", 1150],
+    ["NEAR_MISS", "FALLS", "HIGH", "Stepped through an uncovered floor sleeve", "Carrying pipe, my foot went into an uncovered core-drilled sleeve up to the knee. I caught myself on the wall.", "riverside", 1060],
+    ["HAZARD", "CHEMICALS_DUST", "MEDIUM", "Dust from cutting block with no water or vacuum", "Masons are cutting block dry in the corridor we use for pulling wire. The air is thick with dust.", "northgate", 980],
+    ["CONCERN", "MANUAL_HANDLING", "LOW", "Heavy transformer moved by hand", "A crew is walking a dry-type transformer across the floor with a pry bar because the dolly is missing.", "shop", 900],
+    ["INJURY", "TOOLS", "MEDIUM", "Metal shaving in eye while grinding", "Got a shaving in my left eye while grinding a support bracket. Flushed it at the eyewash and it was fine after.", "shop", 820, true],
+    ["HAZARD", "HOUSEKEEPING", "MEDIUM", "Cords across the main corridor again", "Temporary power cords cross the corridor at knee height with no covers or tape.", "lakeshore", 740],
+    ["NEAR_MISS", "LADDERS_LIFTS", "MEDIUM", "Ladder shifted while pulling cable overhead", "The feet slid a few inches on the sealed concrete. I had a second person footing it, so nothing happened.", "riverside", 660],
+    ["EQUIPMENT", "FIRE", "LOW", "Fire extinguisher tag out of date", "The extinguisher at the north trailer shows its last inspection as two years ago.", "northgate", 590],
+    ["HAZARD", "VEHICLES", "MEDIUM", "No traffic control at the laydown entrance", "Delivery trucks are backing into the laydown area while crews are unloading. There is no flagger.", "northgate", 520],
+    ["NEAR_MISS", "ELECTRICAL", "HIGH", "Nearly cut a live cable while chasing a wall", "A cable we did not know was in the wall was exposed by the saw. It was later found to be energized.", "lakeshore", 450],
+    ["CONCERN", "PPE", "LOW", "New hires asking about glove sizes", "Two apprentices said the gloves in the crib are all large and they are slipping off.", "riverside", 380],
+    ["HAZARD", "FALLS", "MEDIUM", "Missing toe board on level 3 scaffold", "The scaffold outside the east window has no toe board on the top platform. Tools could fall.", "lakeshore", 300],
+    ["EQUIPMENT", "TOOLS", "MEDIUM", "Chop saw guard sticking", "The blade guard on the chop saw in the shop does not return fully. Tagged out.", "shop", 240],
+    ["HAZARD", "HOUSEKEEPING", "LOW", "Water pooling near the temporary panel", "A slow leak from the level above is pooling on the floor under the temporary panel.", "riverside", 170],
+    ["NEAR_MISS", "STRUCK_BY", "MEDIUM", "Dropped bolt from overhead work", "A hanger bolt fell about ten feet from a lift and hit the floor beside a coworker.", "northgate", 118],
+    ["CONCERN", "ENVIRONMENT", "LOW", "Cold morning start, icy walkway to the trailer", "The path from the parking area to the trailer was icy. Nobody fell, but it was close.", "riverside", 76],
+    ["HAZARD", "ELECTRICAL", "MEDIUM", "GFCI tripping and being bypassed", "Someone is plugging a saw into a different circuit because this GFCI keeps tripping.", "lakeshore", 53],
+    ["EQUIPMENT", "LADDERS_LIFTS", "MEDIUM", "Stepladder rung cracked", "A rung on the 8 ft fiberglass stepladder is cracked. It is still in circulation.", "shop", 30],
+    ["HAZARD", "CHEMICALS_DUST", "MEDIUM", "Solvent cans left open in the fab area", "Two cans of cleaning solvent were left open beside the bender and the smell is strong.", "shop", 21],
+    ["NEAR_MISS", "VEHICLES", "MEDIUM", "Pickup nearly hit a worker at the gate", "A pickup pulled through the gate as a worker was carrying conduit across. Driver had not seen him.", "northgate", 9],
+    ["CONCERN", "HOUSEKEEPING", "LOW", "Break area has no place to wash hands", "There is no hand wash station at the north break area, just a water cooler.", "riverside", 4],
+    ["HAZARD", "FALLS", "HIGH", "Open floor hole covered with loose plywood", "The cover over the new floor penetration is unfastened plywood that shifts when stepped on.", "lakeshore", 2.5],
+  ];
+  let nextRep = 19;
+  let nextAct = 13;
+  const generated: { id: string; n: number; site: string; h: H; status: string; ownerKey: string | null }[] = [];
+  for (const h of history) {
+    const [type, category, severity, title, description, site, ago, injury] = h;
+    const createdAt = hoursAgo(ago);
+    const ownerKey = siteOwnerKey[site];
+    const reporterKey = crewAt[site][nextRep % crewAt[site].length];
+    const old = ago > 24 * 21;
+    const recent = ago <= 96;
+    const status = old ? "CLOSED" : recent ? (ownerKey ? (nextRep % 3 === 0 ? "NEW" : "ASSIGNED") : "NEW") : ownerKey ? (nextRep % 2 ? "ACTIONS_OPEN" : "INVESTIGATING") : "NEW";
+    const acked = ownerKey && status !== "NEW" ? new Date(createdAt.getTime() + (60 + (nextRep % 4) * 45) * 60_000) : null;
+    const respondBy = new Date(createdAt.getTime() + (severity === "HIGH" ? 4 : 48) * 3600_000);
+    const rep = await prisma.safetyReport.create({
+      data: {
+        organizationId: org.id, number: nextRep, type, category, severity, title, description, siteId: sites[site], occurredAt: new Date(createdAt.getTime() - 3600_000),
+        status, privacy: nextRep % 7 === 0 ? "CONFIDENTIAL" : "NAMED", injuryInvolved: Boolean(injury), reporterId: emp[reporterKey], ownerId: ownerKey ? emp[ownerKey] : null, respondBy, acknowledgedAt: acked,
+        severityConfirmedAt: recent ? null : new Date(createdAt.getTime() + 2 * 3600_000), severityConfirmedById: recent ? null : emp.maria, aiAssisted: nextRep % 5 === 0,
+        closedAt: status === "CLOSED" ? new Date(createdAt.getTime() + 9 * day) : null, createdAt,
+      },
+    });
+    const conf = nextRep % 7 === 0;
+    const evs: { type: string; message: string; actorName?: string; actorId?: string | null; at: Date }[] = [
+      { type: "CREATED", message: conf ? "Report submitted. The reporter's name is shared with the safety team only." : "Report submitted.", actorName: conf ? "" : nameOf(reporterKey), actorId: conf ? null : emp[reporterKey], at: createdAt },
+      { type: "ASSIGNED", message: ownerKey ? `Assigned to ${nameOf(ownerKey)} as the site's safety lead.` : "No owner matched. Waiting for the safety team to assign an owner.", at: new Date(createdAt.getTime() + 1000) },
+    ];
+    if (acked && ownerKey) evs.push({ type: "ACKNOWLEDGED", message: "Report acknowledged.", actorName: nameOf(ownerKey), actorId: emp[ownerKey], at: acked });
+    if (status === "CLOSED" && ownerKey) evs.push({ type: "STATUS", message: "Status set to Closed.", actorName: nameOf(ownerKey), actorId: emp[ownerKey], at: new Date(createdAt.getTime() + 9 * day) });
+    await prisma.reportEvent.createMany({ data: evs.map((e) => ({ reportId: rep.id, type: e.type, message: e.message, actorName: e.actorName ?? "", actorId: e.actorId ?? null, createdAt: e.at })) });
+    generated.push({ id: rep.id, n: nextRep, site, h, status, ownerKey });
+    nextRep++;
+  }
+
+  // Corrective actions, investigations and follow-up on the generated reports.
+  const fix: Record<string, string> = {
+    HOUSEKEEPING: "Assign a daily housekeeping walk and clear the area", STRUCK_BY: "Require tool lanyards and barricade below overhead work", TOOLS: "Inspect and replace damaged tools; add a monthly tool check",
+    PPE: "Restock PPE and add the item to the weekly crib check", MANUAL_HANDLING: "Provide a cart or lifting aid and review team lifts at the huddle", FALLS: "Replace missing guardrail or cover with a secured, marked one",
+    VEHICLES: "Add a flagger and a marked walking route at the entrance", ELECTRICAL: "Restore covers, verify GFCI protection, and lock out until inspected", LADDERS_LIFTS: "Tag out and replace the equipment; inspect the rest of the fleet",
+    ENVIRONMENT: "Add shade, water and scheduled breaks to the daily plan", CHEMICALS_DUST: "Provide wet cutting or vacuum and review the exposure plan with the crew", FIRE: "Inspect all extinguishers and update the tags",
+  };
+  const ownerPool = ["tom", "danielle", "luis", "kevin", "maria"];
+  for (const g of generated) {
+    const [, category, severity, title, , site, ago] = g.h;
+    if (g.n % 5 === 4) continue; // some reports need no corrective action
+    const closed = g.status === "CLOSED";
+    const owner = site === "shop" ? "luis" : site === "lakeshore" ? "danielle" : site === "riverside" ? "tom" : ownerPool[g.n % ownerPool.length];
+    const status = closed ? "VERIFIED" : g.status === "NEW" ? "PROPOSED" : g.n % 3 === 0 ? "COMPLETED" : g.n % 3 === 1 ? "IN_PROGRESS" : "APPROVED";
+    const createdAt = hoursAgo(Math.max(1, ago - 6));
+    const due = closed ? new Date(createdAt.getTime() + 7 * day) : new Date(Date.now() + (g.n % 4 === 0 ? -3 : (g.n % 5) + 1) * day);
+    const verifiedAt = status === "VERIFIED" ? new Date(createdAt.getTime() + 8 * day) : null;
+    await prisma.correctiveAction.create({
+      data: {
+        organizationId: org.id, number: nextAct++, reportId: g.id, title: `${fix[category] ?? "Fix the condition reported"}`.slice(0, 150), description: `Follow-up to: ${title}.`,
+        priority: severity, status, ownerId: emp[owner], dueDate: due, proposedById: g.ownerKey ? emp[g.ownerKey] : emp.maria, approvedById: status === "PROPOSED" ? null : emp.maria, approvedAt: status === "PROPOSED" ? null : new Date(createdAt.getTime() + 3600_000),
+        completionNotes: ["COMPLETED", "VERIFIED"].includes(status) ? "Done and photographed. Crew briefed at the next huddle." : "", completedAt: ["COMPLETED", "VERIFIED"].includes(status) ? new Date(createdAt.getTime() + 6 * day) : null,
+        verifiedById: status === "VERIFIED" ? emp.maria : null, verifiedAt, createdAt,
+      },
+    });
+    if (status === "VERIFIED") await prisma.reportEvent.create({ data: { reportId: g.id, type: "ACTION", message: `Corrective action A-${nextAct - 1} verified.`, actorName: "Maria Delgado", actorId: emp.maria, createdAt: verifiedAt! } });
+    else if (!closed) await prisma.reportEvent.create({ data: { reportId: g.id, type: "ACTION", message: `Corrective action A-${nextAct - 1} ${status === "PROPOSED" ? "proposed" : status === "COMPLETED" ? "marked done. Waiting for verification" : "approved"}.`, actorName: g.ownerKey ? nameOf(g.ownerKey) : "Maria Delgado", actorId: emp[g.ownerKey ?? "maria"], createdAt: hoursAgo(Math.max(0.5, ago - 8)) } });
+  }
+  // Completed investigations (with two shared lessons) on older serious or repeated reports.
+  const invTargets = generated.filter((g) => ["CLOSED"].includes(g.status) && g.ownerKey && ["HIGH", "MEDIUM"].includes(g.h[2])).slice(0, 5);
+  for (const [i, g] of invTargets.entries()) {
+    const [, category, , title] = g.h;
+    await prisma.investigation.create({
+      data: {
+        reportId: g.id, organizationId: org.id, leadId: emp[g.ownerKey!], status: "COMPLETE", openedAt: hoursAgo(g.h[6] - 24), completedAt: hoursAgo(g.h[6] - 24 * 9),
+        facts: `Reviewed the area and spoke with the crew about: ${title}. The condition was present for at least one shift before it was reported.`,
+        sequenceNotes: "The condition developed during normal work. No one owned the check for it, and the task plan did not mention it.",
+        contributingFactors: [pack.contributingFactors[(i + 1) % pack.contributingFactors.length], pack.contributingFactors[(i + 5) % pack.contributingFactors.length]],
+        rootCauseNotes: "The investigator found no owner for the daily check and an unclear handoff between trades. The fix is to name an owner and add the check to the daily huddle.",
+        lessonText: i < 3 ? `${fix[category] ?? "Look for this condition before starting work"}. Speak up early if you see it, and check again after another trade has worked in the area.` : "",
+        shareLesson: i < 3,
+      },
+    });
+    await prisma.reportEvent.create({ data: { reportId: g.id, type: "INVESTIGATION", message: "Investigation marked complete.", actorName: nameOf(g.ownerKey!), actorId: emp[g.ownerKey!], createdAt: hoursAgo(g.h[6] - 24 * 9) } });
+  }
+  // Two investigations still under way on recent reports.
+  for (const g of generated.filter((x) => x.status === "INVESTIGATING" && x.ownerKey).slice(0, 2)) {
+    await prisma.investigation.create({ data: { reportId: g.id, organizationId: org.id, leadId: emp[g.ownerKey!], status: "OPEN", openedAt: hoursAgo(g.h[6] - 6), facts: `Walked the area with the foreman. Photos taken. ${g.h[3]}.`, contributingFactors: [pack.contributingFactors[2]] } });
+    await prisma.reportEvent.create({ data: { reportId: g.id, type: "INVESTIGATION", message: "Investigation opened.", actorName: nameOf(g.ownerKey!), actorId: emp[g.ownerKey!], createdAt: hoursAgo(g.h[6] - 6) } });
+  }
+
+  // Weekly inspections for eight weeks at every site, with the odd failed item.
+  const siteInspTpl = tpls.SITE_INSPECTION;
+  const inspAssignee: Record<string, string> = { riverside: "tom", lakeshore: "danielle", shop: "luis", northgate: "grace" };
+  for (const site of Object.keys(sites)) {
+    for (let w = 2; w <= 9; w++) {
+      const doneAt = new Date(Date.now() - (w * 7 - (site.length % 3)) * day);
+      const failIdx = (w + site.length) % 5 === 0 ? (w % 7) + 1 : -1;
+      const results = tplItems.map((it, i) => ({ ...it, result: i === failIdx ? "FAIL" : "PASS", note: i === failIdx ? "Found during the walk. Reported to the foreman." : "" }));
+      const insp = await prisma.inspection.create({
+        data: { organizationId: org.id, templateId: siteInspTpl, siteId: sites[site], assigneeId: emp[inspAssignee[site]], dueDate: doneAt, status: "COMPLETED", completedById: emp[inspAssignee[site]], completedAt: doneAt, results, notes: failIdx >= 0 ? "One item needs follow-up." : "", createdAt: new Date(doneAt.getTime() - 7 * day) },
+      });
+      if (failIdx >= 0) {
+        await prisma.correctiveAction.create({
+          data: { organizationId: org.id, number: nextAct++, inspectionId: insp.id, title: `Fix: ${tplItems[failIdx].label}`.slice(0, 150), description: `Found during the weekly walk at ${siteDefs.find((d) => d.key === site)?.name}.`, priority: tplItems[failIdx].critical ? "HIGH" : "MEDIUM", status: w > 5 ? "VERIFIED" : "IN_PROGRESS", ownerId: emp[inspAssignee[site]], dueDate: new Date(doneAt.getTime() + 7 * day), proposedById: emp[inspAssignee[site]], approvedById: emp.maria, approvedAt: doneAt, completedAt: w > 5 ? new Date(doneAt.getTime() + 5 * day) : null, verifiedById: w > 5 ? emp.maria : null, verifiedAt: w > 5 ? new Date(doneAt.getTime() + 6 * day) : null, completionNotes: w > 5 ? "Fixed and rechecked." : "", createdAt: doneAt },
+        });
+      }
+    }
+  }
+  // Readiness checks and observations that were completed recently.
+  for (const [k, who, siteK, ago] of [[tpls.READINESS, "maria", "northgate", 3], [tpls.READINESS, "kevin", "lakeshore", 6], [tpls.OBSERVATION, "tom", "riverside", 1], [tpls.OBSERVATION, "luis", "shop", 2]] as const) {
+    const tpl = await prisma.inspectionTemplate.findUniqueOrThrow({ where: { id: k } });
+    const items = (tpl.items as { id: string; label: string; critical?: boolean }[]).map((it) => ({ itemId: it.id, label: it.label, critical: Boolean(it.critical), result: "PASS", note: "" }));
+    await prisma.inspection.create({ data: { organizationId: org.id, templateId: k, siteId: sites[siteK], assigneeId: emp[who], dueDate: daysAgo(ago), status: "COMPLETED", completedById: emp[who], completedAt: daysAgo(ago), results: items } });
+  }
+
+  // Toolbox talks every week with realistic acknowledgement rates.
+  const talkTopics = ["Heat illness and hydration", "Housekeeping and trip hazards", "Lockout tagout refresher", "Working near overhead lifts", "Temporary power and GFCIs", "Silica dust and wet cutting", "Hand and finger safety", "Vehicle and pedestrian separation"];
+  const everyone = await prisma.employee.findMany({ where: { organizationId: org.id }, select: { id: true, siteId: true } });
+  for (const [i, topic] of talkTopics.entries()) {
+    const when = daysAgo(9 + i * 7);
+    const talk = await prisma.toolboxTalk.create({
+      data: { organizationId: org.id, title: topic, topic, content: `Why it matters\n${topic} came up in recent reports and site walks.\n\nKey points\n• Check the area before starting.\n• Speak up if something looks wrong.\n• Ask your foreman if the plan does not cover it.\n\nDiscussion\n• Where have you seen this on our sites?`, siteId: null, scheduledFor: when, aiDrafted: i % 3 === 0, createdByName: i % 2 ? "Maria Delgado" : "Tom Brennan" },
+    });
+    const takers = everyone.filter((e, idx) => (idx + i) % 6 !== 0);
+    await prisma.talkAcknowledgement.createMany({ data: takers.map((e) => ({ talkId: talk.id, employeeId: e.id, acknowledgedAt: new Date(when.getTime() + 3600_000) })), skipDuplicates: true });
+  }
+
+  // More qualifications: a few current, some expiring soon, one expired.
+  const extraQuals: [string, string, number, number | null][] = [
+    ["james", "OSHA 10", -400, null], ["james", "Aerial lift", -300, 45], ["wei", "First aid / CPR", -600, 18], ["isabella", "OSHA 10", -150, null], ["noah", "Aerial lift", -700, 9],
+    ["fatima", "Electrical safety (NFPA 70E)", -330, 35], ["liam", "OSHA 10", -500, null], ["aiko", "Forklift", -730, -6], ["daniel", "Forklift", -200, 160], ["daniel", "First aid / CPR", -400, 320],
+    ["grace", "OSHA 30", -800, null], ["mateo", "OSHA 10", -90, null], ["sofia", "First aid / CPR", -350, 12], ["luis", "OSHA 30", -1000, null], ["luis", "Fall protection", -280, 85], ["danielle", "OSHA 30", -900, null],
+    ["kevin", "OSHA 30", -1100, null], ["kevin", "First aid / CPR", -250, 110], ["maria", "OSHA 30", -1300, null], ["maria", "Confined space", -200, 25],
+  ];
+  for (const [who, name, issued, expires] of extraQuals) await prisma.qualification.create({ data: { organizationId: org.id, employeeId: emp[who], name, issuedOn: daysFromNow(issued), expiresOn: expires === null ? null : daysFromNow(expires) } });
+
   await prisma.subscription.create({ data: { organizationId: org.id, tier: "GROWTH", status: "ACTIVE", seats: 75, pricePerMonth: 900, currentPeriodEnd: daysFromNow(20) } }).catch(() => {});
 
   console.log("Done. Demo password for all seeded accounts:", DEMO_PASSWORD);

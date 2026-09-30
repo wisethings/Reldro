@@ -6,6 +6,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { EmptyState, fmtDate, PageHeader } from "@/components/safety/ui";
+import { StatStrip } from "@/components/safety/Dashboard";
 import { AcknowledgeButton, DeleteQualificationButton, DeleteTalkButton, PersonRoleControls, QualificationForm, TalkForm } from "@/components/safety/TrainingForms";
 import { InviteEmployeeForm } from "@/components/team/InviteEmployeeForm";
 import { ResendInviteButton } from "@/components/team/ResendInviteButton";
@@ -150,9 +151,30 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
     );
   }
 
+  const t30 = new Date(Date.now() - 30 * 86400_000);
+  const staffScope = v.isSafetyTeam ? {} : { employeeId: { in: (await prisma.employee.findMany({ where: { organizationId: v.organizationId, siteId: v.siteId ?? "__none__" }, select: { id: true } })).map((e) => e.id) } };
+  const [nTalks, nAcks, nPeople, nExpiring, nExpired] = canManage
+    ? await Promise.all([
+        prisma.toolboxTalk.count({ where: { organizationId: v.organizationId, scheduledFor: { gte: t30 } } }),
+        prisma.talkAcknowledgement.count({ where: { talk: { organizationId: v.organizationId, scheduledFor: { gte: t30 } } } }),
+        prisma.employee.count({ where: { organizationId: v.organizationId } }),
+        prisma.qualification.count({ where: { organizationId: v.organizationId, expiresOn: { gte: new Date(), lte: new Date(Date.now() + 30 * 86400_000) }, ...staffScope } }),
+        prisma.qualification.count({ where: { organizationId: v.organizationId, expiresOn: { lt: new Date() }, ...staffScope } }),
+      ])
+    : [0, 0, 0, 0, 0];
+  const ackRate = nTalks > 0 && nPeople > 0 ? Math.min(100, Math.round((nAcks / (nTalks * nPeople)) * 100)) : null;
+
   return (
     <div className="mx-auto max-w-4xl space-y-5 p-4 sm:p-6">
       <PageHeader title={v.isAdmin || v.isSafetyTeam ? "People & Training" : v.isSupervisor ? "Training" : "Toolbox talks"} subtitle={canManage ? "Manage worker qualifications, toolbox talks, and training acknowledgements." : "Toolbox talks shared with your team, and your acknowledgements."} />
+      {canManage && (
+        <StatStrip items={[
+          { label: "Toolbox talks in the last 30 days", value: nTalks, href: "?tab=talks" },
+          { label: "Acknowledged, last 30 days", value: ackRate === null ? "—" : `${ackRate}%` },
+          { label: "Qualifications expiring in 30 days", value: nExpiring, href: "?tab=qualifications" },
+          { label: "Qualifications expired", value: nExpired, href: "?tab=qualifications", alert: nExpired > 0 },
+        ]} />
+      )}
       {tabs.length > 1 && (
         <div className="flex flex-wrap gap-2">
           {tabs.map(([k, label]) => <Link key={k} href={`?tab=${k}`} className={chip(activeTab === k)}>{label}</Link>)}

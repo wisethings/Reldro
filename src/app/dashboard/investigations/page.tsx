@@ -5,6 +5,7 @@ import { categoryLabel, getPack, severityRank } from "@/lib/safety/pack";
 import { Card } from "@/components/ui/Card";
 import { EmptyState, fmtDate, InvestigationStatusBadge, NoAccess, PageHeader, SeverityBadge } from "@/components/safety/ui";
 
+import { StatStrip } from "@/components/safety/Dashboard";
 export default async function InvestigationsPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
   const v = await requireViewer();
   const { status = "active" } = await searchParams;
@@ -25,9 +26,22 @@ export default async function InvestigationsPage({ searchParams }: { searchParam
 
   const chip = (active: boolean) => `rounded-full border px-3 py-1.5 text-xs font-medium ${active ? "border-brand-700 bg-orchid-soft text-orchid-deep" : "border-ink-200 bg-white text-ink-600 hover:bg-ink-50"}`;
 
+  const orgWhere = { organizationId: v.organizationId, ...(v.isSafetyTeam ? {} : { leadId: v.employeeId ?? "__none__" }) };
+  const [sOpen, sReview, sDone, sShared] = await Promise.all([
+    prisma.investigation.count({ where: { ...orgWhere, status: "OPEN" } }),
+    prisma.investigation.count({ where: { ...orgWhere, status: "IN_REVIEW" } }),
+    prisma.investigation.count({ where: { ...orgWhere, status: "COMPLETE", completedAt: { gte: new Date(Date.now() - 30 * 86400_000) } } }),
+    prisma.investigation.count({ where: { ...orgWhere, shareLesson: true } }),
+  ]);
   return (
     <div className="mx-auto max-w-5xl space-y-5 p-4 sm:p-6">
       <PageHeader title="Investigations" subtitle="Review what happened, identify contributing factors, and track steps to reduce the chance of it happening again." />
+      <StatStrip items={[
+        { label: "Open", value: sOpen, href: "?status=active" },
+        { label: "In review", value: sReview, href: "?status=active" },
+        { label: "Completed in the last 30 days", value: sDone, href: "?status=complete" },
+        { label: "Lessons shared", value: sShared },
+      ]} />
       <div className="flex gap-2">
         <Link href="?status=active" className={chip(status === "active")}>Active</Link>
         <Link href="?status=complete" className={chip(status === "complete")}>Complete</Link>

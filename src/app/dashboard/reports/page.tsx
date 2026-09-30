@@ -9,6 +9,7 @@ import { EmptyState, fmtDate, PageHeader, ReportStatusBadge, SeverityBadge } fro
 
 const STATUS_GROUPS: Record<string, string[] | undefined> = { open: ["NEW", "ASSIGNED", "INVESTIGATING", "ACTIONS_OPEN"], closed: ["CLOSED"] };
 
+import { StatStrip } from "@/components/safety/Dashboard";
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<{ status?: string; severity?: string; site?: string; q?: string }> }) {
   const v = await requireViewer();
   const p = await searchParams;
@@ -40,12 +41,28 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const chip = (active: boolean) => `rounded-full border px-3 py-1.5 text-xs font-medium ${active ? "border-brand-700 bg-orchid-soft text-orchid-deep" : "border-ink-200 bg-white text-ink-600 hover:bg-ink-50"}`;
   const title = v.isSafetyTeam ? "Reports" : v.isSupervisor ? "Reports" : "My reports";
 
+  const nowD = new Date();
+  const scoped = reportWhere(v);
+  const [sOpen, sLate, sNoOwner, sClosed] = await Promise.all([
+    prisma.safetyReport.count({ where: { AND: [scoped, { status: { in: STATUS_GROUPS.open! } }] } }),
+    prisma.safetyReport.count({ where: { AND: [scoped, { status: { in: ["NEW", "ASSIGNED"] }, acknowledgedAt: null, respondBy: { lt: nowD } }] } }),
+    prisma.safetyReport.count({ where: { AND: [scoped, { ownerId: null, status: { not: "CLOSED" } }] } }),
+    prisma.safetyReport.count({ where: { AND: [scoped, { status: "CLOSED", closedAt: { gte: new Date(Date.now() - 30 * 86400_000) } }] } }),
+  ]);
   return (
     <div className="mx-auto max-w-5xl space-y-5 p-4 sm:p-6">
       <PageHeader
         title={title}
         subtitle={v.isSafetyTeam ? "Hazards, near misses, injuries, and other safety concerns reported across your sites." : v.isSupervisor ? "Safety concerns reported at your site, and ones you submitted." : "Safety concerns you submitted, and what happened next."}
       />
+      {(v.isSafetyTeam || v.isSupervisor) && (
+        <StatStrip items={[
+          { label: "Open reports", value: sOpen, href: qs({ status: "open" }) },
+          { label: "Response overdue", value: sLate, href: qs({ status: "open" }), alert: sLate > 0 },
+          { label: "Without an owner", value: sNoOwner, href: qs({ status: "open" }), alert: sNoOwner > 0 },
+          { label: "Closed in the last 30 days", value: sClosed, href: qs({ status: "closed" }) },
+        ]} />
+      )}
 
       <div className="flex flex-wrap items-center gap-2">
         <Link href={qs({ status: "open" })} className={chip(status === "open")}>Open</Link>

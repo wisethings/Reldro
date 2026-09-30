@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { ActionStatusBadge, dueLabel, EmptyState, PageHeader, SeverityBadge } from "@/components/safety/ui";
 
+import { StatStrip } from "@/components/safety/Dashboard";
 export default async function ActionsPage({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
   const v = await requireViewer();
   const { view = v.isSafetyTeam ? "attention" : "open" } = await searchParams;
@@ -35,9 +36,22 @@ export default async function ActionsPage({ searchParams }: { searchParams: Prom
     : [["open", "Open"], ["overdue", "Overdue"], ["done", "Done"]];
   const chip = (active: boolean) => `rounded-full border px-3 py-1.5 text-xs font-medium ${active ? "border-brand-700 bg-orchid-soft text-orchid-deep" : "border-ink-200 bg-white text-ink-600 hover:bg-ink-50"}`;
 
+  const day30 = new Date(Date.now() - 30 * 86400_000);
+  const [sOpen, sOverdue, sReady, sVerified] = await Promise.all([
+    prisma.correctiveAction.count({ where: { AND: [base, { status: { in: OPEN_ACTION_STATUSES } }] } }),
+    prisma.correctiveAction.count({ where: { AND: [base, { status: { in: OPEN_ACTION_STATUSES }, dueDate: { lt: now } }] } }),
+    prisma.correctiveAction.count({ where: { AND: [base, { status: "COMPLETED" }] } }),
+    prisma.correctiveAction.count({ where: { AND: [base, { status: "VERIFIED", verifiedAt: { gte: day30 } }] } }),
+  ]);
   return (
     <div className="mx-auto max-w-5xl space-y-5 p-4 sm:p-6">
       <PageHeader title={v.isSafetyTeam || v.isSupervisor ? "Corrective actions" : "My corrective actions"} subtitle="Track fixes identified in reports, investigations, and inspections. Verify a fix before closing it." />
+      <StatStrip items={[
+        { label: "Open", value: sOpen, href: "?view=open" },
+        { label: "Overdue", value: sOverdue, href: "?view=overdue", alert: sOverdue > 0 },
+        { label: "Ready to verify", value: sReady, href: "?view=attention" },
+        { label: "Verified in the last 30 days", value: sVerified, href: "?view=done" },
+      ]} />
       <div className="flex flex-wrap gap-2">
         {views.map(([key, label]) => (
           <Link key={key} href={`?view=${key}`} className={chip(view === key)}>{label}</Link>

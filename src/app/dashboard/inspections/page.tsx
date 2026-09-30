@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { dueLabel, EmptyState, fmtDate, PageHeader } from "@/components/safety/ui";
 import { DeleteTemplateButton, ScheduleInspectionForm, StarterTemplatesButton, TemplateForm } from "@/components/safety/InspectionForms";
 
+import { StatStrip } from "@/components/safety/Dashboard";
 export default async function InspectionsPage() {
   const v = await requireViewer();
   const siteScope = v.isSafetyTeam ? {} : v.isSupervisor ? { siteId: v.siteId ?? "__none__" } : { assigneeId: v.employeeId ?? "__none__" };
@@ -20,9 +21,24 @@ export default async function InspectionsPage() {
     canSchedule ? prisma.employee.findMany({ where: { organizationId: v.organizationId }, include: { user: { select: { name: true } } }, orderBy: { user: { name: "asc" } } }) : Promise.resolve([]),
   ]);
 
+  const inspScope = v.isSafetyTeam ? {} : v.isSupervisor && v.siteId ? { siteId: v.siteId } : { assigneeId: v.employeeId ?? "__none__" };
+  const d30 = new Date(Date.now() - 30 * 86400_000);
+  const [sDue, sLate, sDone, doneRows] = await Promise.all([
+    prisma.inspection.count({ where: { organizationId: v.organizationId, status: "SCHEDULED", dueDate: { lte: new Date(Date.now() + 7 * 86400_000) }, ...inspScope } }),
+    prisma.inspection.count({ where: { organizationId: v.organizationId, status: "SCHEDULED", dueDate: { lt: new Date() }, ...inspScope } }),
+    prisma.inspection.count({ where: { organizationId: v.organizationId, status: "COMPLETED", completedAt: { gte: d30 }, ...inspScope } }),
+    prisma.inspection.findMany({ where: { organizationId: v.organizationId, status: "COMPLETED", completedAt: { gte: d30 }, ...inspScope }, select: { results: true } }),
+  ]);
+  const sFailed = doneRows.reduce((n, r) => n + (r.results as { result: string }[]).filter((x) => x.result === "FAIL").length, 0);
   return (
     <div className="mx-auto max-w-5xl space-y-5 p-4 sm:p-6">
       <PageHeader title="Inspections" subtitle="Schedule recurring site inspections and job-start checks. Failed items can become corrective actions." />
+      <StatStrip items={[
+        { label: "Due in the next 7 days", value: sDue },
+        { label: "Overdue", value: sLate, alert: sLate > 0 },
+        { label: "Completed in the last 30 days", value: sDone },
+        { label: "Failed items in the last 30 days", value: sFailed },
+      ]} />
 
       <Card>
         <CardHeader title="Due and upcoming" />
