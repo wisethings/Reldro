@@ -203,7 +203,7 @@ test("toolbox talks show as a compact list that opens on demand", async () => {
     assert.ok(await page.getByText("Needs attention").first().isVisible());
     const first = page.locator("details summary").filter({ hasText: "View talk" }).first();
     await first.click();
-    await page.getByText(/Not yet acknowledged|Everyone in scope/).first().waitFor({ timeout: 10_000 });
+    await page.getByText(/Still to acknowledge|Everyone in scope/).first().waitFor({ timeout: 10_000 });
   } finally {
     await page.context().close();
   }

@@ -7,7 +7,7 @@ import Link from "next/link";
 export function DataTable({ columns, template, children }: { columns: string[]; template: string; children: React.ReactNode }) {
   return (
     <div role="table" className="overflow-hidden rounded-xl bg-white">
-      <div role="row" className="hidden items-center gap-3 border-b border-ink-200/80 bg-ink-50/70 px-4 py-2 text-xs font-medium text-ink-500 md:grid" style={{ gridTemplateColumns: template }}>
+      <div role="row" className="hidden items-center gap-3 border-b border-l-2 border-b-ink-200 border-l-transparent bg-ink-100 px-4 py-2 text-xs font-medium text-ink-700 md:grid" style={{ gridTemplateColumns: template }}>
         {columns.map((c, i) => (
           <span key={i} role="columnheader" className="truncate">{c}</span>
         ))}
