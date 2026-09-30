@@ -5,7 +5,8 @@ import { actionWhere, reportWhere } from "@/lib/safety/access";
 import { requireViewer } from "@/lib/safety/context";
 import { actionStatusInfo, getPack, OPEN_ACTION_STATUSES, severityRank } from "@/lib/safety/pack";
 import { Badge } from "@/components/ui/Badge";
-import { ActionStatusBadge, dueLabel, fmtDate, ReportStatusBadge, SeverityBadge } from "@/components/safety/ui";
+import { ActionStatusBadge, dueLabel, fmtDate, fmtShort, ReportStatusBadge, SeverityBadge } from "@/components/safety/ui";
+import { AcknowledgeButton } from "@/components/safety/TrainingForms";
 import { Queue, QueueRow } from "@/components/safety/Queue";
 import { ActivityList, FocusList, Panel, PulseLine, QuietActivity, SectionTitle, StatStrip, TextLink, UpcomingRow, type ActivityItem, type FocusEntry } from "@/components/safety/Dashboard";
 
@@ -83,61 +84,174 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
         })
       : [];
 
+    const late = myActions.filter((a) => a.dueDate && a.dueDate < now).length;
+    const expiredQuals = quals.filter((q) => q.expiresOn && q.expiresOn < now).length;
+    const needsAction = toAck.length + myActions.length + quals.length + inspections.length;
+    const dueTone = (due: Date | null) => {
+      if (!due) return "text-ink-500";
+      const days = Math.ceil((due.getTime() - Date.now()) / 86400_000);
+      return days < 0 ? "font-semibold text-danger" : days <= 3 ? "font-semibold text-amber-deep" : "text-ink-600";
+    };
+    const rowCls = "flex min-h-[2.75rem] items-center justify-between gap-3 px-4 py-2 outline-none hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500";
+    const SubHead = ({ id, title, count, href }: { id: string; title: string; count: number; href?: string }) => (
+      <div id={id} className="flex scroll-mt-4 items-baseline justify-between gap-3 border-y border-ink-100 bg-surface-muted/60 px-4 py-1.5 first:border-t-0">
+        <h3 className="text-xs font-semibold text-ink-700">{title}<span className="ml-1.5 font-normal tabular-nums text-ink-500">{count}</span></h3>
+        {href && <Link href={href} className="text-xs font-medium text-orchid-deep hover:text-oxblood">View all →</Link>}
+      </div>
+    );
+
     return (
-      <div className="mx-auto max-w-3xl space-y-5 p-4 sm:p-6">
-        <div>
+      <div className="mx-auto w-full max-w-6xl space-y-4 px-4 py-4 sm:px-6">
+        <div className="flex flex-wrap items-end justify-between gap-x-4">
           <h1 className="text-2xl font-semibold tracking-tight text-ink-900">Hi {firstName}</h1>
           <p className="text-sm text-ink-500">{org?.name}</p>
         </div>
-        <Link href="/dashboard/reports/new" className="flex items-center justify-center gap-3 rounded-2xl bg-brand-700 px-6 py-6 text-lg font-semibold text-white shadow-sm hover:bg-brand-800">
-          <Plus size={26} /> Report a safety concern
+        <Link href="/dashboard/reports/new" className="group flex h-14 items-center justify-between gap-3 rounded-xl bg-brand-700 px-5 text-white outline-none hover:bg-brand-800 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2">
+          <span className="flex items-center gap-2.5 text-sm font-semibold"><Plus size={18} aria-hidden /> Report a safety concern</span>
+          <span className="hidden truncate text-xs text-white/75 sm:block">A hazard, near miss, injury, or equipment issue. Takes about a minute.</span>
+          <span aria-hidden className="text-sm transition-transform group-hover:translate-x-0.5">→</span>
         </Link>
-        <p className="-mt-2 text-center text-xs text-ink-500">A hazard, near miss, injury, equipment issue, or other concern. It takes about a minute.</p>
 
         <StatStrip
+          large
           items={[
-            { label: "Open reports", value: myReports.length, href: "/dashboard/reports" },
-            { label: "Corrective actions assigned to me", value: myActions.length, href: "/dashboard/actions", alert: myActions.some((a) => a.dueDate && a.dueDate < now) },
-            { label: "Toolbox talks to acknowledge", value: toAck.length, href: "/dashboard/training" },
-            { label: "Qualifications due for renewal", value: quals.length },
+            { label: "Talks to acknowledge", value: toAck.length, href: "#talks" },
+            { label: "Corrective actions assigned to me", value: myActions.length, href: "#actions", alert: late > 0 },
+            { label: "Qualifications due for renewal", value: quals.length, href: "#quals", alert: expiredQuals > 0 },
+            { label: "Open reports", value: myReports.length, href: "#reports" },
           ]}
         />
+
         <IncidentQueue incidents={activeIncidents} always={false} />
-        {updates.length > 0 && (
-          <Panel icon={<Bell size={20} />} tint="orchid" title="Updates on your reports" subtitle="What has happened since you submitted them.">
-            <ActivityList
-              empty=""
-              items={updates.map((e) => ({
-                key: e.id,
-                at: e.createdAt,
-                icon: e.toReporter ? <FileText size={16} /> : <CheckCircle2 size={16} />,
-                tint: e.toReporter ? "orchid" : "sage",
-                text: e.toReporter ? "The safety team sent you a message" : e.message,
-                meta: `SR-${String(e.report.number).padStart(4, "0")} · ${e.report.title}`,
-                href: `/dashboard/reports/${e.report.id}`,
-              }))}
-            />
-          </Panel>
-        )}
-        <Queue title="Toolbox talks to acknowledge" count={toAck.length} href="/dashboard/training" tone="alert" empty="You have acknowledged all recent toolbox talks.">
-          {toAck.slice(0, 3).map((t) => <QueueRow key={t.id} href="/dashboard/training" title={t.title} meta={fmtDate(t.scheduledFor)} right={<Badge tone="amber">Needs your acknowledgement</Badge>} />)}
-        </Queue>
-        <Queue title="My open reports" count={myReports.length} href="/dashboard/reports" empty="You have no open reports. Reports you submit appear here.">
-          {myReports.map((r) => <QueueRow key={r.id} href={`/dashboard/reports/${r.id}`} title={r.title} meta={`SR-${String(r.number).padStart(4, "0")} · ${fmtDate(r.createdAt)}`} right={<ReportStatusBadge status={r.status} />} />)}
-        </Queue>
-        <Queue title="Corrective actions assigned to me" count={myActions.length} href="/dashboard/actions" tone="alert" empty="No corrective actions are assigned to you.">
-          {myActions.map((a) => { const d = dueLabel(a.dueDate, true); return <QueueRow key={a.id} href={`/dashboard/actions/${a.id}`} title={a.title} meta={d.text} right={<ActionStatusBadge status={a.status} />} />; })}
-        </Queue>
-        {inspections.length > 0 && (
-          <Queue title="Inspections assigned to me" count={inspections.length} href="/dashboard/inspections" empty="">
-            {inspections.map((i) => <QueueRow key={i.id} href={`/dashboard/inspections/${i.id}`} title={`${i.template.name} · ${i.site.name}`} meta={dueLabel(i.dueDate, true).text} />)}
-          </Queue>
-        )}
-        {quals.length > 0 && (
-          <Queue title="My qualifications due for renewal" count={quals.length} tone="alert" empty="">
-            {quals.map((q) => <li key={q.id} className="px-4 py-2.5 text-sm sm:px-5"><span className="font-medium text-ink-900">{q.name}</span> <span className="text-ink-500">{q.expiresOn && q.expiresOn < now ? "expired" : "expires"} {fmtDate(q.expiresOn)}</span></li>)}
-          </Queue>
-        )}
+
+        <section aria-labelledby="action-needed" className="overflow-hidden rounded-xl bg-white">
+          <div className="flex items-center justify-between gap-3 px-4 py-2.5">
+            <h2 id="action-needed" className="flex items-center gap-2 text-sm font-semibold text-ink-900">
+              {needsAction > 0 && <span aria-hidden className="h-2 w-2 rounded-full bg-amber-deep" />}Action needed
+            </h2>
+            <span className="text-xs text-ink-500">{needsAction > 0 ? `${needsAction} ${needsAction === 1 ? "item" : "items"}` : "All caught up"}</span>
+          </div>
+
+          <SubHead id="talks" title="Toolbox talks to acknowledge" count={toAck.length} href="/dashboard/training" />
+          {toAck.length === 0 ? (
+            <p className="px-4 py-2.5 text-sm text-ink-500">You have acknowledged all recent toolbox talks.</p>
+          ) : (
+            <ul className="divide-y divide-ink-100">
+              {toAck.slice(0, 3).map((t) => (
+                <li key={t.id} className={rowCls}>
+                  <Link href="/dashboard/training" className="min-w-0 flex-1 outline-none">
+                    <p className="truncate text-sm font-medium text-ink-900">{t.title}</p>
+                    <p className="text-xs text-ink-500">{fmtDate(t.scheduledFor)}</p>
+                  </Link>
+                  <AcknowledgeButton talkId={t.id} compact />
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <SubHead id="actions" title="Corrective actions assigned to me" count={myActions.length} href="/dashboard/actions" />
+          {myActions.length === 0 ? (
+            <p className="px-4 py-2.5 text-sm text-ink-500">No corrective actions are assigned to you.</p>
+          ) : (
+            <ul className="divide-y divide-ink-100">
+              {myActions.map((a) => {
+                const d = dueLabel(a.dueDate, true);
+                return (
+                  <li key={a.id}>
+                    <Link href={`/dashboard/actions/${a.id}`} className={rowCls}>
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink-900">{a.title}</span>
+                      <span className={`shrink-0 text-xs ${dueTone(a.dueDate)}`}>{d.text}</span>
+                      <span className="hidden shrink-0 sm:block"><ActionStatusBadge status={a.status} /></span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          {quals.length > 0 && (
+            <>
+              <SubHead id="quals" title="Qualifications due for renewal" count={quals.length} />
+              <ul className="divide-y divide-ink-100">
+                {quals.map((q) => {
+                  const expired = Boolean(q.expiresOn && q.expiresOn < now);
+                  return (
+                    <li key={q.id} className="flex min-h-[2.75rem] flex-wrap items-center justify-between gap-x-3 gap-y-0.5 px-4 py-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-ink-900">{q.name}</p>
+                        <p className="text-xs text-ink-500">{expired ? "Expired" : "Expires"} {fmtDate(q.expiresOn)}. Ask your supervisor to arrange renewal.</p>
+                      </div>
+                      <Badge tone={expired ? "red" : "amber"}>{expired ? "Expired" : dueLabel(q.expiresOn, true).text.replace("Due", "Expires")}</Badge>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
+
+          {inspections.length > 0 && (
+            <>
+              <SubHead id="inspections" title="Inspections assigned to me" count={inspections.length} href="/dashboard/inspections" />
+              <ul className="divide-y divide-ink-100">
+                {inspections.map((i) => (
+                  <li key={i.id}>
+                    <Link href={`/dashboard/inspections/${i.id}`} className={rowCls}>
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink-900">{i.template.name} <span className="font-normal text-ink-500">· {i.site.name}</span></span>
+                      <span className={`shrink-0 text-xs ${dueTone(i.dueDate)}`}>{dueLabel(i.dueDate, true).text}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </section>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <section id="reports" aria-labelledby="my-reports" className="scroll-mt-4 overflow-hidden rounded-xl bg-white">
+            <div className="flex items-baseline justify-between gap-3 px-4 py-2.5">
+              <h2 id="my-reports" className="text-sm font-semibold text-ink-900">My open reports</h2>
+              <Link href="/dashboard/reports" className="text-xs font-medium text-orchid-deep hover:text-oxblood">View all →</Link>
+            </div>
+            {myReports.length === 0 ? (
+              <p className="border-t border-ink-100 px-4 py-3 text-sm text-ink-500">You have no open reports. Reports you submit appear here.</p>
+            ) : (
+              <ul className="divide-y divide-ink-100 border-t border-ink-100">
+                {myReports.map((r) => (
+                  <li key={r.id}>
+                    <Link href={`/dashboard/reports/${r.id}`} className={rowCls}>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium text-ink-900">{r.title}</span>
+                        <span className="block text-xs text-ink-500"><span className="tabular-nums">SR-{String(r.number).padStart(4, "0")}</span> · {fmtDate(r.createdAt)}</span>
+                      </span>
+                      <ReportStatusBadge status={r.status} />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section aria-labelledby="updates" className="overflow-hidden rounded-xl bg-white">
+            <div className="px-4 py-2.5"><h2 id="updates" className="text-sm font-semibold text-ink-900">Updates on your reports</h2></div>
+            {updates.length === 0 ? (
+              <p className="border-t border-ink-100 px-4 py-3 text-sm text-ink-500">Nothing new. Updates appear here when the safety team responds.</p>
+            ) : (
+              <ul className="divide-y divide-ink-100 border-t border-ink-100">
+                {updates.map((e) => (
+                  <li key={e.id}>
+                    <Link href={`/dashboard/reports/${e.report.id}`} className={rowCls}>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm text-ink-900">{e.toReporter ? "The safety team sent you a message" : e.message}</span>
+                        <span className="block truncate text-xs text-ink-500"><span className="tabular-nums">SR-{String(e.report.number).padStart(4, "0")}</span> · {e.report.title}</span>
+                      </span>
+                      <span className="shrink-0 text-xs text-ink-500">{fmtShort(e.createdAt)}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
       </div>
     );
   }

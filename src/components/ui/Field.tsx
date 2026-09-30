@@ -11,7 +11,7 @@ import { cn } from "./cn";
  * forces a page of scrolling.
  */
 export const controlClass =
-  "w-full rounded-lg border border-ink-200 bg-white px-2.5 py-2 text-sm md:py-1.5 text-ink-900 outline-none transition-colors placeholder:text-ink-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 disabled:cursor-not-allowed disabled:bg-ink-50 disabled:text-ink-400";
+  "w-full rounded-lg border border-ink-300 bg-white px-2.5 py-2 text-sm md:py-1.5 text-ink-900 outline-none transition-[border-color,box-shadow] placeholder:text-ink-400 hover:border-ink-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:cursor-not-allowed disabled:bg-ink-50 disabled:text-ink-400";
 
 export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
   return <input {...props} className={cn(controlClass, props.className)} />;
@@ -65,7 +65,7 @@ export function Field({
         {optional && <span className="text-xs text-ink-500">Optional</span>}
       </label>
       <div className="mt-1">{control}</div>
-      {hint && <p id={hintId} className="mt-1 text-xs leading-snug text-ink-500">{hint}</p>}
+      {hint && <p id={hintId} className="mt-1 text-xs leading-snug text-ink-600">{hint}</p>}
     </div>
   );
 }

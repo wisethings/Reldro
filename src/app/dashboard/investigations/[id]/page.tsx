@@ -49,7 +49,7 @@ export default async function InvestigationPage({ params }: { params: Promise<{ 
     </span>
   );
   const SectionHead = ({ n, title, subtitle, tint, right }: { n: number; title: string; subtitle?: string; tint: string; right?: React.ReactNode }) => (
-    <div className="flex items-center gap-3 border-b border-ink-200/60 bg-surface-muted px-4 py-3 sm:px-5">
+    <div className="flex items-center gap-3 border-b border-ink-100 bg-white px-4 py-3.5 sm:px-5">
       <span aria-hidden className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${tint}`}>{n}</span>
       <div className="min-w-0 flex-1"><h2 className="text-sm font-semibold text-ink-900">{title}</h2>{subtitle && <p className="text-xs text-ink-500">{subtitle}</p>}</div>
       {right}
@@ -77,7 +77,7 @@ export default async function InvestigationPage({ params }: { params: Promise<{ 
 
       <div className="grid grid-cols-1 gap-x-8 gap-y-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
         <div className="space-y-8">
-          <section aria-labelledby="findings" className="overflow-hidden rounded-xl bg-white">
+          <section aria-labelledby="findings" className="expand-panel overflow-hidden">
             <SectionHead n={1} title="Findings" subtitle="What happened, and why the conditions existed." tint="bg-orchid-soft text-orchid-deep" right={<Progress done={findingsDone} total={findings.length} />} />
             <div className="px-4 py-5 sm:px-5">
               <InvestigationForm
@@ -91,14 +91,14 @@ export default async function InvestigationPage({ params }: { params: Promise<{ 
             </div>
           </section>
 
-          <section aria-labelledby="questions" className="overflow-hidden rounded-xl bg-white">
+          <section aria-labelledby="questions" className="expand-panel overflow-hidden">
             <SectionHead n={2} title="Questions" subtitle="Collect answers from supervisors, workers, and managers." tint="bg-sky-soft text-sky-deep" right={inv.questions.length > 0 ? <Progress done={answered} total={inv.questions.length} /> : undefined} />
             <div className="px-4 py-5 sm:px-5">
               <QuestionsPanel investigationId={inv.id} reportId={r.id} canEdit={inv.status !== "COMPLETE" || v.isSafetyTeam} questions={inv.questions.map((q) => ({ id: q.id, text: q.text, answer: q.answer, aiDrafted: q.aiDrafted }))} />
             </div>
           </section>
 
-          <section aria-labelledby="statements" className="overflow-hidden rounded-xl bg-white">
+          <section aria-labelledby="statements" className="expand-panel overflow-hidden">
             <SectionHead n={3} title="Statements" subtitle="What people involved or nearby said, in their own words." tint="bg-gold-soft text-gold-deep" right={<span className="text-xs tabular-nums text-ink-600">{inv.statements.length} recorded</span>} />
             <div className="px-4 py-5 sm:px-5">
               <StatementsPanel investigationId={inv.id} statements={inv.statements.map((s) => ({ id: s.id, providedBy: s.providedBy, content: s.content, addedByName: s.addedByName, createdAt: s.createdAt.toISOString() }))} />

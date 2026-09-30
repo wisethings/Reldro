@@ -18,7 +18,7 @@ export default async function NewReportPage() {
         <h1 className="text-2xl font-semibold tracking-tight text-ink-900">Report a safety concern</h1>
         <p className="mt-0.5 text-sm text-ink-500">Report a hazard, near miss, injury, equipment issue, or other safety concern. Describe what you noticed in your own words.</p>
       </div>
-      <div className="rounded-xl bg-white p-5 sm:p-7">
+      <div className="expand-panel p-5 sm:p-7">
       <ReportForm
         types={REPORT_TYPES.map((t) => ({ key: t.key, label: t.label, plain: t.plain }))}
         categories={pack.categories.map((c) => ({ key: c.key, label: c.label }))}

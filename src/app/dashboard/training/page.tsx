@@ -75,7 +75,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
       return (
         <li>
           <details className="group open:expand-band">
-            <summary className="grid cursor-pointer list-none grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1.5 px-4 py-3 outline-none hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500 md:grid-cols-[minmax(0,1fr)_9.5rem_10.5rem_8rem] [&::-webkit-details-marker]:hidden">
+            <summary className={`grid cursor-pointer list-none grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-2.5 outline-none hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500 ${canManage ? "md:grid-cols-[minmax(0,1fr)_9.5rem_10.5rem_8rem]" : "md:grid-cols-[minmax(0,1fr)_auto_6.5rem]"} [&::-webkit-details-marker]:hidden`}>
               <div className="min-w-0">
                 <p title={r.t.title} className="truncate text-sm font-semibold text-ink-900">{r.t.title}</p>
                 <p className="mt-0.5 truncate text-xs text-ink-500">{fmtDate(r.t.scheduledFor)} · {r.where} · {r.t.createdByName}{r.t.aiDrafted ? " · AI-assisted, reviewed" : ""}</p>
@@ -85,10 +85,10 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
                   <span aria-hidden className="h-1.5 w-full max-w-24 overflow-hidden rounded-full bg-ink-100"><span className={`block h-full rounded-full ${pct === 100 ? "bg-sage-deep" : "bg-orchid-deep"}`} style={{ width: `${pct}%` }} /></span>
                   <span className="shrink-0 text-xs tabular-nums text-ink-600">{r.acked} of {r.audience}</span>
                 </div>
-              ) : <span className="hidden md:block" />}
-              <div className="order-2 md:order-none"><Badge tone={st.tone}>{st.label}</Badge></div>
+              ) : null}
+              <div className="order-2 md:order-none"><Badge tone={st.tone}>{r.status === "needs" && !canManage ? "Needs acknowledgment" : st.label}</Badge></div>
               <div className="order-4 col-span-2 flex justify-start md:order-none md:col-span-1 md:justify-end">
-                {!canManage && r.status === "needs" && v.employeeId ? <AcknowledgeButton talkId={r.t.id} /> : <span className="text-xs font-medium text-orchid-deep group-hover:text-oxblood group-open:hidden">View talk →</span>}
+                {!canManage && r.status === "needs" && v.employeeId ? <AcknowledgeButton talkId={r.t.id} compact /> : <span className="text-xs font-medium text-orchid-deep group-hover:text-oxblood group-open:hidden">View talk →</span>}
               </div>
             </summary>
             <div className="expand-panel mx-3 mb-3 mt-0.5 px-4 py-5 sm:mx-4 sm:px-6 sm:py-6">
@@ -115,7 +115,12 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
                     ) : <p className="mt-3 text-xs text-sage-deep">Everyone in scope has acknowledged this talk.</p>}
                   </>
                 ) : (
-                  v.employeeId && (r.mineDone ? <Badge tone="green">You acknowledged this</Badge> : <AcknowledgeButton talkId={r.t.id} />)
+                  v.employeeId && (r.mineDone ? <Badge tone="green">You acknowledged this</Badge> : (
+                    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                      <p className="text-xs text-ink-600">By acknowledging, you confirm you attended and understood this talk.</p>
+                      <AcknowledgeButton talkId={r.t.id} />
+                    </div>
+                  ))
                 )}
               </div>
             </div>
@@ -160,12 +165,12 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
           <>
             {featured.length > 0 && (
               <section aria-labelledby="needs-attention">
-                <h2 id="needs-attention" className="mb-2 text-sm font-semibold text-ink-900">Needs attention</h2>
-                <ul className="divide-y divide-ink-100 overflow-hidden rounded-xl bg-white">{featured.map((r) => <TalkRow key={r.t.id} r={r} />)}</ul>
+                <h2 id="needs-attention" className="mb-2 flex items-center gap-2 text-sm font-semibold text-ink-900"><span aria-hidden className="h-2 w-2 rounded-full bg-amber-deep" />Needs attention</h2>
+                <ul className="divide-y divide-ink-100 overflow-hidden rounded-xl border-l-2 border-amber-deep/70 bg-white">{featured.map((r) => <TalkRow key={r.t.id} r={r} />)}</ul>
               </section>
             )}
             <section aria-labelledby="all-talks">
-              <h2 id="all-talks" className="mb-2 text-sm font-semibold text-ink-900">{filter === "all" ? "All toolbox talks" : STATUS[filter].label}</h2>
+              <h2 id="all-talks" className={`mb-2 text-sm ${featured.length > 0 ? "font-medium text-ink-600" : "font-semibold text-ink-900"}`}>{filter === "all" ? "All toolbox talks" : STATUS[filter].label}</h2>
               {pageRows.length === 0 ? (
                 <p className="rounded-xl bg-white px-4 py-8 text-center text-sm text-ink-600">{featured.length > 0 ? "No other talks." : "No talks match."} {(filter !== "all" || term) && <Link href="?tab=talks" className="font-medium text-orchid-deep hover:text-oxblood">Show all talks</Link>}</p>
               ) : (
@@ -178,8 +183,8 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
 
         {lessons.length > 0 && (
           <details className="group rounded-xl bg-white">
-            <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold text-ink-900 [&::-webkit-details-marker]:hidden">
-              <span>Lessons from recent incidents <span className="font-normal text-ink-500">· {lessons.length}</span></span>
+            <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-2 text-xs font-medium text-ink-700 hover:bg-surface-hover [&::-webkit-details-marker]:hidden">
+              <span>Related: lessons from recent incidents <span className="font-normal text-ink-500">· {lessons.length}</span></span>
               <span aria-hidden className="text-ink-400 transition-transform group-open:rotate-180">⌄</span>
             </summary>
             <ul className="divide-y divide-ink-100 border-t border-ink-100">
@@ -273,7 +278,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="min-h-full bg-surface-muted">
-    <div className="mx-auto w-full max-w-5xl space-y-5 px-4 py-6 sm:px-8 sm:py-8">
+    <div className="mx-auto w-full max-w-6xl space-y-4 px-4 py-4 sm:px-6">
       <PageHeader title={v.isAdmin || v.isSafetyTeam ? "People & Training" : v.isSupervisor ? "Training" : "Toolbox talks"} subtitle={canManage ? "Manage worker qualifications, toolbox talks, and training acknowledgements." : "Toolbox talks shared with your team, and your acknowledgements."} />
       {canManage && (
         <StatStrip items={[

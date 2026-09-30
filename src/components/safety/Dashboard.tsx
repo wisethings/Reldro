@@ -171,14 +171,14 @@ export function PulseGrid({ children }: { children: React.ReactNode }) {
 }
 
 /** A compact row of numbers for the top of a list screen. Neutral by default so counts never read as verdicts. */
-export function StatStrip({ items }: { items: { label: string; value: number | string; href?: string; tint?: Tint; alert?: boolean }[] }) {
+export function StatStrip({ items, large = false }: { items: { label: string; value: number | string; href?: string; tint?: Tint; alert?: boolean }[]; large?: boolean }) {
   return (
     <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-ink-100 sm:grid-cols-4">
       {items.map((s) => {
         const body = (
           <dl>
             <dt className="text-xs text-ink-600">{s.label}</dt>
-            <dd className={`mt-0.5 text-lg font-semibold leading-tight tabular-nums ${s.alert ? "text-danger" : "text-ink-900"}`}>{s.value}</dd>
+            <dd className={`mt-0.5 font-semibold leading-tight tabular-nums ${large ? "text-2xl" : "text-lg"} ${s.alert ? "text-danger" : "text-ink-900"}`}>{s.value}</dd>
           </dl>
         );
         return s.href ? (

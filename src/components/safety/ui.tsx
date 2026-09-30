@@ -21,6 +21,18 @@ export function ReportStatusBadge({ status }: { status: string }) {
   return <Badge tone={s.tone}>{s.label}</Badge>;
 }
 
+/** Four slim steps under a report's status badge: New, Assigned, Under investigation, Closed. */
+export function ReportProgress({ status }: { status: string }) {
+  const step = status === "NEW" ? 1 : status === "ASSIGNED" ? 2 : status === "CLOSED" ? 4 : 3;
+  return (
+    <span aria-hidden className="mt-1.5 flex w-full max-w-[8.5rem] gap-0.5">
+      {[1, 2, 3, 4].map((n) => (
+        <span key={n} className={`h-1 flex-1 rounded-full ${n <= step ? (status === "CLOSED" ? "bg-sage-deep" : "bg-orchid-deep") : "bg-ink-200"}`} />
+      ))}
+    </span>
+  );
+}
+
 export function ActionStatusBadge({ status }: { status: string }) {
   const s = actionStatusInfo(status);
   return <Badge tone={s.tone}>{s.label}</Badge>;

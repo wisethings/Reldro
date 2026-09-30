@@ -5,7 +5,7 @@ import { requireViewer } from "@/lib/safety/context";
 import { categoryLabel, getPack, reportTypeLabel, REPORT_STATUSES, SEVERITIES } from "@/lib/safety/pack";
 import { DataRow, DataTable } from "@/components/safety/Table";
 import { ReportFilters } from "@/components/safety/ReportFilters";
-import { EmptyHero, fmtShort, PageHeader, ReportStatusBadge, SeverityBadge } from "@/components/safety/ui";
+import { EmptyHero, fmtShort, PageHeader, ReportProgress, ReportStatusBadge, SeverityBadge } from "@/components/safety/ui";
 
 const STATUS_GROUPS: Record<string, string[] | undefined> = { open: ["NEW", "ASSIGNED", "INVESTIGATING", "ACTIONS_OPEN"], closed: ["CLOSED"] };
 
@@ -116,7 +116,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       ) : (
         <DataTable
           columns={staff ? ["Report", "Seriousness", "Status", "Site", "Owner", "Occurred"] : ["Report", "Status", "Site", "Occurred"]}
-          template={staff ? "minmax(0,1fr) 6.5rem 10.5rem 13rem 9rem 4.5rem" : "minmax(0,1fr) 10.5rem 13rem 4.5rem"}
+          template={staff ? "minmax(0,1fr) 6.5rem 10.5rem 13rem 9rem 4.5rem" : "minmax(0,1fr) 11rem minmax(9rem,14rem) 5rem"}
         >
           {reports.map((r) => {
             const late = Boolean(r.respondBy && !r.acknowledgedAt && r.respondBy < nowD && r.status !== "CLOSED");
@@ -133,16 +133,16 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
             const ownerCell = r.ownerId ? ownerName.get(r.ownerId) ?? "Assigned" : <span className={unowned ? "font-medium text-amber-deep" : "text-ink-500"}>No owner</span>;
             const cells = staff
               ? [sev, <ReportStatusBadge key="s" status={r.status} />, <span key="site" className="text-ink-600">{r.site?.name ?? "Site not given"}</span>, ownerCell, <span key="d" className="text-ink-600">{fmtShort(r.occurredAt)}</span>]
-              : [<ReportStatusBadge key="s" status={r.status} />, <span key="site" className="text-ink-600">{r.site?.name ?? "Site not given"}</span>, <span key="d" className="text-ink-600">{fmtShort(r.occurredAt)}</span>];
+              : [<span key="s" className="block"><ReportStatusBadge status={r.status} /><ReportProgress status={r.status} /></span>, <span key="site" className="line-clamp-2 text-ink-700" title={r.site?.name}>{r.site?.name ?? "Site not given"}</span>, <span key="d" className="text-xs text-ink-500">{fmtShort(r.occurredAt)}</span>];
             return (
               <DataRow
                 key={r.id}
                 href={`/dashboard/reports/${r.id}`}
                 tone={tone}
-                template={staff ? "minmax(0,1fr) 6.5rem 10.5rem 13rem 9rem 4.5rem" : "minmax(0,1fr) 10.5rem 13rem 4.5rem"}
+                template={staff ? "minmax(0,1fr) 6.5rem 10.5rem 13rem 9rem 4.5rem" : "minmax(0,1fr) 11rem minmax(9rem,14rem) 5rem"}
                 main={
                   <>
-                    <p title={r.title} className="truncate text-sm font-semibold text-ink-900">{r.title}</p>
+                    <p title={r.title} className={`${staff ? "truncate" : "line-clamp-2"} text-sm font-semibold text-ink-900`}>{r.title}</p>
                     <div className="mt-0.5 flex items-center gap-1.5 text-xs text-ink-500">
                       <span className="shrink-0 tabular-nums text-ink-400">SR-{String(r.number).padStart(4, "0")}</span>
                       <span aria-hidden className="text-ink-300">·</span>

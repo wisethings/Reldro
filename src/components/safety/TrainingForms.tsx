@@ -51,11 +51,18 @@ export function TalkForm({ sites, lockSiteId }: { sites: { id: string; name: str
   );
 }
 
-export function AcknowledgeButton({ talkId }: { talkId: string }) {
+export function AcknowledgeButton({ talkId, compact = false }: { talkId: string; compact?: boolean }) {
   const { run, pending, error } = useAct();
   return (
-    <div>
-      <button disabled={pending} onClick={() => run(() => acknowledgeTalk(talkId))} className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? "Saving…" : "I attended and understood"}</button>
+    <div className={compact ? "text-right" : undefined}>
+      <button
+        disabled={pending}
+        title="Confirms that you attended and understood this talk"
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); run(() => acknowledgeTalk(talkId)); }}
+        className={`rounded-full bg-brand-700 font-medium text-white hover:bg-brand-800 disabled:opacity-50 ${compact ? "px-3 py-1 text-xs" : "px-4 py-1.5 text-sm"}`}
+      >
+        {pending ? "Saving…" : compact ? "Acknowledge" : "I attended and understood"}
+      </button>
       {error && <p className="mt-1 text-xs text-danger">{error}</p>}
     </div>
   );
