@@ -54,7 +54,7 @@ export function SiteEditor({ site, people, trigger, siteExample = "Bayside Tower
   useEffect(() => { if (state?.success) { setOpen(false); router.refresh(); } }, [state, router]);
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className={site ? "text-xs font-medium text-orchid-deep hover:text-oxblood" : "rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800"}>{trigger}</button>
+      <button type="button" onClick={() => setOpen(true)} className={site ? "rounded-md px-2 py-1 text-xs font-semibold text-orchid-deep hover:bg-orchid-soft/60 hover:text-oxblood" : "rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800"}>{trigger}</button>
       {open && (
         <Modal title={site ? "Edit site" : "Add a site"} onClose={() => setOpen(false)}>
           <form action={formAction} className="space-y-3">
@@ -76,7 +76,7 @@ export function SiteEditor({ site, people, trigger, siteExample = "Bayside Tower
 
 export function SiteActiveToggle({ siteId, active }: { siteId: string; active: boolean }) {
   const { run, pending } = useAct();
-  return <button disabled={pending} onClick={() => run(() => setSiteActive(siteId, !active))} className="text-xs font-medium text-ink-600 hover:text-ink-900">{active ? "Archive" : "Restore"}</button>;
+  return <button disabled={pending} onClick={() => run(() => setSiteActive(siteId, !active))} className="rounded-md px-2 py-1 text-xs font-normal text-ink-500 hover:bg-surface-hover hover:text-ink-800">{active ? "Archive" : "Restore"}</button>;
 }
 
 export function EmergencyInstructionsForm({ initial }: { initial: string }) {

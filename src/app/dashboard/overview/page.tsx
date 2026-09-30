@@ -124,7 +124,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
 
         <IncidentQueue incidents={activeIncidents} always={false} />
 
-        <section aria-labelledby="action-needed" className="overflow-hidden rounded-xl bg-white">
+        <section aria-labelledby="action-needed" className="overflow-hidden surface">
           <div className="flex items-center justify-between gap-3 px-4 py-2.5">
             <h2 id="action-needed" className="flex items-center gap-2 text-sm font-semibold text-ink-900">
               {needsAction > 0 && <span aria-hidden className="h-2 w-2 rounded-full bg-amber-deep" />}Action needed
@@ -207,7 +207,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
         </section>
 
         <div className="grid gap-4 lg:grid-cols-2">
-          <section id="reports" aria-labelledby="my-reports" className="scroll-mt-4 overflow-hidden rounded-xl bg-white">
+          <section id="reports" aria-labelledby="my-reports" className="scroll-mt-4 overflow-hidden surface">
             <div className="flex items-baseline justify-between gap-3 px-4 py-2.5">
               <h2 id="my-reports" className="text-sm font-semibold text-ink-900">My open reports</h2>
               <Link href="/dashboard/reports" className="text-xs font-medium text-orchid-deep hover:text-oxblood">View all →</Link>
@@ -231,7 +231,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
             )}
           </section>
 
-          <section aria-labelledby="updates" className="overflow-hidden rounded-xl bg-white">
+          <section aria-labelledby="updates" className="overflow-hidden surface">
             <div className="px-4 py-2.5"><h2 id="updates" className="text-sm font-semibold text-ink-900">Updates on your reports</h2></div>
             {updates.length === 0 ? (
               <p className="border-t border-ink-100 px-4 py-3 text-sm text-ink-500">Nothing new. Updates appear here when the safety team responds.</p>
@@ -403,7 +403,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
       </header>
 
       <div className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start">
-        <section aria-labelledby="attention" className="rounded-xl bg-white p-4 sm:p-5">
+        <section aria-labelledby="attention" className="surface p-4 sm:p-5">
           <SectionTitle>
             <span id="attention">Needs your attention</span>
           </SectionTitle>
@@ -424,7 +424,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
         </section>
 
         <aside aria-labelledby="coming-up" className="space-y-4">
-          <section className="rounded-xl bg-white p-4 sm:p-5">
+          <section className="surface p-4 sm:p-5">
             <SectionTitle action={<TextLink href="/dashboard/inspections">All inspections</TextLink>}>
               <span id="coming-up">Coming up</span>
             </SectionTitle>
@@ -444,14 +444,14 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
         </aside>
       </div>
 
-      <section className="mt-8 rounded-xl bg-white p-4 sm:p-5" aria-labelledby="recent">
+      <section className="mt-8 surface p-4 sm:p-5" aria-labelledby="recent">
         <SectionTitle action={<TextLink href="/dashboard/reports?status=all">View all reports</TextLink>}>
           <span id="recent">Recent activity</span>
         </SectionTitle>
         <QuietActivity items={recent.slice(0, 6)} empty="No recent activity yet. Updates appear here as reports come in and work moves." />
       </section>
 
-      <section className="mt-8 rounded-xl bg-white p-5" aria-labelledby="pulse">
+      <section className="mt-8 surface p-5" aria-labelledby="pulse">
         <SectionTitle
           action={
             <div className="flex gap-0.5" role="group" aria-label="Time period">

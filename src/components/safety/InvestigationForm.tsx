@@ -61,7 +61,7 @@ export function InvestigationForm({
           <Textarea name="rootCauseNotes" defaultValue={initial.rootCauseNotes} rows={4} disabled={locked} placeholder="Explain why the conditions existed, not who was at fault. e.g. No one owned the check for wet floors, and the daily plan did not mention cleaning." className="leading-relaxed" />
         </Field>
 
-        <div className="space-y-2 rounded-xl bg-surface-muted p-4">
+        <div className="space-y-2 border-t border-ink-100 pt-5">
           <Field label="Lesson to share with crews" hint="Leave out names, injury details, and other personal details. Only the safety team can publish a lesson." optional>
             <Textarea name="lessonText" value={lesson} onChange={(e) => setLesson(e.target.value)} rows={3} disabled={locked} placeholder="One or two sentences a crew can act on tomorrow." />
           </Field>

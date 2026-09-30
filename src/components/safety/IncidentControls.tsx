@@ -37,7 +37,7 @@ export function OpenIncidentForm({ reportId, people, defaultLeadId }: { reportId
   const [reason, setReason] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   return (
-    <details className="rounded-lg bg-surface-muted p-3">
+    <details className="border-t border-ink-100 pt-3">
       <summary className="cursor-pointer text-sm font-medium text-ink-800">Open an incident response</summary>
       <div className="mt-3 space-y-3">
         <p className="text-xs text-ink-600">
@@ -298,7 +298,7 @@ export function CloseoutForm({
         {pending ? "Saving…" : "Resolve incident response"}
       </button>
 
-      <details className="rounded-lg bg-surface-muted p-3">
+      <details className="border-t border-ink-100 pt-3">
         <summary className="cursor-pointer text-sm font-medium text-ink-800">This did not need an incident response</summary>
         <div className="mt-3 space-y-2">
           <Field label="Why not?" hint="The report carries on as a normal report and keeps its history.">

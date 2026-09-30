@@ -9,13 +9,15 @@ import { EmptyState, fmtDate, PageHeader } from "@/components/safety/ui";
 import { StatStrip } from "@/components/safety/Dashboard";
 import { Pagination, readPage } from "@/components/safety/Pagination";
 import { TalkContent } from "@/components/safety/TalkContent";
-import { AcknowledgeButton, DeleteQualificationButton, PersonRoleControls, QualificationForm, TalkForm, TalkMenu } from "@/components/safety/TrainingForms";
+import { AcknowledgeButton, DeleteQualificationButton, QualificationForm, TalkForm, TalkMenu } from "@/components/safety/TrainingForms";
+import { ListToolbar } from "@/components/safety/ListToolbar";
+import { PersonAccess, PersonAssignment, PersonMenu } from "@/components/team/PeopleControls";
 import { InviteEmployeeForm } from "@/components/team/InviteEmployeeForm";
-import { ResendInviteButton } from "@/components/team/ResendInviteButton";
 
-export default async function TrainingPage({ searchParams }: { searchParams: Promise<{ tab?: string; filter?: string; q?: string; page?: string; new?: string }> }) {
+export default async function TrainingPage({ searchParams }: { searchParams: Promise<{ tab?: string; filter?: string; q?: string; page?: string; new?: string; pq?: string; psite?: string; pcrew?: string; pacc?: string; psort?: string; ppage?: string }> }) {
   const v = await requireViewer();
-  const { tab = "talks", filter: f, q, page: pageParam, new: newParam } = await searchParams;
+  const sp = await searchParams;
+  const { tab = "talks", filter: f, q, page: pageParam, new: newParam } = sp;
   const createOpen = newParam === "1";
   const pack = getPack();
   const canManage = v.isSafetyTeam || v.isSupervisor;
@@ -147,7 +149,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
         </div>
 
         {canManage && (
-          <details className="group rounded-xl bg-white" open={createOpen}>
+          <details className="group surface" open={createOpen}>
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
               <span>
                 <span className="block text-sm font-semibold text-ink-900">Create toolbox talk</span>
@@ -172,9 +174,9 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
             <section aria-labelledby="all-talks">
               <h2 id="all-talks" className={`mb-2 text-sm ${featured.length > 0 ? "font-medium text-ink-600" : "font-semibold text-ink-900"}`}>{filter === "all" ? "All toolbox talks" : STATUS[filter].label}</h2>
               {pageRows.length === 0 ? (
-                <p className="rounded-xl bg-white px-4 py-8 text-center text-sm text-ink-600">{featured.length > 0 ? "No other talks." : "No talks match."} {(filter !== "all" || term) && <Link href="?tab=talks" className="font-medium text-orchid-deep hover:text-oxblood">Show all talks</Link>}</p>
+                <p className="surface px-4 py-8 text-center text-sm text-ink-600">{featured.length > 0 ? "No other talks." : "No talks match."} {(filter !== "all" || term) && <Link href="?tab=talks" className="font-medium text-orchid-deep hover:text-oxblood">Show all talks</Link>}</p>
               ) : (
-                <ul className="divide-y divide-ink-100 overflow-hidden rounded-xl bg-white">{pageRows.map((r) => <TalkRow key={r.t.id} r={r} />)}</ul>
+                <ul className="divide-y divide-ink-100 overflow-hidden surface">{pageRows.map((r) => <TalkRow key={r.t.id} r={r} />)}</ul>
               )}
               <div className="mt-3"><Pagination page={page} total={rest.length} pageSize={perPage} noun="talks" hrefFor={(n) => href({ page: n > 1 ? String(n) : undefined })} /></div>
             </section>
@@ -182,7 +184,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
         )}
 
         {lessons.length > 0 && (
-          <details className="group rounded-xl bg-white">
+          <details className="group surface">
             <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-2 text-xs font-medium text-ink-700 hover:bg-surface-hover [&::-webkit-details-marker]:hidden">
               <span>Related: lessons from recent incidents <span className="font-normal text-ink-500">· {lessons.length}</span></span>
               <span aria-hidden className="text-ink-400 transition-transform group-open:rotate-180">⌄</span>
@@ -233,32 +235,102 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
       </div>
     );
   } else if (activeTab === "people" && v.isAdmin) {
-    const [people, crews, users] = await Promise.all([
+    const [everyone, crews] = await Promise.all([
       prisma.employee.findMany({ where: { organizationId: v.organizationId }, include: { user: true, department: true }, orderBy: { user: { name: "asc" } } }),
       prisma.department.findMany({ where: { organizationId: v.organizationId }, orderBy: { name: "asc" } }),
-      Promise.resolve(null),
     ]);
-    void users;
+    const siteName = new Map(sites.map((s) => [s.id, s.name]));
+    const pq = (sp.pq ?? "").trim().toLowerCase();
+    const acc = sp.pacc === "supervisor" || sp.pacc === "lead" || sp.pacc === "pending" ? sp.pacc : "";
+    const psort = sp.psort === "site" || sp.psort === "recent" || sp.psort === "access" ? sp.psort : "name";
+    const accessRank = (e: (typeof everyone)[number]) => (e.isSafetyLead ? 0 : e.isDepartmentAdmin ? 1 : 2);
+    const people = everyone
+      .filter((e) =>
+        (!pq || `${e.user.name} ${e.user.email} ${e.jobTitle}`.toLowerCase().includes(pq)) &&
+        (!sp.psite || (sp.psite === "none" ? !e.siteId : e.siteId === sp.psite)) &&
+        (!sp.pcrew || (sp.pcrew === "none" ? !e.departmentId : e.departmentId === sp.pcrew)) &&
+        (acc === "" || (acc === "supervisor" ? e.isDepartmentAdmin : acc === "lead" ? e.isSafetyLead : e.user.lastLoginAt === null)),
+      )
+      .sort((a, b) =>
+        psort === "site" ? (siteName.get(a.siteId ?? "") ?? "zzz").localeCompare(siteName.get(b.siteId ?? "") ?? "zzz") || a.user.name.localeCompare(b.user.name)
+        : psort === "recent" ? b.createdAt.getTime() - a.createdAt.getTime()
+        : psort === "access" ? accessRank(a) - accessRank(b) || a.user.name.localeCompare(b.user.name)
+        : a.user.name.localeCompare(b.user.name),
+      );
+    const peoplePerPage = 20;
+    const ppage = Math.min(readPage(sp.ppage), Math.max(1, Math.ceil(people.length / peoplePerPage)));
+    const pagePeople = people.slice((ppage - 1) * peoplePerPage, ppage * peoplePerPage);
+    const pHref = (n: number) => {
+      const q2 = new URLSearchParams({ tab: "people" });
+      for (const k of ["pq", "psite", "pcrew", "pacc", "psort"] as const) if (sp[k]) q2.set(k, sp[k]!);
+      if (n > 1) q2.set("ppage", String(n));
+      return `?${q2.toString()}`;
+    };
+    const siteOpts = sites.map((s) => ({ id: s.id, name: s.name }));
+    const crewOpts = crews.map((c) => ({ id: c.id, name: c.name }));
+    const pending = everyone.filter((e) => e.user.lastLoginAt === null).length;
+    const filteredPeople = Boolean(pq || sp.psite || sp.pcrew || acc);
     body = (
-      <div className="space-y-5">
-        <Card tone="plain">
-          <CardHeader title="Add a person" subtitle="They receive a temporary password by email. If email is not set up, you can share it with them directly." />
-          <CardBody><InviteEmployeeForm crews={crews.map((c) => ({ id: c.id, name: c.name }))} sites={sites.map((s) => ({ id: s.id, name: s.name }))} /></CardBody>
-        </Card>
-        <Card tone="plain">
-          <CardHeader title={`People (${people.length})`} subtitle="Supervisors see their own site. Safety leads see every report and investigation. Only company admins change these roles." />
-          <ul className="divide-y divide-ink-200">
-            {people.map((p) => (
-              <li key={p.id} className="flex flex-col gap-2 px-4 py-3 sm:px-5">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-3"><Avatar name={p.user.name} size={28} /><div className="min-w-0"><p className="truncate text-sm font-medium text-ink-900">{p.user.name}</p><p className="truncate text-xs text-ink-500">{p.jobTitle}{p.department ? ` · ${p.department.name}` : ""} · {p.user.email}</p></div></div>
-                  {p.user.lastLoginAt === null && <div className="flex items-center gap-2"><Badge tone="amber">Invite pending</Badge><ResendInviteButton userId={p.userId} name={p.user.name} /></div>}
-                </div>
-                <PersonRoleControls employeeId={p.id} siteId={p.siteId} crewId={p.departmentId} crews={crews.map((c) => ({ id: c.id, name: c.name }))} isSafetyLead={p.isSafetyLead} isSupervisor={p.isDepartmentAdmin} sites={sites.map((s) => ({ id: s.id, name: s.name }))} />
-              </li>
-            ))}
-          </ul>
-        </Card>
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-ink-900">People <span className="font-normal tabular-nums text-ink-500">{everyone.length}{pending > 0 ? ` · ${pending} invite${pending === 1 ? "" : "s"} pending` : ""}</span></h2>
+            <p className="text-xs text-ink-500">Supervisors see their own site. Safety leads see every report and investigation. Only company admins change these roles.</p>
+          </div>
+        </div>
+        <details className="group" open={sp.new === "person"}>
+          <summary className="inline-flex cursor-pointer list-none items-center rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 group-open:hidden [&::-webkit-details-marker]:hidden">Invite person</summary>
+          <div className="expand-panel p-4 sm:p-5">
+            <div className="mb-3 border-b border-ink-100 pb-3">
+              <h3 className="text-sm font-semibold text-ink-900">Invite a person</h3>
+              <p className="text-xs text-ink-500">They receive a temporary password by email. If email is not set up, you can share it with them directly.</p>
+            </div>
+            <InviteEmployeeForm crews={crewOpts} sites={siteOpts} />
+          </div>
+        </details>
+
+        <ListToolbar
+          searchParam="pq"
+          pageParam="ppage"
+          placeholder="Search name, email or job title"
+          selects={[
+            { param: "psite", label: "All sites", options: [...siteOpts.map((s) => ({ value: s.id, label: s.name })), { value: "none", label: "No home site" }] },
+            { param: "pcrew", label: "All crews", options: [...crewOpts.map((c) => ({ value: c.id, label: c.name })), { value: "none", label: "No crew" }] },
+            { param: "pacc", label: "Any access", options: [{ value: "supervisor", label: "Supervisors" }, { value: "lead", label: "Safety leads" }, { value: "pending", label: "Invite pending" }] },
+          ]}
+          sort={{ param: "psort", label: "Sort people", options: [{ value: "", label: "Name" }, { value: "site", label: "Site" }, { value: "access", label: "Access" }, { value: "recent", label: "Recently added" }] }}
+        />
+
+        {people.length === 0 ? (
+          <div className="surface border-dashed px-6 py-10 text-center">
+            <p className="text-sm font-medium text-ink-900">{filteredPeople ? "No one matches these filters" : "No people yet"}</p>
+            <p className="mt-1 text-sm text-ink-600">{filteredPeople ? "Try a different search, or clear the filters." : "Invite your first person above."}</p>
+            {filteredPeople && <Link href="?tab=people" className="mt-3 inline-block text-sm font-medium text-orchid-deep hover:text-oxblood">Clear filters</Link>}
+          </div>
+        ) : (
+          <div className="surface">
+            <div className="sticky top-0 z-10 hidden items-center gap-4 rounded-t-xl border-b border-ink-200 bg-ink-100 px-4 py-2 text-xs font-medium text-ink-700 md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,26rem)_11rem_2rem]">
+              <span>Person</span><span>Site and crew</span><span>Access</span><span className="sr-only">Actions</span>
+            </div>
+            <ul className="divide-y divide-ink-100">
+              {pagePeople.map((p) => (
+                <li key={p.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2.5 px-4 py-3.5 first:rounded-t-xl last:rounded-b-xl hover:bg-surface-hover/50 md:grid-cols-[minmax(0,1fr)_minmax(0,26rem)_11rem_2rem]">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <Avatar name={p.user.name} size={32} />
+                    <div className="min-w-0">
+                      <p className="flex items-center gap-2 truncate text-sm font-semibold text-ink-900">{p.user.name}{p.user.lastLoginAt === null && <Badge tone="amber">Invite pending</Badge>}</p>
+                      <p className="truncate text-xs text-ink-500">{p.jobTitle} · {p.user.email}</p>
+                    </div>
+                  </div>
+                  <div className="order-3 col-span-2 md:order-none md:col-span-1"><PersonAssignment employeeId={p.id} siteId={p.siteId} crewId={p.departmentId} sites={siteOpts} crews={crewOpts} /></div>
+                  <div className="order-4 col-span-2 md:order-none md:col-span-1"><PersonAccess employeeId={p.id} isSupervisor={p.isDepartmentAdmin} isSafetyLead={p.isSafetyLead} /></div>
+                  <div className="justify-self-end md:order-none"><PersonMenu userId={p.userId} employeeId={p.id} name={p.user.name} jobTitle={p.jobTitle} isSupervisor={p.isDepartmentAdmin} isSafetyLead={p.isSafetyLead} pendingInvite={p.user.lastLoginAt === null} isSelf={p.userId === v.userId} /></div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <Pagination page={ppage} total={people.length} pageSize={peoplePerPage} noun="people" hrefFor={pHref} />
       </div>
     );
   }

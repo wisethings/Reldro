@@ -215,7 +215,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
             </ul>
           )}
           {canPropose && report.status !== "CLOSED" && (
-            <details className="rounded-lg bg-surface-muted p-3">
+            <details className="border-t border-ink-100 pt-3">
               <summary className="cursor-pointer text-sm font-medium text-ink-800">{v.isSafetyTeam ? "Add a corrective action" : "Propose a corrective action"}</summary>
               <div className="mt-3">
                 <ActionForm reportId={report.id} people={people.map((p) => ({ id: p.id, name: p.user.name }))} severities={SEVERITIES.map((s) => ({ key: s.key, label: s.label }))} isSafetyTeam={v.isSafetyTeam} />

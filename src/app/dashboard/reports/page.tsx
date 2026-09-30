@@ -80,7 +80,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         subtitle={v.isSafetyTeam ? "Hazards, near misses, injuries, and other safety concerns reported across your sites." : v.isSupervisor ? "Safety concerns reported at your site, and ones you submitted." : "Safety concerns you submitted, and what happened next."}
       />
       {staff && (
-        <nav aria-label="Quick filters" className="grid grid-cols-2 divide-x divide-y divide-ink-100 overflow-hidden rounded-xl bg-white sm:flex sm:divide-y-0">
+        <nav aria-label="Quick filters" className="grid grid-cols-2 divide-x divide-y divide-ink-100 overflow-hidden surface sm:flex sm:divide-y-0">
           {metric("Open", sOpen, qs({ status: "open", attention: undefined, severity: undefined, site: undefined, q: undefined }), status === "open" && !attention && !filtered)}
           {metric("Response overdue", sLate, qs({ status: "open", attention: "overdue" }), attention === "overdue", true)}
           {metric("Without an owner", sNoOwner, qs({ status: "open", attention: "unowned" }), attention === "unowned", true)}

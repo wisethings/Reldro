@@ -100,13 +100,19 @@ select {
 /* The expanded body of a list row: a white surface with a hairline border and a very soft shadow, sitting on the
    off-white band the open row turns into, so opened content reads as its own contained panel. */
 @layer components {
+  /* Surface hierarchy: page (warm off-white) < surface (white, hairline border) < expand-panel (white, firmer border, soft shadow) < nested content (spacing + dividers, never another card). */
+  .surface {
+    background-color: #ffffff;
+    border: 1px solid rgba(42, 10, 12, 0.08);
+    border-radius: 0.75rem;
+  }
   .expand-band {
     background-color: #f7f6f3;
     box-shadow: inset 0 1px 0 rgba(42, 10, 12, 0.04), inset 0 -1px 0 rgba(42, 10, 12, 0.04);
   }
   .expand-panel {
     background-color: #ffffff;
-    border: 1px solid rgba(42, 10, 12, 0.09);
+    border: 1px solid rgba(42, 10, 12, 0.12);
     border-radius: 0.75rem;
     box-shadow: 0 1px 2px rgba(42, 10, 12, 0.04), 0 4px 14px -6px rgba(42, 10, 12, 0.08);
   }

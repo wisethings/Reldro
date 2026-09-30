@@ -112,7 +112,7 @@ export function IncidentPanel(props: {
           </div>
 
           {props.canRun && !resolved && (
-            <details className="rounded-lg bg-surface-muted p-3">
+            <details className="border-t border-ink-100 pt-3">
               <summary className="cursor-pointer text-sm font-medium text-ink-800">Update the summary, next action, and lead</summary>
               <div className="mt-3">
                 <IncidentDetailsForm

@@ -4,6 +4,8 @@ import type { Prisma } from "@prisma/client";
 
 export type AuditAction =
   | "employee.invited"
+  | "employee.updated"
+  | "employee.deleted"
   | "account.password_changed"
   | "account.locked"
   | "initiative.created"
@@ -91,6 +93,8 @@ export async function logAudit(params: {
 
 const ACTION_LABELS: Record<AuditAction, string> = {
   "employee.invited": "Invited an employee",
+  "employee.updated": "Edited a person",
+  "employee.deleted": "Deleted a person",
   "account.password_changed": "Changed password",
   "account.locked": "Account locked after repeated failed login attempts",
   "initiative.created": "Created an initiative",

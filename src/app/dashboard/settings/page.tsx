@@ -13,9 +13,13 @@ import { AddDepartmentForm } from "@/components/settings/AddDepartmentForm";
 import { CrewRow } from "@/components/settings/CrewRow";
 import { InviteAdminForm } from "@/components/settings/InviteAdminForm";
 import { AdminRow } from "@/components/settings/AdminRow";
+import { Pagination, readPage } from "@/components/safety/Pagination";
 import { DeleteRuleButton, EmergencyInstructionsForm, EscalationRuleForm } from "@/components/safety/SettingsForms";
 
-export default async function SettingsPage() {
+const ADMIN_PAGE = 8;
+
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ apage?: string }> }) {
+  const { apage } = await searchParams;
   const session = await requireRole(["COMPANY_ADMIN"]);
   if (!session.organizationId) redirect("/login");
   const orgId = session.organizationId;
@@ -31,6 +35,7 @@ export default async function SettingsPage() {
     prisma.employee.findMany({ where: { organizationId: orgId }, include: { user: { select: { name: true } } }, orderBy: { user: { name: "asc" } } }),
   ]);
   if (!org) redirect("/login");
+  const adminPage = Math.min(readPage(apage), Math.max(1, Math.ceil(admins.length / ADMIN_PAGE)));
   const crewCounts = new Map<string, number>();
   for (const e of await prisma.employee.findMany({ where: { organizationId: orgId, departmentId: { not: null } }, select: { departmentId: true } })) crewCounts.set(e.departmentId!, (crewCounts.get(e.departmentId!) ?? 0) + 1);
   const nameOf = (id: string | null) => (id ? people.find((p) => p.id === id)?.user.name ?? "Someone" : null);
@@ -85,7 +90,7 @@ export default async function SettingsPage() {
               ))}
             </ul>
           )}
-          <details className="rounded-lg bg-surface-muted p-3">
+          <details className="border-t border-ink-100 pt-3">
             <summary className="cursor-pointer text-sm font-medium text-ink-800">Add a rule</summary>
             <div className="mt-3">
               <EscalationRuleForm
@@ -115,12 +120,13 @@ export default async function SettingsPage() {
         </CardBody>
       </Card>
 
-      <Card tone="plain">
-        <CardHeader icon={<IconBadge icon={<ShieldCheck size={18} />} tone="orchid" />} title="Company admins" subtitle="Admins see everything and manage settings. Add more so no single account is a bottleneck." />
+      <Card tone="plain" id="company-admins">
+        <CardHeader icon={<IconBadge icon={<ShieldCheck size={18} />} tone="orchid" />} title={`Company admins (${admins.length})`} subtitle="Admins see everything and manage settings. Add more so no single account is a bottleneck." />
         <CardBody className="space-y-4">
           <div className="divide-y divide-ink-200">
-            {admins.map((a) => <AdminRow key={a.id} admin={{ id: a.id, name: a.name, email: a.email, pending: a.lastLoginAt === null }} isSelf={a.id === session.sub} />)}
+            {admins.slice((adminPage - 1) * ADMIN_PAGE, adminPage * ADMIN_PAGE).map((a) => <AdminRow key={a.id} admin={{ id: a.id, name: a.name, email: a.email, pending: a.lastLoginAt === null }} isSelf={a.id === session.sub} />)}
           </div>
+          <Pagination page={adminPage} total={admins.length} pageSize={ADMIN_PAGE} noun="admins" hrefFor={(n) => `?${n > 1 ? `apage=${n}` : ""}#company-admins`} />
           <InviteAdminForm />
         </CardBody>
       </Card>

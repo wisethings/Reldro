@@ -74,7 +74,7 @@ export default async function ActivityLogPage({ searchParams }: { searchParams: 
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl bg-white">
+      <div className="overflow-hidden surface">
         {rows.length === 0 ? (
           <p className="p-5 text-sm text-ink-500">Nothing matches these filters.</p>
         ) : (

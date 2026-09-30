@@ -5,7 +5,6 @@ import { MoreHorizontal } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { acknowledgeTalk, addQualification, createToolboxTalk, deleteQualification, deleteToolboxTalk } from "@/lib/actions/safetyTraining";
 import { aiDraftToolboxTalk } from "@/lib/actions/safetyAi";
-import { setPersonRoles } from "@/lib/actions/safetySettings";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { AiTextDraft } from "./AiTextDraft";
 import { useAct } from "./useAct";
@@ -120,39 +119,4 @@ export function QualificationForm({ people, suggestions }: { people: { id: strin
 export function DeleteQualificationButton({ id }: { id: string }) {
   const { run, pending } = useAct();
   return <button disabled={pending} onClick={() => confirm("Remove this qualification record?") && run(() => deleteQualification(id))} className="text-xs text-danger hover:underline">Remove</button>;
-}
-
-export function PersonRoleControls({
-  employeeId,
-  siteId,
-  isSafetyLead,
-  isSupervisor,
-  sites,
-  crewId,
-  crews,
-}: {
-  employeeId: string;
-  siteId: string | null;
-  crewId: string | null;
-  crews: { id: string; name: string }[];
-  isSafetyLead: boolean;
-  isSupervisor: boolean;
-  sites: { id: string; name: string }[];
-}) {
-  const { run, pending, error } = useAct();
-  return (
-    <div className="flex flex-wrap items-center gap-3">
-      <Select aria-label="Home site" defaultValue={siteId ?? ""} disabled={pending} onChange={(e) => run(() => setPersonRoles(employeeId, { siteId: e.target.value || null }))} className="w-auto py-1 text-xs">
-        <option value="">No home site</option>
-        {sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-      </Select>
-      <Select aria-label="Crew" defaultValue={crewId ?? ""} disabled={pending} onChange={(e) => run(() => setPersonRoles(employeeId, { departmentId: e.target.value || null }))} className="w-auto py-1 text-xs">
-        <option value="">No crew</option>
-        {crews.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-      </Select>
-      <label className="flex items-center gap-1.5 text-xs text-ink-700"><input type="checkbox" defaultChecked={isSupervisor} disabled={pending} onChange={(e) => run(() => setPersonRoles(employeeId, { isSupervisor: e.target.checked }))} /> Supervisor</label>
-      <label className="flex items-center gap-1.5 text-xs text-ink-700"><input type="checkbox" defaultChecked={isSafetyLead} disabled={pending} onChange={(e) => run(() => setPersonRoles(employeeId, { isSafetyLead: e.target.checked }))} /> Safety lead</label>
-      {error && <span className="text-xs text-danger">{error}</span>}
-    </div>
-  );
 }

@@ -27,7 +27,7 @@ function Bars({ rows, empty = "Nothing to show yet." }: { rows: { label: string;
 
 function Block({ title, note, children, className = "" }: { title: string; note?: string; children: React.ReactNode; className?: string }) {
   return (
-    <section className={`rounded-xl bg-white p-5 ${className}`}>
+    <section className={`surface p-5 ${className}`}>
       <h2 className="text-sm font-semibold text-ink-900">{title}</h2>
       {note && <p className="mt-0.5 text-xs leading-snug text-ink-500">{note}</p>}
       <div className="mt-3">{children}</div>
@@ -108,7 +108,7 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
         </div>
       </div>
 
-      <section aria-label="Key figures" className="rounded-xl bg-white p-5">
+      <section aria-label="Key figures" className="surface p-5">
         <dl className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3 lg:grid-cols-6">
           <Figure label="Reports" value={reports.length} />
           <Figure label="Median hours to acknowledge" value={medianAck === null ? "—" : medianAck < 10 ? medianAck.toFixed(1) : Math.round(medianAck)} />
@@ -138,7 +138,7 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
         </Block>
       </div>
 
-      <details className="group rounded-xl bg-white text-sm text-ink-700">
+      <details className="group surface text-sm text-ink-700">
         <summary className="flex cursor-pointer list-none items-center justify-between px-5 py-3 font-medium text-ink-900 [&::-webkit-details-marker]:hidden">
           How to read this page
           <span aria-hidden className="text-ink-400 transition-transform group-open:rotate-180">⌄</span>
@@ -152,7 +152,7 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
         </ul>
       </details>
 
-      <section className="rounded-xl bg-white p-5">
+      <section className="surface p-5">
         <h2 className="text-sm font-semibold text-ink-900">Summary of reported themes</h2>
         <p className="mt-0.5 text-xs text-ink-500">A draft based on the reports in this period. Check it against the source reports before sharing.</p>
         <div className="mt-3"><ThemesSummaryDraft days={days} /></div>

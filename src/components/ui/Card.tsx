@@ -7,7 +7,7 @@ import { cn } from "./cn";
  */
 export function Card({ className, id, tone = "default", children }: { className?: string; id?: string; tone?: "default" | "muted" | "plain"; children: React.ReactNode }) {
   return (
-    <div id={id} className={cn(tone === "muted" ? "rounded-xl bg-surface-muted [&>div:first-child]:border-ink-200/40" : tone === "plain" ? "rounded-xl bg-white [&>div:first-child]:border-ink-100" : "rounded-xl border border-ink-200/80 bg-white", className)}>
+    <div id={id} className={cn(tone === "muted" ? "rounded-xl bg-surface-muted [&>div:first-child]:border-ink-200/40" : tone === "plain" ? "surface [&>div:first-child]:border-ink-100" : "rounded-xl border border-ink-200/80 bg-white", className)}>
       {children}
     </div>
   );

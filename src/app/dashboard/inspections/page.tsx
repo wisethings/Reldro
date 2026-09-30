@@ -116,7 +116,7 @@ export default async function InspectionsPage() {
                 ))}
               </ul>
             )}
-            <details className="rounded-lg bg-surface-muted p-3"><summary className="cursor-pointer text-sm font-medium text-ink-800">Create a checklist</summary><div className="mt-3"><TemplateForm /></div></details>
+            <details className="border-t border-ink-100 pt-3"><summary className="cursor-pointer text-sm font-medium text-ink-800">Create a checklist</summary><div className="mt-3"><TemplateForm /></div></details>
           </CardBody>
         </Card>
       )}

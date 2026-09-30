@@ -99,7 +99,7 @@ export default async function SitesPage({ searchParams }: { searchParams: Promis
             const h = HEALTH[health];
             const reportsHref = `/dashboard/reports?status=open&site=${s.id}`;
             return (
-              <article key={s.id} className={`group relative overflow-hidden rounded-xl bg-white ring-1 ring-transparent transition-shadow hover:ring-ink-300 ${s.active ? "" : "opacity-70"}`}>
+              <article key={s.id} className={`group relative overflow-hidden surface transition-shadow hover:border-ink-300 hover:shadow-[0_1px_2px_rgba(42,10,12,0.05),0_4px_14px_-6px_rgba(42,10,12,0.08)] ${s.active ? "" : "opacity-70"}`}>
                 <span aria-hidden className={`absolute inset-x-0 top-0 h-0.5 ${h.edge}`} />
                 <div className="space-y-4 p-4 sm:p-5">
                   <div className="min-w-0">
@@ -130,7 +130,7 @@ export default async function SitesPage({ searchParams }: { searchParams: Promis
                     <span aria-hidden className="text-xs font-medium text-orchid-deep group-hover:text-oxblood">View site →</span>
                   </div>
                 </div>
-                <div className="relative z-10 flex gap-4 bg-surface-muted px-4 py-2 text-xs sm:px-5">
+                <div className="relative z-10 flex items-center gap-1 border-t border-ink-200 bg-surface-muted px-3 py-2.5 text-xs sm:px-4">
                   <SiteEditor site={{ id: s.id, name: s.name, address: s.address, kind: s.kind, safetyLeadId: s.safetyLeadId }} people={peopleOpts} trigger="Edit" siteExample={getPack().siteExample} kinds={kinds} />
                   <SiteActiveToggle siteId={s.id} active={s.active} />
                 </div>

@@ -173,7 +173,7 @@ export function PulseGrid({ children }: { children: React.ReactNode }) {
 /** A compact row of numbers for the top of a list screen. Neutral by default so counts never read as verdicts. */
 export function StatStrip({ items, large = false }: { items: { label: string; value: number | string; href?: string; tint?: Tint; alert?: boolean }[]; large?: boolean }) {
   return (
-    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-ink-100 sm:grid-cols-4">
+    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-ink-100 ring-1 ring-[rgba(42,10,12,0.08)] sm:grid-cols-4">
       {items.map((s) => {
         const body = (
           <dl>
