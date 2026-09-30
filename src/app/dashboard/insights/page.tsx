@@ -2,23 +2,46 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireViewer } from "@/lib/safety/context";
 import { categoryLabel, getPack, OPEN_ACTION_STATUSES, reportTypeLabel } from "@/lib/safety/pack";
-import { Card, CardBody, CardHeader } from "@/components/ui/Card";
-import { NoAccess, PageHeader } from "@/components/safety/ui";
+import { NoAccess } from "@/components/safety/ui";
 import { ThemesSummaryDraft } from "@/components/safety/AiDraftButtons";
 
-function Bars({ rows, empty = "Nothing to show yet." }: { rows: { label: string; count: number }[]; empty?: string }) {
+function Bars({ rows, empty = "Nothing to show yet." }: { rows: { label: string; count: number; href?: string }[]; empty?: string }) {
   if (rows.length === 0) return <p className="text-sm text-ink-500">{empty}</p>;
   const max = Math.max(1, ...rows.map((r) => r.count));
   return (
-    <ul className="space-y-2">
-      {rows.map((r) => (
-        <li key={r.label} className="grid grid-cols-[minmax(0,12rem),1fr,2rem] items-center gap-3 text-sm">
-          <span className="truncate text-ink-700">{r.label}</span>
-          <span className="h-2 rounded-full bg-surface-sunken"><span className="block h-2 rounded-full bg-orchid-deep" style={{ width: `${(r.count / max) * 100}%` }} /></span>
-          <span className="text-right tabular-nums text-ink-600">{r.count}</span>
-        </li>
-      ))}
+    <ul className="space-y-1">
+      {rows.map((r, i) => {
+        const inner = (
+          <>
+            <span title={r.label} className={`min-w-0 text-[13px] leading-snug ${i === 0 ? "font-medium text-ink-900" : "text-ink-700"} line-clamp-2 break-words`}>{r.label}</span>
+            <span aria-hidden className="h-1.5 overflow-hidden rounded-full bg-ink-100"><span className={`block h-full rounded-full ${i === 0 ? "bg-orchid-deep" : "bg-orchid-deep/55"}`} style={{ width: `${(r.count / max) * 100}%` }} /></span>
+            <span className={`text-right text-[13px] tabular-nums ${i === 0 ? "font-semibold text-ink-900" : "text-ink-600"}`}>{r.count}</span>
+          </>
+        );
+        const cls = "grid grid-cols-[minmax(0,1fr)_5.5rem_1.75rem] items-center gap-3 rounded-md px-1 py-1.5 sm:grid-cols-[minmax(0,1fr)_8rem_2rem]";
+        return <li key={r.label}>{r.href ? <Link href={r.href} className={`${cls} hover:bg-ink-50`}>{inner}</Link> : <div className={cls}>{inner}</div>}</li>;
+      })}
     </ul>
+  );
+}
+
+function Block({ title, note, children, className = "" }: { title: string; note?: string; children: React.ReactNode; className?: string }) {
+  return (
+    <section className={`border-t border-ink-100 pt-4 ${className}`}>
+      <h2 className="text-[13px] font-semibold text-ink-900">{title}</h2>
+      {note && <p className="mt-0.5 text-xs leading-snug text-ink-500">{note}</p>}
+      <div className="mt-3">{children}</div>
+    </section>
+  );
+}
+
+function Figure({ label, value, tone, note }: { label: string; value: string | number; tone?: "bad"; note?: string }) {
+  return (
+    <div>
+      <dd className={`text-2xl font-semibold tabular-nums ${tone === "bad" ? "text-danger" : "text-ink-900"}`}>{value}</dd>
+      <dt className="text-xs text-ink-600">{label}</dt>
+      {note && <p className="text-[11px] text-ink-400">{note}</p>}
+    </div>
   );
 }
 
@@ -46,7 +69,8 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
   ]);
 
   const byCategory = tally(reports.map((r) => categoryLabel(r.category, pack)));
-  const bySite = tally(reports.map((r) => r.site?.name ?? "No site"));
+  const siteIds = new Map(reports.filter((r) => r.site).map((r) => [r.site!.name, r.site!.id]));
+  const bySite = tally(reports.map((r) => r.site?.name ?? "No site")).map((r) => ({ ...r, href: siteIds.get(r.label) ? `/dashboard/reports?status=all&site=${siteIds.get(r.label)}` : undefined }));
   const byType = tally(reports.map((r) => reportTypeLabel(r.type)));
   const factors = tally(investigations.flatMap((i) => i.contributingFactors));
   const pairs = new Map<string, { label: string; count: number }>();
@@ -67,22 +91,59 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
   const incidentsResolved = incidents.filter((i) => i.status === "RESOLVED" && !i.standDownReason);
   const incidentsStoodDown = incidents.filter((i) => i.standDownReason).length;
   const incidentsOpen = incidents.filter((i) => i.status !== "RESOLVED").length;
-  const chip = (active: boolean) => `rounded-full border px-3 py-1.5 text-xs font-medium ${active ? "border-brand-700 bg-orchid-soft text-orchid-deep" : "border-ink-200 bg-white text-ink-600 hover:bg-ink-50"}`;
+  const seg = (active: boolean) => `rounded-md px-3 py-1 text-xs font-medium transition-colors ${active ? "bg-white text-ink-900 shadow-[0_0_0_1px_rgba(42,10,12,0.08)]" : "text-ink-600 hover:text-ink-900"}`;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5 p-4 sm:p-6">
-      <PageHeader
-        title="Insights"
-        subtitle="Review reporting and follow-up patterns across sites, teams, and topics. Report counts alone do not show how safe a site is."
-        actions={<Link href={`/api/safety/export/reports?days=${days}`} className="rounded-full border border-ink-300 px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-ink-50">Export reports (CSV)</Link>}
-      />
-      <div className="flex gap-2">
-        {[30, 90, 365].map((n) => <Link key={n} href={`?days=${n}`} className={chip(days === n)}>Last {n === 365 ? "year" : `${n} days`}</Link>)}
+    <div className="mx-auto w-full max-w-6xl space-y-8 px-4 py-4 sm:px-6 sm:py-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-lg font-semibold text-ink-900">Insights</h1>
+          <p className="mt-0.5 max-w-2xl text-[13px] text-ink-500">Review reporting and follow-up patterns across sites, teams, and topics. Report counts alone do not show how safe a site is.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div role="group" aria-label="Time period" className="flex rounded-lg bg-ink-100 p-0.5">
+            {[30, 90, 365].map((n) => <Link key={n} href={`?days=${n}`} className={seg(days === n)} aria-pressed={days === n}>{n === 365 ? "Last year" : `${n} days`}</Link>)}
+          </div>
+          <Link href={`/api/safety/export/reports?days=${days}`} className="rounded-full border border-ink-300 px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-ink-50">Export reports (CSV)</Link>
+        </div>
       </div>
 
-      <details className="rounded-xl border border-ink-200 bg-white p-4 text-sm text-ink-700">
-        <summary className="cursor-pointer font-medium text-ink-900">How to read this page</summary>
-        <ul className="mt-2 list-disc space-y-1 pl-5">
+      <section aria-label="Key figures" className="rounded-xl bg-surface-muted p-5">
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3 lg:grid-cols-6">
+          <Figure label="Reports" value={reports.length} />
+          <Figure label="Median hours to acknowledge" value={medianAck === null ? "—" : medianAck < 10 ? medianAck.toFixed(1) : Math.round(medianAck)} />
+          <Figure label="Incident responses" value={incidents.length} note={incidentsOpen ? `${incidentsOpen} still open` : undefined} />
+          <Figure label="Corrective actions open" value={open.length} />
+          <Figure label="Overdue" value={overdue.length} tone={overdue.length ? "bad" : undefined} />
+          <Figure label="Avg days to verify" value={avgDaysToVerify ?? "—"} />
+        </dl>
+        <p className="mt-4 text-[11px] leading-snug text-ink-500">
+          {incidentsResolved.length} incident {incidentsResolved.length === 1 ? "response" : "responses"} resolved with a closeout{incidentsStoodDown ? `, ${incidentsStoodDown} stood down as not needing one` : ""}. Acknowledgement time uses reports that have been acknowledged. Corrective action figures count actions created in this period; verified means someone confirmed the fix is in place.
+        </p>
+      </section>
+
+      <div className="grid gap-x-10 gap-y-8 lg:grid-cols-2">
+        <Block title="Repeated hazards" note="Same topic at the same site, two or more times. The strongest signal on this page.">
+          <Bars rows={repeats} empty="No repeats in this period." />
+        </Block>
+        <Block title="Reports by site" note="Select a site to open its reports.">
+          <Bars rows={bySite.slice(0, 8)} />
+        </Block>
+        <Block title="Reports by topic"><Bars rows={byCategory.slice(0, 8)} /></Block>
+        <Block title="Reports by kind" note="Reporting near misses and hazards early gives a chance to fix a problem before someone is hurt. The mix shows what people chose to report, not everything that happened.">
+          <Bars rows={byType} />
+        </Block>
+        <Block title="Contributing factors in investigations" className="lg:col-span-2">
+          <Bars rows={factors.slice(0, 8)} empty="No investigations with selected factors yet." />
+        </Block>
+      </div>
+
+      <details className="group rounded-xl bg-surface-muted text-sm text-ink-700">
+        <summary className="flex cursor-pointer list-none items-center justify-between px-5 py-3 font-medium text-ink-900 [&::-webkit-details-marker]:hidden">
+          How to read this page
+          <span aria-hidden className="text-ink-400 transition-transform group-open:rotate-180">⌄</span>
+        </summary>
+        <ul className="list-disc space-y-1 px-5 pb-4 pl-10 text-[13px]">
           <li>Reporting patterns can reflect both workplace conditions and how comfortable people feel reporting concerns.</li>
           <li>Fewer reports do not mean fewer hazards, and more reports do not mean more hazards.</li>
           <li>With small numbers, two similar reports can look like a pattern by chance. Read the reports before acting.</li>
@@ -91,49 +152,17 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
         </ul>
       </details>
 
-      <Card>
-        <CardHeader title="Summary of reported themes" subtitle="A draft based on the reports in this period. Check it against the source reports before sharing." />
-        <CardBody><ThemesSummaryDraft days={days} /></CardBody>
-      </Card>
+      <section className="rounded-xl bg-surface-muted p-5">
+        <h2 className="text-[13px] font-semibold text-ink-900">Summary of reported themes</h2>
+        <p className="mt-0.5 text-xs text-ink-500">A draft based on the reports in this period. Check it against the source reports before sharing.</p>
+        <div className="mt-3"><ThemesSummaryDraft days={days} /></div>
+      </section>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <Card><CardHeader title="Repeated hazards" subtitle="Same topic at the same site, two or more times" /><CardBody><Bars rows={repeats} empty="No repeats in this period." /></CardBody></Card>
-        <Card><CardHeader title="Reports by topic" /><CardBody><Bars rows={byCategory.slice(0, 8)} /></CardBody></Card>
-        <Card><CardHeader title="Reports by site" /><CardBody><Bars rows={bySite.slice(0, 8)} /></CardBody></Card>
-        <Card><CardHeader title="Reports by kind" subtitle="Reporting near misses and hazards early gives a chance to fix a problem before someone is hurt. The mix shows what people chose to report, not everything that happened." /><CardBody><Bars rows={byType} /></CardBody></Card>
-        <Card><CardHeader title="Contributing factors in investigations" /><CardBody><Bars rows={factors.slice(0, 8)} empty="No investigations with selected factors yet." /></CardBody></Card>
-        <Card>
-          <CardHeader title="Response" subtitle="How reports and incident responses are being handled" />
-          <CardBody>
-            <dl className="grid grid-cols-3 gap-3 text-center">
-              <div><dt className="text-xs text-ink-500">Median hours to acknowledge a report</dt><dd className="text-2xl font-medium tabular-nums text-ink-900">{medianAck === null ? "—" : medianAck < 10 ? medianAck.toFixed(1) : Math.round(medianAck)}</dd></div>
-              <div><dt className="text-xs text-ink-500">Incident responses opened</dt><dd className="text-2xl font-medium tabular-nums text-ink-900">{incidents.length}</dd></div>
-              <div><dt className="text-xs text-ink-500">Still open</dt><dd className="text-2xl font-medium tabular-nums text-ink-900">{incidentsOpen}</dd></div>
-            </dl>
-            <p className="mt-3 text-xs text-ink-400">{incidentsResolved.length} resolved with a closeout{incidentsStoodDown ? `, ${incidentsStoodDown} stood down as not needing one` : ""}. Acknowledgement time uses reports that have been acknowledged.</p>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardHeader title="Corrective actions" />
-          <CardBody>
-            <dl className="grid grid-cols-3 gap-3 text-center">
-              <div><dt className="text-xs text-ink-500">Open</dt><dd className="text-2xl font-medium tabular-nums text-ink-900">{open.length}</dd></div>
-              <div><dt className="text-xs text-ink-500">Overdue</dt><dd className={`text-2xl font-medium tabular-nums ${overdue.length ? "text-danger" : "text-ink-900"}`}>{overdue.length}</dd></div>
-              <div><dt className="text-xs text-ink-500">Avg days to verify</dt><dd className="text-2xl font-medium tabular-nums text-ink-900">{avgDaysToVerify ?? "—"}</dd></div>
-            </dl>
-            <p className="mt-3 text-xs text-ink-400">Counts corrective actions created in this period. Verified means someone confirmed the fix is in place.</p>
-          </CardBody>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader title="Shared lessons" subtitle="Lessons approved for sharing with your team. Check that personal details have been removed before publishing." />
-        <CardBody>
-          {lessons.length === 0 ? <p className="text-sm text-ink-500">No lessons have been shared yet. Complete an investigation, then write a lesson without names or personal details.</p> : (
-            <ul className="space-y-3">{lessons.map((l) => <li key={l.id} className="text-sm text-ink-800"><span className="mr-2 rounded bg-surface-sunken px-1.5 py-0.5 text-[11px] text-ink-600">{categoryLabel(l.report.category, pack)}</span>{l.lessonText}</li>)}</ul>
-          )}
-        </CardBody>
-      </Card>
+      <Block title="Shared lessons" note="Lessons approved for sharing with your team. Check that personal details have been removed before publishing.">
+        {lessons.length === 0 ? <p className="text-sm text-ink-500">No lessons have been shared yet. Complete an investigation, then write a lesson without names or personal details.</p> : (
+          <ul className="divide-y divide-ink-100">{lessons.map((l) => <li key={l.id} className="py-2.5 text-sm text-ink-800"><span className="mr-2 rounded bg-surface-muted px-1.5 py-0.5 text-[11px] text-ink-600">{categoryLabel(l.report.category, pack)}</span>{l.lessonText}</li>)}</ul>
+        )}
+      </Block>
     </div>
   );
 }
