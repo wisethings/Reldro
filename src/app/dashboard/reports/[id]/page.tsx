@@ -10,8 +10,7 @@ import { ActionStatusBadge, dueLabel, fmtDate, fmtDateTime, InvestigationStatusB
 import { ReportControls } from "@/components/safety/ReportControls";
 import { CommentBox } from "@/components/safety/CommentBox";
 import { ActionForm } from "@/components/safety/ActionForm";
-import { AiTextDraft } from "@/components/safety/AiTextDraft";
-import { aiSummarizeInvestigation } from "@/lib/actions/safetyAi";
+import { TimelineSummaryDraft } from "@/components/safety/AiDraftButtons";
 
 export default async function ReportDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const v = await requireViewer();
@@ -164,7 +163,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
         <CardHeader title="Timeline" subtitle="Everything that happened, in order." />
         <CardBody className="space-y-4">
           {manage && (
-            <AiTextDraft label="Draft a timeline summary" generate={() => aiSummarizeInvestigation(report.id)} />
+            <TimelineSummaryDraft reportId={report.id} />
           )}
           <ol className="space-y-3">
             {events.map((e) => (

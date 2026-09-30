@@ -4,8 +4,7 @@ import { requireViewer } from "@/lib/safety/context";
 import { categoryLabel, getPack, OPEN_ACTION_STATUSES, reportTypeLabel } from "@/lib/safety/pack";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { NoAccess, PageHeader } from "@/components/safety/ui";
-import { AiTextDraft } from "@/components/safety/AiTextDraft";
-import { aiSummarizeThemes } from "@/lib/actions/safetyAi";
+import { ThemesSummaryDraft } from "@/components/safety/AiDraftButtons";
 
 function Bars({ rows, empty = "Nothing to show yet." }: { rows: { label: string; count: number }[]; empty?: string }) {
   if (rows.length === 0) return <p className="text-sm text-ink-500">{empty}</p>;
@@ -77,7 +76,7 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
 
       <Card>
         <CardHeader title="Recurring themes" subtitle="A short written summary of the numbers below. A draft to check against them." />
-        <CardBody><AiTextDraft label="Draft a themes summary" generate={() => aiSummarizeThemes(days)} /></CardBody>
+        <CardBody><ThemesSummaryDraft days={days} /></CardBody>
       </Card>
 
       <div className="grid gap-5 lg:grid-cols-2">
