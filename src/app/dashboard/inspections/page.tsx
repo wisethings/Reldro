@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { QueryLink } from "@/components/ui/QueryLink";
 import { prisma } from "@/lib/prisma";
 import { requireViewer } from "@/lib/safety/context";
 import { INSPECTION_KIND_LABEL } from "@/lib/safety/pack";
@@ -88,9 +89,9 @@ export default async function InspectionsPage({ searchParams }: { searchParams: 
       />
 
       <p className="surface flex flex-wrap items-center gap-x-5 gap-y-1 px-4 py-2 text-xs text-ink-600">
-        <Link href="?view=overdue" className="hover:text-ink-900"><span className={`mr-1 text-sm font-semibold tabular-nums ${nLate > 0 ? "text-danger" : "text-ink-900"}`}>{nLate}</span>overdue</Link>
-        <Link href="?view=soon" className="hover:text-ink-900"><span className={`mr-1 text-sm font-semibold tabular-nums ${nSoon > 0 ? "text-amber-deep" : "text-ink-900"}`}>{nSoon}</span>due in the next 7 days</Link>
-        <Link href="?view=done" className="hover:text-ink-900"><span className="mr-1 text-sm font-semibold tabular-nums text-ink-900">{nDone30}</span>completed in 30 days</Link>
+        <QueryLink href="?view=overdue" className="hover:text-ink-900"><span className={`mr-1 text-sm font-semibold tabular-nums ${nLate > 0 ? "text-danger" : "text-ink-900"}`}>{nLate}</span>overdue</QueryLink>
+        <QueryLink href="?view=soon" className="hover:text-ink-900"><span className={`mr-1 text-sm font-semibold tabular-nums ${nSoon > 0 ? "text-amber-deep" : "text-ink-900"}`}>{nSoon}</span>due in the next 7 days</QueryLink>
+        <QueryLink href="?view=done" className="hover:text-ink-900"><span className="mr-1 text-sm font-semibold tabular-nums text-ink-900">{nDone30}</span>completed in 30 days</QueryLink>
         <span><span className={`mr-1 text-sm font-semibold tabular-nums ${sFailed > 0 ? "text-danger" : "text-ink-900"}`}>{sFailed}</span>failed items in 30 days</span>
       </p>
 
@@ -98,17 +99,17 @@ export default async function InspectionsPage({ searchParams }: { searchParams: 
         <>
           <div className="flex flex-wrap items-center gap-2">
             <div role="group" aria-label="Filter inspections" className="flex rounded-lg bg-ink-100 p-0.5">
-              <Link scroll={false} href={href({ view: undefined, page: undefined })} className={seg(view === "all")}>All ({nAll})</Link>
-              <Link scroll={false} href={href({ view: "overdue", page: undefined })} className={`${seg(view === "overdue")} ${view !== "overdue" && nLate > 0 ? "!text-danger" : ""}`}>Overdue ({nLate})</Link>
-              <Link scroll={false} href={href({ view: "soon", page: undefined })} className={`${seg(view === "soon")} ${view !== "soon" && nSoon > 0 ? "!text-amber-deep" : ""}`}>Due soon ({nSoon})</Link>
-              <Link scroll={false} href={href({ view: "done", page: undefined })} className={seg(view === "done")}>Completed ({nDone})</Link>
+              <QueryLink scroll={false} href={href({ view: undefined, page: undefined })} className={seg(view === "all")}>All ({nAll})</QueryLink>
+              <QueryLink scroll={false} href={href({ view: "overdue", page: undefined })} className={`${seg(view === "overdue")} ${view !== "overdue" && nLate > 0 ? "!text-danger" : ""}`}>Overdue ({nLate})</QueryLink>
+              <QueryLink scroll={false} href={href({ view: "soon", page: undefined })} className={`${seg(view === "soon")} ${view !== "soon" && nSoon > 0 ? "!text-amber-deep" : ""}`}>Due soon ({nSoon})</QueryLink>
+              <QueryLink scroll={false} href={href({ view: "done", page: undefined })} className={seg(view === "done")}>Completed ({nDone})</QueryLink>
             </div>
           </div>
           <ListToolbar searchParam="q" pageParam="page" placeholder="Search inspection or site" selects={[]} />
 
           {rows.length === 0 ? (
             q ? (
-              <div className="surface border-dashed px-6 py-10 text-center"><p className="text-sm font-medium text-ink-900">No inspections match</p><p className="mt-1 text-sm text-ink-600">Try a different search, or <Link href={href({ q: undefined })} className="font-medium text-orchid-deep hover:text-oxblood">clear it</Link>.</p></div>
+              <div className="surface border-dashed px-6 py-10 text-center"><p className="text-sm font-medium text-ink-900">No inspections match</p><p className="mt-1 text-sm text-ink-600">Try a different search, or <QueryLink href={href({ q: undefined })} className="font-medium text-orchid-deep hover:text-oxblood">clear it</QueryLink>.</p></div>
             ) : (
               <div className="surface px-6 py-10 text-center">
                 <p className="text-sm font-medium text-ink-900">{view === "overdue" ? "Nothing is overdue" : view === "soon" ? "Nothing is due in the next 7 days" : view === "done" ? "No completed inspections yet" : "No inspections scheduled"}</p>
@@ -165,7 +166,7 @@ export default async function InspectionsPage({ searchParams }: { searchParams: 
                   );
                 })}
               </ul>
-              {nDone > recent.length && <div className="border-t border-ink-100 px-4 py-2"><Link href="?view=done" className="text-xs font-medium text-orchid-deep hover:text-oxblood">View all completed →</Link></div>}
+              {nDone > recent.length && <div className="border-t border-ink-100 px-4 py-2"><QueryLink href="?view=done" className="text-xs font-medium text-orchid-deep hover:text-oxblood">View all completed →</QueryLink></div>}
             </details>
           )}
         </>
@@ -199,13 +200,13 @@ function ChecklistSection({ templates, full, pageParam }: { templates: Awaited<R
           })}
         </ul>
       )}
-      {!full && templates.length > preview && <div className="border-t border-ink-100 px-4 py-2"><Link href="?view=checklists" className="text-xs font-medium text-orchid-deep hover:text-oxblood">View all {templates.length} checklists →</Link></div>}
+      {!full && templates.length > preview && <div className="border-t border-ink-100 px-4 py-2"><QueryLink href="?view=checklists" className="text-xs font-medium text-orchid-deep hover:text-oxblood">View all {templates.length} checklists →</QueryLink></div>}
     </>
   );
   if (full) {
     return (
       <section aria-labelledby="checklists" className="space-y-3">
-        <div className="flex items-center justify-between"><h2 id="checklists" className="text-sm font-semibold text-ink-900">Checklists <span className="font-normal text-ink-500">· {templates.length}</span></h2><Link href="?" className="text-xs font-medium text-orchid-deep hover:text-oxblood">← Back to inspections</Link></div>
+        <div className="flex items-center justify-between"><h2 id="checklists" className="text-sm font-semibold text-ink-900">Checklists <span className="font-normal text-ink-500">· {templates.length}</span></h2><QueryLink href="?" className="text-xs font-medium text-orchid-deep hover:text-oxblood">← Back to inspections</QueryLink></div>
         <div className="surface">{list}</div>
         <Pagination page={page} total={templates.length} noun="checklists" hrefFor={(n) => `?view=checklists${n > 1 ? `&page=${n}` : ""}`} />
       </section>

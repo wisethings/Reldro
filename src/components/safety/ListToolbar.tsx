@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
 
@@ -27,13 +27,14 @@ export function ListToolbar({
   const path = usePathname();
   const params = useSearchParams();
   const [q, setQ] = useState(params.get(searchParam) ?? "");
+  const [busy, startTransition] = useTransition();
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const push = (over: Record<string, string>) => {
     const sp = new URLSearchParams(params.toString());
     for (const [k, val] of Object.entries(over)) (val ? sp.set(k, val) : sp.delete(k));
     sp.delete(pageParam);
-    router.replace(`${path}?${sp.toString()}`, { scroll: false });
+    startTransition(() => router.replace(`${path}?${sp.toString()}`, { scroll: false }));
   };
   useEffect(() => () => clearTimeout(timer.current), []);
 
@@ -43,7 +44,7 @@ export function ListToolbar({
   const sel = "h-8 rounded-lg border border-ink-300 bg-white px-2 text-xs text-ink-800 outline-none hover:border-ink-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20";
 
   return (
-    <div role="search" className="flex flex-wrap items-center gap-2">
+    <div role="search" aria-busy={busy} className="flex flex-wrap items-center gap-2">
       <div className="relative min-w-[12rem] flex-1 sm:max-w-sm">
         <Search size={14} aria-hidden className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-400" />
         <label className="sr-only" htmlFor={`tb-${searchParam}`}>{placeholder}</label>
@@ -62,6 +63,7 @@ export function ListToolbar({
           {s.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
       ))}
+      {busy && <span aria-hidden className="h-3 w-3 animate-spin rounded-full border-2 border-ink-400 border-t-transparent" />}
       {active && <button type="button" onClick={clear} className="text-xs font-medium text-orchid-deep hover:text-oxblood">Clear</button>}
       {sort && (
         <label className="ml-auto flex items-center gap-1.5 text-xs text-ink-600">

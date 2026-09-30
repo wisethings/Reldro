@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { QueryLink } from "@/components/ui/QueryLink";
 import { prisma } from "@/lib/prisma";
 import { reportWhere } from "@/lib/safety/access";
 import { requireViewer } from "@/lib/safety/context";
@@ -62,7 +63,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   ]);
   const filtered = Boolean(p.severity || p.site || p.q || attention);
   const metric = (label: string, value: number, href: string, on: boolean, hot = false) => (
-    <Link
+    <QueryLink
       key={label}
       href={href}
       aria-current={on ? "true" : undefined}
@@ -70,7 +71,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     >
       <span className={`text-lg font-semibold tabular-nums ${hot && value > 0 ? "text-danger" : "text-ink-900"}`}>{value}</span>
       <span className={`text-xs ${on ? "font-medium text-orchid-deep" : "text-ink-600"}`}>{label}</span>
-    </Link>
+    </QueryLink>
   );
 
   return (

@@ -26,7 +26,7 @@ export function QueryParamSelect({
     const params = new URLSearchParams(searchParams.toString());
     if (value && value !== defaultValue) params.set(paramKey, value);
     else params.delete(paramKey);
-    router.push(`${pathname}?${params.toString()}`);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   }
 
   return (

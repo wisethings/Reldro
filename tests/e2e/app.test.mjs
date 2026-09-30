@@ -212,3 +212,42 @@ test("toolbox talks show as a compact list that opens on demand", async () => {
     await page.context().close();
   }
 });
+
+test("segmented filters change the view without reloading the page or jumping the scroll", async () => {
+  const page = await signIn("admin");
+  try {
+    await page.goto(`${BASE}/dashboard/overview`, { waitUntil: "networkidle" });
+    await page.evaluate(() => { window.__marker = 1; });
+    const link = page.getByRole("link", { name: "90 days" });
+    await link.scrollIntoViewIfNeeded();
+    const before = await page.evaluate(() => document.querySelector("main").scrollTop);
+    await link.click();
+    await page.waitForURL(/pulse=90/, { timeout: 30_000 });
+    assert.equal(await page.evaluate(() => window.__marker), 1, "the document reloaded");
+    assert.equal(await page.evaluate(() => document.querySelector("main").scrollTop), before, "the page jumped");
+  } finally {
+    await page.context().close();
+  }
+});
+
+test("deleting a person also removes their qualifications", async () => {
+  const page = await signIn("admin");
+  try {
+    const name = `Temp Person ${Date.now() % 100000}`;
+    await page.goto(`${BASE}/dashboard/training?tab=people&new=person`, { waitUntil: "networkidle" });
+    await page.getByPlaceholder("Full name").fill(name);
+    await page.getByPlaceholder("Work email").fill(`temp.${Date.now()}@example.com`);
+    await page.getByPlaceholder(/Job title/).fill("Tester");
+    await page.getByRole("button", { name: "Invite person" }).click();
+    await page.waitForTimeout(2500);
+    await page.goto(`${BASE}/dashboard/training?tab=people&pq=${encodeURIComponent(name)}`, { waitUntil: "networkidle" });
+    await page.getByRole("button", { name: `Actions for ${name}` }).click();
+    await page.getByRole("menuitem", { name: "Delete person" }).click();
+    await page.getByRole("button", { name: "Delete person" }).last().click();
+    await page.waitForTimeout(2500);
+    await page.goto(`${BASE}/dashboard/training?tab=people&pq=${encodeURIComponent(name)}`, { waitUntil: "networkidle" });
+    assert.equal(await page.getByText(name).count(), 0);
+  } finally {
+    await page.context().close();
+  }
+});

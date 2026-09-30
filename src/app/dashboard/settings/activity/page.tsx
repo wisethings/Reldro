@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { QueryLink } from "@/components/ui/QueryLink";
 import { redirect } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { requireRole } from "@/lib/auth/guards";
@@ -54,11 +55,11 @@ export default async function ActivityLogPage({ searchParams }: { searchParams: 
 
       <div className="space-y-2">
         <div className="flex flex-wrap gap-1.5" role="group" aria-label="Area">
-          <Link href={href({ area: undefined })} className={chip(!area)}>All areas</Link>
-          {Object.entries(AREAS).map(([k, a]) => <Link key={k} href={href({ area: k })} className={chip(area === k)}>{a.label}</Link>)}
+          <QueryLink href={href({ area: undefined })} className={chip(!area)}>All areas</QueryLink>
+          {Object.entries(AREAS).map(([k, a]) => <QueryLink key={k} href={href({ area: k })} className={chip(area === k)}>{a.label}</QueryLink>)}
         </div>
         <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Time range">
-          {Object.entries(RANGES).map(([k, r]) => <Link key={k} href={href({ range: k })} className={chip(range === k)}>{r.label}</Link>)}
+          {Object.entries(RANGES).map(([k, r]) => <QueryLink key={k} href={href({ range: k })} className={chip(range === k)}>{r.label}</QueryLink>)}
           <form action="/dashboard/settings/activity" className="ml-auto flex items-center gap-2">
             {area && <input type="hidden" name="area" value={area} />}
             {range !== "30" && <input type="hidden" name="range" value={range} />}

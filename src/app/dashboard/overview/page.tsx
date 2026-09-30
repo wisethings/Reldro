@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { QueryLink } from "@/components/ui/QueryLink";
 import { BadgeCheck, Bell, CalendarCheck, CalendarDays, CheckCircle2, ClipboardCheck, Clock, FileText, Megaphone, Plus, Search, TriangleAlert, UserRound, ChartNoAxesColumn } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { actionWhere, reportWhere } from "@/lib/safety/access";
@@ -455,7 +456,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
         <SectionTitle
           action={
             <div className="flex gap-0.5" role="group" aria-label="Time period">
-              {[7, 30, 90].map((n) => <Link key={n} href={`?pulse=${n}`} className={chip(pulseDays === n)} aria-pressed={pulseDays === n}>{n} days</Link>)}
+              {[7, 30, 90].map((n) => <QueryLink key={n} href={`?pulse=${n}`} className={chip(pulseDays === n)} aria-pressed={pulseDays === n}>{n} days</QueryLink>)}
             </div>
           }
         >

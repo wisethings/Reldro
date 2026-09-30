@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { QueryLink } from "@/components/ui/QueryLink";
 import { prisma } from "@/lib/prisma";
 import { actionWhere } from "@/lib/safety/access";
 import { requireViewer } from "@/lib/safety/context";
@@ -60,7 +61,7 @@ export default async function ActionsPage({ searchParams }: { searchParams: Prom
       ]} />
       <div className="flex flex-wrap gap-2">
         {views.map(([key, label]) => (
-          <Link key={key} href={`?view=${key}`} className={chip(view === key)}>{label}</Link>
+          <QueryLink key={key} href={`?view=${key}`} className={chip(view === key)}>{label}</QueryLink>
         ))}
       </div>
       {actions.length === 0 ? (

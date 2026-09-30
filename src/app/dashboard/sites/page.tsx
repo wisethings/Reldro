@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { QueryLink } from "@/components/ui/QueryLink";
 import { prisma } from "@/lib/prisma";
 import { requireViewer } from "@/lib/safety/context";
 import { getPack, OPEN_ACTION_STATUSES, SITE_KINDS } from "@/lib/safety/pack";
@@ -80,9 +81,9 @@ export default async function SitesPage({ searchParams }: { searchParams: Promis
       {showTools && (
         <div className="flex flex-wrap items-center gap-2">
           <div role="group" aria-label="Filter sites" className="flex rounded-lg bg-ink-100 p-0.5">
-            <Link href="?" className={chip(view === "all")}>All</Link>
-            <Link href="?view=attention" className={chip(view === "attention")}>Needs attention{needsAttention > 0 ? ` (${needsAttention})` : ""}</Link>
-            <Link href="?view=track" className={chip(view === "track")}>On track</Link>
+            <QueryLink href="?" className={chip(view === "all")}>All</QueryLink>
+            <QueryLink href="?view=attention" className={chip(view === "attention")}>Needs attention{needsAttention > 0 ? ` (${needsAttention})` : ""}</QueryLink>
+            <QueryLink href="?view=track" className={chip(view === "track")}>On track</QueryLink>
           </div>
           <form className="relative min-w-[10rem] flex-1 sm:max-w-xs" role="search">
             {view !== "all" && <input type="hidden" name="view" value={view} />}
@@ -95,7 +96,7 @@ export default async function SitesPage({ searchParams }: { searchParams: Promis
       {sites.length === 0 ? (
         <EmptyState title="No sites yet" body="Add the jobsites and shops your crews work at. Reports are assigned to a site's safety lead, and inspections are scheduled by site." />
       ) : shown.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-ink-200 bg-white px-6 py-10 text-center text-sm text-ink-600">No sites match. <Link href="?" className="font-medium text-orchid-deep hover:text-oxblood">Show all sites</Link></p>
+        <p className="rounded-xl border border-dashed border-ink-200 bg-white px-6 py-10 text-center text-sm text-ink-600">No sites match. <QueryLink href="?" className="font-medium text-orchid-deep hover:text-oxblood">Show all sites</QueryLink></p>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {pageSites.map(({ s, nd, open, overdue, health, lead, people: headcountHere }) => {

@@ -113,6 +113,7 @@ export async function deletePerson(employeeId: string) {
   try {
     await prisma.$transaction([
       prisma.aIUsageEvent.deleteMany({ where: { employeeId: emp.id } }),
+      prisma.qualification.deleteMany({ where: { employeeId: emp.id } }),
       prisma.user.delete({ where: { id: emp.userId } }),
     ]);
   } catch {

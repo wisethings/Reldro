@@ -13,7 +13,7 @@ export default async function QualificationPage({ params }: { params: Promise<{ 
   if (!q) notFound();
   const emp = await prisma.employee.findUnique({ where: { id: q.employeeId }, include: { user: { select: { name: true, email: true } }, department: true } });
   if (!emp) notFound();
-  if (!v.isSafetyTeam && emp.siteId !== v.siteId) return <NoAccess what="this person's qualifications" />;
+  if (!v.isSafetyTeam && (!v.siteId || emp.siteId !== v.siteId)) return <NoAccess what="this person's qualifications" />;
   const site = emp.siteId ? await prisma.site.findUnique({ where: { id: emp.siteId }, select: { name: true } }) : null;
   const now = new Date();
   const status: QualStatus = q.expiresOn && q.expiresOn < now ? "expired" : q.expiresOn && q.expiresOn <= new Date(Date.now() + 30 * 86400_000) ? "soon" : "current";

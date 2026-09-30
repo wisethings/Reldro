@@ -87,7 +87,7 @@ export async function deleteQualification(id: string) {
   if (!q) throw new Error("Not found.");
   if (!v.isSafetyTeam) {
     const emp = await prisma.employee.findUnique({ where: { id: q.employeeId }, select: { siteId: true } });
-    if (!(v.isSupervisor && emp?.siteId === v.siteId)) throw new Error("You cannot remove this qualification.");
+    if (!(v.isSupervisor && v.siteId && emp?.siteId === v.siteId)) throw new Error("You cannot remove this qualification.");
   }
   await prisma.qualification.delete({ where: { id } });
   revalidatePath("/dashboard/training");
@@ -101,7 +101,7 @@ async function manageableQualifications(ids: string[]) {
   if (rows.length === 0) throw new Error("Nothing selected.");
   if (!v.isSafetyTeam) {
     const emps = await prisma.employee.findMany({ where: { id: { in: rows.map((r) => r.employeeId) } }, select: { id: true, siteId: true } });
-    const ok = new Set(emps.filter((e) => e.siteId === v.siteId).map((e) => e.id));
+    const ok = new Set(emps.filter((e) => v.siteId && e.siteId === v.siteId).map((e) => e.id));
     if (rows.some((r) => !ok.has(r.employeeId))) throw new Error("You can only change qualifications for people at your own site.");
   }
   return { v, rows };

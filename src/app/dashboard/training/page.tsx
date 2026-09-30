@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { QueryLink } from "@/components/ui/QueryLink";
 import { prisma } from "@/lib/prisma";
 import { requireViewer } from "@/lib/safety/context";
 import { getPack } from "@/lib/safety/pack";
@@ -128,10 +129,10 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
       <div className="space-y-6">
         <div className="flex flex-wrap items-center gap-2">
           <div role="group" aria-label="Filter talks" className="flex rounded-lg bg-ink-100 p-0.5">
-            <Link href={href({ filter: undefined })} className={seg(filter === "all")}>All</Link>
-            <Link href={href({ filter: "needs" })} className={seg(filter === "needs")}>Needs acknowledgment{counts.needs > 0 ? ` (${counts.needs})` : ""}</Link>
-            <Link href={href({ filter: "upcoming" })} className={seg(filter === "upcoming")}>Upcoming</Link>
-            <Link href={href({ filter: "completed" })} className={seg(filter === "completed")}>Completed</Link>
+            <QueryLink href={href({ filter: undefined })} className={seg(filter === "all")}>All</QueryLink>
+            <QueryLink href={href({ filter: "needs" })} className={seg(filter === "needs")}>Needs acknowledgment{counts.needs > 0 ? ` (${counts.needs})` : ""}</QueryLink>
+            <QueryLink href={href({ filter: "upcoming" })} className={seg(filter === "upcoming")}>Upcoming</QueryLink>
+            <QueryLink href={href({ filter: "completed" })} className={seg(filter === "completed")}>Completed</QueryLink>
           </div>
           <form role="search" className="min-w-[10rem] flex-1 sm:max-w-xs">
             <input type="hidden" name="tab" value="talks" />
@@ -156,7 +157,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
             <section aria-labelledby="all-talks">
               <h2 id="all-talks" className={`mb-2 text-sm ${featured.length > 0 ? "font-medium text-ink-600" : "font-semibold text-ink-900"}`}>{filter === "all" ? "All toolbox talks" : STATUS[filter].label}</h2>
               {pageRows.length === 0 ? (
-                <p className="surface px-4 py-8 text-center text-sm text-ink-600">{featured.length > 0 ? "No other talks." : "No talks match."} {(filter !== "all" || term) && <Link href="?tab=talks" className="font-medium text-orchid-deep hover:text-oxblood">Show all talks</Link>}</p>
+                <p className="surface px-4 py-8 text-center text-sm text-ink-600">{featured.length > 0 ? "No other talks." : "No talks match."} {(filter !== "all" || term) && <QueryLink href="?tab=talks" className="font-medium text-orchid-deep hover:text-oxblood">Show all talks</QueryLink>}</p>
               ) : (
                 <ul className="divide-y divide-ink-100 overflow-hidden surface">{pageRows.map((r) => <TalkRow key={r.t.id} r={r} />)}</ul>
               )}
@@ -270,10 +271,10 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
 
           <div className="flex flex-wrap items-center gap-2">
             <div role="group" aria-label="Filter by status" className="flex rounded-lg bg-ink-100 p-0.5">
-              <Link scroll={false} href={qHref({ qs: undefined, qpage: undefined })} className={seg2(!qs)}>All ({counts.all})</Link>
-              <Link scroll={false} href={qHref({ qs: "expired", qpage: undefined })} className={`${seg2(qs === "expired", "red")} ${counts.expired > 0 && qs !== "expired" ? "!text-danger" : ""}`}>Expired ({counts.expired})</Link>
-              <Link scroll={false} href={qHref({ qs: "soon", qpage: undefined })} className={`${seg2(qs === "soon", "amber")} ${counts.soon > 0 && qs !== "soon" ? "!text-amber-deep" : ""}`}>Expiring soon ({counts.soon})</Link>
-              <Link scroll={false} href={qHref({ qs: "current", qpage: undefined })} className={seg2(qs === "current")}>Current ({counts.current})</Link>
+              <QueryLink scroll={false} href={qHref({ qs: undefined, qpage: undefined })} className={seg2(!qs)}>All ({counts.all})</QueryLink>
+              <QueryLink scroll={false} href={qHref({ qs: "expired", qpage: undefined })} className={`${seg2(qs === "expired", "red")} ${counts.expired > 0 && qs !== "expired" ? "!text-danger" : ""}`}>Expired ({counts.expired})</QueryLink>
+              <QueryLink scroll={false} href={qHref({ qs: "soon", qpage: undefined })} className={`${seg2(qs === "soon", "amber")} ${counts.soon > 0 && qs !== "soon" ? "!text-amber-deep" : ""}`}>Expiring soon ({counts.soon})</QueryLink>
+              <QueryLink scroll={false} href={qHref({ qs: "current", qpage: undefined })} className={seg2(qs === "current")}>Current ({counts.current})</QueryLink>
             </div>
           </div>
           <ListToolbar
@@ -294,7 +295,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
             <div className="surface border-dashed px-6 py-10 text-center">
               <p className="text-sm font-medium text-ink-900">No qualifications match</p>
               <p className="mt-1 text-sm text-ink-600">Try a different search, or clear the filters.</p>
-              {(filteredQ || qs) && <Link href="?tab=qualifications" className="mt-3 inline-block text-sm font-medium text-orchid-deep hover:text-oxblood">Clear filters</Link>}
+              {(filteredQ || qs) && <QueryLink href="?tab=qualifications" className="mt-3 inline-block text-sm font-medium text-orchid-deep hover:text-oxblood">Clear filters</QueryLink>}
             </div>
           ) : (
             <QualificationTable rows={rows} />
@@ -374,7 +375,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
           <div className="surface border-dashed px-6 py-10 text-center">
             <p className="text-sm font-medium text-ink-900">{filteredPeople ? "No one matches these filters" : "No people yet"}</p>
             <p className="mt-1 text-sm text-ink-600">{filteredPeople ? "Try a different search, or clear the filters." : "Invite your first person above."}</p>
-            {filteredPeople && <Link href="?tab=people" className="mt-3 inline-block text-sm font-medium text-orchid-deep hover:text-oxblood">Clear filters</Link>}
+            {filteredPeople && <QueryLink href="?tab=people" className="mt-3 inline-block text-sm font-medium text-orchid-deep hover:text-oxblood">Clear filters</QueryLink>}
           </div>
         ) : (
           <div className="surface">
@@ -392,8 +393,8 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
                     </div>
                   </div>
                   <div className="order-3 col-span-2 md:order-none md:col-span-1"><PersonAssignment employeeId={p.id} siteId={p.siteId} crewId={p.departmentId} sites={siteOpts} crews={crewOpts} /></div>
-                  <div className="order-4 col-span-2 md:order-none md:col-span-1"><PersonAccess employeeId={p.id} isSupervisor={p.isDepartmentAdmin} isSafetyLead={p.isSafetyLead} /></div>
-                  <div className="justify-self-end md:order-none"><PersonMenu userId={p.userId} employeeId={p.id} name={p.user.name} jobTitle={p.jobTitle} isSupervisor={p.isDepartmentAdmin} isSafetyLead={p.isSafetyLead} pendingInvite={p.user.lastLoginAt === null} isSelf={p.userId === v.userId} /></div>
+                  <div className="order-4 col-span-2 md:order-none md:col-span-1"><PersonAccess key={`${p.id}-${p.isDepartmentAdmin}-${p.isSafetyLead}`} employeeId={p.id} isSupervisor={p.isDepartmentAdmin} isSafetyLead={p.isSafetyLead} /></div>
+                  <div className="justify-self-end md:order-none"><PersonMenu key={`${p.id}-${p.user.name}-${p.jobTitle}-${p.isDepartmentAdmin}-${p.isSafetyLead}-${p.user.lastLoginAt === null}`} userId={p.userId} employeeId={p.id} name={p.user.name} jobTitle={p.jobTitle} isSupervisor={p.isDepartmentAdmin} isSafetyLead={p.isSafetyLead} pendingInvite={p.user.lastLoginAt === null} isSelf={p.userId === v.userId} /></div>
                 </li>
               ))}
             </ul>
@@ -431,7 +432,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
       )}
       {tabs.length > 1 && (
         <div className="flex flex-wrap gap-2">
-          {tabs.map(([k, label]) => <Link key={k} href={`?tab=${k}`} className={chip(activeTab === k)}>{label}</Link>)}
+          {tabs.map(([k, label]) => <QueryLink key={k} href={`?tab=${k}`} className={chip(activeTab === k)}>{label}</QueryLink>)}
         </div>
       )}
       {body}

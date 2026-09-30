@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Search, X } from "lucide-react";
 
@@ -17,13 +17,14 @@ export function ReportFilters({ statuses, severities, sites, showSeverity }: { s
   const get = (k: string) => sp.get(k) ?? "";
   const [q, setQ] = useState(get("q"));
   const first = useRef(true);
+  const [busy, startTransition] = useTransition();
 
   const go = (over: Record<string, string>) => {
     const next = new URLSearchParams(sp.toString());
     for (const [k, val] of Object.entries(over)) (val ? next.set(k, val) : next.delete(k));
     next.delete("page");
     const s = next.toString();
-    router.push(s ? `${path}?${s}` : path);
+    startTransition(() => router.replace(s ? `${path}?${s}` : path, { scroll: false }));
   };
 
   // Search as you type, after a short pause.
@@ -41,7 +42,7 @@ export function ReportFilters({ statuses, severities, sites, showSeverity }: { s
   const select = "h-8 rounded-lg border border-ink-200 bg-white px-2.5 text-xs text-ink-800 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500";
 
   return (
-    <div role="search" className="flex w-fit max-w-full flex-wrap items-center gap-2 surface p-1.5">
+    <div role="search" aria-busy={busy} className={`flex w-fit max-w-full flex-wrap items-center gap-2 surface p-1.5 transition-opacity ${busy ? "opacity-80" : ""}`}>
       <div role="group" aria-label="Status" className="flex rounded-lg bg-ink-100 p-0.5">
         {statuses.map((s) => (
           <button key={s.value} type="button" onClick={() => go({ status: s.value, attention: "" })} aria-pressed={status === s.value && !attention} className={`h-7 rounded-md px-3 text-xs font-medium transition-colors ${status === s.value && !attention ? "bg-white text-ink-900 shadow-[0_0_0_1px_rgba(42,10,12,0.08)]" : "text-ink-600 hover:text-ink-900"}`}>

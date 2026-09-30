@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { QueryLink } from "@/components/ui/QueryLink";
 import { prisma } from "@/lib/prisma";
 import { requireViewer } from "@/lib/safety/context";
 import { categoryLabel, getPack, OPEN_ACTION_STATUSES, reportTypeLabel } from "@/lib/safety/pack";
@@ -102,7 +103,7 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
         </div>
         <div className="flex items-center gap-2">
           <div role="group" aria-label="Time period" className="flex rounded-lg bg-ink-100 p-0.5">
-            {[30, 90, 365].map((n) => <Link key={n} href={`?days=${n}`} className={seg(days === n)} aria-pressed={days === n}>{n === 365 ? "Last year" : `${n} days`}</Link>)}
+            {[30, 90, 365].map((n) => <QueryLink key={n} href={`?days=${n}`} className={seg(days === n)} aria-pressed={days === n}>{n === 365 ? "Last year" : `${n} days`}</QueryLink>)}
           </div>
           <Link href={`/api/safety/export/reports?days=${days}`} className="rounded-full border border-ink-300 px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-surface-hover">Export reports (CSV)</Link>
         </div>

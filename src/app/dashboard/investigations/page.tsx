@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { QueryLink } from "@/components/ui/QueryLink";
 import { prisma } from "@/lib/prisma";
 import { requireViewer } from "@/lib/safety/context";
 import { categoryLabel, getPack, severityRank } from "@/lib/safety/pack";
@@ -50,9 +51,9 @@ export default async function InvestigationsPage({ searchParams }: { searchParam
         { label: "Lessons shared", value: sShared },
       ]} />
       <div className="flex gap-2">
-        <Link href="?status=active" className={chip(status === "active")}>Active</Link>
-        <Link href="?status=complete" className={chip(status === "complete")}>Complete</Link>
-        <Link href="?status=all" className={chip(status === "all")}>All</Link>
+        <QueryLink href="?status=active" className={chip(status === "active")}>Active</QueryLink>
+        <QueryLink href="?status=complete" className={chip(status === "complete")}>Complete</QueryLink>
+        <QueryLink href="?status=all" className={chip(status === "all")}>All</QueryLink>
         <span className="ml-auto self-center text-xs text-ink-500">Sorted by severity, highest first.</span>
       </div>
       {list.length === 0 ? (
