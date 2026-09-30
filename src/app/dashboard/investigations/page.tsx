@@ -2,8 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireViewer } from "@/lib/safety/context";
 import { categoryLabel, getPack, severityRank } from "@/lib/safety/pack";
-import { Card } from "@/components/ui/Card";
-import { EmptyState, fmtDate, InvestigationStatusBadge, NoAccess, PageHeader, SeverityBadge } from "@/components/safety/ui";
+import { DataRow, DataTable } from "@/components/safety/Table";
+import { EmptyHero, fmtShort, InvestigationStatusBadge, NoAccess, PageHeader, SeverityBadge } from "@/components/safety/ui";
 
 import { StatStrip } from "@/components/safety/Dashboard";
 export default async function InvestigationsPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
@@ -24,7 +24,7 @@ export default async function InvestigationsPage({ searchParams }: { searchParam
   const list = await prisma.investigation.findMany({ where, include: { report: { include: { site: true } } }, orderBy: { openedAt: "desc" } });
   list.sort((a, b) => severityRank(b.report.severity) - severityRank(a.report.severity));
 
-  const chip = (active: boolean) => `rounded-full border px-3 py-1.5 text-xs font-medium ${active ? "border-brand-700 bg-orchid-soft text-orchid-deep" : "border-ink-200 bg-white text-ink-600 hover:bg-ink-50"}`;
+  const chip = (active: boolean) => `rounded-full border px-2.5 py-1 text-xs font-medium ${active ? "border-brand-700 bg-orchid-soft text-orchid-deep" : "border-ink-200 bg-white text-ink-600 hover:bg-ink-50"}`;
 
   const orgWhere = { organizationId: v.organizationId, ...(v.isSafetyTeam ? {} : { leadId: v.employeeId ?? "__none__" }) };
   const [sOpen, sReview, sDone, sShared] = await Promise.all([
@@ -49,25 +49,36 @@ export default async function InvestigationsPage({ searchParams }: { searchParam
         <span className="ml-auto self-center text-xs text-ink-500">Sorted by severity, highest first.</span>
       </div>
       {list.length === 0 ? (
-        <EmptyState title={status === "active" ? "No active investigations" : "No investigations match this filter"} body="Start an investigation from a report when it needs a closer review." href="/dashboard/reports" cta="Go to reports" />
+        <EmptyHero kind="investigations" title={status === "active" ? "No active investigations" : "No investigations match this filter"} body="Start an investigation from a report when it needs a closer review." steps={[{ href: "/dashboard/reports", title: "Review open reports", body: "Open a report and choose Open investigation when it needs a closer look." }]} />
       ) : (
-        <Card>
-          <ul className="divide-y divide-ink-200">
-            {list.map((i) => (
-              <li key={i.id}>
-                <Link href={`/dashboard/investigations/${i.id}`} className="block px-4 py-3 hover:bg-ink-50 sm:px-5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-xs text-ink-400">SR-{String(i.report.number).padStart(4, "0")}</span>
-                    <SeverityBadge severity={i.report.severity} />
-                    <InvestigationStatusBadge status={i.status} />
-                  </div>
-                  <p className="mt-1 text-sm font-medium text-ink-900">{i.report.title}</p>
-                  <p className="text-xs text-ink-500">{categoryLabel(i.report.category, pack)} · {i.report.site?.name ?? "Site not given"} · opened {fmtDate(i.openedAt)}</p>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Card>
+        <DataTable columns={["Investigation", "Seriousness", "Status", "Site", "Opened"]} template="minmax(0,1fr) 8.5rem 8rem 12rem 5rem">
+          {list.map((i) => (
+            <DataRow
+              key={i.id}
+              href={`/dashboard/investigations/${i.id}`}
+              template="minmax(0,1fr) 8.5rem 8rem 12rem 5rem"
+              main={
+                <>
+                  <p className="truncate text-[13px] font-medium text-ink-900">{i.report.title}</p>
+                  <p className="mt-0.5 text-xs text-ink-500"><span className="font-mono">SR-{String(i.report.number).padStart(4, "0")}</span> · {categoryLabel(i.report.category, pack)}</p>
+                </>
+              }
+              chips={
+                <>
+                  <SeverityBadge severity={i.report.severity} suggested={!i.report.severityConfirmedAt} />
+                  <InvestigationStatusBadge status={i.status} />
+                  <span className="text-xs text-ink-500">{i.report.site?.name ?? "Site not given"} · opened {fmtShort(i.openedAt)}</span>
+                </>
+              }
+              cells={[
+                <SeverityBadge key="s" severity={i.report.severity} suggested={!i.report.severityConfirmedAt} />,
+                <InvestigationStatusBadge key="t" status={i.status} />,
+                i.report.site?.name ?? "Site not given",
+                fmtShort(i.openedAt),
+              ]}
+            />
+          ))}
+        </DataTable>
       )}
     </div>
   );

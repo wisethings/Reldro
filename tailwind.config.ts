@@ -63,13 +63,15 @@ const config: Config = {
       },
       borderRadius: {
         none: "0px",
-        sm: "5px",
-        DEFAULT: "5px",
-        md: "5px",
-        lg: "5px",
-        xl: "5px",
-        "2xl": "5px",
-        "3xl": "5px",
+        // Slightly softer than the original 5px so panels, tables and inputs read as calm and
+        // modern; pills (`full`) and the palette are unchanged.
+        sm: "4px",
+        DEFAULT: "6px",
+        md: "6px",
+        lg: "8px",
+        xl: "10px",
+        "2xl": "14px",
+        "3xl": "18px",
         // `full` is left at Tailwind's default (9999px) so pills — buttons,
         // badges, chips, avatars — stay pill-shaped and are unaffected.
       },

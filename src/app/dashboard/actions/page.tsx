@@ -3,10 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { actionWhere } from "@/lib/safety/access";
 import { requireViewer } from "@/lib/safety/context";
 import { OPEN_ACTION_STATUSES } from "@/lib/safety/pack";
-import { Card } from "@/components/ui/Card";
+import { DataRow, DataTable } from "@/components/safety/Table";
 import { Badge } from "@/components/ui/Badge";
-import { ActionStatusBadge, dueLabel, EmptyState, PageHeader, SeverityBadge } from "@/components/safety/ui";
-
+import { ActionStatusBadge, dueLabel, EmptyHero, PageHeader, SeverityBadge } from "@/components/safety/ui";
 import { StatStrip } from "@/components/safety/Dashboard";
 export default async function ActionsPage({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
   const v = await requireViewer();
@@ -34,7 +33,7 @@ export default async function ActionsPage({ searchParams }: { searchParams: Prom
   const views = v.isSafetyTeam
     ? [["attention", "Needs attention"], ["overdue", "Overdue"], ["open", "All open"], ["mine", "Mine"], ["done", "Done"]]
     : [["open", "Open"], ["overdue", "Overdue"], ["done", "Done"]];
-  const chip = (active: boolean) => `rounded-full border px-3 py-1.5 text-xs font-medium ${active ? "border-brand-700 bg-orchid-soft text-orchid-deep" : "border-ink-200 bg-white text-ink-600 hover:bg-ink-50"}`;
+  const chip = (active: boolean) => `rounded-full border px-2.5 py-1 text-xs font-medium ${active ? "border-brand-700 bg-orchid-soft text-orchid-deep" : "border-ink-200 bg-white text-ink-600 hover:bg-ink-50"}`;
 
   const day30 = new Date(Date.now() - 30 * 86400_000);
   const [sOpen, sOverdue, sReady, sVerified] = await Promise.all([
@@ -58,31 +57,43 @@ export default async function ActionsPage({ searchParams }: { searchParams: Prom
         ))}
       </div>
       {actions.length === 0 ? (
-        <EmptyState title={view === "overdue" ? "No overdue corrective actions" : "No corrective actions need attention"} body="Corrective actions will appear here when a report, investigation, or inspection identifies a follow-up." />
+        <EmptyHero kind="actions" title={view === "overdue" ? "No overdue corrective actions" : "No corrective actions need attention"} body="Corrective actions will appear here when a report, investigation, or inspection identifies a follow-up." steps={[{ href: "/dashboard/reports", title: "Review reports", body: "Add a corrective action from any report." }, { href: "/dashboard/inspections", title: "Run an inspection", body: "Failed items can become corrective actions." }]} />
       ) : (
-        <Card>
-          <ul className="divide-y divide-ink-200">
-            {actions.map((a) => {
-              const due = dueLabel(a.dueDate, OPEN_ACTION_STATUSES.includes(a.status));
-              return (
-                <li key={a.id}>
-                  <Link href={`/dashboard/actions/${a.id}`} className="block px-4 py-3 hover:bg-ink-50 sm:px-5">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono text-xs text-ink-400">A-{a.number}</span>
-                      <ActionStatusBadge status={a.status} />
-                      <SeverityBadge severity={a.priority} />
-                      {due.overdue && <Badge tone="red">{due.text}</Badge>}
-                    </div>
-                    <p className="mt-1 text-sm font-medium text-ink-900">{a.title}</p>
-                    <p className="text-xs text-ink-500">
-                      {a.ownerId ? ownerName.get(a.ownerId) ?? "Owner" : "No owner"} · {due.overdue ? "" : `${due.text} · `}{a.report ? `From SR-${String(a.report.number).padStart(4, "0")}` : "From an inspection"}
+        <DataTable columns={["Corrective action", "Priority", "Status", "Owner", "Due"]} template="minmax(0,1fr) 8.5rem 9.5rem 9rem 9rem">
+          {actions.map((a) => {
+            const due = dueLabel(a.dueDate, OPEN_ACTION_STATUSES.includes(a.status));
+            const owner = a.ownerId ? ownerName.get(a.ownerId) ?? "Owner" : "No owner";
+            return (
+              <DataRow
+                key={a.id}
+                href={`/dashboard/actions/${a.id}`}
+                template="minmax(0,1fr) 8.5rem 9.5rem 9rem 9rem"
+                main={
+                  <>
+                    <p className="truncate text-[13px] font-medium text-ink-900">{a.title}</p>
+                    <p className="mt-0.5 text-xs text-ink-500">
+                      <span className="font-mono">A-{a.number}</span> · {a.report ? `From SR-${String(a.report.number).padStart(4, "0")}` : "From an inspection"}
                     </p>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </Card>
+                  </>
+                }
+                chips={
+                  <>
+                    <ActionStatusBadge status={a.status} />
+                    <SeverityBadge severity={a.priority} />
+                    {due.overdue && <Badge tone="red">{due.text}</Badge>}
+                    <span className="text-xs text-ink-500">{owner}{due.overdue ? "" : ` · ${due.text}`}</span>
+                  </>
+                }
+                cells={[
+                  <SeverityBadge key="p" severity={a.priority} />,
+                  <ActionStatusBadge key="s" status={a.status} />,
+                  owner,
+                  <span key="d" className={due.overdue ? "font-medium text-danger" : ""}>{due.text}</span>,
+                ]}
+              />
+            );
+          })}
+        </DataTable>
       )}
     </div>
   );

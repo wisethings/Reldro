@@ -1,65 +1,44 @@
-import Link from "next/link";
-import { logout } from "@/lib/actions/auth";
+"use client";
 
-export function Topbar({
-  name,
-  roleLabel,
-  title,
-  onMenuClick,
-  hideReportCta = false,
-}: {
-  name: string;
-  roleLabel: string;
-  title?: string;
-  onMenuClick?: () => void;
-  hideReportCta?: boolean;
-}) {
-  const initials = name
-    .split(" ")
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { ChevronRight, Menu, Plus } from "lucide-react";
+import { getNavItems, type NavAudience } from "./nav";
+
+/** Breadcrumb bar: where you are on the left, the one primary action on the right. */
+export function Topbar({ audience, onMenuClick, hideReportCta = false }: { audience: NavAudience; onMenuClick?: () => void; hideReportCta?: boolean }) {
+  const pathname = usePathname();
+  const items = getNavItems(audience);
+  const here = items.find((i) => pathname === i.href || pathname.startsWith(i.href + "/"));
+  const Icon = here?.icon;
+  const crumb = pathname.startsWith("/dashboard/account") ? { group: "Organization", label: "Account" } : here ? { group: here.group, label: here.label } : { group: undefined, label: "Reldro" };
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b border-ink-200 bg-white px-4 sm:px-6">
-      <div className="flex min-w-0 items-center gap-3">
-        <button
-          type="button"
-          onClick={onMenuClick}
-          aria-label="Open menu"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-ink-200 text-ink-700 hover:bg-surface-sunken md:hidden"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <path d="M3 6h18M3 12h18M3 18h18" />
-          </svg>
+    <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-ink-200/70 px-3 sm:px-4">
+      <div className="flex min-w-0 items-center gap-2">
+        <button type="button" onClick={onMenuClick} aria-label="Open menu" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-ink-700 hover:bg-ink-100 md:hidden">
+          <Menu size={18} aria-hidden />
         </button>
-        {title && <h1 className="truncate text-base font-semibold text-ink-900">{title}</h1>}
-      </div>
-      <div className="flex items-center gap-3 sm:gap-4">
-        {!hideReportCta && (
-          <Link
-            href="/dashboard/reports/new"
-            className="hidden rounded-full bg-brand-700 px-4 py-1.5 text-sm font-medium text-white hover:bg-brand-800 sm:inline-block"
-          >
-            Report a safety concern
-          </Link>
-        )}
-        <Link href="/dashboard/account" className="flex items-center gap-2.5 hover:opacity-80">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-xs font-semibold text-orchid-deep">
-            {initials}
+        {Icon && (
+          <span aria-hidden className="hidden h-6 w-6 shrink-0 items-center justify-center rounded-md bg-orchid-soft text-orchid-deep sm:flex">
+            <Icon size={14} />
           </span>
-          <div className="hidden text-right sm:block">
-            <p className="text-sm font-medium leading-tight text-ink-900">{name}</p>
-            <p className="text-[11px] leading-tight text-ink-500">{roleLabel}</p>
-          </div>
-        </Link>
-        <form action={logout}>
-          <button className="rounded-lg border border-ink-200 px-3 py-1.5 text-xs font-medium text-ink-600 hover:bg-ink-50">
-            Log out
-          </button>
-        </form>
+        )}
+        <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 text-[13px]">
+          {crumb.group && (
+            <>
+              <span className="hidden text-ink-500 sm:inline">{crumb.group}</span>
+              <ChevronRight size={13} aria-hidden className="hidden text-ink-300 sm:block" />
+            </>
+          )}
+          <span className="truncate font-medium text-ink-900">{crumb.label}</span>
+        </nav>
       </div>
+      {!hideReportCta && (
+        <Link href="/dashboard/reports/new" className="hidden shrink-0 items-center gap-1.5 rounded-full bg-brand-700 px-3.5 py-1.5 text-[13px] font-medium text-white hover:bg-brand-800 sm:inline-flex">
+          <Plus size={14} aria-hidden /> Report a safety concern
+        </Link>
+      )}
     </header>
   );
 }

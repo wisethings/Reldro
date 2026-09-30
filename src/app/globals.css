@@ -12,6 +12,14 @@ body {
   color: var(--foreground);
 }
 
+/* Desktop and tablet run on a slightly smaller root size so the whole product (type, spacing, controls)
+   is denser and calmer. Phones stay at 16px so tap targets and text stay comfortable in the field. */
+@media (min-width: 768px) {
+  html {
+    font-size: 15px;
+  }
+}
+
 @layer base {
   h1, h2, h3, h4 {
     font-family: var(--font-inter-tight), var(--font-inter), sans-serif;

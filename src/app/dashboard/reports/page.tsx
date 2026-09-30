@@ -3,9 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { reportWhere } from "@/lib/safety/access";
 import { requireViewer } from "@/lib/safety/context";
 import { categoryLabel, getPack, reportTypeLabel, REPORT_STATUSES, SEVERITIES } from "@/lib/safety/pack";
-import { Card } from "@/components/ui/Card";
+import { DataRow, DataTable } from "@/components/safety/Table";
 import { Badge } from "@/components/ui/Badge";
-import { EmptyState, fmtDate, PageHeader, ReportStatusBadge, SeverityBadge } from "@/components/safety/ui";
+import { EmptyHero, fmtShort, PageHeader, ReportStatusBadge, SeverityBadge } from "@/components/safety/ui";
 
 const STATUS_GROUPS: Record<string, string[] | undefined> = { open: ["NEW", "ASSIGNED", "INVESTIGATING", "ACTIONS_OPEN"], closed: ["CLOSED"] };
 
@@ -38,7 +38,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     for (const [k, val] of Object.entries(merged)) if (val) sp.set(k, val);
     return `?${sp.toString()}`;
   };
-  const chip = (active: boolean) => `rounded-full border px-3 py-1.5 text-xs font-medium ${active ? "border-brand-700 bg-orchid-soft text-orchid-deep" : "border-ink-200 bg-white text-ink-600 hover:bg-ink-50"}`;
+  const chip = (active: boolean) => `rounded-full border px-2.5 py-1 text-xs font-medium ${active ? "border-brand-700 bg-orchid-soft text-orchid-deep" : "border-ink-200 bg-white text-ink-600 hover:bg-ink-50"}`;
+  const staff = v.isSafetyTeam || v.isSupervisor;
   const title = v.isSafetyTeam ? "Reports" : v.isSupervisor ? "Reports" : "My reports";
 
   const nowD = new Date();
@@ -88,37 +89,65 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       </div>
 
       {reports.length === 0 ? (
-        <EmptyState
+        <EmptyHero
+          kind="reports"
           title={status === "open" ? "No open reports" : status === "incidents" ? "No open incident responses" : "No reports match these filters"}
           body={v.isSafetyTeam || v.isSupervisor ? "Reports will appear here when someone raises a safety concern." : "When you submit a report, you can follow it here."}
+          steps={v.isSafetyTeam ? [
+            { href: "/dashboard/reports/new", title: "Submit a test report", body: "Try the report form the way a worker would on a phone." },
+            { href: "/dashboard/sites", title: "Add your sites", body: "Reports are assigned to a site's safety lead." },
+            { href: "/dashboard/settings", title: "Set escalation rules", body: "Choose who is alerted when a report is not acknowledged in time." },
+          ] : []}
         />
       ) : (
-        <Card>
-          <ul className="divide-y divide-ink-200">
-            {reports.map((r) => {
-              const late = r.respondBy && !r.acknowledgedAt && r.respondBy < new Date() && r.status !== "CLOSED";
-              return (
-                <li key={r.id}>
-                  <Link href={`/dashboard/reports/${r.id}`} className="block px-4 py-3 hover:bg-ink-50 sm:px-5">
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <span className="font-mono text-xs text-ink-400">SR-{String(r.number).padStart(4, "0")}</span>
-                      {(v.isSafetyTeam || v.isSupervisor) && <SeverityBadge severity={r.severity} suggested={!r.severityConfirmedAt} />}
-                      <ReportStatusBadge status={r.status} />
-                      {r.incident && r.incident.status !== "RESOLVED" && <Badge tone="red">Incident response</Badge>}
-                      {!r.ownerId && r.status !== "CLOSED" && <Badge tone="amber">No owner</Badge>}
-                      {late && <Badge tone="red">Response overdue</Badge>}
+        <DataTable
+          columns={staff ? ["Report", "Seriousness", "Status", "Site", "Owner", "Occurred"] : ["Report", "Status", "Site", "Occurred"]}
+          template={staff ? "minmax(0,1fr) 9rem 9.5rem 10rem 7rem 3.5rem" : "minmax(0,1fr) 9.5rem 11rem 4.5rem"}
+        >
+          {reports.map((r) => {
+            const late = r.respondBy && !r.acknowledgedAt && r.respondBy < new Date() && r.status !== "CLOSED";
+            const flags = (
+              <>
+                {r.incident && r.incident.status !== "RESOLVED" && <Badge tone="red">Incident response</Badge>}
+                {!r.ownerId && r.status !== "CLOSED" && <Badge tone="amber">No owner</Badge>}
+                {late && <Badge tone="red">Response overdue</Badge>}
+              </>
+            );
+            const sev = <SeverityBadge severity={r.severity} suggested={!r.severityConfirmedAt} />;
+            const cells = staff
+              ? [sev, <ReportStatusBadge key="s" status={r.status} />, r.site?.name ?? "Site not given", (r.ownerId && ownerName.get(r.ownerId)) || "No owner", fmtShort(r.occurredAt)]
+              : [<ReportStatusBadge key="s" status={r.status} />, r.site?.name ?? "Site not given", fmtShort(r.occurredAt)];
+            return (
+              <DataRow
+                key={r.id}
+                href={`/dashboard/reports/${r.id}`}
+                template={staff ? "minmax(0,1fr) 9rem 9.5rem 10rem 7rem 3.5rem" : "minmax(0,1fr) 9.5rem 11rem 4.5rem"}
+                main={
+                  <>
+                    <div className="flex items-center gap-1.5">
+                      <p className="min-w-0 truncate text-[13px] font-medium text-ink-900">{r.title}</p>
+                      <span className="hidden shrink-0 items-center gap-1.5 md:flex">{flags}</span>
                     </div>
-                    <p className="mt-1 text-sm font-medium text-ink-900">{r.title}</p>
-                    <p className="mt-0.5 text-xs text-ink-500">
-                      {reportTypeLabel(r.type)} · {categoryLabel(r.category, pack)} · {r.site?.name ?? "Site not given"} · {fmtDate(r.occurredAt)}
-                      {r.ownerId && ownerName.get(r.ownerId) ? ` · Owner: ${ownerName.get(r.ownerId)}` : ""}
+                    <p className="mt-0.5 truncate text-xs text-ink-500">
+                      <span className="font-mono">SR-{String(r.number).padStart(4, "0")}</span>
+                      {" · "}{reportTypeLabel(r.type)}
+                      <span className="hidden md:inline"> · {categoryLabel(r.category, pack)}</span>
                     </p>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </Card>
+                  </>
+                }
+                chips={
+                  <>
+                    {staff && sev}
+                    <ReportStatusBadge status={r.status} />
+                    {flags}
+                    <span className="text-xs text-ink-500">{r.site?.name ?? "Site not given"} · {fmtShort(r.occurredAt)}</span>
+                  </>
+                }
+                cells={cells}
+              />
+            );
+          })}
+        </DataTable>
       )}
       {reports.length === 100 && <p className="text-center text-xs text-ink-400">Showing the 100 most recent reports. Use the filters to narrow the list.</p>}
     </div>

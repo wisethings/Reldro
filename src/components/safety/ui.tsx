@@ -32,6 +32,12 @@ export function fmtDate(d: Date | string | null | undefined) {
   return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+/** Compact date for table cells: "Sep 29". */
+export function fmtShort(d: Date | string | null | undefined) {
+  if (!d) return "\u2014";
+  return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
 export function fmtDateTime(d: Date | string | null | undefined) {
   if (!d) return "—";
   return new Date(d).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
@@ -51,8 +57,8 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0">
-        <h1 className="text-xl font-semibold text-ink-900">{title}</h1>
-        {subtitle && <p className="mt-0.5 text-sm text-ink-500">{subtitle}</p>}
+        <h1 className="text-lg font-semibold text-ink-900">{title}</h1>
+        {subtitle && <p className="mt-0.5 text-[13px] text-ink-500">{subtitle}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
@@ -69,6 +75,64 @@ export function EmptyState({ title, body, href, cta, heading = false }: { title:
         <Link href={href} className="mt-4 inline-block rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800">
           {cta}
         </Link>
+      )}
+    </div>
+  );
+}
+
+/**
+ * A page-level empty state: a soft illustration of what will fill the page, a plain explanation, and up to
+ * three next steps. Used when a whole list is empty, not for small inline "nothing here" lines.
+ */
+export function EmptyHero({
+  title,
+  body,
+  kind = "reports",
+  steps = [],
+}: {
+  title: string;
+  body: string;
+  kind?: "reports" | "investigations" | "actions";
+  steps?: { href: string; title: string; body: string }[];
+}) {
+  const chip = kind === "reports" ? "New" : kind === "investigations" ? "Under investigation" : "Open";
+  const prefix = kind === "reports" ? "SR" : kind === "investigations" ? "INV" : "A";
+  const bar = "h-2 rounded-full bg-ink-200/70";
+  return (
+    <div className="overflow-hidden rounded-2xl border border-ink-200/80 bg-white">
+      <div className="relative bg-gradient-to-b from-orchid-soft/70 via-orchid-soft/30 to-white px-4 pt-8 text-center">
+        <div aria-hidden className="mx-auto flex h-36 max-w-xl items-end justify-center gap-3 overflow-hidden [mask-image:linear-gradient(to_bottom,black_55%,transparent)]">
+          {[0.55, 1, 0.55].map((scale, idx) => (
+            <div key={idx} className="w-44 shrink-0 rounded-xl border border-ink-200/70 bg-white p-3 shadow-sm" style={{ transform: `translateY(${idx === 1 ? 0 : 22}px)`, opacity: idx === 1 ? 1 : 0.7 }}>
+              <div className="flex items-center gap-2">
+                <span className="h-5 w-5 rounded-md bg-orchid-soft" />
+                <span className={`${bar} w-16`} />
+              </div>
+              <p className="mt-3 text-[11px] font-medium text-orchid-deep">{idx === 1 ? chip : ""}</p>
+              <div className="mt-2 space-y-1.5 rounded-lg bg-ink-50 p-2">
+                <p className="text-[10px] font-mono text-ink-400">{prefix}-0{idx + 1}</p>
+                <span className={`${bar} block w-full`} />
+                <span className={`${bar} block w-2/3`} />
+              </div>
+              <span style={{ width: `${scale * 100}%` }} className={`${bar} mt-2 block`} />
+            </div>
+          ))}
+        </div>
+        <div className="-mt-3 pb-8">
+          <h2 className="text-lg font-semibold text-ink-900">{title}</h2>
+          <p className="mx-auto mt-1 max-w-md text-[13px] text-ink-600">{body}</p>
+        </div>
+      </div>
+      {steps.length > 0 && (
+        <div className="grid grid-cols-1 gap-3 border-t border-ink-100 p-3 sm:grid-cols-3">
+          {steps.map((st) => (
+            <Link key={st.href + st.title} href={st.href} className="group rounded-xl border border-ink-200/80 p-3 hover:bg-ink-50 focus-visible:ring-2 focus-visible:ring-brand-500">
+              <p className="text-[13px] font-medium text-ink-900">{st.title}</p>
+              <p className="mt-0.5 text-xs text-ink-600">{st.body}</p>
+              <p className="mt-2 text-xs font-medium text-orchid-deep group-hover:text-oxblood">Open →</p>
+            </Link>
+          ))}
+        </div>
       )}
     </div>
   );

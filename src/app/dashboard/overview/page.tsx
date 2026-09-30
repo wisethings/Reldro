@@ -7,7 +7,7 @@ import { actionStatusInfo, getPack, OPEN_ACTION_STATUSES, severityRank } from "@
 import { Badge } from "@/components/ui/Badge";
 import { ActionStatusBadge, dueLabel, fmtDate, ReportStatusBadge, SeverityBadge } from "@/components/safety/ui";
 import { Queue, QueueRow } from "@/components/safety/Queue";
-import { ActivityList, AttentionRow, Panel, PulseItem, StatCard, StatStrip, StatusBanner, type ActivityItem } from "@/components/safety/Dashboard";
+import { ActivityList, AttentionRow, Panel, PulseGrid, PulseItem, StatBar, StatCard, StatStrip, StatusBanner, type ActivityItem } from "@/components/safety/Dashboard";
 
 const ACTIVE_REPORT = ["NEW", "ASSIGNED", "INVESTIGATING", "ACTIONS_OPEN"];
 
@@ -242,19 +242,19 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   const chip = (active: boolean) => `rounded-full border px-2.5 py-1 text-xs font-medium ${active ? "border-brand-700 bg-orchid-soft text-orchid-deep" : "border-ink-200 bg-white text-ink-600 hover:bg-ink-50"}`;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-5 p-4 sm:p-6">
+    <div className="mx-auto max-w-6xl space-y-3 p-4 sm:p-5">
       <div>
-        <h1 className="text-xl font-semibold text-ink-900">{v.isSafetyTeam ? "Safety overview" : "Your site"}</h1>
+        <h1 className="text-lg font-semibold text-ink-900">{v.isSafetyTeam ? "Safety overview" : "Your site"}</h1>
         <p className="text-sm text-ink-500">{org?.name} · what needs attention today</p>
       </div>
 
-      <div className={`grid grid-cols-2 gap-3 md:grid-cols-3 ${v.isSafetyTeam ? "xl:grid-cols-5" : "xl:grid-cols-4"}`}>
-        <StatCard href="/dashboard/reports?status=incidents" icon={<Bell size={22} />} tint="coral" value={activeIncidents.length} label="Active incident responses" alert={activeIncidents.length > 0} />
+      <StatBar cols={v.isSafetyTeam ? 5 : 4}>
+        <StatCard href="/dashboard/reports?status=incidents" icon={<Bell size={22} />} tint="coral" value={activeIncidents.length} label="Active incidents" alert={activeIncidents.length > 0} />
         <StatCard href="/dashboard/reports?status=open" icon={<Clock size={22} />} tint="coral" value={respCount} label="Response overdue" alert={respCount > 0} />
-        <StatCard href="/dashboard/reports?status=open" icon={<UserRound size={22} />} tint="coral" value={noOwnerCount} label="New reports without an owner" alert={noOwnerCount > 0} />
+        <StatCard href="/dashboard/reports?status=open" icon={<UserRound size={22} />} tint="coral" value={noOwnerCount} label="Reports without an owner" alert={noOwnerCount > 0} />
         {v.isSafetyTeam && <StatCard href="/dashboard/investigations" icon={<Search size={22} />} tint="orchid" value={invCount} label="Active investigations" />}
-        <StatCard href="/dashboard/actions?view=overdue" icon={<TriangleAlert size={22} />} tint="gold" value={overdueCount} label="Overdue corrective actions" alert={overdueCount > 0} />
-      </div>
+        <StatCard href="/dashboard/actions?view=overdue" icon={<TriangleAlert size={22} />} tint="gold" value={overdueCount} label="Overdue actions" alert={overdueCount > 0} />
+      </StatBar>
 
       {attention === 0 ? (
         <StatusBanner tone="calm" title="Nothing needs attention right now" body="There are no active incident responses, overdue items, or reports waiting for an owner. Upcoming deadlines are listed below." />
@@ -262,7 +262,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
         <StatusBanner tone={urgent ? "urgent" : "watch"} title={`${attention} ${attention === 1 ? "item needs" : "items need"} attention`} body={`${parts.join(", ")}.`} />
       )}
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         <Panel icon={<TriangleAlert size={20} />} tint="coral" title="Needs attention" subtitle="Items that need a decision or follow-up.">
           <AttentionRow
             href="/dashboard/reports?status=incidents" icon={<Bell size={18} />} tint="coral" alert title="Active incident responses" count={activeIncidents.length}
@@ -310,7 +310,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
         </Panel>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         <Panel
           icon={<FileText size={20} />} tint="orchid" title="Recent activity" subtitle="Latest updates across reports, investigations, and corrective actions."
           action={<Link href="/dashboard/reports?status=all" className="shrink-0 rounded-lg border border-ink-200 px-3 py-1.5 text-xs font-medium text-ink-800 hover:bg-ink-50">View all</Link>}
@@ -326,14 +326,14 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
             </div>
           }
         >
-          <div className="grid grid-cols-2 gap-3">
+          <PulseGrid>
             <PulseItem icon={<FileText size={16} />} tint="orchid" value={repNow} previous={repPrev} days={pulseDays} label="Reports submitted" />
             <PulseItem icon={<Search size={16} />} tint="orchid" value={invNow} previous={invPrev} days={pulseDays} label="Investigations opened" />
             <PulseItem icon={<ClipboardCheck size={16} />} tint="gold" value={actNow} previous={actPrev} days={pulseDays} label="Corrective actions created" />
             <PulseItem icon={<CalendarCheck size={16} />} tint="orchid" value={inspNow} previous={inspPrev} days={pulseDays} label="Inspections completed" />
             <PulseItem icon={<CheckCircle2 size={16} />} tint="sage" value={verNow} previous={verPrev} days={pulseDays} label="Corrective actions verified" />
             <PulseItem icon={<Bell size={16} />} tint="coral" value={incNow} previous={incPrev} days={pulseDays} label="Incident responses opened" />
-          </div>
+          </PulseGrid>
         </Panel>
       </div>
     </div>
