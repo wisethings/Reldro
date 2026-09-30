@@ -33,7 +33,7 @@ export function DashboardShell({
   const hideReportCta = pathname.startsWith("/dashboard/reports/new") || workerHome;
 
   return (
-    <div className="flex h-dvh overflow-clip bg-ink-100">
+    <div className="fixed inset-0 flex overflow-clip bg-ink-100">
       <Sidebar audience={audience} orgName={orgName} name={name} roleLabel={roleLabel} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
       <div className="flex min-w-0 flex-1 flex-col md:py-2 md:pr-2">
         {isDemo && (
