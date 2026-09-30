@@ -9,7 +9,7 @@ import { EmptyState, fmtDate, PageHeader } from "@/components/safety/ui";
 import { StatStrip } from "@/components/safety/Dashboard";
 import { PAGE_SIZE, paginate, Pagination, readPage } from "@/components/safety/Pagination";
 import { TalkContent } from "@/components/safety/TalkContent";
-import { AcknowledgeButton, QualificationForm, StillToAcknowledge, TalkForm, TalkMenu } from "@/components/safety/TrainingForms";
+import { AcknowledgeButton, CreateTalkPanel, QualificationForm, StillToAcknowledge, TalkMenu } from "@/components/safety/TrainingForms";
 import { QualificationTable, type QualRow } from "@/components/safety/QualificationTable";
 import { ListToolbar } from "@/components/safety/ListToolbar";
 import { PersonAccess, PersonAssignment, PersonMenu } from "@/components/team/PeopleControls";
@@ -141,18 +141,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
           </form>
         </div>
 
-        {canManage && (
-          <details className="group surface" open={createOpen}>
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
-              <span>
-                <span className="block text-sm font-semibold text-ink-900">Create toolbox talk</span>
-                <span className="block text-xs text-ink-500">A short safety talk your crews acknowledge. AI can draft an outline from approved material.</span>
-              </span>
-              <span className="shrink-0 rounded-full bg-brand-700 px-4 py-1.5 text-xs font-medium text-white group-open:hidden">New talk</span>
-            </summary>
-            <div className="border-t border-ink-100 px-4 py-4"><TalkForm sites={sites.map((s) => ({ id: s.id, name: s.name }))} lockSiteId={v.isSafetyTeam ? null : v.siteId} /></div>
-          </details>
-        )}
+        {canManage && <CreateTalkPanel sites={sites.map((s) => ({ id: s.id, name: s.name }))} lockSiteId={v.isSafetyTeam ? null : v.siteId} defaultOpen={createOpen} />}
 
         {rows.length === 0 ? (
           <EmptyState title="No toolbox talks yet" body={canManage ? "Create your first toolbox talk above." : "When your supervisor shares a toolbox talk, it will appear here."} />

@@ -2,125 +2,222 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireViewer } from "@/lib/safety/context";
 import { INSPECTION_KIND_LABEL } from "@/lib/safety/pack";
-import { Card, CardBody, CardHeader } from "@/components/ui/Card";
+import { repeatLabel } from "@/lib/safety/repeat";
 import { Badge } from "@/components/ui/Badge";
-import { dueLabel, EmptyState, fmtDate, PageHeader } from "@/components/safety/ui";
-import { DeleteTemplateButton, ScheduleInspectionForm, StarterTemplatesButton, TemplateForm } from "@/components/safety/InspectionForms";
+import { dueLabel, fmtDate, PageHeader } from "@/components/safety/ui";
+import { DataRow, DataTable } from "@/components/safety/Table";
+import { ListToolbar } from "@/components/safety/ListToolbar";
+import { PAGE_SIZE, Pagination, readPage } from "@/components/safety/Pagination";
+import { ChecklistMenu, NewChecklist, ScheduleInspectionButton, StarterTemplatesButton } from "@/components/safety/InspectionForms";
 
-import { StatStrip } from "@/components/safety/Dashboard";
-export default async function InspectionsPage() {
+const DAY = 86400_000;
+type View = "all" | "overdue" | "soon" | "done" | "checklists";
+
+export default async function InspectionsPage({ searchParams }: { searchParams: Promise<{ view?: string; q?: string; page?: string; new?: string }> }) {
+  const sp = await searchParams;
   const v = await requireViewer();
-  const siteScope = v.isSafetyTeam ? {} : v.isSupervisor ? { siteId: v.siteId ?? "__none__" } : { assigneeId: v.employeeId ?? "__none__" };
   const canSchedule = v.isSafetyTeam || v.isSupervisor;
+  const scope = v.isSafetyTeam ? {} : v.isSupervisor ? { siteId: v.siteId ?? "__none__" } : { assigneeId: v.employeeId ?? "__none__" };
+  const org = { organizationId: v.organizationId, ...scope };
+  const now = Date.now();
+  // Same day arithmetic as the "3 days overdue" label: overdue means a full day or more past due.
+  const lateCut = new Date(now - DAY);
+  const soonCut = new Date(now + 7 * DAY);
+  const d30 = new Date(now - 30 * DAY);
+  const view: View = sp.view === "overdue" || sp.view === "soon" || sp.view === "done" || (sp.view === "checklists" && v.isSafetyTeam) ? sp.view : "all";
+  const q = (sp.q ?? "").trim();
+  const search = q ? { OR: [{ template: { name: { contains: q, mode: "insensitive" as const } } }, { site: { name: { contains: q, mode: "insensitive" as const } } }] } : {};
 
-  const [upcoming, recent, templates, sites, people] = await Promise.all([
-    prisma.inspection.findMany({ where: { organizationId: v.organizationId, status: "SCHEDULED", ...siteScope }, include: { template: true, site: true }, orderBy: { dueDate: "asc" }, take: 50 }),
-    prisma.inspection.findMany({ where: { organizationId: v.organizationId, status: "COMPLETED", ...siteScope }, include: { template: true, site: true }, orderBy: { completedAt: "desc" }, take: 10 }),
+  const scheduled = { ...org, status: "SCHEDULED" };
+  const [nAll, nLate, nSoon, nDone, nDone30, doneRows] = await Promise.all([
+    prisma.inspection.count({ where: scheduled }),
+    prisma.inspection.count({ where: { ...scheduled, dueDate: { lte: lateCut } } }),
+    prisma.inspection.count({ where: { ...scheduled, dueDate: { gt: lateCut, lte: soonCut } } }),
+    prisma.inspection.count({ where: { ...org, status: "COMPLETED" } }),
+    prisma.inspection.count({ where: { ...org, status: "COMPLETED", completedAt: { gte: d30 } } }),
+    prisma.inspection.findMany({ where: { ...org, status: "COMPLETED", completedAt: { gte: d30 } }, select: { results: true } }),
+  ]);
+  const sFailed = doneRows.reduce((n, r) => n + (r.results as { result: string }[]).filter((x) => x.result === "FAIL").length, 0);
+
+  const [templates, sites, people] = await Promise.all([
     canSchedule ? prisma.inspectionTemplate.findMany({ where: { organizationId: v.organizationId }, orderBy: { name: "asc" } }) : Promise.resolve([]),
     canSchedule ? prisma.site.findMany({ where: { organizationId: v.organizationId, active: true, ...(v.isSafetyTeam ? {} : { id: v.siteId ?? "__none__" }) }, orderBy: { name: "asc" } }) : Promise.resolve([]),
     canSchedule ? prisma.employee.findMany({ where: { organizationId: v.organizationId }, include: { user: { select: { name: true } } }, orderBy: { user: { name: "asc" } } }) : Promise.resolve([]),
   ]);
 
-  const inspScope = v.isSafetyTeam ? {} : v.isSupervisor && v.siteId ? { siteId: v.siteId } : { assigneeId: v.employeeId ?? "__none__" };
-  const d30 = new Date(Date.now() - 30 * 86400_000);
-  const [sDue, sLate, sDone, doneRows] = await Promise.all([
-    prisma.inspection.count({ where: { organizationId: v.organizationId, status: "SCHEDULED", dueDate: { lte: new Date(Date.now() + 7 * 86400_000) }, ...inspScope } }),
-    prisma.inspection.count({ where: { organizationId: v.organizationId, status: "SCHEDULED", dueDate: { lt: new Date() }, ...inspScope } }),
-    prisma.inspection.count({ where: { organizationId: v.organizationId, status: "COMPLETED", completedAt: { gte: d30 }, ...inspScope } }),
-    prisma.inspection.findMany({ where: { organizationId: v.organizationId, status: "COMPLETED", completedAt: { gte: d30 }, ...inspScope }, select: { results: true } }),
-  ]);
-  const sFailed = doneRows.reduce((n, r) => n + (r.results as { result: string }[]).filter((x) => x.result === "FAIL").length, 0);
+  // The main list: scheduled work by default, or the full completed history.
+  const listWhere =
+    view === "done" ? { ...org, status: "COMPLETED", ...search }
+    : view === "overdue" ? { ...scheduled, dueDate: { lte: lateCut }, ...search }
+    : view === "soon" ? { ...scheduled, dueDate: { gt: lateCut, lte: soonCut }, ...search }
+    : { ...scheduled, ...search };
+  const inList = view !== "checklists";
+  const total = inList ? await prisma.inspection.count({ where: listWhere }) : 0;
+  const page = Math.min(readPage(sp.page), Math.max(1, Math.ceil(total / PAGE_SIZE)));
+  const rows = inList
+    ? await prisma.inspection.findMany({ where: listWhere, include: { template: true, site: true }, orderBy: view === "done" ? { completedAt: "desc" } : { dueDate: "asc" }, skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE })
+    : [];
+  const showPreview = view === "all" && !q;
+  const recent = showPreview ? await prisma.inspection.findMany({ where: { ...org, status: "COMPLETED" }, include: { template: true, site: true }, orderBy: { completedAt: "desc" }, take: 5 }) : [];
+  const assigneeIds = [...rows.map((r) => r.assigneeId), ...recent.map((r) => r.assigneeId)].filter((x): x is string => Boolean(x));
+  const owners = assigneeIds.length ? await prisma.employee.findMany({ where: { id: { in: assigneeIds } }, include: { user: { select: { name: true } } } }) : [];
+  const ownerName = new Map(owners.map((o) => [o.id, o.user.name]));
+
+  const href = (over: Record<string, string | undefined>) => {
+    const p2 = new URLSearchParams();
+    const merged: Record<string, string | undefined> = { view: view === "all" ? undefined : view, q: q || undefined, ...over };
+    for (const [k, val] of Object.entries(merged)) if (val) p2.set(k, val);
+    const str = p2.toString();
+    return str ? `?${str}` : "?";
+  };
+  const seg = (on: boolean) => `rounded-md px-3 py-1 text-xs font-medium transition-colors ${on ? "bg-white text-ink-900 shadow-[0_0_0_1px_rgba(42,10,12,0.08)]" : "text-ink-600 hover:text-ink-900"}`;
+  const failedCount = (r: unknown) => (r as { result: string }[]).filter((x) => x.result === "FAIL").length;
+  const dueCell = (due: Date) => {
+    const d = dueLabel(due, true);
+    const today = d.text === "Due today";
+    const soon = !d.overdue && due.getTime() <= soonCut.getTime();
+    return <span className={d.overdue ? "font-semibold text-danger" : today ? "font-semibold text-amber-deep" : soon ? "text-amber-deep" : "text-ink-500"}>{d.text}{!d.overdue && <span className="block text-xs font-normal text-ink-500">{fmtDate(due)}</span>}</span>;
+  };
+
   return (
-    <div className="min-h-full bg-surface-muted">
-    <div className="mx-auto max-w-5xl space-y-5 px-4 py-6 sm:px-8 sm:py-8">
-      <PageHeader title="Inspections" subtitle="Schedule recurring site inspections and job-start checks. Failed items can become corrective actions." />
-      <StatStrip items={[
-        { label: "Due in the next 7 days", value: sDue },
-        { label: "Overdue", value: sLate, alert: sLate > 0 },
-        { label: "Completed in the last 30 days", value: sDone },
-        { label: "Failed items in the last 30 days", value: sFailed },
-      ]} />
+    <div className="mx-auto w-full max-w-6xl space-y-4 px-4 py-4 sm:px-6 sm:py-6">
+      <PageHeader
+        title="Inspections"
+        subtitle="Site inspections and job-start checks. Failed items can become corrective actions."
+        actions={canSchedule && templates.length > 0 ? <ScheduleInspectionButton templates={templates.map((t) => ({ id: t.id, name: t.name }))} sites={sites.map((s) => ({ id: s.id, name: s.name }))} people={people.map((p) => ({ id: p.id, name: p.user.name }))} defaultOpen={sp.new === "1"} /> : undefined}
+      />
 
-      <Card tone="plain">
-        <CardHeader title="Due and upcoming" />
-        {upcoming.length === 0 ? (
-          <CardBody><p className="text-sm font-medium text-ink-800">No inspections scheduled</p><p className="mt-0.5 text-sm text-ink-500">{canSchedule ? "Schedule an inspection or create a checklist to get started." : "Inspections assigned to you will appear here."}</p></CardBody>
-        ) : (
-          <ul className="divide-y divide-ink-200">
-            {upcoming.map((i) => {
-              const d = dueLabel(i.dueDate, true);
-              return (
-                <li key={i.id}>
-                  <Link href={`/dashboard/inspections/${i.id}`} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 hover:bg-surface-hover sm:px-5">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-ink-900">{i.template.name}</p>
-                      <p className="text-xs text-ink-500">{i.site.name} · {INSPECTION_KIND_LABEL[i.template.kind]}</p>
-                    </div>
-                    <span className={`text-xs font-medium ${d.overdue ? "text-danger" : "text-ink-600"}`}>{d.text}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </Card>
+      <p className="surface flex flex-wrap items-center gap-x-5 gap-y-1 px-4 py-2 text-xs text-ink-600">
+        <Link href="?view=overdue" className="hover:text-ink-900"><span className={`mr-1 text-sm font-semibold tabular-nums ${nLate > 0 ? "text-danger" : "text-ink-900"}`}>{nLate}</span>overdue</Link>
+        <Link href="?view=soon" className="hover:text-ink-900"><span className={`mr-1 text-sm font-semibold tabular-nums ${nSoon > 0 ? "text-amber-deep" : "text-ink-900"}`}>{nSoon}</span>due in the next 7 days</Link>
+        <Link href="?view=done" className="hover:text-ink-900"><span className="mr-1 text-sm font-semibold tabular-nums text-ink-900">{nDone30}</span>completed in 30 days</Link>
+        <span><span className={`mr-1 text-sm font-semibold tabular-nums ${sFailed > 0 ? "text-danger" : "text-ink-900"}`}>{sFailed}</span>failed items in 30 days</span>
+      </p>
 
-      {canSchedule && (
-        <Card tone="plain">
-          <CardHeader title="Schedule an inspection" subtitle="Choose a checklist, site, owner, and due date." />
-          <CardBody>
-            {templates.length === 0 ? (
-              <div className="space-y-3">
-                <p className="text-sm text-ink-600">You do not have any checklists yet. Start with the standard set for specialty contractors (a weekly site walk, a job-start readiness check, and a quick observation), then edit them or add your own.</p>
-                {v.isSafetyTeam && <StarterTemplatesButton />}
-              </div>
+      {inList ? (
+        <>
+          <div className="flex flex-wrap items-center gap-2">
+            <div role="group" aria-label="Filter inspections" className="flex rounded-lg bg-ink-100 p-0.5">
+              <Link scroll={false} href={href({ view: undefined, page: undefined })} className={seg(view === "all")}>All ({nAll})</Link>
+              <Link scroll={false} href={href({ view: "overdue", page: undefined })} className={`${seg(view === "overdue")} ${view !== "overdue" && nLate > 0 ? "!text-danger" : ""}`}>Overdue ({nLate})</Link>
+              <Link scroll={false} href={href({ view: "soon", page: undefined })} className={`${seg(view === "soon")} ${view !== "soon" && nSoon > 0 ? "!text-amber-deep" : ""}`}>Due soon ({nSoon})</Link>
+              <Link scroll={false} href={href({ view: "done", page: undefined })} className={seg(view === "done")}>Completed ({nDone})</Link>
+            </div>
+          </div>
+          <ListToolbar searchParam="q" pageParam="page" placeholder="Search inspection or site" selects={[]} />
+
+          {rows.length === 0 ? (
+            q ? (
+              <div className="surface border-dashed px-6 py-10 text-center"><p className="text-sm font-medium text-ink-900">No inspections match</p><p className="mt-1 text-sm text-ink-600">Try a different search, or <Link href={href({ q: undefined })} className="font-medium text-orchid-deep hover:text-oxblood">clear it</Link>.</p></div>
             ) : (
-              <ScheduleInspectionForm templates={templates.map((t) => ({ id: t.id, name: t.name }))} sites={sites.map((s) => ({ id: s.id, name: s.name }))} people={people.map((p) => ({ id: p.id, name: p.user.name }))} />
-            )}
-          </CardBody>
-        </Card>
-      )}
+              <div className="surface px-6 py-10 text-center">
+                <p className="text-sm font-medium text-ink-900">{view === "overdue" ? "Nothing is overdue" : view === "soon" ? "Nothing is due in the next 7 days" : view === "done" ? "No completed inspections yet" : "No inspections scheduled"}</p>
+                <p className="mt-1 text-sm text-ink-600">{view === "all" ? (canSchedule ? "Schedule an inspection or create a checklist to get started." : "Inspections assigned to you will appear here.") : "Nice work."}</p>
+                {view === "all" && canSchedule && templates.length === 0 && v.isSafetyTeam && <div className="mt-3 flex justify-center"><StarterTemplatesButton /></div>}
+              </div>
+            )
+          ) : view === "done" ? (
+            <DataTable columns={["Inspection", "Site", "Type", "Completed", "Result"]} template="minmax(0,1.2fr) minmax(0,1fr) 9rem 8rem 8rem">
+              {rows.map((i) => {
+                const failed = failedCount(i.results);
+                return (
+                  <DataRow key={i.id} href={`/dashboard/inspections/${i.id}`} template="minmax(0,1.2fr) minmax(0,1fr) 9rem 8rem 8rem"
+                    main={<p className="truncate text-sm font-semibold text-ink-900">{i.template.name}</p>}
+                    chips={<><span className="text-xs text-ink-500">{i.site.name} · {fmtDate(i.completedAt)}</span>{failed > 0 ? <Badge tone="red">{failed} failed</Badge> : <Badge tone="green">Passed</Badge>}</>}
+                    cells={[<span key="s" className="line-clamp-2">{i.site.name}</span>, <span key="t" className="text-ink-500">{INSPECTION_KIND_LABEL[i.template.kind]}</span>, <span key="c" className="text-xs text-ink-500">{fmtDate(i.completedAt)}</span>, failed > 0 ? <Badge key="r" tone="red">{failed} failed</Badge> : <Badge key="r" tone="green">Passed</Badge>]}
+                  />
+                );
+              })}
+            </DataTable>
+          ) : (
+            <DataTable columns={["Inspection", "Site", "Type", "Owner", "Due"]} template="minmax(0,1.2fr) minmax(0,1fr) 9rem 9rem 8rem">
+              {rows.map((i) => {
+                const d = dueLabel(i.dueDate, true);
+                const today = d.text === "Due today";
+                return (
+                  <DataRow key={i.id} href={`/dashboard/inspections/${i.id}`} tone={d.overdue ? "urgent" : today ? "warn" : undefined} template="minmax(0,1.2fr) minmax(0,1fr) 9rem 9rem 8rem"
+                    main={<p className="truncate text-sm font-semibold text-ink-900">{i.template.name}</p>}
+                    chips={<><span className="text-xs text-ink-500">{i.site.name}</span><span className={`text-xs ${d.overdue ? "font-semibold text-danger" : today ? "font-semibold text-amber-deep" : "text-ink-500"}`}>{d.text}</span></>}
+                    cells={[<span key="s" className="line-clamp-2">{i.site.name}</span>, <span key="t" className="text-ink-500">{INSPECTION_KIND_LABEL[i.template.kind]}</span>, <span key="o" className={i.assigneeId ? "" : "text-ink-400"}>{i.assigneeId ? ownerName.get(i.assigneeId) ?? "Assigned" : "Anyone at the site"}</span>, <span key="d">{dueCell(i.dueDate)}</span>]}
+                  />
+                );
+              })}
+            </DataTable>
+          )}
+          <Pagination page={page} total={total} noun="inspections" hrefFor={(n) => href({ page: n > 1 ? String(n) : undefined })} />
 
-      {recent.length > 0 ? (
-        <Card tone="plain">
-          <CardHeader title="Recently completed" />
-          <ul className="divide-y divide-ink-200">
-            {recent.map((i) => {
-              const failed = (i.results as { result: string }[]).filter((r) => r.result === "FAIL").length;
-              return (
-                <li key={i.id}>
-                  <Link href={`/dashboard/inspections/${i.id}`} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 hover:bg-surface-hover sm:px-5">
-                    <div><p className="text-sm font-medium text-ink-900">{i.template.name}</p><p className="text-xs text-ink-500">{i.site.name} · {fmtDate(i.completedAt)}</p></div>
-                    {failed > 0 ? <Badge tone="red">{failed} failed</Badge> : <Badge tone="green">No failed items</Badge>}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </Card>
-      ) : upcoming.length === 0 && !canSchedule ? (
-        <EmptyState title="No inspections assigned to you" body="Inspections assigned to you will appear here." />
+          {showPreview && recent.length > 0 && (
+            <details className="surface group">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-2.5 text-sm font-semibold text-ink-900 hover:bg-surface-hover [&::-webkit-details-marker]:hidden">
+                <span>Recently completed <span className="font-normal text-ink-500">· {nDone}</span></span>
+                <span aria-hidden className="text-ink-400 transition-transform group-open:rotate-180">⌄</span>
+              </summary>
+              <ul className="divide-y divide-ink-100 border-t border-ink-100">
+                {recent.map((i) => {
+                  const failed = failedCount(i.results);
+                  return (
+                    <li key={i.id}>
+                      <Link href={`/dashboard/inspections/${i.id}`} className="flex min-h-[2.75rem] items-center justify-between gap-3 px-4 py-2 hover:bg-surface-hover">
+                        <span className="min-w-0"><span className="block truncate text-sm font-medium text-ink-900">{i.template.name}</span><span className="block truncate text-xs text-ink-500">{i.site.name} · {fmtDate(i.completedAt)}</span></span>
+                        {failed > 0 ? <Badge tone="red">{failed} failed</Badge> : <Badge tone="green">Passed</Badge>}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+              {nDone > recent.length && <div className="border-t border-ink-100 px-4 py-2"><Link href="?view=done" className="text-xs font-medium text-orchid-deep hover:text-oxblood">View all completed →</Link></div>}
+            </details>
+          )}
+        </>
       ) : null}
 
-      {v.isSafetyTeam && (
-        <Card tone="plain">
-          <CardHeader title="Checklists" subtitle="Checklists used to run inspections." />
-          <CardBody className="space-y-4">
-            {templates.length > 0 && (
-              <ul className="divide-y divide-ink-200/60 overflow-hidden rounded-lg bg-surface-muted">
-                {templates.map((t) => (
-                  <li key={t.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                    <span>{t.name} <span className="text-xs text-ink-400">· {(t.items as unknown[]).length} items{t.frequencyDays ? ` · every ${t.frequencyDays} days` : ""}</span></span>
-                    <DeleteTemplateButton templateId={t.id} />
-                  </li>
-                ))}
-              </ul>
-            )}
-            <details className="border-t border-ink-100 pt-3"><summary className="cursor-pointer text-sm font-medium text-ink-800">Create a checklist</summary><div className="mt-3"><TemplateForm /></div></details>
-          </CardBody>
-        </Card>
+      {v.isSafetyTeam && (view === "all" || view === "checklists") && !q && (
+        <ChecklistSection templates={templates} full={view === "checklists"} pageParam={sp.page} />
       )}
     </div>
-    </div>
+  );
+}
+
+function ChecklistSection({ templates, full, pageParam }: { templates: Awaited<ReturnType<typeof prisma.inspectionTemplate.findMany>>; full: boolean; pageParam: string | undefined }) {
+  const preview = 5;
+  const last = Math.max(1, Math.ceil(templates.length / PAGE_SIZE));
+  const page = Math.min(readPage(pageParam), last);
+  const shown = full ? templates.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) : templates.slice(0, preview);
+  const list = (
+    <>
+      <NewChecklist empty={templates.length === 0} />
+      {templates.length > 0 && (
+        <ul className="divide-y divide-ink-100">
+          {shown.map((t) => {
+            const rep = repeatLabel(t.frequencyDays);
+            return (
+              <li key={t.id} className="flex min-h-[2.75rem] items-center justify-between gap-3 px-4 py-1.5">
+                <div className="min-w-0"><p className="truncate text-sm font-semibold text-ink-900">{t.name}</p><p className="truncate text-xs text-ink-500">{INSPECTION_KIND_LABEL[t.kind]} · {(t.items as unknown[]).length} items{rep ? ` · ${rep.toLowerCase()}` : ""}</p></div>
+                <ChecklistMenu template={{ id: t.id, name: t.name, kind: t.kind, frequencyDays: t.frequencyDays, items: t.items as { label: string; critical?: boolean }[] }} />
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {!full && templates.length > preview && <div className="border-t border-ink-100 px-4 py-2"><Link href="?view=checklists" className="text-xs font-medium text-orchid-deep hover:text-oxblood">View all {templates.length} checklists →</Link></div>}
+    </>
+  );
+  if (full) {
+    return (
+      <section aria-labelledby="checklists" className="space-y-3">
+        <div className="flex items-center justify-between"><h2 id="checklists" className="text-sm font-semibold text-ink-900">Checklists <span className="font-normal text-ink-500">· {templates.length}</span></h2><Link href="?" className="text-xs font-medium text-orchid-deep hover:text-oxblood">← Back to inspections</Link></div>
+        <div className="surface">{list}</div>
+        <Pagination page={page} total={templates.length} noun="checklists" hrefFor={(n) => `?view=checklists${n > 1 ? `&page=${n}` : ""}`} />
+      </section>
+    );
+  }
+  return (
+    <details className="surface group">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-2.5 text-sm font-semibold text-ink-900 hover:bg-surface-hover [&::-webkit-details-marker]:hidden">
+        <span>Checklists <span className="font-normal text-ink-500">· {templates.length}</span></span>
+        <span aria-hidden className="text-ink-400 transition-transform group-open:rotate-180">⌄</span>
+      </summary>
+      <div className="border-t border-ink-100">{list}</div>
+    </details>
   );
 }

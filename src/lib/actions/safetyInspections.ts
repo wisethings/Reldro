@@ -58,6 +58,35 @@ export async function createTemplate(_prev: InspectionFormState, formData: FormD
   return { success: "Checklist created. Prefix a line with * to mark it critical." };
 }
 
+export async function updateTemplate(templateId: string, changes: { name: string; kind: string; frequencyDays: string; items: string }) {
+  const v = await requireViewer();
+  if (!v.isSafetyTeam) throw new Error("Only the safety team can edit checklists.");
+  const t = await prisma.inspectionTemplate.findFirst({ where: { id: templateId, organizationId: v.organizationId } });
+  if (!t) throw new Error("Checklist not found.");
+  const name = changes.name.trim();
+  const items = changes.items.split("\n").map((l) => l.trim()).filter(Boolean).slice(0, 40);
+  if (!name) throw new Error("Name the checklist.");
+  if (items.length === 0) throw new Error("Add at least one checklist item, one per line.");
+  const kind = ["SITE_INSPECTION", "READINESS", "OBSERVATION"].includes(changes.kind) ? changes.kind : t.kind;
+  const freq = Math.round(Number(changes.frequencyDays) || 0);
+  await prisma.inspectionTemplate.update({
+    where: { id: templateId },
+    data: { name: name.slice(0, 120), kind, frequencyDays: freq > 0 ? freq : null, items: items.map((label, i) => ({ id: `i${i + 1}`, label: label.replace(/^\*\s*/, ""), critical: label.startsWith("*") })) },
+  });
+  await audit(v, "safety.settings_changed", "InspectionTemplate", templateId, { updated: name });
+  revalidatePath("/dashboard/inspections");
+}
+
+export async function duplicateTemplate(templateId: string) {
+  const v = await requireViewer();
+  if (!v.isSafetyTeam) throw new Error("Only the safety team can duplicate checklists.");
+  const t = await prisma.inspectionTemplate.findFirst({ where: { id: templateId, organizationId: v.organizationId } });
+  if (!t) throw new Error("Checklist not found.");
+  await prisma.inspectionTemplate.create({ data: { organizationId: v.organizationId, name: `${t.name} (copy)`.slice(0, 120), kind: t.kind, frequencyDays: t.frequencyDays, items: t.items as object } });
+  await audit(v, "safety.settings_changed", "InspectionTemplate", templateId, { duplicated: t.name });
+  revalidatePath("/dashboard/inspections");
+}
+
 export async function deleteTemplate(templateId: string) {
   const v = await requireViewer();
   if (!v.isSafetyTeam) throw new Error("Only the safety team can delete checklists.");

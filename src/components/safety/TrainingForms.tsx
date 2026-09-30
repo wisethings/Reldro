@@ -5,47 +5,92 @@ import { MoreHorizontal } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { acknowledgeTalk, addQualification, createToolboxTalk, deleteToolboxTalk } from "@/lib/actions/safetyTraining";
 import { aiDraftToolboxTalk } from "@/lib/actions/safetyAi";
-import { Field, Input, Select, Textarea } from "@/components/ui/Field";
+import { Field, Input, Select } from "@/components/ui/Field";
+import { AutoTextarea } from "@/components/ui/AutoTextarea";
+import { btnPrimary, btnSecondary, FormPanel, FormSection } from "@/components/ui/FormParts";
 import { AiTextDraft } from "./AiTextDraft";
 import { useAct } from "./useAct";
 import { Alert } from "@/components/ui/Alert";
 
-export function TalkForm({ sites, lockSiteId }: { sites: { id: string; name: string }[]; lockSiteId: string | null }) {
+/** The "New talk" entry point: a quiet header row that opens the guided form below it, and closes again. */
+export function CreateTalkPanel({ sites, lockSiteId, defaultOpen = false }: { sites: { id: string; name: string }[]; lockSiteId: string | null; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+  if (!open) {
+    return (
+      <div className="surface flex items-center justify-between gap-3 px-4 py-3">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-ink-900">Create toolbox talk</p>
+          <p className="text-xs text-ink-500">A short safety talk your crews acknowledge. AI can draft an outline from approved material.</p>
+        </div>
+        <button type="button" onClick={() => setOpen(true)} className={`${btnPrimary} shrink-0 !px-4 !py-1.5 !text-xs`}>New talk</button>
+      </div>
+    );
+  }
+  return <TalkForm sites={sites} lockSiteId={lockSiteId} onClose={() => setOpen(false)} />;
+}
+
+export function TalkForm({ sites, lockSiteId, onClose }: { sites: { id: string; name: string }[]; lockSiteId: string | null; onClose?: () => void }) {
   const [state, formAction, pending] = useActionState(createToolboxTalk, undefined);
   const [topic, setTopic] = useState("");
   const [source, setSource] = useState("");
   const [content, setContent] = useState("");
   const [aiDrafted, setAiDrafted] = useState(false);
+  const [touched, setTouched] = useState<{ title?: boolean; content?: boolean }>({});
   const router = useRouter();
-  useEffect(() => { if (state?.success) { setTopic(""); setSource(""); setContent(""); setAiDrafted(false); router.refresh(); } }, [state, router]);
+  useEffect(() => { if (state?.success) { setTopic(""); setSource(""); setContent(""); setAiDrafted(false); setTouched({}); router.refresh(); onClose?.(); } }, [state, router, onClose]);
+  const titleError = touched.title && !topic.trim() ? "Give the talk a title." : undefined;
+  const contentError = touched.content && !content.trim() ? "Add what the supervisor will cover." : undefined;
 
   return (
-    <form action={formAction} className="space-y-3">
+    <form action={formAction}>
       <input type="hidden" name="aiDrafted" value={aiDrafted ? "1" : "0"} />
-      {state?.error && <Alert tone="error">{state.error}</Alert>}
-      {state?.success && <p className="rounded-lg bg-sage px-3 py-2 text-sm text-sage-deep">{state.success}</p>}
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Field label="Title" required><Input name="title" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="e.g. Ladder setup and inspection" required /></Field>
-        <Field label="For">
-          {lockSiteId ? <Input value="Your site" disabled /> : (
-            <Select name="siteId" defaultValue=""><option value="">Whole company</option>{sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select>
-          )}
-        </Field>
-        <Field label="Date"><Input name="scheduledFor" type="date" defaultValue={new Date().toISOString().slice(0, 10)} /></Field>
-      </div>
-      <Field label="Approved source material" optional hint="Use approved company procedures or policy material as the source. Paste a procedure, a policy excerpt, or a lesson from a past investigation. AI creates a draft from this text only. Review it before sharing.">
-        <Textarea name="sourceMaterial" value={source} onChange={(e) => setSource(e.target.value)} rows={4} />
-      </Field>
-      <AiTextDraft
-        label="Draft a talk outline with AI"
-        generate={() => aiDraftToolboxTalk(topic, source)}
-        useLabel="Use as the talk content"
-        onUse={(text) => { setContent(text); setAiDrafted(true); }}
-      />
-      <Field label="Talk content" required hint="What the supervisor will cover. Write it yourself, or edit an AI draft before you share it.">
-        <Textarea name="content" value={content} onChange={(e) => setContent(e.target.value)} rows={7} required />
-      </Field>
-      <button disabled={pending} className="rounded-full bg-brand-700 px-5 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? "Publishing…" : "Publish talk"}</button>
+      <FormPanel
+        title="New toolbox talk"
+        description="Write the talk yourself, or start from approved material and edit the AI draft."
+        onClose={onClose}
+        actions={
+          <>
+            <button disabled={pending} className={btnPrimary}>{pending ? "Publishing…" : "Publish talk"}</button>
+            {onClose && <button type="button" onClick={onClose} className={btnSecondary}>Cancel</button>}
+            <span className="ml-auto text-xs text-ink-500"><span className="text-danger">*</span> required</span>
+          </>
+        }
+      >
+        {state?.error && <div className="px-4 pt-4 sm:px-5"><Alert tone="error">{state.error}</Alert></div>}
+        <FormSection title="Basics">
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_14rem_10rem]">
+            <Field label="Title" required error={titleError}><Input name="title" value={topic} onChange={(e) => setTopic(e.target.value)} onBlur={() => setTouched((t) => ({ ...t, title: true }))} placeholder="e.g. Ladder setup and inspection" required /></Field>
+            <Field label="For">
+              {lockSiteId ? <Input value="Your site" disabled /> : (
+                <Select name="siteId" defaultValue=""><option value="">Whole company</option>{sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select>
+              )}
+            </Field>
+            <Field label="Date"><Input name="scheduledFor" type="date" defaultValue={new Date().toISOString().slice(0, 10)} /></Field>
+          </div>
+        </FormSection>
+        <FormSection title="Talk">
+          <details className="group rounded-lg border border-ink-200 bg-white">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-sm font-medium text-ink-800 hover:bg-surface-hover [&::-webkit-details-marker]:hidden">
+              <span>Draft from approved material with AI <span className="font-normal text-ink-500">· optional</span></span>
+              <span aria-hidden className="text-ink-400 transition-transform group-open:rotate-180">⌄</span>
+            </summary>
+            <div className="space-y-3 border-t border-ink-100 px-3 py-3">
+              <Field label="Approved source material" optional hint="Paste a procedure, a policy excerpt, or a lesson from a past investigation. AI drafts from this text only. Review before sharing.">
+                <AutoTextarea name="sourceMaterial" value={source} onChange={(e) => setSource(e.target.value)} minRows={3} maxRows={10} />
+              </Field>
+              <AiTextDraft
+                label="Draft a talk outline with AI"
+                generate={() => aiDraftToolboxTalk(topic, source)}
+                useLabel="Use as the talk content"
+                onUse={(text) => { setContent(text); setAiDrafted(true); }}
+              />
+            </div>
+          </details>
+          <Field label="Talk content" required error={contentError} hint="What the supervisor will cover. Use short lines and bullets.">
+            <AutoTextarea name="content" value={content} onChange={(e) => setContent(e.target.value)} onBlur={() => setTouched((t) => ({ ...t, content: true }))} minRows={5} maxRows={16} required />
+          </Field>
+        </FormSection>
+      </FormPanel>
     </form>
   );
 }

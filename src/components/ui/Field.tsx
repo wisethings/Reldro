@@ -11,7 +11,7 @@ import { cn } from "./cn";
  * forces a page of scrolling.
  */
 export const controlClass =
-  "w-full rounded-lg border border-ink-300 bg-white px-2.5 py-2 text-sm md:py-1.5 text-ink-900 outline-none transition-[border-color,box-shadow] placeholder:text-ink-400 hover:border-ink-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:cursor-not-allowed disabled:bg-ink-50 disabled:text-ink-400";
+  "w-full rounded-lg border border-ink-300 bg-white px-2.5 py-2 text-sm md:py-1.5 text-ink-900 outline-none transition-[border-color,box-shadow] placeholder:text-ink-400 hover:border-ink-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 aria-[invalid=true]:border-danger aria-[invalid=true]:ring-danger/20 disabled:cursor-not-allowed disabled:bg-ink-50 disabled:text-ink-400";
 
 export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
   return <input {...props} className={cn(controlClass, props.className)} />;
@@ -36,6 +36,7 @@ export function Field({
   hint,
   required,
   optional,
+  error,
   className,
   children,
 }: {
@@ -43,6 +44,8 @@ export function Field({
   hint?: string;
   required?: boolean;
   optional?: boolean;
+  /** Inline validation message, shown under the control in place of the hint. */
+  error?: string;
   className?: string;
   children: ReactNode;
 }) {
@@ -53,19 +56,19 @@ export function Field({
   const controlId = only ? only.props.id ?? `f${autoId}` : undefined;
   const hintId = hint && only ? `${controlId}-hint` : undefined;
   const control = only
-    ? cloneElement(only, { id: controlId, "aria-describedby": [only.props["aria-describedby"], hintId].filter(Boolean).join(" ") || undefined })
+    ? cloneElement(only, { id: controlId, "aria-describedby": [only.props["aria-describedby"], hintId].filter(Boolean).join(" ") || undefined, ...(error ? { "aria-invalid": true } : {}) } as object)
     : children;
   return (
     <div className={className}>
       <label htmlFor={controlId} className="flex items-baseline justify-between gap-2">
-        <span className="text-xs font-medium text-ink-700">
+        <span className="text-xs font-semibold text-ink-800">
           {label}
           {required && <span className="ml-0.5 text-danger">*</span>}
         </span>
         {optional && <span className="text-xs text-ink-500">Optional</span>}
       </label>
       <div className="mt-1">{control}</div>
-      {hint && <p id={hintId} className="mt-1 text-xs leading-snug text-ink-600">{hint}</p>}
+      {error ? <p role="alert" className="mt-1 text-xs font-medium text-danger">{error}</p> : hint && <p id={hintId} className="mt-1 text-xs leading-snug text-ink-600">{hint}</p>}
     </div>
   );
 }

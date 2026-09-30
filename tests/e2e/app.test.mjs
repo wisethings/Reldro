@@ -136,8 +136,12 @@ test("a supervisor cannot see who filed a confidential report", async () => {
 test("the safety team can move a corrective action back to Proposed and forward again", async () => {
   const page = await signIn("admin");
   try {
-    await page.goto(`${BASE}/dashboard/actions?view=all`, { waitUntil: "networkidle" });
-    await page.getByText("Assign a daily housekeeping walk on level 4 and 5").first().click();
+    const target = page.getByText("Assign a daily housekeeping walk on level 4 and 5").first();
+    for (let n = 1; n <= 6; n++) {
+      await page.goto(`${BASE}/dashboard/actions?view=all&page=${n}`, { waitUntil: "networkidle" });
+      if (await target.count()) break;
+    }
+    await target.click();
     await page.waitForSelector("text=Next step");
     await page.getByRole("button", { name: "Move back to Proposed" }).click();
     await page.fill("#move-reason", "E2E: plan changed");
@@ -157,11 +161,11 @@ test("long lists use numbered pages, keep filters, and never scroll sideways", a
       await page.goto(`${BASE}/dashboard/${path}`, { waitUntil: "networkidle" });
       const nav = page.getByRole("navigation", { name: "Pagination" });
       assert.equal(await nav.count(), 1, `${path} has numbered pages`);
-      assert.ok(/Showing 1–25 of \d+/.test(await nav.innerText()));
+      assert.ok(/1–15 of \d+/.test(await nav.innerText()));
       await nav.getByRole("link", { name: "Page 2" }).click();
       await page.waitForURL(/page=2/, { timeout: 30_000 });
-      await page.getByText(/Showing 26–/).waitFor({ timeout: 30_000 });
-      assert.ok(/Showing 26–/.test(await page.getByRole("navigation", { name: "Pagination" }).innerText()));
+      await page.getByText(/16–\d+ of/).waitFor({ timeout: 30_000 });
+      assert.ok(/16–\d+ of/.test(await page.getByRole("navigation", { name: "Pagination" }).innerText()));
       assert.equal(await hasSideways(page), false);
     }
   } finally {
