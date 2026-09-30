@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { secretMatches } from "@/lib/secret";
 import { emailShell, fromAddress, isEmailConfigured, sendEmail } from "@/lib/email";
 
 /**
@@ -8,7 +9,7 @@ import { emailShell, fromAddress, isEmailConfigured, sendEmail } from "@/lib/ema
 export async function GET(request: NextRequest) {
   const expected = process.env.SEED_SECRET;
   const given = request.headers.get("x-seed-secret") ?? request.nextUrl.searchParams.get("secret");
-  if (!expected || given !== expected) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!secretMatches(given, expected)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const to = request.nextUrl.searchParams.get("to") ?? "";
   const from = fromAddress();

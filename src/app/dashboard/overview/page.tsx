@@ -10,6 +10,7 @@ import { ActionStatusBadge, dueLabel, fmtDate, fmtShort, ReportStatusBadge, Seve
 import { AcknowledgeButton } from "@/components/safety/TrainingForms";
 import { Queue, QueueRow } from "@/components/safety/Queue";
 import { ActivityList, FocusList, Panel, PulseLine, QuietActivity, SectionTitle, StatStrip, TextLink, UpcomingRow, type ActivityItem, type FocusEntry } from "@/components/safety/Dashboard";
+import { dayStartIn, daysUntil, isOverdue, startOfTodayUTC } from "@/lib/safety/dates";
 
 const ACTIVE_REPORT = ["NEW", "ASSIGNED", "INVESTIGATING", "ACTIONS_OPEN"];
 
@@ -56,8 +57,9 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   const { pulse: pulseParam } = await searchParams;
   const pulseDays = [7, 30, 90].includes(Number(pulseParam)) ? Number(pulseParam) : 30;
   const now = new Date();
-  const soon = new Date(Date.now() + 7 * 86400_000);
-  const in30 = new Date(Date.now() + 30 * 86400_000);
+  const today = startOfTodayUTC();
+  const soon = dayStartIn(8); // through the end of the 7th day from today
+  const in30 = dayStartIn(31);
   const pack = getPack();
 
   const org = await prisma.organization.findUnique({ where: { id: v.organizationId }, select: { name: true } });
@@ -71,7 +73,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
       prisma.toolboxTalk.findMany({ where: { organizationId: v.organizationId, scheduledFor: { gte: new Date(Date.now() - 30 * 86400_000) }, OR: [{ siteId: null }, { siteId: v.siteId ?? "__none__" }] }, orderBy: { scheduledFor: "desc" }, take: 10 }),
       prisma.talkAcknowledgement.findMany({ where: { employeeId: v.employeeId ?? "__none__" }, select: { talkId: true } }),
       prisma.inspection.findMany({ where: { organizationId: v.organizationId, status: "SCHEDULED", assigneeId: v.employeeId ?? "__none__" }, include: { template: true, site: true }, orderBy: { dueDate: "asc" }, take: 5 }),
-      prisma.qualification.findMany({ where: { employeeId: v.employeeId ?? "__none__", expiresOn: { lte: in30 } }, orderBy: { expiresOn: "asc" } }),
+      prisma.qualification.findMany({ where: { employeeId: v.employeeId ?? "__none__", expiresOn: { lt: in30 } }, orderBy: { expiresOn: "asc" } }),
     ]);
     const activeIncidents = await loadActiveIncidents(v);
     const ackedIds = new Set(acked.map((a) => a.talkId));
@@ -85,12 +87,12 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
         })
       : [];
 
-    const late = myActions.filter((a) => a.dueDate && a.dueDate < now).length;
-    const expiredQuals = quals.filter((q) => q.expiresOn && q.expiresOn < now).length;
+    const late = myActions.filter((a) => isOverdue(a.dueDate)).length;
+    const expiredQuals = quals.filter((q) => isOverdue(q.expiresOn)).length;
     const needsAction = toAck.length + myActions.length + quals.length + inspections.length;
     const dueTone = (due: Date | null) => {
       if (!due) return "text-ink-500";
-      const days = Math.ceil((due.getTime() - Date.now()) / 86400_000);
+      const days = daysUntil(due);
       return days < 0 ? "font-semibold text-danger" : days <= 3 ? "font-semibold text-amber-deep" : "text-ink-600";
     };
     const rowCls = "flex min-h-[2.75rem] items-center justify-between gap-3 px-4 py-2 outline-none hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500";
@@ -175,7 +177,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
               <SubHead id="quals" title="Qualifications due for renewal" count={quals.length} />
               <ul className="divide-y divide-ink-100">
                 {quals.map((q) => {
-                  const expired = Boolean(q.expiresOn && q.expiresOn < now);
+                  const expired = isOverdue(q.expiresOn);
                   return (
                     <li key={q.id} className="flex min-h-[2.75rem] flex-wrap items-center justify-between gap-x-3 gap-y-0.5 px-4 py-2">
                       <div className="min-w-0">
@@ -262,13 +264,13 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   const scopedActions = actionWhere(v);
   const siteScope = v.isSafetyTeam ? {} : { siteId: v.siteId ?? "__none__" };
   const siteEmployeeIds = v.isSafetyTeam ? null : (await prisma.employee.findMany({ where: { organizationId: v.organizationId, siteId: v.siteId ?? "__none__" }, select: { id: true } })).map((e) => e.id);
-  const qualWhere = { organizationId: v.organizationId, expiresOn: { lte: in30 }, ...(siteEmployeeIds ? { employeeId: { in: siteEmployeeIds } } : {}) };
+  const qualWhere = { organizationId: v.organizationId, expiresOn: { lt: in30 }, ...(siteEmployeeIds ? { employeeId: { in: siteEmployeeIds } } : {}) };
   const respWhere = { AND: [scopedReports, { status: { in: ["NEW", "ASSIGNED"] }, acknowledgedAt: null, respondBy: { lt: now } }] };
   const noOwnerWhere = { AND: [scopedReports, { ownerId: null, status: { not: "CLOSED" } }] };
-  const overdueWhere = { AND: [scopedActions, { status: { in: OPEN_ACTION_STATUSES }, dueDate: { lt: now } }] };
+  const overdueWhere = { AND: [scopedActions, { status: { in: OPEN_ACTION_STATUSES }, dueDate: { lt: today } }] };
   const waitWhere = { organizationId: v.organizationId, status: { in: ["PROPOSED", "COMPLETED"] } };
   const invWhere = { organizationId: v.organizationId, status: { in: ["OPEN", "IN_REVIEW"] } };
-  const inspWhere = { organizationId: v.organizationId, status: "SCHEDULED", dueDate: { lte: soon }, ...siteScope };
+  const inspWhere = { organizationId: v.organizationId, status: "SCHEDULED", dueDate: { lt: soon }, ...siteScope };
   const since = new Date(Date.now() - pulseDays * 86400_000);
   const before = new Date(Date.now() - 2 * pulseDays * 86400_000);
   const win = (from: Date, to: Date) => ({ gte: from, lt: to });
@@ -389,8 +391,8 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   type Up = { key: string; at: number; when: string; title: string; detail?: string; href: string; warn: boolean };
   const shortDate = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
   const up: Up[] = [
-    ...inspItems.map((i): Up => ({ key: `i${i.id}`, at: i.dueDate.getTime(), when: i.dueDate < now ? "Overdue" : shortDate(i.dueDate), title: `${i.template.name}`, detail: i.site.name, href: `/dashboard/inspections/${i.id}`, warn: i.dueDate < now })),
-    ...qualItems.map((q): Up => ({ key: `q${q.id}`, at: q.expiresOn?.getTime() ?? 0, when: q.expiresOn && q.expiresOn < now ? "Expired" : q.expiresOn ? shortDate(q.expiresOn) : "", title: `${personName(q.employeeId)}: ${q.name}`, detail: "Qualification", href: "/dashboard/training?tab=qualifications", warn: Boolean(q.expiresOn && q.expiresOn < now) })),
+    ...inspItems.map((i): Up => ({ key: `i${i.id}`, at: i.dueDate.getTime(), when: isOverdue(i.dueDate) ? "Overdue" : shortDate(i.dueDate), title: `${i.template.name}`, detail: i.site.name, href: `/dashboard/inspections/${i.id}`, warn: isOverdue(i.dueDate) })),
+    ...qualItems.map((q): Up => ({ key: `q${q.id}`, at: q.expiresOn?.getTime() ?? 0, when: isOverdue(q.expiresOn) ? "Expired" : q.expiresOn ? shortDate(q.expiresOn) : "", title: `${personName(q.employeeId)}: ${q.name}`, detail: "Qualification", href: "/dashboard/training?tab=qualifications", warn: Boolean(q.expiresOn && q.expiresOn < now) })),
   ].sort((a, b) => a.at - b.at).slice(0, 4);
 
   return (

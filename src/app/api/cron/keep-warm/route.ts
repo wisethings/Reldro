@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { secretMatches } from "@/lib/secret";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -19,10 +20,7 @@ import { prisma } from "@/lib/prisma";
  */
 function isAuthorized(request: NextRequest): boolean {
   const expected = process.env.SEED_SECRET;
-  if (!expected) return false;
-  const header = request.headers.get("x-seed-secret");
-  const query = request.nextUrl.searchParams.get("secret");
-  return header === expected || query === expected;
+  return secretMatches(request.headers.get("x-seed-secret"), expected) || secretMatches(request.nextUrl.searchParams.get("secret"), expected);
 }
 
 async function ping() {

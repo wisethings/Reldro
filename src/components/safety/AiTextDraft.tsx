@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { unwrap } from "@/lib/actionResult";
 import { DraftLabel } from "./ui";
 
 type Draft = { text: string; generatedBy: "model" | "rules"; sources?: string[] };
@@ -37,7 +38,7 @@ export function AiTextDraft({
           start(async () => {
             setError(null);
             try {
-              const d = await generate();
+              const d = unwrap(await generate());
               setDraft(d);
               setText(d.text);
             } catch (e) {

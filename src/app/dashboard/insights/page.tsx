@@ -5,6 +5,7 @@ import { requireViewer } from "@/lib/safety/context";
 import { categoryLabel, getPack, OPEN_ACTION_STATUSES, reportTypeLabel } from "@/lib/safety/pack";
 import { NoAccess } from "@/components/safety/ui";
 import { ThemesSummaryDraft } from "@/components/safety/AiDraftButtons";
+import { isOverdue } from "@/lib/safety/dates";
 
 function Bars({ rows, empty = "Nothing to show yet." }: { rows: { label: string; count: number; href?: string }[]; empty?: string }) {
   if (rows.length === 0) return <p className="text-sm text-ink-500">{empty}</p>;
@@ -84,7 +85,7 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
   }
   const repeats = [...pairs.values()].filter((p) => p.count >= 2).sort((a, b) => b.count - a.count).slice(0, 6);
   const open = actions.filter((a) => OPEN_ACTION_STATUSES.includes(a.status));
-  const overdue = open.filter((a) => a.dueDate && a.dueDate < now);
+  const overdue = open.filter((a) => isOverdue(a.dueDate));
   const verified = actions.filter((a) => a.status === "VERIFIED" && a.verifiedAt);
   const avgDaysToVerify = verified.length ? Math.round(verified.reduce((s, a) => s + (a.verifiedAt!.getTime() - a.createdAt.getTime()) / 86400_000, 0) / verified.length) : null;
   const ackHours = reports.filter((r) => r.acknowledgedAt).map((r) => (r.acknowledgedAt!.getTime() - r.createdAt.getTime()) / 3600_000).sort((a, b) => a - b);

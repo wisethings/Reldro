@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { unwrap } from "@/lib/actionResult";
 import { addQuestions, addStatement, answerQuestion, deleteQuestion, deleteStatement } from "@/lib/actions/safetyInvestigations";
 import { aiDraftQuestions } from "@/lib/actions/safetyAi";
 import type { QuestionDraft } from "@/lib/safety/ai";
@@ -99,7 +100,7 @@ export function QuestionsPanel({
                 setDraftError(null);
                 setDrafting(true);
                 try {
-                  const d = await aiDraftQuestions(reportId);
+                  const d = unwrap(await aiDraftQuestions(reportId));
                   setDraft(d);
                   setPicked(new Set(d.questions.map((_, i) => i)));
                 } catch (e) {

@@ -14,6 +14,7 @@ import { TimelineSummaryDraft } from "@/components/safety/AiDraftButtons";
 import { IncidentPanel } from "@/components/safety/IncidentPanel";
 import { LocalTime } from "@/components/safety/LocalTime";
 import { CloseoutForm, OpenIncidentForm, ReporterMessageBox } from "@/components/safety/IncidentControls";
+import { isOverdue } from "@/lib/safety/dates";
 
 const EVENT_LABEL: Record<string, { text: string; cls: string }> = {
   UPDATE: { text: "Update", cls: "bg-sky-soft text-sky-deep" },
@@ -63,7 +64,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
   const actionCounts = {
     total: shownActions.length,
     open: shownActions.filter((a) => OPEN_ACTION_STATUSES.includes(a.status)).length,
-    overdue: shownActions.filter((a) => OPEN_ACTION_STATUSES.includes(a.status) && a.dueDate && a.dueDate < now).length,
+    overdue: shownActions.filter((a) => OPEN_ACTION_STATUSES.includes(a.status) && isOverdue(a.dueDate)).length,
     verified: shownActions.filter((a) => a.status === "VERIFIED").length,
   };
   const inspection = report.inspectionId ? await prisma.inspection.findFirst({ where: { id: report.inspectionId, organizationId: v.organizationId }, include: { template: { select: { name: true } } } }) : null;

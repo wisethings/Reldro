@@ -9,15 +9,16 @@ import { Badge } from "@/components/ui/Badge";
 import { ActionStatusBadge, dueLabel, EmptyHero, fmtShort, PageHeader, SeverityBadge } from "@/components/safety/ui";
 import { StatStrip } from "@/components/safety/Dashboard";
 import { PAGE_SIZE, Pagination, readPage } from "@/components/safety/Pagination";
+import { daysUntil, startOfTodayUTC } from "@/lib/safety/dates";
 export default async function ActionsPage({ searchParams }: { searchParams: Promise<{ view?: string; page?: string }> }) {
   const v = await requireViewer();
   const { view = v.isSafetyTeam ? "attention" : "open", page: pageParam } = await searchParams;
-  const now = new Date();
+  const today = startOfTodayUTC();
   const base = actionWhere(v);
   const filters: Record<string, object> = {
-    attention: { OR: [{ status: "PROPOSED" }, { status: "COMPLETED" }, { status: { in: OPEN_ACTION_STATUSES }, dueDate: { lt: now } }] },
+    attention: { OR: [{ status: "PROPOSED" }, { status: "COMPLETED" }, { status: { in: OPEN_ACTION_STATUSES }, dueDate: { lt: today } }] },
     open: { status: { in: OPEN_ACTION_STATUSES } },
-    overdue: { status: { in: OPEN_ACTION_STATUSES }, dueDate: { lt: now } },
+    overdue: { status: { in: OPEN_ACTION_STATUSES }, dueDate: { lt: today } },
     mine: { status: { in: OPEN_ACTION_STATUSES }, ownerId: v.employeeId ?? "__none__" },
     done: { status: { in: ["VERIFIED", "CANCELLED"] } },
     all: {},
@@ -44,7 +45,7 @@ export default async function ActionsPage({ searchParams }: { searchParams: Prom
   const day30 = new Date(Date.now() - 30 * 86400_000);
   const [sOpen, sOverdue, sReady, sVerified] = await Promise.all([
     prisma.correctiveAction.count({ where: { AND: [base, { status: { in: OPEN_ACTION_STATUSES } }] } }),
-    prisma.correctiveAction.count({ where: { AND: [base, { status: { in: OPEN_ACTION_STATUSES }, dueDate: { lt: now } }] } }),
+    prisma.correctiveAction.count({ where: { AND: [base, { status: { in: OPEN_ACTION_STATUSES }, dueDate: { lt: today } }] } }),
     prisma.correctiveAction.count({ where: { AND: [base, { status: "COMPLETED" }] } }),
     prisma.correctiveAction.count({ where: { AND: [base, { status: "VERIFIED", verifiedAt: { gte: day30 } }] } }),
   ]);
@@ -72,7 +73,7 @@ export default async function ActionsPage({ searchParams }: { searchParams: Prom
             const due = dueLabel(a.dueDate, OPEN_ACTION_STATUSES.includes(a.status));
             const owner = a.ownerId ? ownerName.get(a.ownerId) ?? "Owner" : "No owner";
             const open = OPEN_ACTION_STATUSES.includes(a.status);
-            const days = a.dueDate ? Math.ceil((a.dueDate.getTime() - Date.now()) / 86400_000) : null;
+            const days = a.dueDate ? daysUntil(a.dueDate) : null;
             const soon = open && !due.overdue && days !== null && days <= 3;
             const dueCell = <span className={due.overdue ? "font-semibold text-danger" : soon ? "font-semibold text-amber-deep" : open ? "text-ink-800" : "text-ink-500"}>{due.text}{a.dueDate && open && <span className="block text-xs font-normal text-ink-500">{fmtShort(a.dueDate)}</span>}</span>;
             return (

@@ -1,10 +1,12 @@
 "use server";
 
+import { fail } from "@/lib/actionResult";
 import { prisma } from "@/lib/prisma";
 import { canRunIncident, canSeeInvestigation, canSeeReport, reportWhere } from "@/lib/safety/access";
 import { requireViewer } from "@/lib/safety/context";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { actionStatusInfo, categoryLabel, getPack, OPEN_ACTION_STATUSES, SITE_KINDS } from "@/lib/safety/pack";
+import { startOfTodayUTC } from "@/lib/safety/dates";
 import {
   draftCloseout,
   draftInvestigationQuestions,
@@ -23,15 +25,16 @@ import {
  * person reviews it in the UI and chooses to use it.
  */
 
+/** Keeps a stuck client or a curious user from running up model costs. Returns a failure to hand back, or null when fine. */
 async function limit(userId: string) {
-  // Keeps a stuck client or a curious user from running up model costs.
-  if (!(await checkRateLimit(`safety-ai:${userId}`, 40, 60))) throw new Error("You have used many AI drafts in the last hour. Try again later.");
+  return (await checkRateLimit(`safety-ai:${userId}`, 40, 60)) ? null : fail("You have used many AI drafts in the last hour. Try again later.");
 }
 
 export async function aiStructureReport(text: string): Promise<ReportDraft> {
   const v = await requireViewer();
-  await limit(v.userId);
-  if (text.trim().length < 5) throw new Error("Add a few words first, then draft details.");
+  const limited = await limit(v.userId);
+  if (limited) return limited;
+  if (text.trim().length < 5) return fail("Add a few words first, then draft details.");
   return structureReportDraft(text, getPack());
 }
 
@@ -56,14 +59,16 @@ async function factsFor(reportId: string) {
 
 export async function aiDraftQuestions(reportId: string): Promise<QuestionDraft> {
   const { v, report, facts } = await factsFor(reportId);
-  if (!report.investigation || !canSeeInvestigation(v, report.investigation)) throw new Error("You do not have access to this investigation.");
-  await limit(v.userId);
+  if (!report.investigation || !canSeeInvestigation(v, report.investigation)) return fail("You do not have access to this investigation.");
+  const limited = await limit(v.userId);
+  if (limited) return limited;
   return draftInvestigationQuestions(facts, report.investigation.facts);
 }
 
 export async function aiSummarizeInvestigation(reportId: string): Promise<SummaryDraft> {
   const { v, report, facts } = await factsFor(reportId);
-  await limit(v.userId);
+  const limited = await limit(v.userId);
+  if (limited) return limited;
   const events = await prisma.reportEvent.findMany({
     where: { reportId, ...(v.isSafetyTeam ? {} : { restricted: false }) },
     orderBy: { createdAt: "asc" },
@@ -78,14 +83,15 @@ export async function aiSummarizeInvestigation(reportId: string): Promise<Summar
 
 export async function aiSummarizeThemes(windowDays = 90): Promise<SummaryDraft> {
   const v = await requireViewer();
-  if (!v.isSafetyTeam) throw new Error("Only the safety team can draft cross-site summaries.");
-  await limit(v.userId);
+  if (!v.isSafetyTeam) return fail("Only the safety team can draft cross-site summaries.");
+  const limited = await limit(v.userId);
+  if (limited) return limited;
   const since = new Date(Date.now() - windowDays * 86400_000);
   const pack = getPack();
   const [reports, investigations, overdue] = await Promise.all([
     prisma.safetyReport.findMany({ where: { ...reportWhere(v), createdAt: { gte: since } }, include: { site: true } }),
     prisma.investigation.findMany({ where: { organizationId: v.organizationId, openedAt: { gte: since } }, select: { contributingFactors: true } }),
-    prisma.correctiveAction.count({ where: { organizationId: v.organizationId, status: { in: OPEN_ACTION_STATUSES }, dueDate: { lt: new Date() } } }),
+    prisma.correctiveAction.count({ where: { organizationId: v.organizationId, status: { in: OPEN_ACTION_STATUSES }, dueDate: { lt: startOfTodayUTC() } } }),
   ]);
   const tally = (keys: string[]) => {
     const m = new Map<string, number>();
@@ -112,10 +118,11 @@ export async function aiSummarizeThemes(windowDays = 90): Promise<SummaryDraft> 
 
 export async function aiDraftToolboxTalk(topic: string, sourceMaterial: string): Promise<SummaryDraft> {
   const v = await requireViewer();
-  if (!v.isSafetyTeam && !v.isSupervisor) throw new Error("Only the safety team or supervisors can draft talks.");
-  await limit(v.userId);
-  if (!topic.trim()) throw new Error("Enter a topic first.");
-  if (sourceMaterial.trim().length < 40) throw new Error("Paste your approved material, such as a procedure, a policy excerpt, or a past lesson. The outline is based only on this material.");
+  if (!v.isSafetyTeam && !v.isSupervisor) return fail("Only the safety team or supervisors can draft talks.");
+  const limited = await limit(v.userId);
+  if (limited) return limited;
+  if (!topic.trim()) return fail("Enter a topic first.");
+  if (sourceMaterial.trim().length < 40) return fail("Paste your approved material, such as a procedure, a policy excerpt, or a past lesson. The outline is based only on this material.");
   return draftToolboxTalk({ topic: topic.trim(), sourceMaterial });
 }
 
@@ -123,9 +130,10 @@ export async function aiDraftToolboxTalk(topic: string, sourceMaterial: string):
 export async function aiDraftCloseout(reportId: string): Promise<SummaryDraft> {
   const { v, report, facts } = await factsFor(reportId);
   const incident = await prisma.incidentResponse.findUnique({ where: { reportId }, include: { responders: true } });
-  if (!incident) throw new Error("This report has no incident response.");
-  if (!canRunIncident(v, { ...report, incident })) throw new Error("Only the response lead or safety team can draft a closeout.");
-  await limit(v.userId);
+  if (!incident) return fail("This report has no incident response.");
+  if (!canRunIncident(v, { ...report, incident })) return fail("Only the response lead or safety team can draft a closeout.");
+  const limited = await limit(v.userId);
+  if (limited) return limited;
   const [events, actions] = await Promise.all([
     // Restricted notes (medical or personal detail) are left out of the draft on purpose.
     prisma.reportEvent.findMany({ where: { reportId, restricted: false, type: { in: ["DECISION", "UPDATE"] } }, orderBy: { createdAt: "asc" } }),
@@ -143,8 +151,9 @@ export async function aiDraftCloseout(reportId: string): Promise<SummaryDraft> {
 /** A de-identified lesson draft. It uses only the topic, the investigator's selected factors and action titles, never the free-text report. */
 export async function aiDraftLesson(reportId: string): Promise<SummaryDraft> {
   const { v, report } = await factsFor(reportId);
-  if (!v.isSafetyTeam) throw new Error("Only the safety team can draft shared lessons.");
-  await limit(v.userId);
+  if (!v.isSafetyTeam) return fail("Only the safety team can draft shared lessons.");
+  const limited = await limit(v.userId);
+  if (limited) return limited;
   const [actions, people] = await Promise.all([
     prisma.correctiveAction.findMany({ where: { reportId, status: { not: "CANCELLED" } }, orderBy: { number: "asc" }, select: { title: true } }),
     prisma.user.findMany({ where: { organizationId: v.organizationId }, select: { name: true } }),

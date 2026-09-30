@@ -32,9 +32,13 @@ export function AdminRow({ admin, isSelf }: { admin: { id: string; name: string;
               if (!confirm(`Remove ${admin.name} as an admin? Their account will be deleted and they will lose access immediately.`)) return;
               setError(null);
               startTransition(async () => {
-                const res = await removeCompanyAdmin(admin.id);
-                if (res.error) setError(res.error);
-                else router.refresh();
+                try {
+                  const res = await removeCompanyAdmin(admin.id);
+                  if (res.error) setError(res.error);
+                  else router.refresh();
+                } catch {
+                  setError("Couldn't remove this admin. Check your connection and try again.");
+                }
               });
             }}
             className="rounded-full border border-danger px-3 py-1 text-xs font-medium text-danger hover:bg-danger/10 disabled:opacity-50"

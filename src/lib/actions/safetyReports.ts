@@ -1,5 +1,6 @@
 "use server";
 
+import { fail } from "@/lib/actionResult";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -143,7 +144,7 @@ async function loadReportForActor(reportId: string) {
 
 export async function acknowledgeReport(reportId: string) {
   const { v, report } = await loadReportForActor(reportId);
-  if (!canManageReport(v, report)) throw new Error("Only the owner or safety team can acknowledge a report.");
+  if (!canManageReport(v, report)) return fail("Only the owner or safety team can acknowledge a report.");
   if (report.acknowledgedAt) return;
   await prisma.safetyReport.update({ where: { id: reportId }, data: { acknowledgedAt: new Date() } });
   await addReportEvent({ reportId, type: "ACKNOWLEDGED", message: "Report acknowledged.", actor: { name: v.name, employeeId: v.employeeId } });
@@ -153,11 +154,11 @@ export async function acknowledgeReport(reportId: string) {
 
 export async function assignReport(reportId: string, ownerId: string | null) {
   const { v, report } = await loadReportForActor(reportId);
-  if (!v.isSafetyTeam) throw new Error("Only the safety team can assign reports.");
+  if (!v.isSafetyTeam) return fail("Only the safety team can assign reports.");
   let ownerName = "nobody";
   if (ownerId) {
     const owner = await prisma.employee.findFirst({ where: { id: ownerId, organizationId: v.organizationId }, include: { user: { select: { name: true } } } });
-    if (!owner) throw new Error("Owner not found.");
+    if (!owner) return fail("Owner not found.");
     ownerName = owner.user.name;
   }
   await prisma.safetyReport.update({
@@ -172,7 +173,7 @@ export async function assignReport(reportId: string, ownerId: string | null) {
 
 export async function updateTriage(reportId: string, changes: { severity?: string; category?: string; type?: string }) {
   const { v, report } = await loadReportForActor(reportId);
-  if (!canManageReport(v, report)) throw new Error("Only the owner or safety team can change these details.");
+  if (!canManageReport(v, report)) return fail("Only the owner or safety team can change these details.");
   const pack = getPack();
   const data: { severity?: string; category?: string; type?: string } = {};
   const notes: string[] = [];
@@ -204,7 +205,7 @@ export async function updateTriage(reportId: string, changes: { severity?: strin
 export async function addComment(reportId: string, message: string, restricted: boolean) {
   const { v, report } = await loadReportForActor(reportId);
   const text = message.trim().slice(0, 2000);
-  if (!text) throw new Error("Write a note first.");
+  if (!text) return fail("Write a note first.");
   const isRestricted = restricted && v.isSafetyTeam;
   // A reply from the person who filed the report is recorded as a reporter reply. For a confidential report it
   // carries no name or id, so supervisors reading the timeline can't learn who filed it.
@@ -224,15 +225,15 @@ export async function addComment(reportId: string, message: string, restricted: 
 
 export async function setReportStatus(reportId: string, status: string) {
   const { v, report } = await loadReportForActor(reportId);
-  if (!canManageReport(v, report)) throw new Error("Only the owner or safety team can change status.");
-  if (!["NEW", "ASSIGNED", "INVESTIGATING", "ACTIONS_OPEN", "CLOSED"].includes(status)) throw new Error("Unknown status.");
+  if (!canManageReport(v, report)) return fail("Only the owner or safety team can change status.");
+  if (!["NEW", "ASSIGNED", "INVESTIGATING", "ACTIONS_OPEN", "CLOSED"].includes(status)) return fail("Unknown status.");
   if (status === "CLOSED") {
     const open = await prisma.correctiveAction.count({ where: { reportId, status: { in: ["PROPOSED", "APPROVED", "IN_PROGRESS", "COMPLETED"] } } });
-    if (open > 0) throw new Error(`${open} corrective action${open === 1 ? " is" : "s are"} not verified yet. Verify or cancel them before closing.`);
+    if (open > 0) return fail(`${open} corrective action${open === 1 ? " is" : "s are"} not verified yet. Verify or cancel them before closing.`);
     const inc = await prisma.incidentResponse.findUnique({ where: { reportId } });
-    if (inc && inc.status !== "RESOLVED") throw new Error("Resolve the incident response, with a closeout summary, before closing this report.");
+    if (inc && inc.status !== "RESOLVED") return fail("Resolve the incident response, with a closeout summary, before closing this report.");
     const inv = await prisma.investigation.findUnique({ where: { reportId } });
-    if (inv && inv.status !== "COMPLETE") throw new Error("Complete the investigation before closing this report.");
+    if (inv && inv.status !== "COMPLETE") return fail("Complete the investigation before closing this report.");
   }
   await prisma.safetyReport.update({
     where: { id: reportId },

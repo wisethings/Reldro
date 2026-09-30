@@ -1,5 +1,6 @@
 "use server";
 
+import { fail } from "@/lib/actionResult";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { canContributeToIncident, canRunIncident, canSeeReport } from "@/lib/safety/access";
@@ -31,13 +32,13 @@ const actor = (v: { name: string; employeeId: string | null }) => ({ name: v.nam
 /** Open the shared workspace for an event that needs a coordinated response. Only the safety team can start one by hand. */
 export async function openIncident(reportId: string, leadId: string | null, reason: string): Promise<string> {
   const { v, report, incident } = await load(reportId);
-  if (!v.isSafetyTeam) throw new Error("Only the safety team can open an incident response.");
+  if (!v.isSafetyTeam) return fail("Only the safety team can open an incident response.");
   if (incident) return "An incident response is already open on this report.";
-  if (report.status === "CLOSED") throw new Error("This report is closed. Reopen it before opening an incident response.");
+  if (report.status === "CLOSED") return fail("This report is closed. Reopen it before opening an incident response.");
   let lead: string | null = null;
   if (leadId) {
     const e = await prisma.employee.findFirst({ where: { id: leadId, organizationId: v.organizationId } });
-    if (!e) throw new Error("That person is not in your company.");
+    if (!e) return fail("That person is not in your company.");
     lead = e.id;
   } else if (report.ownerId) lead = report.ownerId;
   const res = await openIncidentOn({
@@ -56,8 +57,8 @@ export async function openIncident(reportId: string, leadId: string | null, reas
 
 export async function updateIncidentDetails(reportId: string, changes: { summary?: string; nextAction?: string; nextActionDueAt?: string | null; leadId?: string | null }) {
   const { v, report, incident } = await loadIncident(reportId);
-  if (!canRunIncident(v, { ...report, incident })) throw new Error("Only the response lead or safety team can change these details.");
-  if (incident.status === "RESOLVED") throw new Error("This incident is resolved. Reopen it to change it.");
+  if (!canRunIncident(v, { ...report, incident })) return fail("Only the response lead or safety team can change these details.");
+  if (incident.status === "RESOLVED") return fail("This incident is resolved. Reopen it to change it.");
   const data: { summary?: string; nextAction?: string; nextActionDueAt?: Date | null; leadId?: string | null } = {};
   const notes: string[] = [];
   if (changes.summary !== undefined && changes.summary.trim() !== incident.summary) {
@@ -76,7 +77,7 @@ export async function updateIncidentDetails(reportId: string, changes: { summary
   if (changes.leadId !== undefined && changes.leadId !== incident.leadId) {
     if (changes.leadId) {
       const e = await prisma.employee.findFirst({ where: { id: changes.leadId, organizationId: v.organizationId }, include: { user: { select: { name: true } } } });
-      if (!e) throw new Error("That person is not in your company.");
+      if (!e) return fail("That person is not in your company.");
       data.leadId = e.id;
       notes.push(`Response lead is now ${e.user.name}.`);
       notifyId = e.id;
@@ -95,7 +96,7 @@ export async function updateIncidentDetails(reportId: string, changes: { summary
 
 export async function setIncidentStatus(reportId: string, status: "ACTIVE" | "MONITORING") {
   const { v, report, incident } = await loadIncident(reportId);
-  if (!canRunIncident(v, { ...report, incident })) throw new Error("Only the response lead or safety team can change the response status.");
+  if (!canRunIncident(v, { ...report, incident })) return fail("Only the response lead or safety team can change the response status.");
   if (incident.status === status) return;
   await prisma.incidentResponse.update({ where: { id: incident.id }, data: { status, resolvedAt: null } });
   await addReportEvent({ reportId, type: "INCIDENT", message: `Response status: ${incidentStatusInfo(status).label}.`, actor: actor(v) });
@@ -104,10 +105,10 @@ export async function setIncidentStatus(reportId: string, status: "ACTIVE" | "MO
 
 export async function addResponder(reportId: string, employeeId: string, role: string) {
   const { v, report, incident } = await loadIncident(reportId);
-  if (!canRunIncident(v, { ...report, incident })) throw new Error("Only the response lead or safety team can add responders.");
+  if (!canRunIncident(v, { ...report, incident })) return fail("Only the response lead or safety team can add responders.");
   const e = await prisma.employee.findFirst({ where: { id: employeeId, organizationId: v.organizationId }, include: { user: { select: { name: true } } } });
-  if (!e) throw new Error("That person is not in your company.");
-  if (incident.leadId === e.id || incident.responders.some((r) => r.employeeId === e.id)) throw new Error(`${e.user.name} is already on the response team.`);
+  if (!e) return fail("That person is not in your company.");
+  if (incident.leadId === e.id || incident.responders.some((r) => r.employeeId === e.id)) return fail(`${e.user.name} is already on the response team.`);
   const cleanRole = role.trim().slice(0, 60);
   await prisma.incidentResponder.create({ data: { incidentId: incident.id, employeeId: e.id, role: cleanRole } });
   await addReportEvent({ reportId, type: "INCIDENT", message: `${e.user.name} added to the response team${cleanRole ? ` as ${cleanRole}` : ""}.`, actor: actor(v) });
@@ -117,7 +118,7 @@ export async function addResponder(reportId: string, employeeId: string, role: s
 
 export async function removeResponder(reportId: string, employeeId: string) {
   const { v, report, incident } = await loadIncident(reportId);
-  if (!canRunIncident(v, { ...report, incident })) throw new Error("Only the response lead or safety team can remove responders.");
+  if (!canRunIncident(v, { ...report, incident })) return fail("Only the response lead or safety team can remove responders.");
   const row = incident.responders.find((r) => r.employeeId === employeeId);
   if (!row) return;
   await prisma.incidentResponder.delete({ where: { id: row.id } });
@@ -130,14 +131,14 @@ export async function removeResponder(reportId: string, employeeId: string) {
 export async function postIncidentEntry(formData: FormData) {
   const reportId = String(formData.get("reportId") ?? "");
   const { v, report, incident } = await loadIncident(reportId);
-  if (!canContributeToIncident(v, { ...report, incident })) throw new Error("You are not on this response team.");
-  if (incident.status === "RESOLVED") throw new Error("This incident is resolved. Reopen it to add to the timeline.");
+  if (!canContributeToIncident(v, { ...report, incident })) return fail("You are not on this response team.");
+  if (incident.status === "RESOLVED") return fail("This incident is resolved. Reopen it to add to the timeline.");
   const kind = String(formData.get("kind") ?? "UPDATE");
-  if (!["UPDATE", "DECISION", "EVIDENCE", "COMMENT"].includes(kind)) throw new Error("Unknown entry type.");
+  if (!["UPDATE", "DECISION", "EVIDENCE", "COMMENT"].includes(kind)) return fail("Unknown entry type.");
   const message = String(formData.get("message") ?? "").trim().slice(0, 2000);
   const attachments = cleanAttachments(formData.getAll("attachment"), 4);
-  if (!message && attachments.length === 0) throw new Error("Add some text first.");
-  if (kind === "EVIDENCE" && attachments.length === 0) throw new Error("Add at least one photo for a photo entry.");
+  if (!message && attachments.length === 0) return fail("Add some text first.");
+  if (kind === "EVIDENCE" && attachments.length === 0) return fail("Add at least one photo for a photo entry.");
   // Only the safety team may mark an entry restricted (medical or personal detail); everyone else's entries are shared with the team.
   const restricted = v.isSafetyTeam && formData.get("restricted") === "on";
   await addReportEvent({ reportId, type: kind, message: message || "Photo added.", actor: actor(v), restricted, attachments });
@@ -149,18 +150,18 @@ export async function postIncidentEntry(formData: FormData) {
 export async function messageReporter(reportId: string, message: string) {
   const { v, report, incident } = await load(reportId);
   const text = message.trim().slice(0, 2000);
-  if (!text) throw new Error("Write a message first.");
+  if (!text) return fail("Write a message first.");
   const allowed = v.isSafetyTeam || (v.employeeId !== null && report.ownerId === v.employeeId) || canRunIncident(v, { ...report, incident });
-  if (!allowed) throw new Error("Only the owner, response lead or safety team can message the reporter.");
+  if (!allowed) return fail("Only the owner, response lead or safety team can message the reporter.");
   await addReportEvent({ reportId, type: "MESSAGE_TO_REPORTER", message: text, actor: actor(v), toReporter: true });
   refresh(reportId);
 }
 
 export async function resolveIncident(reportId: string, closeoutSummary: string) {
   const { v, report, incident } = await loadIncident(reportId);
-  if (!canRunIncident(v, { ...report, incident })) throw new Error("Only the response lead or safety team can close out an incident.");
+  if (!canRunIncident(v, { ...report, incident })) return fail("Only the response lead or safety team can close out an incident.");
   const summary = closeoutSummary.trim().slice(0, 4000);
-  if (summary.length < 20) throw new Error("Write a short closeout summary first: what happened, what was decided, and what happens next.");
+  if (summary.length < 20) return fail("Write a short closeout summary first: what happened, what was decided, and what happens next.");
   const open = await prisma.correctiveAction.count({ where: { reportId, status: { in: OPEN_ACTION_STATUSES } } });
   await prisma.incidentResponse.update({ where: { id: incident.id }, data: { status: "RESOLVED", closeoutSummary: summary, resolvedAt: new Date(), nextAction: "", nextActionDueAt: null } });
   await addReportEvent({
@@ -175,7 +176,7 @@ export async function resolveIncident(reportId: string, closeoutSummary: string)
 
 export async function reopenIncident(reportId: string) {
   const { v, report, incident } = await loadIncident(reportId);
-  if (!canRunIncident(v, { ...report, incident })) throw new Error("Only the response lead or safety team can reopen an incident.");
+  if (!canRunIncident(v, { ...report, incident })) return fail("Only the response lead or safety team can reopen an incident.");
   if (incident.status !== "RESOLVED") return;
   await prisma.incidentResponse.update({ where: { id: incident.id }, data: { status: "MONITORING", resolvedAt: null } });
   if (report.status === "CLOSED") await prisma.safetyReport.update({ where: { id: reportId }, data: { status: "ACTIONS_OPEN", closedAt: null } });
@@ -186,9 +187,9 @@ export async function reopenIncident(reportId: string) {
 /** "This wasn't an incident": closes the workspace with a reason so minor reports don't carry response overhead. */
 export async function standDownIncident(reportId: string, reason: string) {
   const { v, report, incident } = await loadIncident(reportId);
-  if (!canRunIncident(v, { ...report, incident })) throw new Error("Only the response lead or safety team can stand down an incident.");
+  if (!canRunIncident(v, { ...report, incident })) return fail("Only the response lead or safety team can stand down an incident.");
   const why = reason.trim().slice(0, 500);
-  if (why.length < 5) throw new Error("Say briefly why this does not need an incident response.");
+  if (why.length < 5) return fail("Say briefly why this does not need an incident response.");
   await prisma.incidentResponse.update({ where: { id: incident.id }, data: { status: "RESOLVED", standDownReason: why, closeoutSummary: incident.closeoutSummary || `Stood down: ${why}`, resolvedAt: new Date(), nextAction: "", nextActionDueAt: null } });
   await addReportEvent({ reportId, type: "INCIDENT", message: `Stood down as an incident response: ${why} The report continues as a normal report.`, actor: actor(v) });
   refresh(reportId);

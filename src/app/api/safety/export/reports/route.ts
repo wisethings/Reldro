@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth/session";
+import { getFreshSession } from "@/lib/auth/guards";
 import { loadViewer } from "@/lib/safety/access";
 import { logAudit } from "@/lib/audit";
 import { categoryLabel, reportTypeLabel, severityInfo } from "@/lib/safety/pack";
@@ -13,7 +13,7 @@ const cell = (v: unknown) => {
 };
 
 export async function GET(request: NextRequest) {
-  const session = await getSession();
+  const session = await getFreshSession();
   if (!session?.organizationId || session.role === "PLATFORM_ADMIN" || session.role === "SPECIALIST") return new NextResponse("Unauthorized", { status: 401 });
   const v = await loadViewer(session);
   if (!v.isSafetyTeam) return new NextResponse("Forbidden", { status: 403 });

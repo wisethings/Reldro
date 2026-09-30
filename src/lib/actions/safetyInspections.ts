@@ -1,8 +1,10 @@
 "use server";
 
+import { fail } from "@/lib/actionResult";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { addReportEvent, audit, isoOrNull, nextActionNumber, nextReportNumber, requireViewer } from "@/lib/safety/context";
+import { dayStartIn, startOfTodayUTC } from "@/lib/safety/dates";
 import { routeReport } from "@/lib/safety/routing";
 import { getPack, guessCategory } from "@/lib/safety/pack";
 
@@ -11,7 +13,7 @@ type TemplateItem = { id: string; label: string; critical?: boolean };
 
 export async function addStarterTemplates() {
   const v = await requireViewer();
-  if (!v.isSafetyTeam) throw new Error("Only the safety team can add checklists.");
+  if (!v.isSafetyTeam) return fail("Only the safety team can add checklists.");
   const pack = getPack();
   const existing = await prisma.inspectionTemplate.findMany({ where: { organizationId: v.organizationId }, select: { name: true } });
   const have = new Set(existing.map((e) => e.name));
@@ -60,13 +62,13 @@ export async function createTemplate(_prev: InspectionFormState, formData: FormD
 
 export async function updateTemplate(templateId: string, changes: { name: string; kind: string; frequencyDays: string; items: string }) {
   const v = await requireViewer();
-  if (!v.isSafetyTeam) throw new Error("Only the safety team can edit checklists.");
+  if (!v.isSafetyTeam) return fail("Only the safety team can edit checklists.");
   const t = await prisma.inspectionTemplate.findFirst({ where: { id: templateId, organizationId: v.organizationId } });
-  if (!t) throw new Error("Checklist not found.");
+  if (!t) return fail("Checklist not found.");
   const name = changes.name.trim();
   const items = changes.items.split("\n").map((l) => l.trim()).filter(Boolean).slice(0, 40);
-  if (!name) throw new Error("Name the checklist.");
-  if (items.length === 0) throw new Error("Add at least one checklist item, one per line.");
+  if (!name) return fail("Name the checklist.");
+  if (items.length === 0) return fail("Add at least one checklist item, one per line.");
   const kind = ["SITE_INSPECTION", "READINESS", "OBSERVATION"].includes(changes.kind) ? changes.kind : t.kind;
   const freq = Math.round(Number(changes.frequencyDays) || 0);
   await prisma.inspectionTemplate.update({
@@ -79,9 +81,9 @@ export async function updateTemplate(templateId: string, changes: { name: string
 
 export async function duplicateTemplate(templateId: string) {
   const v = await requireViewer();
-  if (!v.isSafetyTeam) throw new Error("Only the safety team can duplicate checklists.");
+  if (!v.isSafetyTeam) return fail("Only the safety team can duplicate checklists.");
   const t = await prisma.inspectionTemplate.findFirst({ where: { id: templateId, organizationId: v.organizationId } });
-  if (!t) throw new Error("Checklist not found.");
+  if (!t) return fail("Checklist not found.");
   await prisma.inspectionTemplate.create({ data: { organizationId: v.organizationId, name: `${t.name} (copy)`.slice(0, 120), kind: t.kind, frequencyDays: t.frequencyDays, items: t.items as object } });
   await audit(v, "safety.settings_changed", "InspectionTemplate", templateId, { duplicated: t.name });
   revalidatePath("/dashboard/inspections");
@@ -89,9 +91,13 @@ export async function duplicateTemplate(templateId: string) {
 
 export async function deleteTemplate(templateId: string) {
   const v = await requireViewer();
-  if (!v.isSafetyTeam) throw new Error("Only the safety team can delete checklists.");
+  if (!v.isSafetyTeam) return fail("Only the safety team can delete checklists.");
   const t = await prisma.inspectionTemplate.findFirst({ where: { id: templateId, organizationId: v.organizationId } });
-  if (!t) throw new Error("Checklist not found.");
+  if (!t) return fail("Checklist not found.");
+  // Deleting a checklist cascades to every inspection that used it, which would erase completed inspection records
+  // (results, failed items, evidence). Only a checklist with no completed inspections can be deleted.
+  const completed = await prisma.inspection.count({ where: { templateId, status: "COMPLETED" } });
+  if (completed > 0) return fail(`This checklist has ${completed} completed inspection${completed === 1 ? "" : "s"}, and deleting it would erase ${completed === 1 ? "that record" : "those records"}. Rename it or create a new checklist instead.`);
   await prisma.inspectionTemplate.delete({ where: { id: templateId } });
   await audit(v, "safety.settings_changed", "InspectionTemplate", templateId, { deleted: t.name });
   revalidatePath("/dashboard/inspections");
@@ -137,15 +143,18 @@ export async function completeInspection(_prev: InspectionFormState, formData: F
   });
   if (results.some((r) => r.result === "")) return { error: "Mark every item Pass, Fail, or N/A before submitting." };
 
-  await prisma.inspection.update({
-    where: { id: inspection.id },
+  // Claim the completion atomically: a double click or two people submitting at once must not create duplicate
+  // corrective actions or a duplicate "next" inspection.
+  const claimed = await prisma.inspection.updateMany({
+    where: { id: inspection.id, status: "SCHEDULED" },
     data: { status: "COMPLETED", results, notes: String(formData.get("notes") ?? "").trim().slice(0, 2000), completedById: v.employeeId, completedAt: new Date() },
   });
+  if (claimed.count === 0) return { error: "This inspection is already complete." };
 
   const failures = results.filter((r) => r.result === "FAIL");
   if (failures.length && formData.get("createActions") === "on") {
     for (const f of failures) {
-      const due = new Date(Date.now() + (f.critical ? 2 : 7) * 86400_000);
+      const due = dayStartIn(f.critical ? 2 : 7);
       await prisma.correctiveAction.create({
         data: {
           organizationId: v.organizationId,
@@ -169,7 +178,8 @@ export async function completeInspection(_prev: InspectionFormState, formData: F
         templateId: inspection.templateId,
         siteId: inspection.siteId,
         assigneeId: inspection.assigneeId,
-        dueDate: new Date(inspection.dueDate.getTime() + inspection.template.frequencyDays * 86400_000),
+        // From the due date, but never from the past: a late inspection must not schedule its successor as already overdue.
+        dueDate: new Date(Math.max(inspection.dueDate.getTime(), startOfTodayUTC().getTime()) + inspection.template.frequencyDays * 86400_000),
       },
     });
   }
@@ -190,14 +200,14 @@ type StoredResult = { itemId: string; label: string; critical?: boolean; result:
 export async function raiseReportFromInspection(inspectionId: string, itemId: string): Promise<string> {
   const v = await requireViewer();
   const inspection = await prisma.inspection.findFirst({ where: { id: inspectionId, organizationId: v.organizationId }, include: { template: true, site: true } });
-  if (!inspection) throw new Error("Inspection not found.");
+  if (!inspection) return fail("Inspection not found.");
   const canRun = v.isSafetyTeam || (v.employeeId !== null && inspection.assigneeId === v.employeeId) || (v.isSupervisor && v.siteId === inspection.siteId);
-  if (!canRun) throw new Error("You do not have access to this inspection.");
-  if (inspection.status !== "COMPLETED") throw new Error("Complete the inspection first.");
+  if (!canRun) return fail("You do not have access to this inspection.");
+  if (inspection.status !== "COMPLETED") return fail("Complete the inspection first.");
   const results = inspection.results as unknown as StoredResult[];
   const item = results.find((r) => r.itemId === itemId);
-  if (!item || item.result !== "FAIL") throw new Error("That item did not fail.");
-  if (item.reportId) throw new Error("A report has already been filed for this item.");
+  if (!item || item.result !== "FAIL") return fail("That item did not fail.");
+  if (item.reportId) return fail("A report has already been filed for this item.");
 
   const pack = getPack();
   const description = `Found during "${inspection.template.name}" at ${inspection.site.name}: ${item.label}.${item.note ? ` Inspector's note: ${item.note}` : ""}`;

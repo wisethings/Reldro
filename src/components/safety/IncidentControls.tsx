@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { unwrap } from "@/lib/actionResult";
 import {
   addResponder,
   messageReporter,
@@ -57,7 +58,7 @@ export function OpenIncidentForm({ reportId, people, defaultLeadId }: { reportId
             <Input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={300} placeholder="e.g. Serious injury, multiple crews affected" />
           </Field>
         </div>
-        <button disabled={pending} onClick={() => run(async () => setNotice(await openIncident(reportId, lead || null, reason)))} className={primary}>
+        <button disabled={pending} onClick={() => run(async () => setNotice(unwrap(await openIncident(reportId, lead || null, reason))))} className={primary}>
           {pending ? "Opening…" : "Open incident response"}
         </button>
       </div>

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { secretMatches } from "@/lib/secret";
 import { runMigration } from "@/lib/runMigration";
 
 // Manual trigger for the same idempotent schema sync that now also runs
@@ -8,10 +9,7 @@ import { runMigration } from "@/lib/runMigration";
 // ?secret= query param so it can be triggered by simply visiting the URL.
 function isAuthorized(request: NextRequest): boolean {
   const expected = process.env.SEED_SECRET;
-  if (!expected) return false;
-  const header = request.headers.get("x-seed-secret");
-  const query = request.nextUrl.searchParams.get("secret");
-  return header === expected || query === expected;
+  return secretMatches(request.headers.get("x-seed-secret"), expected) || secretMatches(request.nextUrl.searchParams.get("secret"), expected);
 }
 
 export async function POST(request: NextRequest) {

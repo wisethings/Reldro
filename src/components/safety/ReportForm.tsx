@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { unwrap } from "@/lib/actionResult";
 import { CheckCircle2, Mic, Siren } from "lucide-react";
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { createReport } from "@/lib/actions/safetyReports";
@@ -183,7 +184,7 @@ export function ReportForm({
     setAiError(null);
     startDrafting(async () => {
       try {
-        setDraft(await aiStructureReport(description));
+        setDraft(unwrap(await aiStructureReport(description)));
       } catch (e) {
         setAiError(e instanceof Error ? e.message : "Couldn't draft that.");
       }

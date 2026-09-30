@@ -3,6 +3,7 @@ import { QueryLink } from "@/components/ui/QueryLink";
 import { prisma } from "@/lib/prisma";
 import { requireViewer } from "@/lib/safety/context";
 import { INSPECTION_KIND_LABEL } from "@/lib/safety/pack";
+import { dayStartIn, startOfTodayUTC } from "@/lib/safety/dates";
 import { repeatLabel } from "@/lib/safety/repeat";
 import { Badge } from "@/components/ui/Badge";
 import { dueLabel, fmtDate, PageHeader } from "@/components/safety/ui";
@@ -21,9 +22,9 @@ export default async function InspectionsPage({ searchParams }: { searchParams: 
   const scope = v.isSafetyTeam ? {} : v.isSupervisor ? { siteId: v.siteId ?? "__none__" } : { assigneeId: v.employeeId ?? "__none__" };
   const org = { organizationId: v.organizationId, ...scope };
   const now = Date.now();
-  // Same day arithmetic as the "3 days overdue" label: overdue means a full day or more past due.
-  const lateCut = new Date(now - DAY);
-  const soonCut = new Date(now + 7 * DAY);
+  // Overdue = a whole due day has passed; due soon = today through the next 7 days (same rule as every other page).
+  const lateCut = startOfTodayUTC();
+  const soonCut = dayStartIn(8);
   const d30 = new Date(now - 30 * DAY);
   const view: View = sp.view === "overdue" || sp.view === "soon" || sp.view === "done" || (sp.view === "checklists" && v.isSafetyTeam) ? sp.view : "all";
   const q = (sp.q ?? "").trim();
@@ -32,8 +33,8 @@ export default async function InspectionsPage({ searchParams }: { searchParams: 
   const scheduled = { ...org, status: "SCHEDULED" };
   const [nAll, nLate, nSoon, nDone, nDone30, doneRows] = await Promise.all([
     prisma.inspection.count({ where: scheduled }),
-    prisma.inspection.count({ where: { ...scheduled, dueDate: { lte: lateCut } } }),
-    prisma.inspection.count({ where: { ...scheduled, dueDate: { gt: lateCut, lte: soonCut } } }),
+    prisma.inspection.count({ where: { ...scheduled, dueDate: { lt: lateCut } } }),
+    prisma.inspection.count({ where: { ...scheduled, dueDate: { gte: lateCut, lt: soonCut } } }),
     prisma.inspection.count({ where: { ...org, status: "COMPLETED" } }),
     prisma.inspection.count({ where: { ...org, status: "COMPLETED", completedAt: { gte: d30 } } }),
     prisma.inspection.findMany({ where: { ...org, status: "COMPLETED", completedAt: { gte: d30 } }, select: { results: true } }),
@@ -49,8 +50,8 @@ export default async function InspectionsPage({ searchParams }: { searchParams: 
   // The main list: scheduled work by default, or the full completed history.
   const listWhere =
     view === "done" ? { ...org, status: "COMPLETED", ...search }
-    : view === "overdue" ? { ...scheduled, dueDate: { lte: lateCut }, ...search }
-    : view === "soon" ? { ...scheduled, dueDate: { gt: lateCut, lte: soonCut }, ...search }
+    : view === "overdue" ? { ...scheduled, dueDate: { lt: lateCut }, ...search }
+    : view === "soon" ? { ...scheduled, dueDate: { gte: lateCut, lt: soonCut }, ...search }
     : { ...scheduled, ...search };
   const inList = view !== "checklists";
   const total = inList ? await prisma.inspection.count({ where: listWhere }) : 0;
@@ -76,7 +77,7 @@ export default async function InspectionsPage({ searchParams }: { searchParams: 
   const dueCell = (due: Date) => {
     const d = dueLabel(due, true);
     const today = d.text === "Due today";
-    const soon = !d.overdue && due.getTime() <= soonCut.getTime();
+    const soon = !d.overdue && due.getTime() < soonCut.getTime();
     return <span className={d.overdue ? "font-semibold text-danger" : today ? "font-semibold text-amber-deep" : soon ? "text-amber-deep" : "text-ink-500"}>{d.text}{!d.overdue && <span className="block text-xs font-normal text-ink-500">{fmtDate(due)}</span>}</span>;
   };
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { unwrap } from "@/lib/actionResult";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, CircleDot, ClipboardCheck, Clock, Hourglass, Play, ShieldCheck, XCircle } from "lucide-react";
 import { approveAction, cancelAction, completeAction, remindOwner, reopenAction, startAction, updateActionPlan, verifyAction } from "@/lib/actions/safetyActions";
@@ -110,7 +111,7 @@ export function ActionControls({ actionId, status, ownerId, ownerName, isSafetyT
           </summary>
           <div className="flex flex-wrap gap-2 border-t border-ink-200 p-3">
             {ownerId && ["APPROVED", "IN_PROGRESS", "COMPLETED"].includes(status) && (
-              <button disabled={pending} onClick={() => run(async () => setMessage((await remindOwner(actionId)).message))} className={secondary}>Email a reminder to {ownerName ?? "the owner"}</button>
+              <button disabled={pending} onClick={() => run(async () => setMessage(unwrap(await remindOwner(actionId)).message))} className={secondary}>Email a reminder to {ownerName ?? "the owner"}</button>
             )}
             {!["VERIFIED", "CANCELLED"].includes(status) && (
               <button disabled={pending} onClick={() => confirm("Cancel this corrective action? You can reopen it later.") && run(() => cancelAction(actionId))} className={`${secondary} text-danger`}>Cancel corrective action</button>

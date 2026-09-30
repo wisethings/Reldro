@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { secretMatches } from "@/lib/secret";
 import { seedDatabase } from "../../../../../prisma/seed";
 
 // One-time setup endpoint for populating demo data on a freshly deployed
@@ -8,10 +9,7 @@ import { seedDatabase } from "../../../../../prisma/seed";
 // ?secret= query param so it can be triggered by simply visiting the URL.
 function isAuthorized(request: NextRequest): boolean {
   const expected = process.env.SEED_SECRET;
-  if (!expected) return false;
-  const header = request.headers.get("x-seed-secret");
-  const query = request.nextUrl.searchParams.get("secret");
-  return header === expected || query === expected;
+  return secretMatches(request.headers.get("x-seed-secret"), expected) || secretMatches(request.nextUrl.searchParams.get("secret"), expected);
 }
 
 async function runSeed() {

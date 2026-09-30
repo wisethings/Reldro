@@ -1,5 +1,6 @@
 "use server";
 
+import { fail } from "@/lib/actionResult";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { audit, isoOrNull, requireViewer } from "@/lib/safety/context";
@@ -13,7 +14,11 @@ export async function createToolboxTalk(_prev: TrainingFormState, formData: Form
   const content = String(formData.get("content") ?? "").trim();
   if (!title || !content) return { error: "A title and the talk content are required." };
   let siteId: string | null = String(formData.get("siteId") ?? "") || null;
-  if (!v.isSafetyTeam) siteId = v.siteId; // supervisors talk to their own site
+  if (!v.isSafetyTeam) {
+    // Supervisors talk to their own site only. Without a site they would be publishing to the whole company.
+    if (!v.siteId) return { error: "Ask a company admin to assign you a home site before you create toolbox talks." };
+    siteId = v.siteId;
+  }
   if (siteId) {
     const site = await prisma.site.findFirst({ where: { id: siteId, organizationId: v.organizationId } });
     if (!site) siteId = null;
@@ -39,17 +44,22 @@ export async function createToolboxTalk(_prev: TrainingFormState, formData: Form
 export async function deleteToolboxTalk(talkId: string) {
   const v = await requireViewer();
   const talk = await prisma.toolboxTalk.findFirst({ where: { id: talkId, organizationId: v.organizationId } });
-  if (!talk) throw new Error("Toolbox talk not found.");
-  if (!v.isSafetyTeam && !(v.isSupervisor && talk.siteId === v.siteId)) throw new Error("You cannot delete this toolbox talk.");
+  if (!talk) return fail("Toolbox talk not found.");
+  if (!v.isSafetyTeam && !(v.isSupervisor && v.siteId && talk.siteId === v.siteId)) return fail("You cannot delete this toolbox talk.");
   await prisma.toolboxTalk.delete({ where: { id: talkId } });
   revalidatePath("/dashboard/training");
 }
 
 export async function acknowledgeTalk(talkId: string) {
   const v = await requireViewer();
-  if (!v.employeeId) throw new Error("Only employees can acknowledge toolbox talks.");
+  if (!v.employeeId) return fail("Only employees can acknowledge toolbox talks.");
   const talk = await prisma.toolboxTalk.findFirst({ where: { id: talkId, organizationId: v.organizationId } });
-  if (!talk) throw new Error("Toolbox talk not found.");
+  if (!talk) return fail("Toolbox talk not found.");
+  if (talk.siteId) {
+    // A talk addressed to one site is acknowledged by that site's people only.
+    const me = await prisma.employee.findUnique({ where: { id: v.employeeId }, select: { siteId: true } });
+    if (me?.siteId !== talk.siteId) return fail("This toolbox talk is for a different site.");
+  }
   await prisma.talkAcknowledgement.upsert({
     where: { talkId_employeeId: { talkId, employeeId: v.employeeId } },
     update: {},
@@ -84,10 +94,10 @@ export async function addQualification(_prev: TrainingFormState, formData: FormD
 export async function deleteQualification(id: string) {
   const v = await requireViewer();
   const q = await prisma.qualification.findFirst({ where: { id, organizationId: v.organizationId }, include: { } });
-  if (!q) throw new Error("Not found.");
+  if (!q) return fail("Not found.");
   if (!v.isSafetyTeam) {
     const emp = await prisma.employee.findUnique({ where: { id: q.employeeId }, select: { siteId: true } });
-    if (!(v.isSupervisor && v.siteId && emp?.siteId === v.siteId)) throw new Error("You cannot remove this qualification.");
+    if (!(v.isSupervisor && v.siteId && emp?.siteId === v.siteId)) return fail("You cannot remove this qualification.");
   }
   await prisma.qualification.delete({ where: { id } });
   revalidatePath("/dashboard/training");
@@ -119,7 +129,7 @@ export async function deleteQualifications(ids: string[]) {
 export async function setQualificationsExpiry(ids: string[], expiresOn: string) {
   const { v, rows } = await manageableQualifications(ids);
   const date = isoOrNull(expiresOn);
-  if (!date) throw new Error("Choose a valid date.");
+  if (!date) return fail("Choose a valid date.");
   await prisma.qualification.updateMany({ where: { id: { in: rows.map((r) => r.id) } }, data: { expiresOn: date } });
   await audit(v, "safety.settings_changed", "Qualification", rows[0].id, { renewed: rows.length });
   revalidatePath("/dashboard/training");
@@ -129,7 +139,7 @@ export async function setQualificationsExpiry(ids: string[], expiresOn: string) 
 export async function updateQualification(id: string, changes: { name: string; issuedOn: string; expiresOn: string }) {
   const { v, rows } = await manageableQualifications([id]);
   const name = changes.name.trim().slice(0, 120);
-  if (!name) throw new Error("Name the qualification.");
+  if (!name) return fail("Name the qualification.");
   await prisma.qualification.update({ where: { id: rows[0].id }, data: { name, issuedOn: isoOrNull(changes.issuedOn), expiresOn: isoOrNull(changes.expiresOn) } });
   await audit(v, "safety.settings_changed", "Qualification", id, { updated: true });
   revalidatePath("/dashboard/training");

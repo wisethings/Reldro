@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { unwrap } from "@/lib/actionResult";
 import { useRouter } from "next/navigation";
 
 /** Runs a server action, refreshes the page on success, and surfaces the thrown message instead of crashing. */
@@ -12,7 +13,7 @@ export function useAct() {
     setError(null);
     startTransition(async () => {
       try {
-        await fn();
+        unwrap(await fn());
         after?.();
         router.refresh();
       } catch (e) {

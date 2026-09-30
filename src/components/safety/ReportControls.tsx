@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { unwrap } from "@/lib/actionResult";
 import { useRouter } from "next/navigation";
 import { acknowledgeReport, assignReport, setReportStatus, updateTriage } from "@/lib/actions/safetyReports";
 import { startInvestigation } from "@/lib/actions/safetyInvestigations";
@@ -53,7 +54,7 @@ export function ReportControls({
         {!hasInvestigation && status !== "CLOSED" && (
           <button
             disabled={pending}
-            onClick={() => run(async () => { const id = await startInvestigation(reportId); router.push(`/dashboard/investigations/${id}`); })}
+            onClick={() => run(async () => { const id = unwrap(await startInvestigation(reportId)); router.push(`/dashboard/investigations/${id}`); })}
             className="rounded-full border border-ink-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-surface-hover disabled:opacity-50"
           >
             Open investigation

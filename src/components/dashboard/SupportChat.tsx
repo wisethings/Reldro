@@ -35,7 +35,8 @@ export function SupportChat() {
   useEffect(() => {
     if (open) return;
     let alive = true;
-    const check = () => supportUnreadCount().then((n) => alive && setUnread(n)).catch(() => {});
+    // Skip the check while the tab is in the background: nobody sees it, and every check wakes the database.
+    const check = () => { if (!document.hidden) supportUnreadCount().then((n) => alive && setUnread(n)).catch(() => {}); };
     check();
     const id = setInterval(check, POLL_MS);
     return () => { alive = false; clearInterval(id); };
@@ -44,7 +45,7 @@ export function SupportChat() {
   useEffect(() => {
     if (!open) return;
     load().catch(() => setError("Could not load your messages."));
-    const id = setInterval(() => load().catch(() => {}), POLL_MS);
+    const id = setInterval(() => { if (!document.hidden) load().catch(() => {}); }, POLL_MS);
     closeRef.current?.focus();
     return () => clearInterval(id);
   }, [open, load]);
@@ -63,10 +64,14 @@ export function SupportChat() {
     if (!text) return;
     setError(null);
     startTransition(async () => {
-      const r = await sendSupportMessage(text);
-      if (r.error) return setError(r.error);
-      if (r.message) setMessages((m) => [...(m ?? []), r.message!]);
-      setDraft("");
+      try {
+        const r = await sendSupportMessage(text);
+        if (r.error) return setError(r.error);
+        if (r.message) setMessages((m) => [...(m ?? []), r.message!]);
+        setDraft("");
+      } catch {
+        setError("Your message could not be sent. Check your connection and try again.");
+      }
     });
   }
 

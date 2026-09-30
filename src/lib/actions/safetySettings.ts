@@ -1,5 +1,6 @@
 "use server";
 
+import { fail } from "@/lib/actionResult";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -36,9 +37,9 @@ export async function saveSite(_prev: SettingsFormState, formData: FormData): Pr
 
 export async function setSiteActive(siteId: string, active: boolean) {
   const v = await requireViewer();
-  if (!v.isSafetyTeam) throw new Error("Only the safety team can manage sites.");
+  if (!v.isSafetyTeam) return fail("Only the safety team can manage sites.");
   const site = await prisma.site.findFirst({ where: { id: siteId, organizationId: v.organizationId } });
-  if (!site) throw new Error("Site not found.");
+  if (!site) return fail("Site not found.");
   await prisma.site.update({ where: { id: siteId }, data: { active } });
   await audit(v, "safety.settings_changed", "Site", siteId, { active });
   revalidatePath("/dashboard/sites");
@@ -47,21 +48,21 @@ export async function setSiteActive(siteId: string, active: boolean) {
 /** Only company admins can change who is on the safety team or supervises a site, so a safety lead can't promote themselves. */
 export async function setPersonRoles(employeeId: string, changes: { siteId?: string | null; departmentId?: string | null; isSafetyLead?: boolean; isSupervisor?: boolean }) {
   const v = await requireViewer();
-  if (!v.isAdmin) throw new Error("Only company admins can change roles.");
+  if (!v.isAdmin) return fail("Only company admins can change roles.");
   const emp = await prisma.employee.findFirst({ where: { id: employeeId, organizationId: v.organizationId } });
-  if (!emp) throw new Error("Person not found.");
+  if (!emp) return fail("Person not found.");
   const data: { siteId?: string | null; departmentId?: string | null; isSafetyLead?: boolean; isDepartmentAdmin?: boolean } = {};
   if (changes.siteId !== undefined) {
     if (changes.siteId) {
       const site = await prisma.site.findFirst({ where: { id: changes.siteId, organizationId: v.organizationId } });
-      if (!site) throw new Error("Site not found.");
+      if (!site) return fail("Site not found.");
     }
     data.siteId = changes.siteId;
   }
   if (changes.departmentId !== undefined) {
     if (changes.departmentId) {
       const crew = await prisma.department.findFirst({ where: { id: changes.departmentId, organizationId: v.organizationId } });
-      if (!crew) throw new Error("Crew not found.");
+      if (!crew) return fail("Crew not found.");
     }
     data.departmentId = changes.departmentId;
   }
@@ -109,9 +110,9 @@ export async function createEscalationRule(_prev: SettingsFormState, formData: F
 
 export async function deleteEscalationRule(ruleId: string) {
   const v = await requireViewer();
-  if (!v.isAdmin) throw new Error("Only company admins can change escalation rules.");
+  if (!v.isAdmin) return fail("Only company admins can change escalation rules.");
   const rule = await prisma.escalationRule.findFirst({ where: { id: ruleId, organizationId: v.organizationId } });
-  if (!rule) throw new Error("Rule not found.");
+  if (!rule) return fail("Rule not found.");
   await prisma.escalationRule.delete({ where: { id: ruleId } });
   await audit(v, "safety.settings_changed", "EscalationRule", ruleId, { deleted: true });
   revalidatePath("/dashboard/settings");

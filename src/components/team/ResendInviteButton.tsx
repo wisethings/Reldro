@@ -15,7 +15,13 @@ export function ResendInviteButton({ userId, name }: { userId: string; name: str
         disabled={pending}
         onClick={() => {
           if (!confirm(`Resend ${name}'s invite? This issues a new temporary password and the old one stops working.`)) return;
-          startTransition(async () => setResult(await resendInvite(userId)));
+          startTransition(async () => {
+            try {
+              setResult(await resendInvite(userId));
+            } catch {
+              setResult({ error: "Couldn't resend the invite. Check your connection and try again." });
+            }
+          });
         }}
         className="rounded-full border border-ink-300 px-3 py-1 text-xs font-medium text-ink-700 hover:border-brand-500 disabled:opacity-50"
       >

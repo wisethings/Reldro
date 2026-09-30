@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import { unwrap } from "@/lib/actionResult";
 import { MoreHorizontal } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { REPEATS } from "@/lib/safety/repeat";
@@ -162,7 +163,7 @@ export function ChecklistBuilder({ initial, onDone, onCancel }: { initial?: Chec
     const lines = filled.map((i) => `${i.critical ? "* " : ""}${i.label.trim().replace(/^\*\s*/, "")}`).join("\n");
     try {
       if (initial) {
-        await updateTemplate(initial.id, { name, kind, frequencyDays: days ? String(days) : "", items: lines });
+        unwrap(await updateTemplate(initial.id, { name, kind, frequencyDays: days ? String(days) : "", items: lines }));
       } else {
         const fd = new FormData();
         fd.set("name", name);
@@ -303,7 +304,7 @@ export function ChecklistMenu({ template }: { template: ChecklistInitial }) {
       {dialog === "delete" && (
         <Modal title="Delete this checklist?" onClose={close}>
           <div className="max-w-md space-y-3">
-            <p className="text-sm text-ink-700"><span className="font-semibold text-ink-900">{template.name}</span> will be deleted, and scheduled inspections that use it will also be removed. This can’t be undone.</p>
+            <p className="text-sm text-ink-700"><span className="font-semibold text-ink-900">{template.name}</span> will be deleted, and inspections still scheduled with it will also be removed. A checklist that has completed inspections can’t be deleted, so those records are never lost. This can’t be undone.</p>
             {error && <p role="alert" className="text-sm text-danger">{error}</p>}
             <div className="flex gap-2"><button disabled={pending} onClick={() => run(() => deleteTemplate(template.id), close)} className="rounded-full bg-danger px-5 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50">{pending ? "Deleting…" : "Delete checklist"}</button><button type="button" onClick={close} className={btnSecondary}>Cancel</button></div>
           </div>

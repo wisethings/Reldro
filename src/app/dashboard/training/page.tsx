@@ -3,6 +3,7 @@ import { QueryLink } from "@/components/ui/QueryLink";
 import { prisma } from "@/lib/prisma";
 import { requireViewer } from "@/lib/safety/context";
 import { getPack } from "@/lib/safety/pack";
+import { dayStartIn, qualStatus, startOfTodayUTC } from "@/lib/safety/dates";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
@@ -190,7 +191,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
     ]);
     const names = new Map((await prisma.employee.findMany({ where: { id: { in: quals.map((q) => q.employeeId) } }, include: { user: { select: { name: true } } } })).map((e) => [e.id, e.user.name]));
     type QStatus = "expired" | "soon" | "current";
-    const statusOf = (q: (typeof quals)[number]): QStatus => (q.expiresOn && q.expiresOn < now ? "expired" : q.expiresOn && q.expiresOn <= in30 ? "soon" : "current");
+    const statusOf = (q: (typeof quals)[number]): QStatus => qualStatus(q.expiresOn);
     const rank: Record<QStatus, number> = { expired: 0, soon: 1, current: 2 };
     const all = quals.map((q) => ({ q, status: statusOf(q), employee: names.get(q.employeeId) ?? "Someone" }));
     const counts = { all: all.length, expired: all.filter((r) => r.status === "expired").length, soon: all.filter((r) => r.status === "soon").length, current: all.filter((r) => r.status === "current").length };
@@ -407,16 +408,33 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
 
   const t30 = new Date(Date.now() - 30 * 86400_000);
   const staffScope = v.isSafetyTeam ? {} : { employeeId: { in: (await prisma.employee.findMany({ where: { organizationId: v.organizationId, siteId: v.siteId ?? "__none__" }, select: { id: true } })).map((e) => e.id) } };
-  const [nTalks, nAcks, nPeople, nExpiring, nExpired] = canManage
-    ? await Promise.all([
-        prisma.toolboxTalk.count({ where: { organizationId: v.organizationId, scheduledFor: { gte: t30 } } }),
-        prisma.talkAcknowledgement.count({ where: { talk: { organizationId: v.organizationId, scheduledFor: { gte: t30 } } } }),
-        prisma.employee.count({ where: { organizationId: v.organizationId } }),
-        prisma.qualification.count({ where: { organizationId: v.organizationId, expiresOn: { gte: new Date(), lte: new Date(Date.now() + 30 * 86400_000) }, ...staffScope } }),
-        prisma.qualification.count({ where: { organizationId: v.organizationId, expiresOn: { lt: new Date() }, ...staffScope } }),
-      ])
-    : [0, 0, 0, 0, 0];
-  const ackRate = nTalks > 0 && nPeople > 0 ? Math.min(100, Math.round((nAcks / (nTalks * nPeople)) * 100)) : null;
+  let nTalks = 0, nExpiring = 0, nExpired = 0;
+  let ackRate: number | null = null;
+  if (canManage) {
+    // Acknowledgement rate = acknowledgements received / acknowledgements expected, where each talk is expected of the
+    // people it was addressed to (the whole company, or one site), within the viewer's own scope.
+    const [scopePeople, talks30, expiring, expired] = await Promise.all([
+      prisma.employee.findMany({ where: { organizationId: v.organizationId, ...(v.isSafetyTeam ? {} : { siteId: v.siteId ?? "__none__" }) }, select: { id: true, siteId: true } }),
+      prisma.toolboxTalk.findMany({
+        where: { organizationId: v.organizationId, scheduledFor: { gte: t30 }, ...(v.isSafetyTeam ? {} : { OR: [{ siteId: null }, { siteId: v.siteId ?? "__none__" }] }) },
+        select: { siteId: true, acknowledgements: { select: { employeeId: true } } },
+      }),
+      prisma.qualification.count({ where: { organizationId: v.organizationId, expiresOn: { gte: startOfTodayUTC(), lt: dayStartIn(31) }, ...staffScope } }),
+      prisma.qualification.count({ where: { organizationId: v.organizationId, expiresOn: { lt: startOfTodayUTC() }, ...staffScope } }),
+    ]);
+    nTalks = talks30.length;
+    nExpiring = expiring;
+    nExpired = expired;
+    let expected = 0;
+    let received = 0;
+    for (const t of talks30) {
+      const audience = scopePeople.filter((e) => !t.siteId || e.siteId === t.siteId);
+      const done = new Set(t.acknowledgements.map((a) => a.employeeId));
+      expected += audience.length;
+      received += audience.filter((e) => done.has(e.id)).length;
+    }
+    ackRate = expected > 0 ? Math.round((received / expected) * 100) : null;
+  }
 
   return (
     <div className="min-h-full bg-surface-muted">

@@ -6,6 +6,7 @@ import { getPack, OPEN_ACTION_STATUSES, SITE_KINDS } from "@/lib/safety/pack";
 import { dueLabel, EmptyState, NoAccess } from "@/components/safety/ui";
 import { paginate, Pagination } from "@/components/safety/Pagination";
 import { SiteActiveToggle, SiteEditor } from "@/components/safety/SettingsForms";
+import { startOfTodayUTC } from "@/lib/safety/dates";
 
 export default async function SitesPage({ searchParams }: { searchParams: Promise<{ view?: string; q?: string; page?: string }> }) {
   const { view: view0, q, page: pageParam } = await searchParams;
@@ -18,8 +19,8 @@ export default async function SitesPage({ searchParams }: { searchParams: Promis
   ]);
   const [openReports, overdueActions, nextInsp, headcount] = await Promise.all([
     prisma.safetyReport.groupBy({ by: ["siteId"], where: { organizationId: v.organizationId, status: { not: "CLOSED" } }, _count: { _all: true } }),
-    prisma.correctiveAction.findMany({ where: { organizationId: v.organizationId, status: { in: OPEN_ACTION_STATUSES }, dueDate: { lt: now }, report: { isNot: null } }, select: { report: { select: { siteId: true } } } }),
-    prisma.inspection.findMany({ where: { organizationId: v.organizationId, status: "SCHEDULED" }, orderBy: { dueDate: "asc" }, select: { siteId: true, dueDate: true } }),
+    prisma.correctiveAction.findMany({ where: { organizationId: v.organizationId, status: { in: OPEN_ACTION_STATUSES }, dueDate: { lt: startOfTodayUTC() }, report: { isNot: null } }, select: { report: { select: { siteId: true } } } }),
+    prisma.inspection.groupBy({ by: ["siteId"], where: { organizationId: v.organizationId, status: "SCHEDULED" }, _min: { dueDate: true } }),
     prisma.employee.groupBy({ by: ["siteId"], where: { organizationId: v.organizationId }, _count: { _all: true } }),
   ]);
   const openBySite = new Map(openReports.map((r) => [r.siteId, r._count._all]));
@@ -27,7 +28,7 @@ export default async function SitesPage({ searchParams }: { searchParams: Promis
   const overdueBySite = new Map<string | null, number>();
   for (const a of overdueActions) overdueBySite.set(a.report?.siteId ?? null, (overdueBySite.get(a.report?.siteId ?? null) ?? 0) + 1);
   const nextBySite = new Map<string, Date>();
-  for (const i of nextInsp) if (!nextBySite.has(i.siteId)) nextBySite.set(i.siteId, i.dueDate);
+  for (const i of nextInsp) if (i._min.dueDate) nextBySite.set(i.siteId, i._min.dueDate);
   const peopleOpts = people.map((p) => ({ id: p.id, name: p.user.name }));
   const leadName = (id: string | null) => (id ? peopleOpts.find((p) => p.id === id)?.name ?? "Unknown" : null);
   const kinds = SITE_KINDS.map((k) => ({ key: k.key, label: k.label }));

@@ -1,5 +1,6 @@
 "use server";
 
+import { fail } from "@/lib/actionResult";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { canManageReport, canSeeInvestigation, canSeeReport } from "@/lib/safety/access";
@@ -18,7 +19,7 @@ async function loadInvestigation(investigationId: string) {
 export async function startInvestigation(reportId: string) {
   const v = await requireViewer();
   const report = await prisma.safetyReport.findFirst({ where: { id: reportId, organizationId: v.organizationId } });
-  if (!report || !canManageReport(v, report)) throw new Error("Only the owner or safety team can open an investigation.");
+  if (!report || !canManageReport(v, report)) return fail("Only the owner or safety team can open an investigation.");
   const existing = await prisma.investigation.findUnique({ where: { reportId } });
   if (existing) return existing.id;
   const inv = await prisma.investigation.create({
@@ -61,12 +62,12 @@ export async function saveInvestigation(_prev: InvestigationFormState, formData:
 
 export async function setInvestigationStatus(investigationId: string, status: string) {
   const { v, inv } = await loadInvestigation(investigationId);
-  if (!["OPEN", "IN_REVIEW", "COMPLETE"].includes(status)) throw new Error("Unknown status.");
+  if (!["OPEN", "IN_REVIEW", "COMPLETE"].includes(status)) return fail("Unknown status.");
   if (status === "COMPLETE") {
-    if (!v.isSafetyTeam) throw new Error("Only the safety team can mark an investigation complete.");
-    if (!inv.facts.trim()) throw new Error("Record the facts before completing.");
-    if (inv.contributingFactors.length === 0) throw new Error("Select at least one contributing factor before completing.");
-    if (!inv.rootCauseNotes.trim()) throw new Error("Write the investigator's root-cause reasoning before completing. Reldro does not fill this in.");
+    if (!v.isSafetyTeam) return fail("Only the safety team can mark an investigation complete.");
+    if (!inv.facts.trim()) return fail("Record the facts before completing.");
+    if (inv.contributingFactors.length === 0) return fail("Select at least one contributing factor before completing.");
+    if (!inv.rootCauseNotes.trim()) return fail("Write the investigator's root-cause reasoning before completing. Reldro does not fill this in.");
   }
   await prisma.investigation.update({ where: { id: inv.id }, data: { status, completedAt: status === "COMPLETE" ? new Date() : null } });
   await addReportEvent({ reportId: inv.reportId, type: "INVESTIGATION", message: `Investigation marked ${status === "COMPLETE" ? "complete" : status === "IN_REVIEW" ? "in review" : "open"}.`, actor: { name: v.name, employeeId: v.employeeId } });
@@ -78,10 +79,10 @@ export async function setInvestigationStatus(investigationId: string, status: st
 
 export async function setInvestigationLead(investigationId: string, leadId: string | null) {
   const { v, inv } = await loadInvestigation(investigationId);
-  if (!v.isSafetyTeam) throw new Error("Only the safety team can change the lead.");
+  if (!v.isSafetyTeam) return fail("Only the safety team can change the lead.");
   if (leadId) {
     const lead = await prisma.employee.findFirst({ where: { id: leadId, organizationId: v.organizationId } });
-    if (!lead) throw new Error("Lead not found.");
+    if (!lead) return fail("Lead not found.");
   }
   await prisma.investigation.update({ where: { id: inv.id }, data: { leadId } });
   await audit(v, "safety.investigation_updated", "Investigation", inv.id, { leadId });
@@ -104,7 +105,7 @@ export async function addStatement(_prev: InvestigationFormState, formData: Form
 export async function deleteStatement(statementId: string) {
   const v = await requireViewer();
   const st = await prisma.investigationStatement.findUnique({ where: { id: statementId }, include: { investigation: true } });
-  if (!st || st.investigation.organizationId !== v.organizationId || !canSeeInvestigation(v, st.investigation)) throw new Error("Statement not found.");
+  if (!st || st.investigation.organizationId !== v.organizationId || !canSeeInvestigation(v, st.investigation)) return fail("Statement not found.");
   await prisma.investigationStatement.delete({ where: { id: statementId } });
   await audit(v, "safety.investigation_updated", "Investigation", st.investigationId, { statementRemoved: true });
   revalidatePath(`/dashboard/investigations/${st.investigationId}`);
@@ -122,7 +123,7 @@ export async function addQuestions(investigationId: string, texts: string[], aiD
 export async function answerQuestion(questionId: string, answer: string) {
   const v = await requireViewer();
   const q = await prisma.investigationQuestion.findUnique({ where: { id: questionId }, include: { investigation: true } });
-  if (!q || q.investigation.organizationId !== v.organizationId || !canSeeInvestigation(v, q.investigation)) throw new Error("Question not found.");
+  if (!q || q.investigation.organizationId !== v.organizationId || !canSeeInvestigation(v, q.investigation)) return fail("Question not found.");
   await prisma.investigationQuestion.update({ where: { id: questionId }, data: { answer: answer.trim().slice(0, 3000) } });
   revalidatePath(`/dashboard/investigations/${q.investigationId}`);
 }
@@ -130,7 +131,7 @@ export async function answerQuestion(questionId: string, answer: string) {
 export async function deleteQuestion(questionId: string) {
   const v = await requireViewer();
   const q = await prisma.investigationQuestion.findUnique({ where: { id: questionId }, include: { investigation: true } });
-  if (!q || q.investigation.organizationId !== v.organizationId || !canSeeInvestigation(v, q.investigation)) throw new Error("Question not found.");
+  if (!q || q.investigation.organizationId !== v.organizationId || !canSeeInvestigation(v, q.investigation)) return fail("Question not found.");
   await prisma.investigationQuestion.delete({ where: { id: questionId } });
   revalidatePath(`/dashboard/investigations/${q.investigationId}`);
 }

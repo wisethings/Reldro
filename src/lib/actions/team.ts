@@ -1,5 +1,6 @@
 "use server";
 
+import { fail } from "@/lib/actionResult";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/guards";
@@ -93,7 +94,7 @@ export async function updatePerson(employeeId: string, changes: { name: string; 
   const { session, emp } = await personForAdmin(employeeId);
   const name = changes.name.trim().slice(0, 120);
   const jobTitle = changes.jobTitle.trim().slice(0, 120);
-  if (!name || !jobTitle) throw new Error("Name and job title are required.");
+  if (!name || !jobTitle) return fail("Name and job title are required.");
   await prisma.$transaction([
     prisma.user.update({ where: { id: emp.userId }, data: { name } }),
     prisma.employee.update({ where: { id: emp.id }, data: { jobTitle } }),
@@ -108,8 +109,8 @@ export async function updatePerson(employeeId: string, changes: { name: string; 
  */
 export async function deletePerson(employeeId: string) {
   const { session, emp } = await personForAdmin(employeeId);
-  if (emp.userId === session.sub) throw new Error("You can't delete your own account.");
-  if (emp.user.role !== "EMPLOYEE") throw new Error("Company admins are removed from Settings.");
+  if (emp.userId === session.sub) return fail("You can't delete your own account.");
+  if (emp.user.role !== "EMPLOYEE") return fail("Company admins are removed from Settings.");
   try {
     await prisma.$transaction([
       prisma.aIUsageEvent.deleteMany({ where: { employeeId: emp.id } }),
@@ -117,7 +118,7 @@ export async function deletePerson(employeeId: string) {
       prisma.user.delete({ where: { id: emp.userId } }),
     ]);
   } catch {
-    throw new Error("This person has activity that ties them to other records, so they can't be deleted.");
+    return fail("This person has activity that ties them to other records, so they can't be deleted.");
   }
   await logAudit({ organizationId: session.organizationId, userId: session.sub, action: "employee.deleted", entityType: "User", entityId: emp.userId, metadata: { name: emp.user.name, email: emp.user.email } });
   revalidatePath("/dashboard/training");

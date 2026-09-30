@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { actionStatusInfo, investigationStatusInfo, reportStatusInfo, severityInfo } from "@/lib/safety/pack";
+import { daysUntil } from "@/lib/safety/dates";
 
 /**
  * `suggested` marks a seriousness level nobody on the response side has confirmed yet, so it never reads as an official
@@ -45,13 +46,13 @@ export function InvestigationStatusBadge({ status }: { status: string }) {
 
 export function fmtDate(d: Date | string | null | undefined) {
   if (!d) return "—";
-  return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 }
 
 /** Compact date for table cells: "Sep 29". */
 export function fmtShort(d: Date | string | null | undefined) {
   if (!d) return "\u2014";
-  return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 }
 
 export function fmtDateTime(d: Date | string | null | undefined) {
@@ -63,7 +64,7 @@ export function fmtDateTime(d: Date | string | null | undefined) {
 export function dueLabel(due: Date | null, open: boolean): { text: string; overdue: boolean } {
   if (!due) return { text: "No due date", overdue: false };
   if (!open) return { text: `Due ${fmtDate(due)}`, overdue: false };
-  const days = Math.ceil((due.getTime() - Date.now()) / 86400_000);
+  const days = daysUntil(new Date(due));
   if (days < 0) return { text: `${-days} day${days === -1 ? "" : "s"} overdue`, overdue: true };
   if (days === 0) return { text: "Due today", overdue: false };
   return { text: `Due in ${days} day${days === 1 ? "" : "s"}`, overdue: false };

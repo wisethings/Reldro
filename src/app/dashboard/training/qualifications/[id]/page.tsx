@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireViewer } from "@/lib/safety/context";
 import { fmtDate, NoAccess } from "@/components/safety/ui";
 import { QualificationEditForm, RemoveQualificationButton, StatusBadge, type QualStatus } from "@/components/safety/QualificationTable";
+import { qualStatus } from "@/lib/safety/dates";
 
 export default async function QualificationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -16,11 +17,11 @@ export default async function QualificationPage({ params }: { params: Promise<{ 
   if (!v.isSafetyTeam && (!v.siteId || emp.siteId !== v.siteId)) return <NoAccess what="this person's qualifications" />;
   const site = emp.siteId ? await prisma.site.findUnique({ where: { id: emp.siteId }, select: { name: true } }) : null;
   const now = new Date();
-  const status: QualStatus = q.expiresOn && q.expiresOn < now ? "expired" : q.expiresOn && q.expiresOn <= new Date(Date.now() + 30 * 86400_000) ? "soon" : "current";
+  const status: QualStatus = qualStatus(q.expiresOn);
   // History: every record of this qualification for this person, newest first.
   const history = await prisma.qualification.findMany({ where: { organizationId: v.organizationId, employeeId: q.employeeId, name: q.name }, orderBy: [{ issuedOn: "desc" }, { createdAt: "desc" }] });
   const iso = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : "");
-  const stat = (d: Date | null): QualStatus => (d && d < now ? "expired" : d && d <= new Date(Date.now() + 30 * 86400_000) ? "soon" : "current");
+  const stat = qualStatus;
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-4 px-4 py-4 sm:px-6 sm:py-6">
