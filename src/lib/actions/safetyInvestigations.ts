@@ -41,7 +41,7 @@ export async function saveInvestigation(_prev: InvestigationFormState, formData:
   const lessonText = String(formData.get("lessonText") ?? "").trim().slice(0, 2000);
   const shareLesson = formData.get("shareLesson") === "on";
   if (shareLesson && !v.isSafetyTeam) return { error: "Only the safety team can publish a shared lesson." };
-  if (shareLesson && !lessonText) return { error: "Write the shared lesson text (without names or personal details) before publishing it." };
+  if (shareLesson && !lessonText) return { error: "Write the lesson text, without names or personal details, before publishing it." };
 
   await prisma.investigation.update({
     where: { id: inv.id },
@@ -66,7 +66,7 @@ export async function setInvestigationStatus(investigationId: string, status: st
     if (!v.isSafetyTeam) throw new Error("Only the safety team can mark an investigation complete.");
     if (!inv.facts.trim()) throw new Error("Record the facts before completing.");
     if (inv.contributingFactors.length === 0) throw new Error("Select at least one contributing factor before completing.");
-    if (!inv.rootCauseNotes.trim()) throw new Error("Write the investigator's root-cause reasoning before completing. This is never filled in automatically.");
+    if (!inv.rootCauseNotes.trim()) throw new Error("Write the investigator's root-cause reasoning before completing. Reldro does not fill this in.");
   }
   await prisma.investigation.update({ where: { id: inv.id }, data: { status, completedAt: status === "COMPLETE" ? new Date() : null } });
   await addReportEvent({ reportId: inv.reportId, type: "INVESTIGATION", message: `Investigation marked ${status === "COMPLETE" ? "complete" : status === "IN_REVIEW" ? "in review" : "open"}.`, actor: { name: v.name, employeeId: v.employeeId } });

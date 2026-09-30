@@ -35,17 +35,17 @@ export function InvestigationForm({
         {state?.error && <p role="alert" className="rounded-lg bg-coral-soft px-3 py-2 text-sm text-danger">{state.error}</p>}
         {state?.success && <p className="rounded-lg bg-sage px-3 py-2 text-sm text-sage-deep">{state.success}</p>}
 
-        <Field label="Facts gathered" hint="What is known: observations, measurements, conditions. Keep to what can be verified.">
+        <Field label="Facts gathered" hint="What is known: observations, measurements, and conditions. Include only what can be verified.">
           <Textarea name="facts" defaultValue={initial.facts} rows={5} disabled={locked} />
         </Field>
 
-        <Field label="Sequence of events" hint="In order, what happened before, during and after.">
+        <Field label="Sequence of events" hint="In order: what happened before, during, and after.">
           <Textarea name="sequenceNotes" value={sequence} onChange={(e) => setSequence(e.target.value)} rows={5} disabled={locked} />
         </Field>
         <AiTextDraft
           label="Draft a summary from the timeline"
           generate={() => aiSummarizeInvestigation(reportId)}
-          useLabel="Add to sequence of events"
+          useLabel="Add this draft to the sequence"
           onUse={async (text) => {
             setSequence((s) => (s ? s.trimEnd() + "\n\n" : "") + text);
             await noteAiDraftUsed(investigationId, "timeline summary");
@@ -55,7 +55,7 @@ export function InvestigationForm({
 
         <fieldset>
           <legend className="text-xs font-medium text-ink-700">Contributing factors</legend>
-          <p className="mt-0.5 text-[11px] text-ink-400">Look at the system and conditions around the work, not at who to blame. Pick every factor that played a part.</p>
+          <p className="mt-0.5 text-[11px] text-ink-400">Focus on the conditions around the work, not on who to blame. Select every factor that played a part.</p>
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
             {factors.map((f) => (
               <label key={f} className="flex items-start gap-2 rounded-lg border border-ink-200 bg-white p-2.5 text-sm text-ink-800">
@@ -66,20 +66,20 @@ export function InvestigationForm({
           </div>
         </fieldset>
 
-        <Field label="Root-cause reasoning" hint="Written by the investigator. Reldro never suggests or fills in a root cause.">
+        <Field label="Root-cause reasoning" hint="Written by the investigator. Reldro does not suggest or fill in a root cause.">
           <Textarea name="rootCauseNotes" defaultValue={initial.rootCauseNotes} rows={4} disabled={locked} />
         </Field>
 
         <div className="space-y-2 rounded-xl border border-ink-200 p-3">
-          <Field label="Lesson to share with crews" hint="Write it without names, injuries or personal details. Only the safety team can publish it." optional>
+          <Field label="Lesson to share with crews" hint="Leave out names, injury details, and other personal details. Only the safety team can publish a lesson." optional>
             <Textarea name="lessonText" value={lesson} onChange={(e) => setLesson(e.target.value)} rows={3} disabled={locked} />
           </Field>
           {isSafetyTeam && !locked && (
-            <AiTextDraft label="Draft a de-identified lesson" generate={() => aiDraftLesson(reportId)} useLabel="Use as the lesson" onUse={(t) => setLesson(t)} />
+            <AiTextDraft label="Draft a lesson without personal details" generate={() => aiDraftLesson(reportId)} useLabel="Use this draft" onUse={(t) => setLesson(t)} />
           )}
           {isSafetyTeam && (
             <label className="flex items-center gap-2 text-sm text-ink-800">
-              <input type="checkbox" name="shareLesson" defaultChecked={initial.shareLesson} /> Share this lesson company-wide
+              <input type="checkbox" name="shareLesson" defaultChecked={initial.shareLesson} /> Share this lesson with everyone in the company
             </label>
           )}
         </div>

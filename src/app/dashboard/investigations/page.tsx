@@ -27,14 +27,15 @@ export default async function InvestigationsPage({ searchParams }: { searchParam
 
   return (
     <div className="mx-auto max-w-5xl space-y-5 p-4 sm:p-6">
-      <PageHeader title="Investigations" subtitle="Structured fact-finding to understand causes and fix conditions. Highest seriousness first." />
+      <PageHeader title="Investigations" subtitle="Review what happened, identify contributing factors, and track steps to reduce the chance of it happening again." />
       <div className="flex gap-2">
         <Link href="?status=active" className={chip(status === "active")}>Active</Link>
         <Link href="?status=complete" className={chip(status === "complete")}>Complete</Link>
         <Link href="?status=all" className={chip(status === "all")}>All</Link>
+        <span className="ml-auto self-center text-xs text-ink-500">Sorted by severity, highest first.</span>
       </div>
       {list.length === 0 ? (
-        <EmptyState title="No investigations here" body="Open one from a report when something needs a closer look." href="/dashboard/reports" cta="Go to reports" />
+        <EmptyState title={status === "active" ? "No active investigations" : "No investigations match this filter"} body="Start an investigation from a report when it needs a closer review." href="/dashboard/reports" cta="Go to reports" />
       ) : (
         <Card>
           <ul className="divide-y divide-ink-200">
@@ -47,7 +48,7 @@ export default async function InvestigationsPage({ searchParams }: { searchParam
                     <InvestigationStatusBadge status={i.status} />
                   </div>
                   <p className="mt-1 text-sm font-medium text-ink-900">{i.report.title}</p>
-                  <p className="text-xs text-ink-500">{categoryLabel(i.report.category, pack)} · {i.report.site?.name ?? "No site"} · opened {fmtDate(i.openedAt)}</p>
+                  <p className="text-xs text-ink-500">{categoryLabel(i.report.category, pack)} · {i.report.site?.name ?? "Site not given"} · opened {fmtDate(i.openedAt)}</p>
                 </Link>
               </li>
             ))}

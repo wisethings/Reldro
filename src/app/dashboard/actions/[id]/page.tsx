@@ -41,23 +41,23 @@ export default async function ActionDetailPage({ params }: { params: Promise<{ i
         {STEPS.map((s, i) => {
           const reached = a.status !== "CANCELLED" && stepIndex >= i;
           return (
-            <li key={s} className={`rounded-md px-1 py-1.5 ${reached ? "bg-sage text-sage-deep" : "bg-surface-sunken text-ink-400"}`}>{actionStatusInfo(s).label.replace("Done, awaiting check", "Done")}</li>
+            <li key={s} className={`rounded-md px-1 py-1.5 ${reached ? "bg-sage text-sage-deep" : "bg-surface-sunken text-ink-400"}`}>{actionStatusInfo(s).label}</li>
           );
         })}
       </ol>
-      {a.status === "CANCELLED" && <p className="rounded-lg bg-surface-sunken px-4 py-3 text-sm text-ink-600">This action was cancelled.</p>}
-      {a.status === "COMPLETED" && <p className="rounded-lg bg-orchid-soft px-4 py-3 text-sm text-orchid-deep">Marked done. It isn't counted as fixed until the safety team verifies it.</p>}
+      {a.status === "CANCELLED" && <p className="rounded-lg bg-surface-sunken px-4 py-3 text-sm text-ink-600">This corrective action was cancelled.</p>}
+      {a.status === "COMPLETED" && <p className="rounded-lg bg-orchid-soft px-4 py-3 text-sm text-orchid-deep">Marked done. It does not count as fixed until the safety team verifies it.</p>}
 
       <Card>
         <CardHeader title="Details" />
         <CardBody className="space-y-3">
           {a.description && <p className="whitespace-pre-wrap text-sm text-ink-800">{a.description}</p>}
           <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
-            <div><dt className="text-xs text-ink-500">Owner</dt><dd>{nm(a.ownerId) ?? "Unassigned"}</dd></div>
+            <div><dt className="text-xs text-ink-500">Owner</dt><dd>{nm(a.ownerId) ?? "No owner"}</dd></div>
             <div><dt className="text-xs text-ink-500">Due</dt><dd className={due.overdue ? "font-medium text-danger" : ""}>{a.dueDate ? `${fmtDate(a.dueDate)} · ${due.text}` : "No due date"}</dd></div>
             <div><dt className="text-xs text-ink-500">Proposed by</dt><dd>{nm(a.proposedById) ?? "—"}</dd></div>
             <div><dt className="text-xs text-ink-500">Approved</dt><dd>{a.approvedAt ? `${nm(a.approvedById) ?? "Someone"} · ${fmtDate(a.approvedAt)}` : "Not yet"}</dd></div>
-            <div><dt className="text-xs text-ink-500">Verified complete</dt><dd>{a.verifiedAt ? `${nm(a.verifiedById) ?? "Someone"} · ${fmtDate(a.verifiedAt)}` : "Not yet"}</dd></div>
+            <div><dt className="text-xs text-ink-500">Verified</dt><dd>{a.verifiedAt ? `${nm(a.verifiedById) ?? "Someone"} · ${fmtDate(a.verifiedAt)}` : "Not yet"}</dd></div>
           </dl>
         </CardBody>
       </Card>
@@ -84,7 +84,7 @@ export default async function ActionDetailPage({ params }: { params: Promise<{ i
             isOwner={v.employeeId !== null && a.ownerId === v.employeeId}
             people={people.map((p) => ({ id: p.id, name: p.user.name }))}
           />
-          {["VERIFIED", "CANCELLED"].includes(a.status) && !v.isSafetyTeam && <p className="text-sm text-ink-500">Nothing more to do here.</p>}
+          {["VERIFIED", "CANCELLED"].includes(a.status) && !v.isSafetyTeam && <p className="text-sm text-ink-500">Nothing more to do on this corrective action.</p>}
         </CardBody>
       </Card>
     </div>

@@ -117,7 +117,7 @@ export function productUpdateEmailHtml({ subject, bodyHtml }: { subject: string;
       <h2 style="margin-bottom: 4px;">${subject}</h2>
       <p style="color: #6B5A55; font-size: 13px;">An update from the Reldro team</p>
       <div style="margin-top: 16px; font-size: 14px; line-height: 1.6;">${bodyHtml}</div>
-      <p style="color: #8C7F6C; font-size: 12px; margin-top: 32px;">You're receiving this because you have a Reldro account.</p>
+      <p style="color: #8C7F6C; font-size: 12px; margin-top: 32px;">You are receiving this because you have a Reldro account.</p>
     </div>
   `;
 }
@@ -125,16 +125,16 @@ export function productUpdateEmailHtml({ subject, bodyHtml }: { subject: string;
 export function inviteEmailHtml({ name, orgName, loginUrl, tempPassword }: { name: string; orgName: string; loginUrl: string; tempPassword: string }) {
   return `
     <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; color: #2A0A0C;">
-      <h2 style="margin-bottom: 4px;">You're invited to Reldro</h2>
-      <p style="color: #6B5A55;">${escapeHtml(orgName)} added you to their AI Transformation Platform.</p>
+      <h2 style="margin-bottom: 4px;">You have been invited to Reldro</h2>
+      <p style="color: #6B5A55;">${escapeHtml(orgName)} added you to Reldro, their workspace for frontline safety reporting and follow-up.</p>
       <p>Hi ${escapeHtml(name)},</p>
-      <p>Your account is ready. Log in with the temporary password below, then change it from your account settings.</p>
+      <p>Your account is ready. Sign in with the temporary password below, then change it in your account settings.</p>
       <table style="width: 100%; background: #F7F4EC; border-radius: 12px; padding: 16px; margin: 16px 0;">
         <tr><td style="padding: 4px 16px; color: #6B5A55; font-size: 13px;">Temporary password</td></tr>
         <tr><td style="padding: 0 16px 12px; font-family: monospace; font-size: 16px; font-weight: 600;">${tempPassword}</td></tr>
       </table>
-      <a href="${loginUrl}" style="display: inline-block; background: #2A0A0C; color: #EFEBE0; padding: 10px 20px; border-radius: 999px; text-decoration: none; font-weight: 500;">Log in to Reldro</a>
-      <p style="color: #8C7F6C; font-size: 12px; margin-top: 24px;">If you weren't expecting this, you can ignore this email.</p>
+      <a href="${loginUrl}" style="display: inline-block; background: #2A0A0C; color: #EFEBE0; padding: 10px 20px; border-radius: 999px; text-decoration: none; font-weight: 500;">Sign in to Reldro</a>
+      <p style="color: #8C7F6C; font-size: 12px; margin-top: 24px;">If you were not expecting this email, you can ignore it.</p>
     </div>
   `;
 }

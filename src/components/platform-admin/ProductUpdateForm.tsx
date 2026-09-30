@@ -24,7 +24,7 @@ export function ProductUpdateForm() {
       )}
 
       <Field label="Subject" required>
-        <Input name="subject" required placeholder="New in Reldro: workflow chaining" />
+        <Input name="subject" required placeholder="New in Reldro: incident response workspace" />
       </Field>
 
       <Field label="Message" hint="Plain text. Blank lines start a new paragraph." required>

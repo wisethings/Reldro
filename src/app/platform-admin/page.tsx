@@ -33,7 +33,7 @@ export default async function PlatformAdminOverview() {
         <StatTile label="Organizations" value={orgCount} helpText={`${onboarded} finished setup`} />
         <StatTile label="People with accounts" value={userCount} />
         <StatTile label="Active sites" value={sites} />
-        <StatTile label="Reports filed, last 30 days" value={reports30} />
+        <StatTile label="Reports submitted, last 30 days" value={reports30} />
         <StatTile label="MRR (subscriptions)" value={`$${mrr.toLocaleString()}`} />
       </div>
       {supportOpen > 0 && (

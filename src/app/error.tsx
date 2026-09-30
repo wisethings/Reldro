@@ -12,8 +12,8 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-ink-50 px-6 text-center">
       <Logo height={28} />
       <div>
-        <h1 className="text-xl font-semibold text-ink-900">Something went wrong</h1>
-        <p className="mt-2 text-sm text-ink-500">This page hit an unexpected error. You can try again, or head back to your dashboard.</p>
+        <h1 className="text-xl font-semibold text-ink-900">This page didn't load</h1>
+        <p className="mt-2 text-sm text-ink-500">Something unexpected happened. Try again, or go back to your dashboard. If it keeps happening, tell your safety lead or company admin.</p>
       </div>
       <div className="flex items-center gap-3">
         <button
@@ -23,7 +23,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
           Try again
         </button>
         <a href="/dashboard" className="rounded-full border border-ink-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-ink-100">
-          Back to dashboard
+          Go to dashboard
         </a>
       </div>
     </div>

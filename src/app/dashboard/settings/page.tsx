@@ -35,7 +35,7 @@ export default async function SettingsPage() {
     <div className="mx-auto max-w-3xl space-y-6 p-4 sm:p-6">
       <div>
         <h1 className="text-xl font-semibold text-ink-900">Settings</h1>
-        <p className="text-sm text-ink-500">Company details, who gets notified, and who has admin access.</p>
+        <p className="text-sm text-ink-500">Manage company details, emergency instructions, escalation rules, and admin access.</p>
       </div>
 
       <Card>
@@ -44,15 +44,15 @@ export default async function SettingsPage() {
       </Card>
 
       <Card>
-        <CardHeader icon={<IconBadge icon={<PhoneCall size={18} />} tone="coral" />} title="Emergency instructions" subtitle="What every reporter sees before they submit. Reldro is not an emergency service; this is your own plan." />
+        <CardHeader icon={<IconBadge icon={<PhoneCall size={18} />} tone="coral" />} title="Emergency instructions" subtitle="Shown to every reporter on the report form. Reldro does not contact emergency services, so this text should reflect your own plan." />
         <CardBody><EmergencyInstructionsForm initial={org.emergencyInstructions} /></CardBody>
       </Card>
 
       <Card>
-        <CardHeader icon={<IconBadge icon={<Siren size={18} />} tone="coral" />} title="Escalation rules" subtitle="Who gets a new report, how fast it needs an acknowledgement, and who is alerted if it doesn't get one. The most specific matching rule wins." />
+        <CardHeader icon={<IconBadge icon={<Siren size={18} />} tone="coral" />} title="Escalation rules" subtitle="Choose who receives a new report, how quickly it must be acknowledged, and who is alerted if it is not. The most specific matching rule applies." />
         <CardBody className="space-y-5">
           {rules.length === 0 ? (
-            <p className="rounded-lg bg-surface-sunken px-3 py-2 text-sm text-ink-600">No rules yet. New reports go to the safety lead of their site, or stay unassigned if a site has none. Reports that are unassigned appear on the Overview for the safety team.</p>
+            <p className="rounded-lg bg-surface-sunken px-3 py-2 text-sm text-ink-600">No rules yet. New reports go to the safety lead of their site. If a site has no safety lead, the report has no owner and appears on the Overview for the safety team.</p>
           ) : (
             <ul className="divide-y divide-ink-200 rounded-lg border border-ink-200">
               {rules.map((r) => (
@@ -102,7 +102,7 @@ export default async function SettingsPage() {
       </Card>
 
       <Card>
-        <CardHeader icon={<IconBadge icon={<LifeBuoy size={18} />} tone="olive" />} title="Optional: setup and advisor help" subtitle="Reldro works without this. If you'd like a hand configuring sites, rules or checklists, or want to talk through a safety program with an advisor, ask here. It's a paid add-on scoped and priced separately." />
+        <CardHeader icon={<IconBadge icon={<LifeBuoy size={18} />} tone="olive" />} title="Optional setup and advisor help" subtitle="Get paid help setting up sites, escalation rules, or checklists, or talking through a safety program. Reldro works without it. Scope and price are agreed separately." />
         <CardBody><SetupSupportForm /></CardBody>
       </Card>
 
@@ -119,7 +119,7 @@ export default async function SettingsPage() {
         </CardBody>
       </Card>
 
-      <p className="flex items-center gap-2 px-1 text-xs text-ink-400"><HardHat size={14} /> Your data stays in your organization. Reldro staff don't see reports or investigations unless you ask for help and grant access.</p>
+      <p className="flex items-center gap-2 px-1 text-xs text-ink-400"><HardHat size={14} /> Your reports and investigations stay within your company. The Reldro admin console shows account-level counts only, not report contents.</p>
     </div>
   );
 }

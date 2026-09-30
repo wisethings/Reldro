@@ -73,7 +73,7 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
     <div className="mx-auto max-w-5xl space-y-5 p-4 sm:p-6">
       <PageHeader
         title="Insights"
-        subtitle="Patterns across sites, teams and topics. These are counts of what was reported, not a measure of how safe any site is."
+        subtitle="Review reporting and follow-up patterns across sites, teams, and topics. Report counts alone do not show how safe a site is."
         actions={<Link href={`/api/safety/export/reports?days=${days}`} className="rounded-full border border-ink-300 px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-ink-50">Export reports (CSV)</Link>}
       />
       <div className="flex gap-2">
@@ -83,16 +83,16 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
       <details className="rounded-xl border border-ink-200 bg-white p-4 text-sm text-ink-700">
         <summary className="cursor-pointer font-medium text-ink-900">How to read this page</summary>
         <ul className="mt-2 list-disc space-y-1 pl-5">
-          <li>These are counts of what people reported. More reports can mean more people feel able to speak up, not that a site got less safe.</li>
-          <li>A site with few reports isn't necessarily safe; it may be quiet, small or under-reporting.</li>
-          <li>With small numbers, two similar reports can look like a pattern by chance. Check the reports before acting.</li>
-          <li>Anonymous and confidential reports are included in the counts but never tied to a person here.</li>
-          <li>Nothing on this page certifies that a site or process is safe or compliant with any regulation.</li>
+          <li>Reporting patterns can reflect both workplace conditions and how comfortable people feel reporting concerns.</li>
+          <li>Fewer reports do not mean fewer hazards, and more reports do not mean more hazards.</li>
+          <li>With small numbers, two similar reports can look like a pattern by chance. Read the reports before acting.</li>
+          <li>Anonymous and confidential reports are counted here but are never tied to a person.</li>
+          <li>Nothing on this page shows that a site or process is safe or meets any regulation.</li>
         </ul>
       </details>
 
       <Card>
-        <CardHeader title="Recurring themes" subtitle="A short written summary of the numbers below. A draft to check against them." />
+        <CardHeader title="Summary of reported themes" subtitle="A draft based on the reports in this period. Check it against the source reports before sharing." />
         <CardBody><ThemesSummaryDraft days={days} /></CardBody>
       </Card>
 
@@ -100,13 +100,13 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
         <Card><CardHeader title="Repeated hazards" subtitle="Same topic at the same site, two or more times" /><CardBody><Bars rows={repeats} empty="No repeats in this period." /></CardBody></Card>
         <Card><CardHeader title="Reports by topic" /><CardBody><Bars rows={byCategory.slice(0, 8)} /></CardBody></Card>
         <Card><CardHeader title="Reports by site" /><CardBody><Bars rows={bySite.slice(0, 8)} /></CardBody></Card>
-        <Card><CardHeader title="Reports by kind" subtitle="Near misses and hazards reported early give a chance to fix things before someone is hurt. The mix shows what people chose to report, not everything that happened." /><CardBody><Bars rows={byType} /></CardBody></Card>
+        <Card><CardHeader title="Reports by kind" subtitle="Reporting near misses and hazards early gives a chance to fix a problem before someone is hurt. The mix shows what people chose to report, not everything that happened." /><CardBody><Bars rows={byType} /></CardBody></Card>
         <Card><CardHeader title="Contributing factors in investigations" /><CardBody><Bars rows={factors.slice(0, 8)} empty="No investigations with selected factors yet." /></CardBody></Card>
         <Card>
-          <CardHeader title="Response" subtitle="How the team is handling what comes in" />
+          <CardHeader title="Response" subtitle="How reports and incident responses are being handled" />
           <CardBody>
             <dl className="grid grid-cols-3 gap-3 text-center">
-              <div><dt className="text-xs text-ink-500">Median hours to acknowledge</dt><dd className="text-2xl font-medium tabular-nums text-ink-900">{medianAck === null ? "—" : medianAck < 10 ? medianAck.toFixed(1) : Math.round(medianAck)}</dd></div>
+              <div><dt className="text-xs text-ink-500">Median hours to acknowledge a report</dt><dd className="text-2xl font-medium tabular-nums text-ink-900">{medianAck === null ? "—" : medianAck < 10 ? medianAck.toFixed(1) : Math.round(medianAck)}</dd></div>
               <div><dt className="text-xs text-ink-500">Incident responses opened</dt><dd className="text-2xl font-medium tabular-nums text-ink-900">{incidents.length}</dd></div>
               <div><dt className="text-xs text-ink-500">Still open</dt><dd className="text-2xl font-medium tabular-nums text-ink-900">{incidentsOpen}</dd></div>
             </dl>
@@ -121,15 +121,15 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
               <div><dt className="text-xs text-ink-500">Overdue</dt><dd className={`text-2xl font-medium tabular-nums ${overdue.length ? "text-danger" : "text-ink-900"}`}>{overdue.length}</dd></div>
               <div><dt className="text-xs text-ink-500">Avg days to verify</dt><dd className="text-2xl font-medium tabular-nums text-ink-900">{avgDaysToVerify ?? "—"}</dd></div>
             </dl>
-            <p className="mt-3 text-xs text-ink-400">From actions created in this period. Verified means someone confirmed the fix is in place.</p>
+            <p className="mt-3 text-xs text-ink-400">Counts corrective actions created in this period. Verified means someone confirmed the fix is in place.</p>
           </CardBody>
         </Card>
       </div>
 
       <Card>
-        <CardHeader title="Shared lessons" subtitle="De-identified lessons the safety team chose to share with everyone." />
+        <CardHeader title="Shared lessons" subtitle="Lessons approved for sharing with your team. Check that personal details have been removed before publishing." />
         <CardBody>
-          {lessons.length === 0 ? <p className="text-sm text-ink-500">None shared yet. Complete an investigation and write a lesson without names or personal details.</p> : (
+          {lessons.length === 0 ? <p className="text-sm text-ink-500">No lessons have been shared yet. Complete an investigation, then write a lesson without names or personal details.</p> : (
             <ul className="space-y-3">{lessons.map((l) => <li key={l.id} className="text-sm text-ink-800"><span className="mr-2 rounded bg-surface-sunken px-1.5 py-0.5 text-[11px] text-ink-600">{categoryLabel(l.report.category, pack)}</span>{l.lessonText}</li>)}</ul>
           )}
         </CardBody>

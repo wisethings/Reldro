@@ -71,7 +71,7 @@ export async function createEscalationRule(_prev: SettingsFormState, formData: F
   if (!v.isAdmin) return { error: "Only company admins can change escalation rules." };
   const pack = getPack();
   const minSeverity = String(formData.get("minSeverity") ?? "");
-  if (!SEVERITY_ORDER.includes(minSeverity as (typeof SEVERITY_ORDER)[number])) return { error: "Choose a severity." };
+  if (!SEVERITY_ORDER.includes(minSeverity as (typeof SEVERITY_ORDER)[number])) return { error: "Choose a seriousness level." };
   const category = String(formData.get("category") ?? "") || null;
   if (category && !pack.categories.some((c) => c.key === category)) return { error: "Unknown category." };
   const siteId = String(formData.get("siteId") ?? "") || null;
@@ -115,7 +115,7 @@ export async function requestSetupSupport(_prev: SettingsFormState, formData: Fo
   const v = await requireViewer();
   if (!v.isAdmin) return { error: "Only company admins can request support." };
   const need = String(formData.get("need") ?? "").trim();
-  if (!need) return { error: "Tell us briefly what you'd like help with." };
+  if (!need) return { error: "Describe briefly what you would like help with." };
   await audit(v, "setup_support.requested", "Organization", v.organizationId, { need: need.slice(0, 1000), by: v.name });
   const to = process.env.SUPPORT_EMAIL;
   if (to) {
@@ -130,7 +130,7 @@ export async function completeSafetyOnboarding(_prev: SettingsFormState, formDat
   const v = await requireViewer();
   if (!v.isAdmin) return { error: "Only company admins can finish setup." };
   const siteName = String(formData.get("siteName") ?? "").trim();
-  if (!siteName) return { error: "Name your first site." };
+  if (!siteName) return { error: "Enter a name for your first site." };
 
   const site = await prisma.site.create({
     data: { organizationId: v.organizationId, name: siteName.slice(0, 120), address: String(formData.get("address") ?? "").trim().slice(0, 300), kind: "JOBSITE" },
@@ -157,5 +157,5 @@ export async function saveEmergencyInstructions(_prev: SettingsFormState, formDa
   await audit(v, "safety.settings_changed", "Organization", v.organizationId, { emergencyInstructions: true });
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard/reports/new");
-  return { success: text ? "Saved. Reporters will see this before they submit." : "Cleared. Reporters will see the default message." };
+  return { success: text ? "Saved. Reporters will see this on the report form." : "Cleared. Reporters will see the standard message only." };
 }

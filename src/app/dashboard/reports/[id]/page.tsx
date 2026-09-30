@@ -88,11 +88,11 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
 
       {late && (
         <p role="status" className="rounded-lg bg-coral-soft px-4 py-3 text-sm text-danger">
-          Response overdue. This report was due a response by {fmtDateTime(report.respondBy)} and hasn't been acknowledged.
+          Response overdue. The safety team was due to acknowledge this report by {fmtDateTime(report.respondBy)}.
         </p>
       )}
       {isOwnReport && report.status !== "CLOSED" && !manage && (
-        <p className="rounded-lg bg-sage px-4 py-3 text-sm text-sage-deep">Thanks for reporting this. The safety team has it{report.ownerId ? ` and it's with ${nameOf(report.ownerId) ?? "an owner"}` : ""}. Updates will show below.</p>
+        <p className="rounded-lg bg-sage px-4 py-3 text-sm text-sage-deep">Thank you for reporting this. The safety team has the report{report.ownerId ? ` and it is with ${nameOf(report.ownerId) ?? "an owner"}` : ""}. Updates appear in the timeline.</p>
       )}
 
       {inc && onTeam && (
@@ -121,7 +121,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
           <p className="whitespace-pre-wrap text-sm text-ink-800">{report.description}</p>
           {report.immediateAction && (
             <div>
-              <p className="text-xs font-medium text-ink-500">Done right away</p>
+              <p className="text-xs font-medium text-ink-500">Action taken right away</p>
               <p className="text-sm text-ink-800">{report.immediateAction}</p>
             </div>
           )}
@@ -130,8 +130,8 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
             <div><dt className="text-xs text-ink-500">Topic</dt><dd>{categoryLabel(report.category, pack)}</dd></div>
             <div><dt className="text-xs text-ink-500">Where</dt><dd>{report.site?.name ?? "Site not specified"}{report.locationNote ? <span className="block text-xs text-ink-500">{report.locationNote}</span> : null}</dd></div>
             <div><dt className="text-xs text-ink-500">When</dt><dd><LocalTime value={report.occurredAt} withYear /></dd></div>
-            <div><dt className="text-xs text-ink-500">Reported by</dt><dd>{report.reporterId === null ? "Anonymous (name not saved)" : showReporter ? nameOf(report.reporterId) ?? "—" : "Withheld (confidential)"}</dd></div>
-            <div><dt className="text-xs text-ink-500">Owner</dt><dd>{nameOf(report.ownerId) ?? "Unassigned"}</dd></div>
+            <div><dt className="text-xs text-ink-500">Reported by</dt><dd>{report.reporterId === null ? "Anonymous (name not saved)" : showReporter ? nameOf(report.reporterId) ?? "—" : "Name not shared"}</dd></div>
+            <div><dt className="text-xs text-ink-500">Owner</dt><dd>{nameOf(report.ownerId) ?? "No owner"}</dd></div>
             <div><dt className="text-xs text-ink-500">Response due</dt><dd>{report.respondBy ? fmtDateTime(report.respondBy) : "No rule matched"}{report.acknowledgedAt ? ` · acknowledged ${fmtDateTime(report.acknowledgedAt)}` : ""}</dd></div>
           </dl>
           {fromInspection && (
@@ -142,16 +142,16 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
           )}
           {report.reporterId === null && manage && (
             <p className="rounded-lg bg-surface-sunken px-3 py-2 text-xs text-ink-700">
-              The reporter is anonymous and has a private case code. Messages you send to the reporter reach them only if they open the follow-up page with that code, so don't expect an immediate reply.
+              This reporter submitted without a name and holds a private case code. They see your messages only when they check the follow-up page with that code, so a reply may take time.
             </p>
           )}
-          {report.aiAssisted && <p className="text-[11px] text-ink-400">The reporter used an AI-assisted draft and confirmed the details before sending.</p>}
+          {report.aiAssisted && <p className="text-[11px] text-ink-400">The reporter used an AI draft and reviewed the details before submitting.</p>}
         </CardBody>
       </Card>
 
       {manage && (
         <Card>
-          <CardHeader title="Response" subtitle="Acknowledge, route and track this report." />
+          <CardHeader title="Response" subtitle="Acknowledge, assign, and track this report." />
           <CardBody>
             <ReportControls
               reportId={report.id}
@@ -169,7 +169,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
             />
             {v.isSafetyTeam && !inc && report.status !== "CLOSED" && (
               <div className="mt-4 border-t border-ink-200 pt-4">
-                <p className="mb-2 text-xs text-ink-600">Most reports don't need this. For a serious event, open a shared incident response with a lead and a live timeline.</p>
+                <p className="mb-2 text-xs text-ink-600">Most reports do not need an incident response. For a serious event, open a shared workspace with a response lead and a timeline.</p>
                 <OpenIncidentForm reportId={report.id} people={people.map((p) => ({ id: p.id, name: p.user.name }))} defaultLeadId={report.ownerId} />
               </div>
             )}
@@ -191,10 +191,10 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
       )}
 
       <Card id="actions" className="scroll-mt-20">
-        <CardHeader title="Corrective actions" subtitle="What will change because of this report." />
+        <CardHeader title="Corrective actions" subtitle="Fixes and follow-up tasks linked to this report." />
         <CardBody className="space-y-4">
           {shownActions.length === 0 ? (
-            <p className="text-sm text-ink-500">No actions yet.</p>
+            <p className="text-sm text-ink-500">No corrective actions yet.</p>
           ) : (
             <ul className="divide-y divide-ink-200 rounded-lg border border-ink-200">
               {shownActions.map((a) => {
@@ -225,7 +225,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
       </Card>
 
       <Card>
-        <CardHeader title="Timeline" subtitle="Everything that happened, in order." />
+        <CardHeader title="Timeline" subtitle="Events in time order." />
         <CardBody className="space-y-4">
           {manage && (
             <TimelineSummaryDraft reportId={report.id} />
@@ -269,12 +269,12 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ i
 
       {inc && onTeam && runIncident && (
         <Card>
-          <CardHeader title="Closeout" subtitle={inc.status === "RESOLVED" ? "How this response ended." : "Wrap up the response when the immediate situation is handled."} />
+          <CardHeader title="Closeout" subtitle={inc.status === "RESOLVED" ? "How this response ended." : "Close out the response when the immediate situation is under control."} />
           <CardBody>
             <CloseoutForm reportId={report.id} resolved={inc.status === "RESOLVED"} closeoutSummary={inc.closeoutSummary} standDownReason={inc.standDownReason} openActions={actionCounts.open} />
             {inv && invAccess && (
               <p className="mt-4 text-xs text-ink-600">
-                To share a de-identified lesson with crews, use the lesson section of the{" "}
+                To share a lesson with crews without personal details, use the lesson section of the{" "}
                 <Link href={`/dashboard/investigations/${inv.id}`} className="font-medium text-orchid-deep hover:text-oxblood">investigation</Link>.
               </p>
             )}

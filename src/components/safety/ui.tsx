@@ -77,7 +77,7 @@ export function EmptyState({ title, body, href, cta, heading = false }: { title:
 export function NoAccess({ what = "this page" }: { what?: string }) {
   return (
     <div className="mx-auto max-w-lg p-6">
-      <EmptyState heading title="You don't have access to this" body={`Your role doesn't include ${what}. If you think that's a mistake, ask your safety lead or company admin.`} href="/dashboard/overview" cta="Back to home" />
+      <EmptyState heading title="You do not have access to this" body={`Your role does not include ${what}. If you think this is a mistake, ask your safety lead or company admin.`} href="/dashboard/overview" cta="Go to home" />
     </div>
   );
 }

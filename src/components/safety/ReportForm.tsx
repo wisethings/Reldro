@@ -26,27 +26,27 @@ type SpeechRecognitionLike = {
 const PRIVACY_OPTIONS = [
   {
     key: "NAMED",
-    label: "My supervisor and the safety team",
-    hint: "Your name is saved with the report. You'll see updates under My reports.",
-    details: ["Your supervisor and the safety team can see your name and what you wrote.", "Best for follow-up: they can ask you questions directly."],
+    label: "Share my name with my supervisor and the safety team",
+    hint: "They can follow up with you. You'll see updates under My reports.",
+    details: ["Your name is saved with the report. Your supervisor and the safety team can see it, along with what you wrote.", "They can ask you questions directly."],
   },
   {
     key: "CONFIDENTIAL",
-    label: "Only the safety team",
-    hint: "Your name is saved but hidden from your supervisor. You'll see updates under My reports.",
+    label: "Share my name with the safety team only",
+    hint: "Your supervisor will not see your name. You'll see updates under My reports.",
     details: [
       "Company admins and safety leads can see your name. Your supervisor sees “Withheld”.",
-      "What you write and the site and time are still visible to the people handling the report, so leave out anything you'd rather not share.",
+      "What you write, and the site and time, are still visible to the people who handle the report. Leave out anything you would rather not share.",
     ],
   },
   {
     key: "ANONYMOUS",
-    label: "Anonymous",
-    hint: "Your name and account aren't saved with the report. You get a private case code to read replies.",
+    label: "Submit without my name",
+    hint: "Your name and account are not saved with the report. You get a private case code to read replies.",
     details: [
-      "Reldro doesn't link the report to your account, and the activity log doesn't record who sent it.",
-      "What you write, your photos, and details like the site and time can still point to you, especially at a small site. Leave out anything you don't want traced.",
-      "You'll get a case code once, right after you send. Keep it private. It can't be recovered, and without it you can't see replies or answer questions.",
+      "Reldro does not link the report to your account, and the activity log does not record who submitted it.",
+      "What you write, your photos, and details like the site and time could still point to you, especially at a small site. Leave out anything you do not want traced.",
+      "You get a case code once, right after you submit. Keep it private. It cannot be recovered, and without it you cannot read replies or answer questions.",
     ],
   },
 ] as const;
@@ -67,7 +67,7 @@ export function ReportForm({
   categories: Option[];
   sites: { id: string; name: string }[];
   defaultSiteId: string | null;
-  /** The company's own emergency instructions, shown before anything else. */
+  /** The company's own emergency instructions. Empty means the standard message only. */
   emergencyText: string;
   siteLabel?: string;
 }) {
@@ -170,7 +170,7 @@ export function ReportForm({
       <div ref={doneRef} tabIndex={-1} role="status" className="space-y-5 rounded-2xl border border-ink-200 bg-white p-5 text-center outline-none sm:p-8">
         <CheckCircle2 size={44} className="mx-auto text-sage-deep" aria-hidden />
         <div>
-          <h2 className="text-xl font-semibold text-ink-900">Thanks. Your anonymous report was sent.</h2>
+          <h2 className="text-xl font-semibold text-ink-900">Your anonymous report was submitted</h2>
           <p className="mt-1 text-sm text-ink-500">Reference SR-{String(number).padStart(4, "0")}</p>
         </div>
         <div className="rounded-xl border-2 border-dashed border-brand-700 bg-orchid-soft/40 p-4">
@@ -185,14 +185,14 @@ export function ReportForm({
           </button>
         </div>
         <p className="text-sm text-ink-700">
-          Write this down or save it somewhere private. <strong>It's shown only once and can't be recovered.</strong> Use it at{" "}
-          <Link href="/follow-up" className="font-medium text-orchid-deep underline">the check-on-a-report page</Link> to read replies and answer questions without giving your name.
+          Write this down or save it somewhere private. <strong>It is shown only once and cannot be recovered.</strong> Use it on{" "}
+          <Link href="/follow-up" className="font-medium text-orchid-deep underline">the follow-up page</Link> to read replies and answer questions without sharing your name.
         </p>
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
           <Link href="/dashboard/reports/new" className="rounded-full bg-brand-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-800">Report another</Link>
           <Link href="/dashboard/overview" className="rounded-full border border-ink-300 px-5 py-2.5 text-sm font-medium text-ink-800 hover:bg-ink-50">Back to home</Link>
         </div>
-        <p className="text-xs text-ink-500">Sending this report didn't call anyone. If someone still needs help, call your emergency number now.</p>
+        <p className="text-xs text-ink-500">Submitting this report did not call anyone. If someone still needs help, call your local emergency number now.</p>
       </div>
     );
   }
@@ -210,9 +210,9 @@ export function ReportForm({
       <div role="note" className="flex gap-3 rounded-xl border border-coral bg-coral-soft px-4 py-3 text-sm text-ink-900">
         <Siren size={18} className="mt-0.5 shrink-0 text-danger" aria-hidden />
         <div>
-          <p className="font-semibold">Is anyone hurt or in danger right now? Get help first.</p>
-          <p className="mt-0.5 text-ink-800">{emergencyText}</p>
-          <p className="mt-1 text-xs text-ink-700">Sending a report here does not call emergency services or send anyone to help. Report once things are safe.</p>
+          <p className="font-semibold">If anyone is in immediate danger or needs urgent medical help, call your local emergency number or follow your site's emergency procedure now.</p>
+          {emergencyText && <p className="mt-1 text-ink-800">Your company's instructions: {emergencyText}</p>}
+          <p className="mt-1 text-xs text-ink-700">Do not wait to submit this report. Submitting a report does not call emergency services or send anyone to help.</p>
         </div>
       </div>
 
@@ -238,7 +238,7 @@ export function ReportForm({
       <section aria-labelledby="what-happened">
         <div className="flex items-center justify-between gap-2">
           <label htmlFor="description" id="what-happened" className="text-sm font-semibold text-ink-900">
-            What happened?
+            Describe what happened
           </label>
           {voiceSupported && (
             <button
@@ -247,7 +247,7 @@ export function ReportForm({
               aria-pressed={listening}
               className={`rounded-full border px-3 py-1.5 text-xs font-medium ${listening ? "border-danger bg-coral-soft text-danger" : "border-ink-300 text-ink-700 hover:bg-ink-50"}`}
             >
-              {listening ? "● Listening… tap to stop" : "🎤 Speak instead"}
+              {listening ? "● Listening. Tap to stop" : "🎤 Use voice input"}
             </button>
           )}
         </div>
@@ -259,15 +259,15 @@ export function ReportForm({
           rows={5}
           required
           minLength={5}
-          placeholder="In your own words. Where you were, what you were doing, what you saw."
+          placeholder="Include what you saw, where it happened, and when, if you know."
           className="mt-2 text-base"
         />
         <p className="mt-1 text-[11px] text-ink-500" aria-live="polite">
           {voiceSupported
             ? listening
-              ? "Listening. What you say is typed above as a draft. Tap to stop, then read and fix anything before you send."
-              : "Speaking types your words above as a draft. Nothing is sent until you read it and tap Send report."
-            : "Tip: use the microphone on your keyboard to dictate. Nothing is sent until you tap Send report."}
+              ? "Listening. Your words appear above as a draft. Tap to stop, then review and edit the text."
+              : "Voice input types your words above as a draft. Review and edit it before you submit. Nothing is submitted until you choose Submit report."
+            : "Tip: use the microphone on your keyboard to dictate. Review and edit the text before you submit."}
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <button
@@ -276,9 +276,9 @@ export function ReportForm({
             onClick={askAi}
             className="rounded-full border border-orchid-deep px-3 py-1.5 text-xs font-medium text-orchid-deep hover:bg-orchid-soft disabled:opacity-40"
           >
-            {drafting ? "Drafting…" : "Fill in the details for me"}
+            {drafting ? "Drafting…" : "Draft details with AI"}
           </button>
-          <span className="text-[11px] text-ink-500">Optional. It only tidies what you wrote. You review everything before it's used.</span>
+          <span className="text-[11px] text-ink-500">Review and edit the draft before submitting it. AI tidies what you wrote and does not add facts.</span>
         </div>
         {aiError && <p role="alert" className="mt-1 text-xs text-danger">{aiError}</p>}
         {draft && (
@@ -289,7 +289,7 @@ export function ReportForm({
               <dt className="text-ink-500">Topic</dt><dd>{categories.find((c) => c.key === draft.category)?.label}</dd>
               <dt className="text-ink-500">Title</dt><dd>{draft.title}</dd>
             </dl>
-            <p className="text-[11px] text-ink-500">Based only on what you wrote above. Someone from the safety team decides how serious it is.</p>
+            <p className="text-[11px] text-ink-500">Based only on what you wrote above. The safety team decides how serious it is.</p>
             {draft.missing.length > 0 && (
               <div>
                 <p className="text-xs font-medium text-ink-700">Details that would help, if you know them:</p>
@@ -297,8 +297,8 @@ export function ReportForm({
               </div>
             )}
             <div className="flex gap-2">
-              <button type="button" onClick={applyDraft} className="rounded-full bg-brand-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-800">Use these details</button>
-              <button type="button" onClick={() => setDraft(null)} className="rounded-full border border-ink-300 px-3 py-1.5 text-xs font-medium text-ink-700">Dismiss</button>
+              <button type="button" onClick={applyDraft} className="rounded-full bg-brand-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-800">Use this draft</button>
+              <button type="button" onClick={() => setDraft(null)} className="rounded-full border border-ink-300 px-3 py-1.5 text-xs font-medium text-ink-700">Discard</button>
             </div>
           </div>
         )}
@@ -306,7 +306,7 @@ export function ReportForm({
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Field label={`Where (${siteLabel})`} hint="Pick the closest match. “Not sure” is fine and won't stop you sending.">
+          <Field label="Where did it happen?" hint={`Choose the closest ${siteLabel}. “Not sure” is fine and will not stop you submitting.`}>
             <Select name="siteId" value={siteChoice} onChange={(e) => setSiteChoice(e.target.value)} className="text-base">
               <option value="">Not sure</option>
               {sites.map((s) => (
@@ -315,7 +315,7 @@ export function ReportForm({
               <option value="__else">Somewhere else</option>
             </Select>
           </Field>
-          <Field label={siteChoice === "__else" || siteChoice === "" ? "Where was it?" : "Where exactly?"} optional>
+          <Field label={siteChoice === "__else" || siteChoice === "" ? "Describe the location" : "Where exactly?"} optional>
             <Input name="locationNote" maxLength={300} placeholder={siteChoice === "__else" || siteChoice === "" ? "e.g. Customer's parking lot, 5th & Main" : "e.g. Level 3, east stair"} />
           </Field>
         </div>
@@ -343,7 +343,7 @@ export function ReportForm({
             <div className="mt-2">
               <label htmlFor="whenValue" className="sr-only">Date and time it happened</label>
               <Input id="whenValue" type="datetime-local" value={whenValue} max={nowLocal} onChange={(e) => setWhenValue(e.target.value)} required />
-              <p className="mt-1 text-[11px] text-ink-500">Your best estimate is fine.</p>
+              <p className="mt-1 text-[11px] text-ink-500">Add the date and approximate time, if known.</p>
             </div>
           )}
         </fieldset>
@@ -353,8 +353,8 @@ export function ReportForm({
         <label className="flex items-start gap-3 rounded-xl border border-ink-200 bg-white p-3">
           <input type="checkbox" name="injuryInvolved" checked={injury} onChange={(e) => setInjury(e.target.checked)} className="mt-1 h-5 w-5 rounded border-ink-300" />
           <span>
-            <span className="text-sm font-medium text-ink-900">Someone was hurt or felt unwell</span>
-            <span className="block text-xs text-ink-500">Don't put medical details or names of people who were hurt in the description unless you need to. The safety team will ask for what they need.</span>
+            <span className="text-sm font-medium text-ink-900">Someone was injured or became ill</span>
+            <span className="block text-xs text-ink-500">Leave out medical details and the names of injured people unless you need them. The safety team will ask for what they need.</span>
           </span>
         </label>
         <div>
@@ -366,7 +366,7 @@ export function ReportForm({
       <details className="rounded-xl border border-ink-200 bg-white p-3">
         <summary className="cursor-pointer text-sm font-medium text-ink-800">More details (optional)</summary>
         <div className="mt-3 space-y-4">
-          <Field label="Topic" hint="Best guess is fine. The safety team will sort it out.">
+          <Field label="Topic" hint="Your best guess is fine. The safety team can change it.">
             <Select value={category} onChange={(e) => setCategory(e.target.value)}>
               {categories.map((c) => (
                 <option key={c.key} value={c.key}>{c.label}</option>
@@ -403,9 +403,9 @@ export function ReportForm({
           disabled={submitting || !type || description.trim().length < 5 || (when === "earlier" && !whenValue)}
           className="w-full rounded-full bg-brand-700 px-6 py-3.5 text-base font-semibold text-white hover:bg-brand-800 disabled:opacity-40 sm:w-auto"
         >
-          {submitting ? "Sending…" : "Send report"}
+          {submitting ? "Submitting…" : "Submit report"}
         </button>
-        {!type && <p className="mt-1 text-center text-[11px] text-ink-500 sm:text-left">Choose what you're reporting to continue.</p>}
+        {!type && <p className="mt-1 text-center text-[11px] text-ink-500 sm:text-left">Choose what you are reporting to continue.</p>}
       </div>
     </form>
   );

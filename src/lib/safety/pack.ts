@@ -8,8 +8,8 @@
 export type Tone = "neutral" | "brand" | "green" | "amber" | "red" | "blue";
 
 export const SEVERITIES = [
-  { key: "LOW", label: "Minor", plain: "No injury, little chance of harm", tone: "neutral" as Tone },
-  { key: "MEDIUM", label: "Moderate", plain: "Could cause a lost-time injury", tone: "amber" as Tone },
+  { key: "LOW", label: "Minor", plain: "No injury and little chance of harm", tone: "neutral" as Tone },
+  { key: "MEDIUM", label: "Moderate", plain: "Could cause an injury that keeps someone off work", tone: "amber" as Tone },
   { key: "HIGH", label: "Serious", plain: "Could cause a serious injury", tone: "red" as Tone },
   { key: "CRITICAL", label: "Life-threatening", plain: "Could cause a death or permanent harm", tone: "red" as Tone },
 ] as const;
@@ -19,11 +19,11 @@ export const severityRank = (s: string) => Math.max(0, SEVERITY_ORDER.indexOf(s 
 export const severityInfo = (s: string) => SEVERITIES.find((x) => x.key === s) ?? SEVERITIES[0];
 
 export const REPORT_TYPES = [
-  { key: "HAZARD", label: "Hazard", plain: "Something that could hurt someone" },
-  { key: "NEAR_MISS", label: "Near miss", plain: "It nearly happened, nobody was hurt" },
-  { key: "INJURY", label: "Injury", plain: "Someone was hurt or felt unwell" },
-  { key: "EQUIPMENT", label: "Equipment issue", plain: "Damaged, missing or unsafe equipment" },
-  { key: "CONCERN", label: "Something else", plain: "A safety concern or idea" },
+  { key: "HAZARD", label: "Hazard", plain: "A condition that could cause harm" },
+  { key: "NEAR_MISS", label: "Near miss", plain: "An event that could have caused harm but did not" },
+  { key: "INJURY", label: "Injury or illness", plain: "Someone was injured or became ill" },
+  { key: "EQUIPMENT", label: "Equipment issue", plain: "Equipment is damaged, missing, or unsafe to use" },
+  { key: "CONCERN", label: "Other concern", plain: "Another issue that could affect safety" },
 ] as const;
 export type ReportTypeKey = (typeof REPORT_TYPES)[number]["key"];
 export const reportTypeLabel = (k: string) => REPORT_TYPES.find((t) => t.key === k)?.label ?? k;
@@ -31,18 +31,18 @@ export const reportTypeLabel = (k: string) => REPORT_TYPES.find((t) => t.key ===
 export const REPORT_STATUSES = [
   { key: "NEW", label: "New", tone: "amber" as Tone },
   { key: "ASSIGNED", label: "Assigned", tone: "blue" as Tone },
-  { key: "INVESTIGATING", label: "Investigating", tone: "brand" as Tone },
-  { key: "ACTIONS_OPEN", label: "Actions open", tone: "amber" as Tone },
+  { key: "INVESTIGATING", label: "Under investigation", tone: "brand" as Tone },
+  { key: "ACTIONS_OPEN", label: "Corrective actions open", tone: "amber" as Tone },
   { key: "CLOSED", label: "Closed", tone: "green" as Tone },
 ] as const;
 export const reportStatusInfo = (k: string) => REPORT_STATUSES.find((s) => s.key === k) ?? REPORT_STATUSES[0];
 
 export const ACTION_STATUSES = [
   { key: "PROPOSED", label: "Proposed", tone: "neutral" as Tone, hint: "Waiting for approval" },
-  { key: "APPROVED", label: "Approved", tone: "blue" as Tone, hint: "Approved, not started" },
+  { key: "APPROVED", label: "Open", tone: "blue" as Tone, hint: "Approved and not started" },
   { key: "IN_PROGRESS", label: "In progress", tone: "amber" as Tone, hint: "Owner is working on it" },
-  { key: "COMPLETED", label: "Done, awaiting check", tone: "brand" as Tone, hint: "Owner says done; needs verification" },
-  { key: "VERIFIED", label: "Verified complete", tone: "green" as Tone, hint: "Someone confirmed the fix is in place" },
+  { key: "COMPLETED", label: "Ready to verify", tone: "brand" as Tone, hint: "The owner says it is done. Someone else needs to check it." },
+  { key: "VERIFIED", label: "Verified", tone: "green" as Tone, hint: "Someone confirmed the fix is in place" },
   { key: "CANCELLED", label: "Cancelled", tone: "neutral" as Tone, hint: "No longer needed" },
 ] as const;
 export const actionStatusInfo = (k: string) => ACTION_STATUSES.find((s) => s.key === k) ?? ACTION_STATUSES[0];
@@ -57,10 +57,10 @@ export const investigationStatusInfo = (k: string) => INVESTIGATION_STATUSES.fin
 
 export const SITE_KINDS = [
   { key: "JOBSITE", label: "Jobsite" },
-  { key: "SHOP", label: "Shop / fab shop" },
-  { key: "YARD", label: "Yard / laydown area" },
-  { key: "WAREHOUSE", label: "Warehouse / distribution" },
-  { key: "CUSTOMER_SITE", label: "Customer site (service work)" },
+  { key: "SHOP", label: "Shop or fabrication shop" },
+  { key: "YARD", label: "Yard or laydown area" },
+  { key: "WAREHOUSE", label: "Warehouse or distribution center" },
+  { key: "CUSTOMER_SITE", label: "Customer site for service work" },
 ] as const;
 
 export const INCIDENT_STATUSES = [
@@ -74,8 +74,8 @@ export const incidentStatusInfo = (k: string) => INCIDENT_STATUSES.find((s) => s
 export const INCIDENT_ENTRY_TYPES = [
   { key: "UPDATE", label: "Update", hint: "What has changed, for everyone responding" },
   { key: "DECISION", label: "Decision", hint: "A call that was made, and by whom" },
-  { key: "EVIDENCE", label: "Photo / evidence", hint: "Photos with a short note about what they show" },
-  { key: "COMMENT", label: "Note", hint: "A working note" },
+  { key: "EVIDENCE", label: "Photos", hint: "Photos with a short note on what they show" },
+  { key: "COMMENT", label: "Note", hint: "A working note for the team" },
 ] as const;
 
 export const RESPONDER_ROLE_SUGGESTIONS = ["Response lead", "Site lead", "Supervisor", "Safety", "Medical / first aid liaison", "Communications", "Records"];

@@ -38,7 +38,7 @@ export function ActionForm({
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Field label="Owner">
           <Select name="ownerId" defaultValue="">
-            <option value="">Unassigned</option>
+            <option value="">No owner</option>
             {people.map((p) => (
               <option key={p.id} value={p.id}>{p.name}</option>
             ))}
@@ -56,9 +56,9 @@ export function ActionForm({
         </Field>
       </div>
       <button disabled={pending} className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">
-        {pending ? "Saving…" : isSafetyTeam ? "Create action" : "Propose action"}
+        {pending ? "Saving…" : isSafetyTeam ? "Create corrective action" : "Propose corrective action"}
       </button>
-      {!isSafetyTeam && <p className="text-[11px] text-ink-500">Proposed actions are reviewed by the safety team before they start.</p>}
+      {!isSafetyTeam && <p className="text-[11px] text-ink-500">The safety team reviews a proposed corrective action before work starts.</p>}
     </form>
   );
 }

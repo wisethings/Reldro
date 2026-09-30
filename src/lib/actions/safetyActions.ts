@@ -12,7 +12,7 @@ export type ActionFormState = { error?: string; success?: string } | undefined;
 async function loadAction(actionId: string) {
   const v = await requireViewer();
   const action = await prisma.correctiveAction.findFirst({ where: { id: actionId, ...actionWhere(v) } });
-  if (!action) throw new Error("Action not found.");
+  if (!action) throw new Error("Corrective action not found.");
   return { v, action };
 }
 
@@ -25,7 +25,7 @@ async function logOnReport(actionReportId: string | null, message: string, v: { 
 export async function createAction(_prev: ActionFormState, formData: FormData): Promise<ActionFormState> {
   const v = await requireViewer();
   const title = String(formData.get("title") ?? "").trim();
-  if (!title) return { error: "Give the action a short title." };
+  if (!title) return { error: "Give the corrective action a short title." };
 
   const reportId = String(formData.get("reportId") ?? "") || null;
   let report = null;
@@ -33,7 +33,7 @@ export async function createAction(_prev: ActionFormState, formData: FormData): 
     report = await prisma.safetyReport.findFirst({ where: { id: reportId, organizationId: v.organizationId }, include: { incident: { include: { responders: true } } } });
     if (!report || !canSeeReport(v, report)) return { error: "Report not found." };
   } else if (!v.isSafetyTeam) {
-    return { error: "Actions are created from a report or inspection." };
+    return { error: "Corrective actions are created from a report, investigation, or inspection." };
   }
 
   const ownerId = String(formData.get("ownerId") ?? "") || null;
@@ -69,7 +69,7 @@ export async function createAction(_prev: ActionFormState, formData: FormData): 
       if (attempt === 2) throw e;
     }
   }
-  if (!created) return { error: "Couldn't save the action. Please try again." };
+  if (!created) return { error: "The corrective action was not saved. Try again." };
 
   if (report) {
     await logOnReport(report.id, `Corrective action A-${created.number} ${approvedNow ? "created and approved" : "proposed"}: ${title}.`, v);
@@ -84,7 +84,7 @@ export async function createAction(_prev: ActionFormState, formData: FormData): 
 
 export async function approveAction(actionId: string) {
   const { v, action } = await loadAction(actionId);
-  if (!v.isSafetyTeam) throw new Error("Only the safety team can approve actions.");
+  if (!v.isSafetyTeam) throw new Error("Only the safety team can approve corrective actions.");
   if (action.status !== "PROPOSED") return;
   await prisma.correctiveAction.update({ where: { id: actionId }, data: { status: "APPROVED", approvedById: v.employeeId, approvedAt: new Date() } });
   await logOnReport(action.reportId, `Corrective action A-${action.number} approved.`, v);
@@ -94,8 +94,8 @@ export async function approveAction(actionId: string) {
 
 export async function startAction(actionId: string) {
   const { v, action } = await loadAction(actionId);
-  if (!v.isSafetyTeam && !isOwner(v, action)) throw new Error("Only the owner or safety team can start this action.");
-  if (!["APPROVED"].includes(action.status)) throw new Error("Only approved actions can be started.");
+  if (!v.isSafetyTeam && !isOwner(v, action)) throw new Error("Only the owner or safety team can start this corrective action.");
+  if (!["APPROVED"].includes(action.status)) throw new Error("Only approved corrective actions can be started.");
   await prisma.correctiveAction.update({ where: { id: actionId }, data: { status: "IN_PROGRESS" } });
   await logOnReport(action.reportId, `Corrective action A-${action.number} started.`, v);
   await audit(v, "safety.action_updated", "CorrectiveAction", actionId, { status: "IN_PROGRESS" });
@@ -105,7 +105,7 @@ export async function startAction(actionId: string) {
 export async function completeAction(_prev: ActionFormState, formData: FormData): Promise<ActionFormState> {
   const { v, action } = await loadAction(String(formData.get("actionId") ?? ""));
   if (!v.isSafetyTeam && !isOwner(v, action)) return { error: "Only the owner or safety team can mark this done." };
-  if (!["APPROVED", "IN_PROGRESS"].includes(action.status)) return { error: "This action can't be completed from its current status." };
+  if (!["APPROVED", "IN_PROGRESS"].includes(action.status)) return { error: "This corrective action cannot be marked done from its current status." };
   const notes = String(formData.get("completionNotes") ?? "").trim();
   if (!notes) return { error: "Describe what was done so it can be verified." };
   const evidence = cleanAttachments(formData.getAll("evidence"));
@@ -122,17 +122,17 @@ export async function completeAction(_prev: ActionFormState, formData: FormData)
 export async function verifyAction(actionId: string) {
   const { v, action } = await loadAction(actionId);
   if (!v.isSafetyTeam) throw new Error("Only the safety team can verify completion.");
-  if (action.status !== "COMPLETED") throw new Error("Only actions marked done can be verified.");
+  if (action.status !== "COMPLETED") throw new Error("Only corrective actions marked done can be verified.");
   await prisma.correctiveAction.update({ where: { id: actionId }, data: { status: "VERIFIED", verifiedById: v.employeeId, verifiedAt: new Date() } });
-  await logOnReport(action.reportId, `Corrective action A-${action.number} verified complete.`, v);
+  await logOnReport(action.reportId, `Corrective action A-${action.number} verified.`, v);
   await audit(v, "safety.action_updated", "CorrectiveAction", actionId, { status: "VERIFIED" });
   refresh(action);
 }
 
 export async function reopenAction(actionId: string, reason: string) {
   const { v, action } = await loadAction(actionId);
-  if (!v.isSafetyTeam) throw new Error("Only the safety team can send an action back.");
-  if (!["COMPLETED", "VERIFIED"].includes(action.status)) throw new Error("This action isn't complete.");
+  if (!v.isSafetyTeam) throw new Error("Only the safety team can send a corrective action back.");
+  if (!["COMPLETED", "VERIFIED"].includes(action.status)) throw new Error("This corrective action is not marked done.");
   await prisma.correctiveAction.update({ where: { id: actionId }, data: { status: "IN_PROGRESS", verifiedAt: null, verifiedById: null, completedAt: null } });
   await logOnReport(action.reportId, `Corrective action A-${action.number} sent back${reason.trim() ? `: ${reason.trim().slice(0, 300)}` : "."}`, v);
   await audit(v, "safety.action_updated", "CorrectiveAction", actionId, { status: "IN_PROGRESS", reopened: true });
@@ -141,7 +141,7 @@ export async function reopenAction(actionId: string, reason: string) {
 
 export async function cancelAction(actionId: string) {
   const { v, action } = await loadAction(actionId);
-  if (!v.isSafetyTeam) throw new Error("Only the safety team can cancel actions.");
+  if (!v.isSafetyTeam) throw new Error("Only the safety team can cancel corrective actions.");
   if (["VERIFIED", "CANCELLED"].includes(action.status)) return;
   await prisma.correctiveAction.update({ where: { id: actionId }, data: { status: "CANCELLED" } });
   await logOnReport(action.reportId, `Corrective action A-${action.number} cancelled.`, v);
@@ -151,7 +151,7 @@ export async function cancelAction(actionId: string) {
 
 export async function updateActionPlan(actionId: string, changes: { ownerId?: string | null; dueDate?: string | null }) {
   const { v, action } = await loadAction(actionId);
-  if (!v.isSafetyTeam) throw new Error("Only the safety team can reassign or reschedule actions.");
+  if (!v.isSafetyTeam) throw new Error("Only the safety team can change the owner or due date of a corrective action.");
   const data: { ownerId?: string | null; dueDate?: Date | null } = {};
   if (changes.ownerId !== undefined) {
     if (changes.ownerId) {
@@ -171,7 +171,7 @@ export async function updateActionPlan(actionId: string, changes: { ownerId?: st
 export async function remindOwner(actionId: string): Promise<{ message: string }> {
   const { v, action } = await loadAction(actionId);
   if (!v.isSafetyTeam) throw new Error("Only the safety team can send reminders.");
-  if (!action.ownerId) return { message: "This action has no owner to remind." };
+  if (!action.ownerId) return { message: "This corrective action has no owner to remind." };
   const owner = await prisma.employee.findUnique({ where: { id: action.ownerId }, include: { user: true } });
   if (!owner) return { message: "Owner not found." };
   const { sent } = await sendEmail({
@@ -179,9 +179,9 @@ export async function remindOwner(actionId: string): Promise<{ message: string }
     subject: `Reminder: corrective action A-${action.number} is ${action.dueDate && action.dueDate < new Date() ? "overdue" : "due soon"}`,
     html: `<p>Hi ${escapeHtml(owner.user.name)},</p><p>${escapeHtml(action.title)} is assigned to you${action.dueDate ? ` and due ${action.dueDate.toDateString()}` : ""}. Status: ${escapeHtml(actionStatusInfo(action.status).label)}.</p><p><a href="${getAppUrl()}/dashboard/actions/${action.id}">Open the action</a></p>`,
   });
-  await logOnReport(action.reportId, `Reminder ${sent ? "emailed" : "recorded (email isn't configured)"} for A-${action.number}.`, v);
+  await logOnReport(action.reportId, `Reminder ${sent ? "emailed" : "recorded (email is not set up)"} for A-${action.number}.`, v);
   revalidatePath(`/dashboard/actions/${actionId}`);
-  return { message: sent ? `Reminder emailed to ${owner.user.name}.` : "Reminder recorded. Email isn't configured, so nothing was sent." };
+  return { message: sent ? `Reminder emailed to ${owner.user.name}.` : "Reminder recorded. Email is not set up, so nothing was sent." };
 }
 
 function refresh(action: { id: string; reportId: string | null }) {

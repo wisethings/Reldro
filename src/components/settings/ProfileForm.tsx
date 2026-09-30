@@ -34,7 +34,7 @@ export function ProfileForm({
           <Input value={email} disabled readOnly />
         </Field>
         {jobTitle !== null && (
-          <Field label="Department" hint="Set by an admin.">
+          <Field label="Crew" hint="Set by an admin.">
             <Input value={department ?? "No department"} disabled readOnly />
           </Field>
         )}

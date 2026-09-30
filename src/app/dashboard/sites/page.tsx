@@ -27,13 +27,13 @@ export default async function SitesPage() {
   const nextBySite = new Map<string, Date>();
   for (const i of nextInsp) if (!nextBySite.has(i.siteId)) nextBySite.set(i.siteId, i.dueDate);
   const peopleOpts = people.map((p) => ({ id: p.id, name: p.user.name }));
-  const leadName = (id: string | null) => (id ? peopleOpts.find((p) => p.id === id)?.name ?? "—" : "None yet");
+  const leadName = (id: string | null) => (id ? peopleOpts.find((p) => p.id === id)?.name ?? "—" : "Not assigned");
 
   return (
     <div className="mx-auto max-w-5xl space-y-5 p-4 sm:p-6">
-      <PageHeader title="Sites" subtitle="Jobsites, shops, yards and other places you work. Reports, inspections and actions are organized by site." actions={<SiteEditor people={peopleOpts} trigger="Add a site" siteExample={getPack().siteExample} kinds={SITE_KINDS.map((k) => ({ key: k.key, label: k.label }))} />} />
+      <PageHeader title="Sites" subtitle="Manage the jobsites, shops, and yards where your crews work. Reports, inspections, and corrective actions are organized by site." actions={<SiteEditor people={peopleOpts} trigger="Add a site" siteExample={getPack().siteExample} kinds={SITE_KINDS.map((k) => ({ key: k.key, label: k.label }))} />} />
       {sites.length === 0 ? (
-        <EmptyState title="No sites yet" body="Add the jobsites and shops your crews work at. Reports get routed to a site's safety lead, and inspections are scheduled per site." />
+        <EmptyState title="No sites yet" body="Add the jobsites and shops your crews work at. Reports are assigned to a site's safety lead, and inspections are scheduled by site." />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {sites.map((s) => {
@@ -50,7 +50,7 @@ export default async function SitesPage() {
                     <div><dt className="text-ink-500">Safety lead</dt><dd className="text-sm text-ink-800">{leadName(s.safetyLeadId)}</dd></div>
                     <div><dt className="text-ink-500">People based here</dt><dd className="text-sm text-ink-800">{headBySite.get(s.id) ?? 0}</dd></div>
                     <div><dt className="text-ink-500">Open reports</dt><dd className="text-sm text-ink-800">{openBySite.get(s.id) ?? 0}</dd></div>
-                    <div><dt className="text-ink-500">Overdue actions</dt><dd className={`text-sm ${(overdueBySite.get(s.id) ?? 0) > 0 ? "font-medium text-danger" : "text-ink-800"}`}>{overdueBySite.get(s.id) ?? 0}</dd></div>
+                    <div><dt className="text-ink-500">Overdue corrective actions</dt><dd className={`text-sm ${(overdueBySite.get(s.id) ?? 0) > 0 ? "font-medium text-danger" : "text-ink-800"}`}>{overdueBySite.get(s.id) ?? 0}</dd></div>
                     <div className="col-span-2"><dt className="text-ink-500">Next inspection</dt><dd className={`text-sm ${nd?.overdue ? "font-medium text-danger" : "text-ink-800"}`}>{nd ? nd.text : "None scheduled"}</dd></div>
                   </dl>
                   <div className="flex gap-4 border-t border-ink-100 pt-3"><SiteEditor site={{ id: s.id, name: s.name, address: s.address, kind: s.kind, safetyLeadId: s.safetyLeadId }} people={peopleOpts} trigger="Edit" siteExample={getPack().siteExample} kinds={SITE_KINDS.map((k) => ({ key: k.key, label: k.label }))} /><SiteActiveToggle siteId={s.id} active={s.active} /></div>

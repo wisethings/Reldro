@@ -56,7 +56,7 @@ export function IncidentPanel(props: {
               <dt className="text-xs text-ink-500">Seriousness</dt>
               <dd className="flex flex-wrap items-center gap-1.5">
                 <SeverityBadge severity={props.severity} suggested={!props.severityConfirmed} />
-                {!props.severityConfirmed && <span className="text-[11px] text-ink-500">A responder needs to confirm</span>}
+                {!props.severityConfirmed && <span className="text-[11px] text-ink-500">Waiting for a responder to confirm</span>}
               </dd>
             </div>
             <div>
@@ -76,7 +76,7 @@ export function IncidentPanel(props: {
 
           <div>
             <p className="text-xs font-medium text-ink-500">Where things stand</p>
-            <p className="mt-0.5 whitespace-pre-wrap text-sm text-ink-800">{inc.summary || <span className="text-ink-500">Nobody has written a summary yet.</span>}</p>
+            <p className="mt-0.5 whitespace-pre-wrap text-sm text-ink-800">{inc.summary || <span className="text-ink-500">No summary yet.</span>}</p>
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -98,7 +98,7 @@ export function IncidentPanel(props: {
                   <p className="mt-1 text-ink-700">{props.investigation.status === "COMPLETE" ? "Complete" : "Under way"}. Details are limited to the safety team and the investigation lead.</p>
                 )
               ) : (
-                <p className="mt-1 text-ink-600">{props.canRun || props.isSafetyTeam ? "Not opened. Use “Open investigation” below when the facts need closer study." : "Not opened."}</p>
+                <p className="mt-1 text-ink-600">{props.canRun || props.isSafetyTeam ? "Not opened. Open an investigation from the report when it needs a closer review." : "Not opened."}</p>
               )}
             </div>
             <a href="#actions" className="rounded-xl border border-ink-200 p-3 text-sm hover:bg-ink-50">
@@ -113,7 +113,7 @@ export function IncidentPanel(props: {
 
           {props.canRun && !resolved && (
             <details className="rounded-lg border border-ink-200 p-3">
-              <summary className="cursor-pointer text-sm font-medium text-ink-800">Update the situation, next action and lead</summary>
+              <summary className="cursor-pointer text-sm font-medium text-ink-800">Update the summary, next action, and lead</summary>
               <div className="mt-3">
                 <IncidentDetailsForm
                   reportId={props.reportId}

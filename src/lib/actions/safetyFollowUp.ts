@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { addReportEvent } from "@/lib/safety/context";
 import { hashFollowUpCode, normalizeFollowUpCode } from "@/lib/safety/followUp";
+import { REPORT_STATUSES } from "@/lib/safety/pack";
 
 export type FollowUpView = {
   reference: string;
@@ -19,12 +20,12 @@ export type FollowUpResult = { ok: true; view: FollowUpView } | { ok: false; err
 const REPORTER_STATUS: Record<string, string> = {
   NEW: "Received",
   ASSIGNED: "With the safety team",
-  INVESTIGATING: "Being looked into",
-  ACTIONS_OPEN: "Fixes are under way",
+  INVESTIGATING: "Under review",
+  ACTIONS_OPEN: "Fixes in progress",
   CLOSED: "Closed",
 };
 
-const NOT_FOUND = "We couldn't find a report for that code. Check it and try again.";
+const NOT_FOUND = "No report matches that code. Check the code and try again.";
 
 async function load(code: string) {
   const normalized = normalizeFollowUpCode(code);
@@ -41,7 +42,7 @@ async function load(code: string) {
  */
 export async function lookupFollowUp(code: string): Promise<FollowUpResult> {
   const ip = await getClientIp();
-  if (!(await checkRateLimit(`followup:${ip}`, 20, 15))) return { ok: false, error: "Too many tries. Please wait a few minutes and try again." };
+  if (!(await checkRateLimit(`followup:${ip}`, 20, 15))) return { ok: false, error: "Too many attempts. Wait a few minutes, then try again." };
   const report = await load(code);
   if (!report) return { ok: false, error: NOT_FOUND };
 
@@ -50,7 +51,10 @@ export async function lookupFollowUp(code: string): Promise<FollowUpResult> {
     if (e.restricted) continue;
     if (e.type === "CREATED") steps.push({ at: e.createdAt.toISOString(), text: "Your report was received.", from: "system" });
     else if (e.type === "ACKNOWLEDGED") steps.push({ at: e.createdAt.toISOString(), text: "The safety team has seen your report.", from: "system" });
-    else if (e.type === "STATUS" && /^Status set to/.test(e.message)) steps.push({ at: e.createdAt.toISOString(), text: `Status: ${REPORTER_STATUS[Object.keys(REPORTER_STATUS).find((k) => e.message.toLowerCase().includes(k.replace("_", " ").toLowerCase())) ?? ""] ?? "updated"}.`, from: "system" });
+    else if (e.type === "STATUS" && /^Status set to/.test(e.message)) {
+      const key = REPORT_STATUSES.find((st) => e.message.includes(st.label))?.key;
+      if (key) steps.push({ at: e.createdAt.toISOString(), text: `Status: ${REPORTER_STATUS[key]}.`, from: "system" });
+    }
     else if (e.toReporter) steps.push({ at: e.createdAt.toISOString(), text: e.message, from: "team" });
     else if (e.type === "REPORTER_REPLY") steps.push({ at: e.createdAt.toISOString(), text: e.message, from: "you" });
   }
@@ -68,12 +72,12 @@ export async function lookupFollowUp(code: string): Promise<FollowUpResult> {
 
 export async function sendFollowUpReply(code: string, message: string): Promise<FollowUpResult> {
   const ip = await getClientIp();
-  if (!(await checkRateLimit(`followup-reply:${ip}`, 10, 60))) return { ok: false, error: "Too many messages. Please wait a while and try again." };
+  if (!(await checkRateLimit(`followup-reply:${ip}`, 10, 60))) return { ok: false, error: "Too many messages. Wait a while, then try again." };
   const text = message.trim().slice(0, 2000);
   if (text.length < 2) return { ok: false, error: "Write a message first." };
   const report = await load(code);
   if (!report) return { ok: false, error: NOT_FOUND };
-  if (report.status === "CLOSED") return { ok: false, error: "This report is closed, so replies can't be added. You can file a new report." };
+  if (report.status === "CLOSED") return { ok: false, error: "This report is closed, so you cannot add a reply. You can submit a new report." };
   await addReportEvent({ reportId: report.id, type: "REPORTER_REPLY", message: text, actor: null });
   return lookupFollowUp(code);
 }

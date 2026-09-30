@@ -31,7 +31,7 @@ export async function notifyResponders(params: { reportId: string; employeeIds: 
       html: `<p>Hi ${escapeHtml(p.user.name.split(" ")[0] ?? "there")},</p>
 <p>You've been named on an incident response for <strong>${ref}</strong>${report.site ? ` at ${escapeHtml(report.site.name)}` : ""}.</p>
 <p><a href="${link}">Open the incident workspace</a></p>
-<p style="color:#666;font-size:12px">Details aren't included in this email. Sign in to read them. Reldro doesn't contact emergency services. If someone needs urgent help, call your emergency number.</p>`,
+<p style="color:#666;font-size:12px">Details are not included in this email. Sign in to read them. Reldro does not contact emergency services. If someone needs urgent help, call your local emergency number.</p>`,
     });
     if (res.sent) sent++;
     else failed++;

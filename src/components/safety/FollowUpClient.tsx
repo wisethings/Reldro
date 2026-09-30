@@ -39,7 +39,7 @@ export function FollowUpClient() {
     return (
       <form onSubmit={look} className="space-y-4 rounded-xl border border-ink-200 bg-white p-5">
         {error && <p role="alert" className="rounded-lg bg-coral-soft px-3 py-2 text-sm text-danger">{error}</p>}
-        <Field label="Case code" hint="Like K7QF-3MXP-9WDA. It was shown once when you sent the report.">
+        <Field label="Case code" hint="For example, K7QF-3MXP-9WDA. It was shown once, right after you submitted the report.">
           <Input
             value={code}
             onChange={(e) => setCode(e.target.value)}
@@ -52,7 +52,7 @@ export function FollowUpClient() {
           />
         </Field>
         <button disabled={pending || code.replace(/[^a-z0-9]/gi, "").length < 12} className="w-full rounded-full bg-brand-700 px-5 py-3 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-40">
-          {pending ? "Checking…" : "Check my report"}
+          {pending ? "Checking…" : "Check for updates"}
         </button>
       </form>
     );
@@ -78,7 +78,7 @@ export function FollowUpClient() {
       {!view.closed ? (
         <form onSubmit={send} className="space-y-3 rounded-xl border border-ink-200 bg-white p-5">
           {error && <p role="alert" className="rounded-lg bg-coral-soft px-3 py-2 text-sm text-danger">{error}</p>}
-          <Field label="Reply to the safety team" hint="Only write what you're comfortable sharing. Details like names or places could reveal who you are.">
+          <Field label="Reply to the safety team" hint="Share only what you are comfortable sharing. Names or places could reveal who you are.">
             <Textarea value={reply} onChange={(e) => setReply(e.target.value)} rows={4} maxLength={2000} />
           </Field>
           <button disabled={pending || reply.trim().length < 2} className="rounded-full bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-40">
@@ -86,7 +86,7 @@ export function FollowUpClient() {
           </button>
         </form>
       ) : (
-        <p className="rounded-lg bg-sage px-4 py-3 text-sm text-sage-deep">This report is closed. If something else comes up, you can file a new one.</p>
+        <p className="rounded-lg bg-sage px-4 py-3 text-sm text-sage-deep">This report is closed. If something else comes up, you can submit a new report.</p>
       )}
       <button onClick={() => { setView(null); setCode(""); }} className="text-xs font-medium text-ink-500 hover:text-ink-800">Look up a different code</button>
     </div>

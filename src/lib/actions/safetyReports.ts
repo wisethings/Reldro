@@ -28,16 +28,16 @@ export async function createReport(_prev: ReportFormState, formData: FormData): 
 
   const description = str(formData.get("description"));
   const type = str(formData.get("type"));
-  if (!REPORT_TYPES.some((t) => t.key === type)) return { error: "Choose what kind of report this is." };
-  if (description.length < 5) return { error: "Tell us briefly what happened or what you saw." };
+  if (!REPORT_TYPES.some((t) => t.key === type)) return { error: "Choose the type of report." };
+  if (description.length < 5) return { error: "Describe what happened or what you saw." };
 
   const category = pack.categories.some((c) => c.key === str(formData.get("category"))) ? str(formData.get("category")) : "OTHER";
   const privacy = ["NAMED", "CONFIDENTIAL", "ANONYMOUS"].includes(str(formData.get("privacy"))) ? str(formData.get("privacy")) : "NAMED";
   const whenMode = str(formData.get("whenMode"));
   const occurredAt = isoOrNull(formData.get("occurredAt")) ?? (whenMode === "earlier" ? null : new Date());
   if (!occurredAt) return { error: "Pick the date and time it happened, or choose “Just now”." };
-  if (occurredAt.getTime() > Date.now() + 5 * 60_000) return { error: "The time can't be in the future." };
-  if (occurredAt.getTime() < Date.now() - 366 * 86_400_000) return { error: "That's more than a year ago. Check the date." };
+  if (occurredAt.getTime() > Date.now() + 5 * 60_000) return { error: "The time cannot be in the future." };
+  if (occurredAt.getTime() < Date.now() - 366 * 86_400_000) return { error: "That date is more than a year ago. Check the date." };
 
   const rawSite = str(formData.get("siteId"));
   let siteId: string | null = rawSite && rawSite !== "__else" ? rawSite : null;
@@ -91,12 +91,12 @@ export async function createReport(_prev: ReportFormState, formData: FormData): 
       if (attempt === 2) throw e;
     }
   }
-  if (!created) return { error: "Couldn't save the report. Please try again." };
+  if (!created) return { error: "The report was not saved. Try again." };
 
   await addReportEvent({
     reportId: created.id,
     type: "CREATED",
-    message: anonymous ? "Report filed anonymously." : privacy === "CONFIDENTIAL" ? "Report filed confidentially." : "Report filed.",
+    message: anonymous ? "Report submitted without a name." : privacy === "CONFIDENTIAL" ? "Report submitted. The reporter's name is shared with the safety team only." : "Report submitted.",
     actor: privacy === "NAMED" ? { name: v.name, employeeId: v.employeeId } : null,
   });
   if (routing.ownerId) {
@@ -104,12 +104,12 @@ export async function createReport(_prev: ReportFormState, formData: FormData): 
     await addReportEvent({
       reportId: created.id,
       type: "ASSIGNED",
-      message: `Routed to ${owner?.user.name ?? "an owner"} ${routing.ruleId ? "by an escalation rule" : "as the site safety lead"}.`,
+      message: `Assigned to ${owner?.user.name ?? "an owner"} ${routing.ruleId ? "by an escalation rule" : "as the site's safety lead"}.`,
     });
   } else {
-    await addReportEvent({ reportId: created.id, type: "ASSIGNED", message: "No owner matched. Waiting for the safety team to assign." });
+    await addReportEvent({ reportId: created.id, type: "ASSIGNED", message: "No owner matched. Waiting for the safety team to assign an owner." });
   }
-  if (aiAssisted) await addReportEvent({ reportId: created.id, type: "AI_DRAFT", message: "The reporter used an AI-assisted draft and confirmed the details." });
+  if (aiAssisted) await addReportEvent({ reportId: created.id, type: "AI_DRAFT", message: "The reporter used an AI draft and reviewed the details before submitting." });
   // Anonymous reports are logged without the user, so the activity log can't identify the reporter.
   if (anonymous) await auditAnonymous(v.organizationId, "safety.report_created", "SafetyReport", created.id, { number: created.number, type });
   else await audit(v, "safety.report_created", "SafetyReport", created.id, { number: created.number, type });
@@ -204,7 +204,7 @@ export async function updateTriage(reportId: string, changes: { severity?: strin
 export async function addComment(reportId: string, message: string, restricted: boolean) {
   const { v, report } = await loadReportForActor(reportId);
   const text = message.trim().slice(0, 2000);
-  if (!text) throw new Error("Write a comment first.");
+  if (!text) throw new Error("Write a note first.");
   const isRestricted = restricted && v.isSafetyTeam;
   // A reply from the person who filed the report is recorded as a reporter reply. For a confidential report it
   // carries no name or id, so supervisors reading the timeline can't learn who filed it.
@@ -230,7 +230,7 @@ export async function setReportStatus(reportId: string, status: string) {
     const open = await prisma.correctiveAction.count({ where: { reportId, status: { in: ["PROPOSED", "APPROVED", "IN_PROGRESS", "COMPLETED"] } } });
     if (open > 0) throw new Error(`${open} corrective action${open === 1 ? " is" : "s are"} not verified yet. Verify or cancel them before closing.`);
     const inc = await prisma.incidentResponse.findUnique({ where: { reportId } });
-    if (inc && inc.status !== "RESOLVED") throw new Error("Resolve the incident response (with a closeout summary) before closing this report.");
+    if (inc && inc.status !== "RESOLVED") throw new Error("Resolve the incident response, with a closeout summary, before closing this report.");
     const inv = await prisma.investigation.findUnique({ where: { reportId } });
     if (inv && inv.status !== "COMPLETE") throw new Error("Complete the investigation before closing this report.");
   }

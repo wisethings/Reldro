@@ -32,16 +32,16 @@ export function TalkForm({ sites, lockSiteId }: { sites: { id: string; name: str
         </Field>
         <Field label="Date"><Input name="scheduledFor" type="date" defaultValue={new Date().toISOString().slice(0, 10)} /></Field>
       </div>
-      <Field label="Approved source material" optional hint="Paste a company procedure, a policy excerpt or a lesson from a past investigation. An AI draft uses only this text.">
+      <Field label="Approved source material" optional hint="Use approved company procedures or policy material as the source. Paste a procedure, a policy excerpt, or a lesson from a past investigation. AI creates a draft from this text only. Review it before sharing.">
         <Textarea name="sourceMaterial" value={source} onChange={(e) => setSource(e.target.value)} rows={4} />
       </Field>
       <AiTextDraft
-        label="Draft a talk outline from this material"
+        label="Draft a talk outline with AI"
         generate={() => aiDraftToolboxTalk(topic, source)}
         useLabel="Use as the talk content"
         onUse={(text) => { setContent(text); setAiDrafted(true); }}
       />
-      <Field label="Talk content" required hint="What the supervisor will cover. You can write it yourself or edit a draft.">
+      <Field label="Talk content" required hint="What the supervisor will cover. Write it yourself, or edit an AI draft before you share it.">
         <Textarea name="content" value={content} onChange={(e) => setContent(e.target.value)} rows={7} required />
       </Field>
       <button disabled={pending} className="rounded-full bg-brand-700 px-5 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? "Publishing…" : "Publish talk"}</button>
@@ -61,7 +61,7 @@ export function AcknowledgeButton({ talkId }: { talkId: string }) {
 
 export function DeleteTalkButton({ talkId }: { talkId: string }) {
   const { run, pending } = useAct();
-  return <button disabled={pending} onClick={() => confirm("Delete this talk and its acknowledgements?") && run(() => deleteToolboxTalk(talkId))} className="text-xs text-danger hover:underline">Delete</button>;
+  return <button disabled={pending} onClick={() => confirm("Delete this toolbox talk and its acknowledgements?") && run(() => deleteToolboxTalk(talkId))} className="text-xs text-danger hover:underline">Delete</button>;
 }
 
 export function QualificationForm({ people, suggestions }: { people: { id: string; name: string }[]; suggestions: string[] }) {

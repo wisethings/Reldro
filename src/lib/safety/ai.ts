@@ -215,7 +215,7 @@ export function findEvidenceGaps(input: {
   if (input.actions.length === 0) gaps.push("No corrective actions proposed.");
   if (input.actions.some((a) => !a.ownerId)) gaps.push("A corrective action has no owner.");
   if (input.actions.some((a) => !a.dueDate)) gaps.push("A corrective action has no due date.");
-  if (input.injuryInvolved && input.statementCount === 0) gaps.push("An injury is recorded but there is no statement about treatment or events.");
+  if (input.injuryInvolved && input.statementCount === 0) gaps.push("An injury or illness is recorded but there is no statement about treatment or events.");
   return { gaps };
 }
 

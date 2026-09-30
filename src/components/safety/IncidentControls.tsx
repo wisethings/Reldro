@@ -40,8 +40,8 @@ export function OpenIncidentForm({ reportId, people, defaultLeadId }: { reportId
       <summary className="cursor-pointer text-sm font-medium text-ink-800">Open an incident response</summary>
       <div className="mt-3 space-y-3">
         <p className="text-xs text-ink-600">
-          This opens a shared workspace with a response lead, a live timeline and a closeout. It doesn't call anyone outside the app and doesn't replace your emergency plan.
-          Named responders are emailed a link if email is set up, with no report details in the message.
+          This opens a shared workspace with a response lead, a timeline, and a closeout. It does not contact emergency services or replace your emergency plan.
+          Responders you name receive an email with a link if email is set up. The email contains no report details.
         </p>
         <ErrorLine error={error} />
         {notice && <p role="status" className="rounded-lg bg-sage px-3 py-2 text-sm text-sage-deep">{notice}</p>}
@@ -152,7 +152,7 @@ export function ResponderManager({
     <div className="space-y-3">
       <ErrorLine error={error} />
       {responders.length === 0 ? (
-        <p className="text-sm text-ink-500">Nobody else has been added yet.</p>
+        <p className="text-sm text-ink-500">No other responders have been added.</p>
       ) : (
         <ul className="divide-y divide-ink-200 rounded-lg border border-ink-200">
           {responders.map((r) => (
@@ -227,7 +227,7 @@ export function IncidentComposer({ reportId, isSafetyTeam }: { reportId: string;
       {isSafetyTeam && (
         <label className="flex items-start gap-2 text-xs text-ink-700">
           <input type="checkbox" name="restricted" checked={restricted} onChange={(e) => setRestricted(e.target.checked)} className="mt-0.5" />
-          <span><span className="font-medium">Safety team only.</span> Use for medical or personal details. Responders outside the safety team won't see this entry or its photos.</span>
+          <span><span className="font-medium">Safety team only.</span> Use for medical or personal details. Responders outside the safety team cannot see this entry or its photos.</span>
         </label>
       )}
       <button disabled={pending || (!message.trim() && kind !== "EVIDENCE")} className={primary}>{pending ? "Posting…" : "Add to timeline"}</button>
@@ -244,8 +244,8 @@ export function ReporterMessageBox({ reportId, anonymous }: { reportId: string; 
       <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} maxLength={2000} placeholder="Ask a question or share what's happening, in plain words" aria-label="Message to the reporter" />
       <p className="text-[11px] text-ink-500">
         {anonymous
-          ? "The reporter is anonymous. They'll see this only if they open their private follow-up page with their case code. Don't include anything that could identify them."
-          : "The reporter can read this on their report. Someone on the team sends it, not the app."}
+          ? "The reporter submitted without a name. They see this only if they open their private follow-up page with their case code. Do not include anything that could identify them."
+          : "The reporter can read this on their report."}
       </p>
       <button disabled={pending || !text.trim()} onClick={() => run(() => messageReporter(reportId, text), () => setText(""))} className={secondary}>
         {pending ? "Sending…" : "Send to reporter"}
@@ -284,13 +284,13 @@ export function CloseoutForm({
   return (
     <div className="space-y-4">
       <ErrorLine error={error} />
-      <Field label="Closeout summary" hint="What happened, what was decided, and what happens next. This is written and submitted by a person.">
+      <Field label="Closeout summary" hint="What happened, what was decided, and what happens next. A person writes and submits this.">
         <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={6} maxLength={4000} />
       </Field>
-      <AiTextDraft label="Draft a closeout from the timeline" generate={() => aiDraftCloseout(reportId)} useLabel="Use as my closeout" onUse={(t) => setText(t)} />
+      <AiTextDraft label="Draft a closeout from the timeline" generate={() => aiDraftCloseout(reportId)} useLabel="Use this draft" onUse={(t) => setText(t)} />
       {openActions > 0 && (
         <p className="rounded-lg bg-surface-sunken px-3 py-2 text-xs text-ink-700">
-          {openActions} corrective action{openActions === 1 ? " is" : "s are"} still open. Resolving the response doesn't close them; they stay tracked on this report until each one is verified.
+          {openActions} corrective action{openActions === 1 ? " is" : "s are"} still open. Resolving the response does not close them. They stay on this report until each one is verified.
         </p>
       )}
       <button disabled={pending || text.trim().length < 20} onClick={() => run(() => resolveIncident(reportId, text))} className={primary}>
@@ -298,7 +298,7 @@ export function CloseoutForm({
       </button>
 
       <details className="rounded-lg border border-ink-200 p-3">
-        <summary className="cursor-pointer text-sm font-medium text-ink-800">This didn't need an incident response</summary>
+        <summary className="cursor-pointer text-sm font-medium text-ink-800">This did not need an incident response</summary>
         <div className="mt-3 space-y-2">
           <Field label="Why not?" hint="The report carries on as a normal report and keeps its history.">
             <Input value={why} onChange={(e) => setWhy(e.target.value)} maxLength={500} />

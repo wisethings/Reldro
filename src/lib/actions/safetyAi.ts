@@ -25,13 +25,13 @@ import {
 
 async function limit(userId: string) {
   // Keeps a stuck client or a curious user from running up model costs.
-  if (!(await checkRateLimit(`safety-ai:${userId}`, 40, 60))) throw new Error("You've used a lot of AI drafts in the last hour. Please try again later.");
+  if (!(await checkRateLimit(`safety-ai:${userId}`, 40, 60))) throw new Error("You have used many AI drafts in the last hour. Try again later.");
 }
 
 export async function aiStructureReport(text: string): Promise<ReportDraft> {
   const v = await requireViewer();
   await limit(v.userId);
-  if (text.trim().length < 5) throw new Error("Add a few words first.");
+  if (text.trim().length < 5) throw new Error("Add a few words first, then draft details.");
   return structureReportDraft(text, getPack());
 }
 
@@ -56,7 +56,7 @@ async function factsFor(reportId: string) {
 
 export async function aiDraftQuestions(reportId: string): Promise<QuestionDraft> {
   const { v, report, facts } = await factsFor(reportId);
-  if (!report.investigation || !canSeeInvestigation(v, report.investigation)) throw new Error("You don't have access to this investigation.");
+  if (!report.investigation || !canSeeInvestigation(v, report.investigation)) throw new Error("You do not have access to this investigation.");
   await limit(v.userId);
   return draftInvestigationQuestions(facts, report.investigation.facts);
 }
@@ -78,7 +78,7 @@ export async function aiSummarizeInvestigation(reportId: string): Promise<Summar
 
 export async function aiSummarizeThemes(windowDays = 90): Promise<SummaryDraft> {
   const v = await requireViewer();
-  if (!v.isSafetyTeam) throw new Error("Only the safety team can generate cross-site summaries.");
+  if (!v.isSafetyTeam) throw new Error("Only the safety team can draft cross-site summaries.");
   await limit(v.userId);
   const since = new Date(Date.now() - windowDays * 86400_000);
   const pack = getPack();
@@ -115,7 +115,7 @@ export async function aiDraftToolboxTalk(topic: string, sourceMaterial: string):
   if (!v.isSafetyTeam && !v.isSupervisor) throw new Error("Only the safety team or supervisors can draft talks.");
   await limit(v.userId);
   if (!topic.trim()) throw new Error("Enter a topic first.");
-  if (sourceMaterial.trim().length < 40) throw new Error("Paste your approved material (a procedure, policy excerpt or past lesson) so the outline is based on it.");
+  if (sourceMaterial.trim().length < 40) throw new Error("Paste your approved material, such as a procedure, a policy excerpt, or a past lesson. The outline is based only on this material.");
   return draftToolboxTalk({ topic: topic.trim(), sourceMaterial });
 }
 
@@ -123,7 +123,7 @@ export async function aiDraftToolboxTalk(topic: string, sourceMaterial: string):
 export async function aiDraftCloseout(reportId: string): Promise<SummaryDraft> {
   const { v, report, facts } = await factsFor(reportId);
   const incident = await prisma.incidentResponse.findUnique({ where: { reportId }, include: { responders: true } });
-  if (!incident) throw new Error("There's no incident response on this report.");
+  if (!incident) throw new Error("This report has no incident response.");
   if (!canRunIncident(v, { ...report, incident })) throw new Error("Only the response lead or safety team can draft a closeout.");
   await limit(v.userId);
   const [events, actions] = await Promise.all([

@@ -11,7 +11,7 @@ export function CommentBox({ reportId, canRestrict }: { reportId: string; canRes
   const { run, pending, error } = useAct();
   return (
     <div className="space-y-2">
-      <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} placeholder="Add an update or question…" />
+      <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} placeholder="Add a note or question" />
       {error && <p className="text-xs text-danger">{error}</p>}
       <div className="flex flex-wrap items-center gap-3">
         <button

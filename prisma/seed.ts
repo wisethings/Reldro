@@ -183,11 +183,11 @@ export async function seedDatabase() {
     });
     created[r.n] = rep.id;
     const ev = [
-      { type: "CREATED", message: r.privacy === "ANONYMOUS" ? "Report filed anonymously." : "Report filed.", actorName: r.privacy === "NAMED" && r.by ? PEOPLE.find((p) => p.key === r.by)?.name ?? "" : "", at: createdAt },
-      { type: "ASSIGNED", message: routedOwner ? `Routed to ${PEOPLE.find((p) => emp[p.key] === routedOwner)?.name} as the site safety lead.` : "No owner matched. Waiting for the safety team to assign.", actorName: "", at: new Date(createdAt.getTime() + 1000) },
+      { type: "CREATED", message: r.privacy === "ANONYMOUS" ? "Report submitted without a name." : "Report submitted.", actorName: r.privacy === "NAMED" && r.by ? PEOPLE.find((p) => p.key === r.by)?.name ?? "" : "", at: createdAt },
+      { type: "ASSIGNED", message: routedOwner ? `Assigned to ${PEOPLE.find((p) => emp[p.key] === routedOwner)?.name} as the site's safety lead.` : "No owner matched. Waiting for the safety team to assign an owner.", actorName: "", at: new Date(createdAt.getTime() + 1000) },
     ];
     if (r.acked) ev.push({ type: "ACKNOWLEDGED", message: "Report acknowledged.", actorName: PEOPLE.find((p) => emp[p.key] === routedOwner)?.name ?? "", at: new Date(createdAt.getTime() + 2 * 3600_000) });
-    if (r.ai) ev.push({ type: "AI_DRAFT", message: "The reporter used an AI-assisted draft and confirmed the details.", actorName: "", at: new Date(createdAt.getTime() + 2000) });
+    if (r.ai) ev.push({ type: "AI_DRAFT", message: "The reporter used an AI draft and reviewed the details before submitting.", actorName: "", at: new Date(createdAt.getTime() + 2000) });
     await prisma.reportEvent.createMany({ data: ev.map((e) => ({ reportId: rep.id, type: e.type, message: e.message, actorName: e.actorName, createdAt: e.at })) });
   }
 
@@ -295,8 +295,8 @@ export async function seedDatabase() {
   await prisma.incidentResponder.createMany({ data: [{ incidentId: inc17.id, employeeId: emp.danielle, role: "Supervisor" }, { incidentId: inc17.id, employeeId: emp.maria, role: "Safety" }] });
   await prisma.reportEvent.createMany({
     data: [
-      { reportId: rep17.id, type: "CREATED", message: "Report filed confidentially.", createdAt: c17 },
-      { reportId: rep17.id, type: "ASSIGNED", message: "Routed to Kevin Park as the site safety lead.", createdAt: at(0.5) },
+      { reportId: rep17.id, type: "CREATED", message: "Report submitted. The reporter's name is shared with the safety team only.", createdAt: c17 },
+      { reportId: rep17.id, type: "ASSIGNED", message: "Assigned to Kevin Park as the site's safety lead.", createdAt: at(0.5) },
       { reportId: rep17.id, type: "ACKNOWLEDGED", message: "Report acknowledged.", actorName: "Kevin Park", actorId: emp.kevin, createdAt: at(20) },
       { reportId: rep17.id, type: "INCIDENT", message: "Incident workspace opened: Injury, scaffold, other trades affected.", actorName: "Maria Delgado", actorId: emp.maria, createdAt: at(45) },
       { reportId: rep17.id, type: "INCIDENT", message: "Sample workspace: no email is sent.", createdAt: at(46) },
@@ -323,8 +323,8 @@ export async function seedDatabase() {
   });
   await prisma.reportEvent.createMany({
     data: [
-      { reportId: rep18.id, type: "CREATED", message: "Report filed anonymously.", createdAt: c18 },
-      { reportId: rep18.id, type: "ASSIGNED", message: "No owner matched. Waiting for the safety team to assign.", createdAt: new Date(c18.getTime() + 1000) },
+      { reportId: rep18.id, type: "CREATED", message: "Report submitted without a name.", createdAt: c18 },
+      { reportId: rep18.id, type: "ASSIGNED", message: "No owner matched. Waiting for the safety team to assign an owner.", createdAt: new Date(c18.getTime() + 1000) },
       { reportId: rep18.id, type: "MESSAGE_TO_REPORTER", message: "Thank you for raising this. Lockout is required on all panel work, whatever the size. Can you tell us roughly how often this has been said, and on which type of job?", actorName: "Maria Delgado", actorId: emp.maria, toReporter: true, createdAt: daysAgo(2, 9) },
     ],
   });

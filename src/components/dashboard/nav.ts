@@ -16,7 +16,7 @@ export function getNavItems(a: NavAudience): NavItem[] {
       { href: "/dashboard/overview", label: "Overview" },
       { href: "/dashboard/reports", label: "Reports" },
       { href: "/dashboard/investigations", label: "Investigations" },
-      { href: "/dashboard/actions", label: "Actions" },
+      { href: "/dashboard/actions", label: "Corrective actions" },
       { href: "/dashboard/inspections", label: "Inspections" },
       { href: "/dashboard/training", label: "People & Training" },
       { href: "/dashboard/sites", label: "Sites" },
@@ -28,7 +28,7 @@ export function getNavItems(a: NavAudience): NavItem[] {
     return [
       { href: "/dashboard/overview", label: "Overview" },
       { href: "/dashboard/reports", label: "Reports" },
-      { href: "/dashboard/actions", label: "Actions" },
+      { href: "/dashboard/actions", label: "Corrective actions" },
       { href: "/dashboard/inspections", label: "Inspections" },
       { href: "/dashboard/training", label: "Training" },
     ];
@@ -36,7 +36,7 @@ export function getNavItems(a: NavAudience): NavItem[] {
   return [
     { href: "/dashboard/overview", label: "Home" },
     { href: "/dashboard/reports", label: "My reports" },
-    { href: "/dashboard/actions", label: "My actions" },
+    { href: "/dashboard/actions", label: "My corrective actions" },
     { href: "/dashboard/training", label: "Toolbox talks" },
   ];
 }

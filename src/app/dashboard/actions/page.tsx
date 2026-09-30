@@ -37,14 +37,14 @@ export default async function ActionsPage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="mx-auto max-w-5xl space-y-5 p-4 sm:p-6">
-      <PageHeader title={v.isSafetyTeam || v.isSupervisor ? "Corrective actions" : "My actions"} subtitle="Fixes that came out of reports and inspections. An action isn't finished until someone verifies it." />
+      <PageHeader title={v.isSafetyTeam || v.isSupervisor ? "Corrective actions" : "My corrective actions"} subtitle="Track fixes identified in reports, investigations, and inspections. Verify a fix before closing it." />
       <div className="flex flex-wrap gap-2">
         {views.map(([key, label]) => (
           <Link key={key} href={`?view=${key}`} className={chip(view === key)}>{label}</Link>
         ))}
       </div>
       {actions.length === 0 ? (
-        <EmptyState title={view === "overdue" ? "Nothing overdue" : "No actions here"} body="Actions appear when a report or an inspection turns up something to fix." />
+        <EmptyState title={view === "overdue" ? "No overdue corrective actions" : "No corrective actions need attention"} body="Corrective actions will appear here when a report, investigation, or inspection identifies a follow-up." />
       ) : (
         <Card>
           <ul className="divide-y divide-ink-200">

@@ -79,7 +79,7 @@ export function ReportControls({
               onChange={(e) => { setOwner(e.target.value); run(() => assignReport(reportId, e.target.value || null)); }}
               className="mt-1"
             >
-              <option value="">Unassigned</option>
+              <option value="">No owner</option>
               {people.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
@@ -97,7 +97,7 @@ export function ReportControls({
           </label>
           {!severityConfirmed && (
             <button disabled={pending} onClick={() => run(() => updateTriage(reportId, { severity }))} className="mt-1.5 text-xs font-medium text-orchid-deep hover:text-oxblood disabled:opacity-40">
-              Confirm this level
+              Confirm seriousness
             </button>
           )}
         </div>

@@ -44,14 +44,14 @@ export function ActionControls({
       {message && <p className="rounded-lg bg-sage px-3 py-2 text-sm text-sage-deep">{message}</p>}
 
       <div className="flex flex-wrap gap-2">
-        {status === "PROPOSED" && isSafetyTeam && <button disabled={pending} onClick={() => run(() => approveAction(actionId))} className={primary}>Approve action</button>}
+        {status === "PROPOSED" && isSafetyTeam && <button disabled={pending} onClick={() => run(() => approveAction(actionId))} className={primary}>Approve corrective action</button>}
         {status === "APPROVED" && canWork && <button disabled={pending} onClick={() => run(() => startAction(actionId))} className={primary}>Start work</button>}
-        {status === "COMPLETED" && isSafetyTeam && <button disabled={pending} onClick={() => run(() => verifyAction(actionId))} className={primary}>Verify it's complete</button>}
+        {status === "COMPLETED" && isSafetyTeam && <button disabled={pending} onClick={() => run(() => verifyAction(actionId))} className={primary}>Verify the fix</button>}
         {["COMPLETED", "VERIFIED"].includes(status) && isSafetyTeam && (
-          <button disabled={pending} onClick={() => { const r = window.prompt("What still needs doing? (optional)") ?? ""; run(() => reopenAction(actionId, r)); }} className={secondary}>Send back</button>
+          <button disabled={pending} onClick={() => { const r = window.prompt("What still needs to be done? (optional)") ?? ""; run(() => reopenAction(actionId, r)); }} className={secondary}>Send back</button>
         )}
         {isSafetyTeam && !["VERIFIED", "CANCELLED"].includes(status) && (
-          <button disabled={pending} onClick={() => confirm("Cancel this action?") && run(() => cancelAction(actionId))} className={secondary}>Cancel action</button>
+          <button disabled={pending} onClick={() => confirm("Cancel this corrective action?") && run(() => cancelAction(actionId))} className={secondary}>Cancel corrective action</button>
         )}
         {isSafetyTeam && ownerId && ["APPROVED", "IN_PROGRESS", "COMPLETED"].includes(status) && (
           <button disabled={pending} onClick={() => run(async () => setMessage((await remindOwner(actionId)).message))} className={secondary}>Remind owner</button>
@@ -78,7 +78,7 @@ export function ActionControls({
         <div className="grid gap-3 rounded-xl border border-ink-200 p-4 sm:grid-cols-2">
           <Field label="Owner">
             <Select defaultValue={ownerId ?? ""} disabled={pending} onChange={(e) => run(() => updateActionPlan(actionId, { ownerId: e.target.value || null }))}>
-              <option value="">Unassigned</option>
+              <option value="">No owner</option>
               {people.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}

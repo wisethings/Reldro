@@ -32,7 +32,7 @@ async function loadActiveIncidents(v: Awaited<ReturnType<typeof requireViewer>>)
 function IncidentQueue({ incidents, always }: { incidents: Awaited<ReturnType<typeof loadActiveIncidents>>; always: boolean }) {
   if (incidents.length === 0 && !always) return null;
   return (
-    <Queue title="Active incident responses" count={incidents.length} href="/dashboard/reports?status=incidents" tone="alert" empty="No incident responses are open. They appear here when a serious event needs a coordinated response.">
+    <Queue title="Active incident responses" count={incidents.length} href="/dashboard/reports?status=incidents" tone="alert" empty="No incident responses are open. One appears here when an event needs a coordinated response.">
       {incidents.map((i) => {
         const late = i.nextActionDueAt && i.nextActionDueAt < new Date();
         return (
@@ -80,18 +80,18 @@ export default async function OverviewPage() {
           <p className="text-sm text-ink-500">{org?.name}</p>
         </div>
         <Link href="/dashboard/reports/new" className="flex items-center justify-center gap-3 rounded-2xl bg-brand-700 px-6 py-6 text-lg font-semibold text-white shadow-sm hover:bg-brand-800">
-          <Plus size={26} /> Report something
+          <Plus size={26} /> Report a safety concern
         </Link>
-        <p className="-mt-2 text-center text-xs text-ink-500">A hazard, near miss, injury or anything that doesn't feel right. About a minute.</p>
+        <p className="-mt-2 text-center text-xs text-ink-500">A hazard, near miss, injury, equipment issue, or other concern. It takes about a minute.</p>
 
         <IncidentQueue incidents={activeIncidents} always={false} />
-        <Queue title="Toolbox talks to acknowledge" count={toAck.length} href="/dashboard/training" tone="alert" empty="You're up to date.">
-          {toAck.slice(0, 3).map((t) => <QueueRow key={t.id} href="/dashboard/training" title={t.title} meta={fmtDate(t.scheduledFor)} right={<Badge tone="amber">Needs you</Badge>} />)}
+        <Queue title="Toolbox talks to acknowledge" count={toAck.length} href="/dashboard/training" tone="alert" empty="You have acknowledged all recent toolbox talks.">
+          {toAck.slice(0, 3).map((t) => <QueueRow key={t.id} href="/dashboard/training" title={t.title} meta={fmtDate(t.scheduledFor)} right={<Badge tone="amber">Needs your acknowledgement</Badge>} />)}
         </Queue>
-        <Queue title="My open reports" count={myReports.length} href="/dashboard/reports" empty="You have no open reports.">
+        <Queue title="My open reports" count={myReports.length} href="/dashboard/reports" empty="You have no open reports. Reports you submit appear here.">
           {myReports.map((r) => <QueueRow key={r.id} href={`/dashboard/reports/${r.id}`} title={r.title} meta={`SR-${String(r.number).padStart(4, "0")} · ${fmtDate(r.createdAt)}`} right={<ReportStatusBadge status={r.status} />} />)}
         </Queue>
-        <Queue title="Actions assigned to me" count={myActions.length} href="/dashboard/actions" tone="alert" empty="Nothing assigned to you.">
+        <Queue title="Corrective actions assigned to me" count={myActions.length} href="/dashboard/actions" tone="alert" empty="No corrective actions are assigned to you.">
           {myActions.map((a) => { const d = dueLabel(a.dueDate, true); return <QueueRow key={a.id} href={`/dashboard/actions/${a.id}`} title={a.title} meta={d.text} right={<ActionStatusBadge status={a.status} />} />; })}
         </Queue>
         {inspections.length > 0 && (
@@ -100,7 +100,7 @@ export default async function OverviewPage() {
           </Queue>
         )}
         {quals.length > 0 && (
-          <Queue title="My qualifications needing renewal" count={quals.length} tone="alert" empty="">
+          <Queue title="My qualifications due for renewal" count={quals.length} tone="alert" empty="">
             {quals.map((q) => <li key={q.id} className="px-4 py-2.5 text-sm sm:px-5"><span className="font-medium text-ink-900">{q.name}</span> <span className="text-ink-500">{q.expiresOn && q.expiresOn < now ? "expired" : "expires"} {fmtDate(q.expiresOn)}</span></li>)}
           </Queue>
         )}
@@ -150,31 +150,31 @@ export default async function OverviewPage() {
       <IncidentQueue incidents={activeIncidents} always={v.isSafetyTeam} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Queue title="Response overdue" count={overdueResponse.length} href="/dashboard/reports?status=open" tone="alert" empty="Every report has been acknowledged within its response time.">
+        <Queue title="Response overdue" count={overdueResponse.length} href="/dashboard/reports?status=open" tone="alert" empty="Every report was acknowledged within its response time.">
           {escalations.map(({ r, to }) => (
             <QueueRow key={r.id} href={`/dashboard/reports/${r.id}`} title={r.title} meta={`${r.site?.name ?? "No site"} · due ${fmtDate(r.respondBy)}${to ? ` · escalate to ${targetName.get(to) ?? "a lead"}` : " · no escalation contact set"}`} right={<SeverityBadge severity={r.severity} />} />
           ))}
         </Queue>
-        <Queue title="New and unassigned reports" count={unassigned.length} href="/dashboard/reports?status=open" tone="alert" empty="No new reports waiting.">
+        <Queue title="New reports without an owner" count={unassigned.length} href="/dashboard/reports?status=open" tone="alert" empty="No new reports are waiting for an owner.">
           {unassigned.map((r) => <QueueRow key={r.id} href={`/dashboard/reports/${r.id}`} title={r.title} meta={`${categoryLabel(r.category, pack)} · ${r.site?.name ?? "No site"} · ${fmtDate(r.createdAt)}`} right={<SeverityBadge severity={r.severity} />} />)}
         </Queue>
         {v.isSafetyTeam && (
-          <Queue title="Active investigations" count={investigations.length} href="/dashboard/investigations" empty="No open investigations.">
+          <Queue title="Active investigations" count={investigations.length} href="/dashboard/investigations" empty="No investigations are active.">
             {investigations.slice(0, 6).map((i) => <QueueRow key={i.id} href={`/dashboard/investigations/${i.id}`} title={i.report.title} meta={`${i.report.site?.name ?? "No site"} · opened ${fmtDate(i.openedAt)}`} right={<SeverityBadge severity={i.report.severity} />} />)}
           </Queue>
         )}
-        <Queue title="Overdue corrective actions" count={overdueActions.length} href="/dashboard/actions?view=overdue" tone="alert" empty="No overdue actions.">
+        <Queue title="Overdue corrective actions" count={overdueActions.length} href="/dashboard/actions?view=overdue" tone="alert" empty="No corrective actions are overdue.">
           {overdueActions.map((a) => <QueueRow key={a.id} href={`/dashboard/actions/${a.id}`} title={a.title} meta={dueLabel(a.dueDate, true).text} right={<ActionStatusBadge status={a.status} />} />)}
         </Queue>
         {v.isSafetyTeam && (
-          <Queue title="Actions waiting on you" count={awaiting.length + proposed.length} href="/dashboard/actions?view=attention" empty="No actions waiting for approval or verification.">
+          <Queue title="Corrective actions waiting for you" count={awaiting.length + proposed.length} href="/dashboard/actions?view=attention" empty="No corrective actions are waiting for approval or verification.">
             {[...proposed, ...awaiting].slice(0, 6).map((a) => <QueueRow key={a.id} href={`/dashboard/actions/${a.id}`} title={a.title} meta={a.status === "PROPOSED" ? "Proposed. Needs approval" : "Marked done. Needs verification"} right={<ActionStatusBadge status={a.status} />} />)}
           </Queue>
         )}
-        <Queue title="Inspections due in 7 days" count={inspections.length} href="/dashboard/inspections" tone="alert" empty="No inspections due soon.">
+        <Queue title="Inspections due in the next 7 days" count={inspections.length} href="/dashboard/inspections" tone="alert" empty="No inspections are due in the next 7 days.">
           {inspections.map((i) => { const d = dueLabel(i.dueDate, true); return <QueueRow key={i.id} href={`/dashboard/inspections/${i.id}`} title={`${i.template.name} · ${i.site.name}`} meta={d.text} right={d.overdue ? <Badge tone="red">Overdue</Badge> : undefined} />; })}
         </Queue>
-        <Queue title="Qualifications expiring within 30 days" count={qualsExpiring.length} href="/dashboard/training?tab=qualifications" tone="alert" empty="No qualifications need renewal.">
+        <Queue title="Qualifications expiring in the next 30 days" count={qualsExpiring.length} href="/dashboard/training?tab=qualifications" tone="alert" empty="No qualifications expire in the next 30 days.">
           {qualsExpiring.map((q) => <QueueRow key={q.id} href="/dashboard/training?tab=qualifications" title={`${empName.get(q.employeeId) ?? "Someone"} · ${q.name}`} meta={`${q.expiresOn && q.expiresOn < now ? "Expired" : "Expires"} ${fmtDate(q.expiresOn)}`} />)}
         </Queue>
         <Queue title="Recent toolbox talks" count={talks.length} href="/dashboard/training" empty="No toolbox talks in the last two weeks.">
@@ -186,7 +186,7 @@ export default async function OverviewPage() {
         <div className="rounded-xl border border-ink-200 bg-white p-4 sm:p-5">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-ink-900">Reports by topic, last 90 days</h2>
-            <Link href="/dashboard/insights" className="text-xs font-medium text-orchid-deep hover:text-oxblood">See patterns →</Link>
+            <Link href="/dashboard/insights" className="text-xs font-medium text-orchid-deep hover:text-oxblood">View insights →</Link>
           </div>
           <ul className="mt-3 space-y-2">
             {topCats.map((c) => (

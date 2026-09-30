@@ -53,12 +53,12 @@ export default async function InvestigationPage({ params }: { params: Promise<{ 
         </div>
         <h1 className="mt-2 text-xl font-semibold text-ink-900">{r.title}</h1>
         <p className="mt-1 text-sm text-ink-500">
-          {r.site?.name ?? "No site"} · {fmtDate(r.occurredAt)} · <Link href={`/dashboard/reports/${r.id}`} className="text-orchid-deep hover:text-oxblood">View the original report{r.incident && r.incident.status !== "RESOLVED" ? " and incident response" : ""}</Link>
+          {r.site?.name ?? "Site not given"} · {fmtDate(r.occurredAt)} · <Link href={`/dashboard/reports/${r.id}`} className="text-orchid-deep hover:text-oxblood">View the report{r.incident && r.incident.status !== "RESOLVED" ? " and incident response" : ""}</Link>
         </p>
       </div>
 
       <div className="rounded-lg bg-surface-sunken px-4 py-3 text-xs text-ink-600">
-        This workspace is for understanding what happened and why, so the conditions can be fixed. It is limited to the safety team and the investigation lead. Reldro drafts help with wording and questions; the findings and root-cause reasoning are yours.
+        This review looks at what happened and which conditions contributed, so they can be fixed. It is not about finding fault. Only the safety team and the investigation lead can see it. AI drafts help with wording and questions. The findings and reasoning are yours.
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr),18rem]">
@@ -77,7 +77,7 @@ export default async function InvestigationPage({ params }: { params: Promise<{ 
             </CardBody>
           </Card>
           <Card>
-            <CardHeader title="Questions" subtitle="Collect answers from supervisors, workers and managers." />
+            <CardHeader title="Questions" subtitle="Collect answers from supervisors, workers, and managers." />
             <CardBody>
               <QuestionsPanel investigationId={inv.id} reportId={r.id} canEdit={inv.status !== "COMPLETE" || v.isSafetyTeam} questions={inv.questions.map((q) => ({ id: q.id, text: q.text, answer: q.answer, aiDrafted: q.aiDrafted }))} />
             </CardBody>
@@ -97,15 +97,15 @@ export default async function InvestigationPage({ params }: { params: Promise<{ 
               {v.isSafetyTeam ? (
                 <LeadSelect investigationId={inv.id} leadId={inv.leadId} people={people.map((p) => ({ id: p.id, name: p.user.name }))} />
               ) : (
-                <p className="text-sm text-ink-800">{lead?.user.name ?? "Not assigned"}</p>
+                <p className="text-sm text-ink-800">{lead?.user.name ?? "No lead assigned"}</p>
               )}
             </CardBody>
           </Card>
           <Card>
-            <CardHeader title="Evidence check" subtitle="Simple checks on what's recorded. Not AI." />
+            <CardHeader title="Evidence check" subtitle="Simple checks on what is recorded. These are not AI." />
             <CardBody>
               {gaps.length === 0 ? (
-                <p className="text-sm text-sage-deep">Nothing obviously missing. That doesn't mean the investigation is complete.</p>
+                <p className="text-sm text-sage-deep">Nothing obvious is missing. That does not mean the investigation is complete.</p>
               ) : (
                 <ul className="space-y-1.5 text-sm text-ink-700">
                   {gaps.map((g) => (
@@ -116,7 +116,7 @@ export default async function InvestigationPage({ params }: { params: Promise<{ 
             </CardBody>
           </Card>
           <Card>
-            <CardHeader title="Linked actions" />
+            <CardHeader title="Linked corrective actions" />
             <CardBody>
               {r.actions.length === 0 ? (
                 <p className="text-sm text-ink-500">None yet. Add them from the report.</p>
@@ -127,7 +127,7 @@ export default async function InvestigationPage({ params }: { params: Promise<{ 
                   ))}
                 </ul>
               )}
-              <Link href={`/dashboard/reports/${r.id}`} className="mt-3 inline-block text-xs font-medium text-ink-600 hover:text-ink-900">Manage actions on the report →</Link>
+              <Link href={`/dashboard/reports/${r.id}`} className="mt-3 inline-block text-xs font-medium text-ink-600 hover:text-ink-900">Manage corrective actions on the report →</Link>
             </CardBody>
           </Card>
         </aside>

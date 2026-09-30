@@ -16,7 +16,7 @@ async function load(reportId: string) {
 
 async function loadIncident(reportId: string) {
   const ctx = await load(reportId);
-  if (!ctx.incident) throw new Error("There's no incident response on this report.");
+  if (!ctx.incident) throw new Error("This report has no incident response.");
   return { ...ctx, incident: ctx.incident };
 }
 
@@ -33,11 +33,11 @@ export async function openIncident(reportId: string, leadId: string | null, reas
   const { v, report, incident } = await load(reportId);
   if (!v.isSafetyTeam) throw new Error("Only the safety team can open an incident response.");
   if (incident) return "An incident response is already open on this report.";
-  if (report.status === "CLOSED") throw new Error("This report is closed. Reopen it first.");
+  if (report.status === "CLOSED") throw new Error("This report is closed. Reopen it before opening an incident response.");
   let lead: string | null = null;
   if (leadId) {
     const e = await prisma.employee.findFirst({ where: { id: leadId, organizationId: v.organizationId } });
-    if (!e) throw new Error("That person isn't in your company.");
+    if (!e) throw new Error("That person is not in your company.");
     lead = e.id;
   } else if (report.ownerId) lead = report.ownerId;
   const res = await openIncidentOn({
@@ -76,7 +76,7 @@ export async function updateIncidentDetails(reportId: string, changes: { summary
   if (changes.leadId !== undefined && changes.leadId !== incident.leadId) {
     if (changes.leadId) {
       const e = await prisma.employee.findFirst({ where: { id: changes.leadId, organizationId: v.organizationId }, include: { user: { select: { name: true } } } });
-      if (!e) throw new Error("That person isn't in your company.");
+      if (!e) throw new Error("That person is not in your company.");
       data.leadId = e.id;
       notes.push(`Response lead is now ${e.user.name}.`);
       notifyId = e.id;
@@ -106,7 +106,7 @@ export async function addResponder(reportId: string, employeeId: string, role: s
   const { v, report, incident } = await loadIncident(reportId);
   if (!canRunIncident(v, { ...report, incident })) throw new Error("Only the response lead or safety team can add responders.");
   const e = await prisma.employee.findFirst({ where: { id: employeeId, organizationId: v.organizationId }, include: { user: { select: { name: true } } } });
-  if (!e) throw new Error("That person isn't in your company.");
+  if (!e) throw new Error("That person is not in your company.");
   if (incident.leadId === e.id || incident.responders.some((r) => r.employeeId === e.id)) throw new Error(`${e.user.name} is already on the response team.`);
   const cleanRole = role.trim().slice(0, 60);
   await prisma.incidentResponder.create({ data: { incidentId: incident.id, employeeId: e.id, role: cleanRole } });
@@ -130,14 +130,14 @@ export async function removeResponder(reportId: string, employeeId: string) {
 export async function postIncidentEntry(formData: FormData) {
   const reportId = String(formData.get("reportId") ?? "");
   const { v, report, incident } = await loadIncident(reportId);
-  if (!canContributeToIncident(v, { ...report, incident })) throw new Error("You're not on this response team.");
+  if (!canContributeToIncident(v, { ...report, incident })) throw new Error("You are not on this response team.");
   if (incident.status === "RESOLVED") throw new Error("This incident is resolved. Reopen it to add to the timeline.");
   const kind = String(formData.get("kind") ?? "UPDATE");
   if (!["UPDATE", "DECISION", "EVIDENCE", "COMMENT"].includes(kind)) throw new Error("Unknown entry type.");
   const message = String(formData.get("message") ?? "").trim().slice(0, 2000);
   const attachments = cleanAttachments(formData.getAll("attachment"), 4);
-  if (!message && attachments.length === 0) throw new Error("Write something first.");
-  if (kind === "EVIDENCE" && attachments.length === 0) throw new Error("Add at least one photo for an evidence entry.");
+  if (!message && attachments.length === 0) throw new Error("Add some text first.");
+  if (kind === "EVIDENCE" && attachments.length === 0) throw new Error("Add at least one photo for a photo entry.");
   // Only the safety team may mark an entry restricted (medical or personal detail); everyone else's entries are shared with the team.
   const restricted = v.isSafetyTeam && formData.get("restricted") === "on";
   await addReportEvent({ reportId, type: kind, message: message || "Photo added.", actor: actor(v), restricted, attachments });
@@ -160,7 +160,7 @@ export async function resolveIncident(reportId: string, closeoutSummary: string)
   const { v, report, incident } = await loadIncident(reportId);
   if (!canRunIncident(v, { ...report, incident })) throw new Error("Only the response lead or safety team can close out an incident.");
   const summary = closeoutSummary.trim().slice(0, 4000);
-  if (summary.length < 20) throw new Error("Write a short closeout summary first: what happened, what was decided and what happens next.");
+  if (summary.length < 20) throw new Error("Write a short closeout summary first: what happened, what was decided, and what happens next.");
   const open = await prisma.correctiveAction.count({ where: { reportId, status: { in: OPEN_ACTION_STATUSES } } });
   await prisma.incidentResponse.update({ where: { id: incident.id }, data: { status: "RESOLVED", closeoutSummary: summary, resolvedAt: new Date(), nextAction: "", nextActionDueAt: null } });
   await addReportEvent({
@@ -188,7 +188,7 @@ export async function standDownIncident(reportId: string, reason: string) {
   const { v, report, incident } = await loadIncident(reportId);
   if (!canRunIncident(v, { ...report, incident })) throw new Error("Only the response lead or safety team can stand down an incident.");
   const why = reason.trim().slice(0, 500);
-  if (why.length < 5) throw new Error("Say briefly why this doesn't need an incident response.");
+  if (why.length < 5) throw new Error("Say briefly why this does not need an incident response.");
   await prisma.incidentResponse.update({ where: { id: incident.id }, data: { status: "RESOLVED", standDownReason: why, closeoutSummary: incident.closeoutSummary || `Stood down: ${why}`, resolvedAt: new Date(), nextAction: "", nextActionDueAt: null } });
   await addReportEvent({ reportId, type: "INCIDENT", message: `Stood down as an incident response: ${why} The report continues as a normal report.`, actor: actor(v) });
   refresh(reportId);

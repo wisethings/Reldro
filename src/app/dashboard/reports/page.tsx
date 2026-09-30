@@ -44,7 +44,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     <div className="mx-auto max-w-5xl space-y-5 p-4 sm:p-6">
       <PageHeader
         title={title}
-        subtitle={v.isSafetyTeam ? "Every hazard, near miss and injury reported across your sites." : v.isSupervisor ? "Reports from your site and ones you filed." : "What you've reported, and what happened next."}
+        subtitle={v.isSafetyTeam ? "Hazards, near misses, injuries, and other safety concerns reported across your sites." : v.isSupervisor ? "Safety concerns reported at your site, and ones you submitted." : "Safety concerns you submitted, and what happened next."}
       />
 
       <div className="flex flex-wrap items-center gap-2">
@@ -72,8 +72,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
 
       {reports.length === 0 ? (
         <EmptyState
-          title={status === "open" ? "No open reports" : status === "incidents" ? "No incident responses open" : "No reports match"}
-          body={v.isSafetyTeam || v.isSupervisor ? "New reports will show up here as soon as someone files one." : "When you report something, you'll be able to follow it here."}
+          title={status === "open" ? "No open reports" : status === "incidents" ? "No open incident responses" : "No reports match these filters"}
+          body={v.isSafetyTeam || v.isSupervisor ? "Reports will appear here when someone raises a safety concern." : "When you submit a report, you can follow it here."}
         />
       ) : (
         <Card>
@@ -88,12 +88,12 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                       {(v.isSafetyTeam || v.isSupervisor) && <SeverityBadge severity={r.severity} suggested={!r.severityConfirmedAt} />}
                       <ReportStatusBadge status={r.status} />
                       {r.incident && r.incident.status !== "RESOLVED" && <Badge tone="red">Incident response</Badge>}
-                      {!r.ownerId && r.status !== "CLOSED" && <Badge tone="amber">Unassigned</Badge>}
+                      {!r.ownerId && r.status !== "CLOSED" && <Badge tone="amber">No owner</Badge>}
                       {late && <Badge tone="red">Response overdue</Badge>}
                     </div>
                     <p className="mt-1 text-sm font-medium text-ink-900">{r.title}</p>
                     <p className="mt-0.5 text-xs text-ink-500">
-                      {reportTypeLabel(r.type)} · {categoryLabel(r.category, pack)} · {r.site?.name ?? "No site"} · {fmtDate(r.occurredAt)}
+                      {reportTypeLabel(r.type)} · {categoryLabel(r.category, pack)} · {r.site?.name ?? "Site not given"} · {fmtDate(r.occurredAt)}
                       {r.ownerId && ownerName.get(r.ownerId) ? ` · Owner: ${ownerName.get(r.ownerId)}` : ""}
                     </p>
                   </Link>
@@ -103,7 +103,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           </ul>
         </Card>
       )}
-      {reports.length === 100 && <p className="text-center text-xs text-ink-400">Showing the 100 most recent. Narrow the filters to see more.</p>}
+      {reports.length === 100 && <p className="text-center text-xs text-ink-400">Showing the 100 most recent reports. Use the filters to narrow the list.</p>}
     </div>
   );
 }

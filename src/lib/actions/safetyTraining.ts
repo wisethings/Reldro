@@ -39,17 +39,17 @@ export async function createToolboxTalk(_prev: TrainingFormState, formData: Form
 export async function deleteToolboxTalk(talkId: string) {
   const v = await requireViewer();
   const talk = await prisma.toolboxTalk.findFirst({ where: { id: talkId, organizationId: v.organizationId } });
-  if (!talk) throw new Error("Talk not found.");
-  if (!v.isSafetyTeam && !(v.isSupervisor && talk.siteId === v.siteId)) throw new Error("You can't delete this talk.");
+  if (!talk) throw new Error("Toolbox talk not found.");
+  if (!v.isSafetyTeam && !(v.isSupervisor && talk.siteId === v.siteId)) throw new Error("You cannot delete this toolbox talk.");
   await prisma.toolboxTalk.delete({ where: { id: talkId } });
   revalidatePath("/dashboard/training");
 }
 
 export async function acknowledgeTalk(talkId: string) {
   const v = await requireViewer();
-  if (!v.employeeId) throw new Error("Only employees can acknowledge talks.");
+  if (!v.employeeId) throw new Error("Only employees can acknowledge toolbox talks.");
   const talk = await prisma.toolboxTalk.findFirst({ where: { id: talkId, organizationId: v.organizationId } });
-  if (!talk) throw new Error("Talk not found.");
+  if (!talk) throw new Error("Toolbox talk not found.");
   await prisma.talkAcknowledgement.upsert({
     where: { talkId_employeeId: { talkId, employeeId: v.employeeId } },
     update: {},
@@ -66,7 +66,7 @@ export async function addQualification(_prev: TrainingFormState, formData: FormD
   if (!name) return { error: "Name the qualification." };
   const employee = await prisma.employee.findFirst({ where: { id: String(formData.get("employeeId") ?? ""), organizationId: v.organizationId } });
   if (!employee) return { error: "Choose a person." };
-  if (!v.isSafetyTeam && employee.siteId !== v.siteId) return { error: "Supervisors can record qualifications for people at their own site." };
+  if (!v.isSafetyTeam && employee.siteId !== v.siteId) return { error: "Supervisors can record qualifications for people at their own site only." };
   await prisma.qualification.create({
     data: {
       organizationId: v.organizationId,
@@ -87,7 +87,7 @@ export async function deleteQualification(id: string) {
   if (!q) throw new Error("Not found.");
   if (!v.isSafetyTeam) {
     const emp = await prisma.employee.findUnique({ where: { id: q.employeeId }, select: { siteId: true } });
-    if (!(v.isSupervisor && emp?.siteId === v.siteId)) throw new Error("You can't remove this qualification.");
+    if (!(v.isSupervisor && emp?.siteId === v.siteId)) throw new Error("You cannot remove this qualification.");
   }
   await prisma.qualification.delete({ where: { id } });
   revalidatePath("/dashboard/training");

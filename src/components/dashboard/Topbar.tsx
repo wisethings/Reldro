@@ -42,7 +42,7 @@ export function Topbar({
             href="/dashboard/reports/new"
             className="hidden rounded-full bg-brand-700 px-4 py-1.5 text-sm font-medium text-white hover:bg-brand-800 sm:inline-block"
           >
-            Report something
+            Report a safety concern
           </Link>
         )}
         <Link href="/dashboard/account" className="flex items-center gap-2.5 hover:opacity-80">

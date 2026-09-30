@@ -40,20 +40,20 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
       <div className="space-y-5">
         {canManage && (
           <Card>
-            <CardHeader title="New toolbox talk" subtitle="A short talk for the crew, with a record of who attended." />
+            <CardHeader title="New toolbox talk" subtitle="Create a short safety talk and record who attended." />
             <CardBody><TalkForm sites={sites.map((s) => ({ id: s.id, name: s.name }))} lockSiteId={v.isSafetyTeam ? null : v.siteId} /></CardBody>
           </Card>
         )}
         {lessons.length > 0 && (
           <Card>
-            <CardHeader title="Lessons from recent incidents" subtitle="Shared by the safety team, with names and personal details removed." />
+            <CardHeader title="Lessons from recent incidents" subtitle="Lessons approved for sharing with your team. The safety team removes personal details before publishing." />
             <ul className="divide-y divide-ink-200">
               {lessons.map((l) => <li key={l.id} className="px-4 py-3 text-sm text-ink-800 sm:px-5"><span className="mr-2 rounded bg-surface-sunken px-1.5 py-0.5 text-[11px] text-ink-600">{pack.categories.find((c) => c.key === l.report.category)?.label ?? "Other"}</span>{l.lessonText}</li>)}
             </ul>
           </Card>
         )}
         {talks.length === 0 ? (
-          <EmptyState title="No toolbox talks yet" body={canManage ? "Publish your first one above." : "When your supervisor publishes a talk, it will show up here."} />
+          <EmptyState title="No toolbox talks yet" body={canManage ? "Create your first toolbox talk above." : "When your supervisor shares a toolbox talk, it will appear here."} />
         ) : (
           talks.map((t) => {
             const audience = employees.filter((e) => !t.siteId || e.siteId === t.siteId);
@@ -72,7 +72,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
                   {canManage && (
                     <details className="rounded-lg border border-ink-200 p-3 text-sm">
                       <summary className="cursor-pointer font-medium text-ink-800">{ackIds.size} of {audience.length} acknowledged</summary>
-                      {missing.length > 0 ? <p className="mt-2 text-xs text-ink-600">Not yet: {missing.map((m) => m.user.name).join(", ")}</p> : <p className="mt-2 text-xs text-sage-deep">Everyone in scope has acknowledged.</p>}
+                      {missing.length > 0 ? <p className="mt-2 text-xs text-ink-600">Not yet acknowledged: {missing.map((m) => m.user.name).join(", ")}</p> : <p className="mt-2 text-xs text-sage-deep">Everyone in scope has acknowledged this talk.</p>}
                     </details>
                   )}
                 </CardBody>
@@ -95,12 +95,12 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
       <div className="space-y-5">
         {canManage && (
           <Card>
-            <CardHeader title="Record a qualification" subtitle="Certifications and authorizations with an expiry date. Reldro flags them 30 days before they lapse." />
+            <CardHeader title="Record a qualification" subtitle="Record certifications and authorizations with an expiry date. Reldro flags them 30 days before they expire." />
             <CardBody><QualificationForm people={people.map((p) => ({ id: p.id, name: p.user.name }))} suggestions={pack.qualificationSuggestions} /></CardBody>
           </Card>
         )}
         {quals.length === 0 ? (
-          <EmptyState title="No qualifications recorded" body={canManage ? "Add the certifications your crews need (aerial lift, first aid, OSHA 30) so expiry dates don't sneak up." : "Your supervisor records certifications for you."} />
+          <EmptyState title="No qualifications recorded" body={canManage ? "Add the certifications your crews need, such as aerial lift, first aid, or OSHA 30, so expiry dates are not missed." : "Your supervisor records your certifications."} />
         ) : (
           <Card>
             <ul className="divide-y divide-ink-200">
@@ -129,11 +129,11 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
     body = (
       <div className="space-y-5">
         <Card>
-          <CardHeader title="Add a person" subtitle="They get a temporary password by email (or you can share it directly if email isn't set up)." />
+          <CardHeader title="Add a person" subtitle="They receive a temporary password by email. If email is not set up, you can share it with them directly." />
           <CardBody><InviteEmployeeForm crews={crews.map((c) => ({ id: c.id, name: c.name }))} sites={sites.map((s) => ({ id: s.id, name: s.name }))} /></CardBody>
         </Card>
         <Card>
-          <CardHeader title={`People (${people.length})`} subtitle="Supervisors see their own site. Safety leads see every report and investigation. Only company admins change these." />
+          <CardHeader title={`People (${people.length})`} subtitle="Supervisors see their own site. Safety leads see every report and investigation. Only company admins change these roles." />
           <ul className="divide-y divide-ink-200">
             {people.map((p) => (
               <li key={p.id} className="flex flex-col gap-2 px-4 py-3 sm:px-5">
@@ -152,7 +152,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="mx-auto max-w-4xl space-y-5 p-4 sm:p-6">
-      <PageHeader title={v.isAdmin || v.isSafetyTeam ? "People & Training" : v.isSupervisor ? "Training" : "Toolbox talks"} subtitle="Toolbox talks, acknowledgements and qualifications. Assignments here keep the safety loop connected to who is on site." />
+      <PageHeader title={v.isAdmin || v.isSafetyTeam ? "People & Training" : v.isSupervisor ? "Training" : "Toolbox talks"} subtitle={canManage ? "Manage worker qualifications, toolbox talks, and training acknowledgements." : "Toolbox talks shared with your team, and your acknowledgements."} />
       {tabs.length > 1 && (
         <div className="flex flex-wrap gap-2">
           {tabs.map(([k, label]) => <Link key={k} href={`?tab=${k}`} className={chip(activeTab === k)}>{label}</Link>)}

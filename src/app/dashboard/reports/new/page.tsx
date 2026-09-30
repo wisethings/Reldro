@@ -10,13 +10,13 @@ export default async function NewReportPage() {
     prisma.site.findMany({ where: { organizationId: v.organizationId, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.organization.findUnique({ where: { id: v.organizationId }, select: { emergencyInstructions: true } }),
   ]);
-  const emergencyText = org?.emergencyInstructions.trim() || "Call your local emergency number (911 in the US) and follow your site's emergency plan.";
+  const emergencyText = org?.emergencyInstructions.trim() ?? "";
 
   return (
     <div className="mx-auto max-w-2xl space-y-5 p-4 sm:p-6">
       <div>
-        <h1 className="text-xl font-semibold text-ink-900">Report something</h1>
-        <p className="mt-0.5 text-sm text-ink-500">Hazards, near misses, injuries or anything that doesn't feel right. It takes about a minute, and you don't need the right safety words.</p>
+        <h1 className="text-xl font-semibold text-ink-900">Report a safety concern</h1>
+        <p className="mt-0.5 text-sm text-ink-500">Report a hazard, near miss, injury, equipment issue, or other safety concern. Describe what you noticed in your own words.</p>
       </div>
       <ReportForm
         types={REPORT_TYPES.map((t) => ({ key: t.key, label: t.label, plain: t.plain }))}

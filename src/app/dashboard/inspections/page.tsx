@@ -22,12 +22,12 @@ export default async function InspectionsPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-5 p-4 sm:p-6">
-      <PageHeader title="Inspections" subtitle="Recurring site inspections, job-start readiness checks and quick observations. Failed items become corrective actions." />
+      <PageHeader title="Inspections" subtitle="Schedule recurring site inspections and job-start checks. Failed items can become corrective actions." />
 
       <Card>
         <CardHeader title="Due and upcoming" />
         {upcoming.length === 0 ? (
-          <CardBody><p className="text-sm text-ink-500">Nothing scheduled.{canSchedule ? " Schedule one below." : ""}</p></CardBody>
+          <CardBody><p className="text-sm font-medium text-ink-800">No inspections scheduled</p><p className="mt-0.5 text-sm text-ink-500">{canSchedule ? "Schedule an inspection or create a checklist to get started." : "Inspections assigned to you will appear here."}</p></CardBody>
         ) : (
           <ul className="divide-y divide-ink-200">
             {upcoming.map((i) => {
@@ -50,11 +50,11 @@ export default async function InspectionsPage() {
 
       {canSchedule && (
         <Card>
-          <CardHeader title="Schedule an inspection" />
+          <CardHeader title="Schedule an inspection" subtitle="Choose a checklist, site, owner, and due date." />
           <CardBody>
             {templates.length === 0 ? (
               <div className="space-y-3">
-                <p className="text-sm text-ink-600">You don't have any checklists yet. Start with the standard set for specialty contractors (weekly site walk, job-start readiness, quick observation), then edit or add your own.</p>
+                <p className="text-sm text-ink-600">You do not have any checklists yet. Start with the standard set for specialty contractors (a weekly site walk, a job-start readiness check, and a quick observation), then edit them or add your own.</p>
                 {v.isSafetyTeam && <StarterTemplatesButton />}
               </div>
             ) : (
@@ -74,7 +74,7 @@ export default async function InspectionsPage() {
                 <li key={i.id}>
                   <Link href={`/dashboard/inspections/${i.id}`} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 hover:bg-ink-50 sm:px-5">
                     <div><p className="text-sm font-medium text-ink-900">{i.template.name}</p><p className="text-xs text-ink-500">{i.site.name} · {fmtDate(i.completedAt)}</p></div>
-                    {failed > 0 ? <Badge tone="red">{failed} failed</Badge> : <Badge tone="green">All clear</Badge>}
+                    {failed > 0 ? <Badge tone="red">{failed} failed</Badge> : <Badge tone="green">No failed items</Badge>}
                   </Link>
                 </li>
               );
@@ -82,12 +82,12 @@ export default async function InspectionsPage() {
           </ul>
         </Card>
       ) : upcoming.length === 0 && !canSchedule ? (
-        <EmptyState title="No inspections assigned to you" />
+        <EmptyState title="No inspections assigned to you" body="Inspections assigned to you will appear here." />
       ) : null}
 
       {v.isSafetyTeam && (
         <Card>
-          <CardHeader title="Checklists" subtitle="The forms used for inspections." />
+          <CardHeader title="Checklists" subtitle="Checklists used to run inspections." />
           <CardBody className="space-y-4">
             {templates.length > 0 && (
               <ul className="divide-y divide-ink-200 rounded-lg border border-ink-200">

@@ -14,8 +14,8 @@ export function ScheduleInspectionForm({ templates, sites, people }: { templates
     <form action={formAction} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
       <Field label="Checklist"><Select name="templateId" required defaultValue=""><option value="" disabled>Choose…</option>{templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</Select></Field>
       <Field label="Site"><Select name="siteId" required defaultValue=""><option value="" disabled>Choose…</option>{sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</Select></Field>
-      <Field label="Assigned to"><Select name="assigneeId" defaultValue=""><option value="">Anyone at the site</option>{people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select></Field>
-      <Field label="Due"><Input name="dueDate" type="date" required /></Field>
+      <Field label="Owner"><Select name="assigneeId" defaultValue=""><option value="">Anyone at the site</option>{people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select></Field>
+      <Field label="Due date"><Input name="dueDate" type="date" required /></Field>
       <div className="flex items-end"><button disabled={pending} className="w-full rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? "Scheduling…" : "Schedule"}</button></div>
       {state?.error && <p role="alert" className="text-sm text-danger sm:col-span-2 lg:col-span-5">{state.error}</p>}
       {state?.success && <p className="text-sm text-sage-deep sm:col-span-2 lg:col-span-5">{state.success}</p>}
@@ -54,7 +54,7 @@ export function StarterTemplatesButton() {
 
 export function DeleteTemplateButton({ templateId }: { templateId: string }) {
   const { run, pending } = useAct();
-  return <button disabled={pending} onClick={() => confirm("Delete this checklist? Scheduled inspections using it will also be removed.") && run(() => deleteTemplate(templateId))} className="text-xs text-danger hover:underline">Delete</button>;
+  return <button disabled={pending} onClick={() => confirm("Delete this checklist? Scheduled inspections that use it will also be removed.") && run(() => deleteTemplate(templateId))} className="text-xs text-danger hover:underline">Delete</button>;
 }
 
 type Item = { id: string; label: string; critical?: boolean };

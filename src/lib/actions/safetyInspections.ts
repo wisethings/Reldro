@@ -11,7 +11,7 @@ type TemplateItem = { id: string; label: string; critical?: boolean };
 
 export async function addStarterTemplates() {
   const v = await requireViewer();
-  if (!v.isSafetyTeam) throw new Error("Only the safety team can add templates.");
+  if (!v.isSafetyTeam) throw new Error("Only the safety team can add checklists.");
   const pack = getPack();
   const existing = await prisma.inspectionTemplate.findMany({ where: { organizationId: v.organizationId }, select: { name: true } });
   const have = new Set(existing.map((e) => e.name));
@@ -33,7 +33,7 @@ export async function addStarterTemplates() {
 
 export async function createTemplate(_prev: InspectionFormState, formData: FormData): Promise<InspectionFormState> {
   const v = await requireViewer();
-  if (!v.isSafetyTeam) return { error: "Only the safety team can create templates." };
+  if (!v.isSafetyTeam) return { error: "Only the safety team can create checklists." };
   const name = String(formData.get("name") ?? "").trim();
   const items = String(formData.get("items") ?? "")
     .split("\n")
@@ -41,7 +41,7 @@ export async function createTemplate(_prev: InspectionFormState, formData: FormD
     .filter(Boolean)
     .slice(0, 40);
   if (!name) return { error: "Name the checklist." };
-  if (items.length === 0) return { error: "Add at least one checklist item (one per line)." };
+  if (items.length === 0) return { error: "Add at least one checklist item, one per line." };
   const kind = ["SITE_INSPECTION", "READINESS", "OBSERVATION"].includes(String(formData.get("kind"))) ? String(formData.get("kind")) : "SITE_INSPECTION";
   const freq = Math.round(Number(formData.get("frequencyDays")) || 0);
   await prisma.inspectionTemplate.create({
@@ -60,9 +60,9 @@ export async function createTemplate(_prev: InspectionFormState, formData: FormD
 
 export async function deleteTemplate(templateId: string) {
   const v = await requireViewer();
-  if (!v.isSafetyTeam) throw new Error("Only the safety team can delete templates.");
+  if (!v.isSafetyTeam) throw new Error("Only the safety team can delete checklists.");
   const t = await prisma.inspectionTemplate.findFirst({ where: { id: templateId, organizationId: v.organizationId } });
-  if (!t) throw new Error("Template not found.");
+  if (!t) throw new Error("Checklist not found.");
   await prisma.inspectionTemplate.delete({ where: { id: templateId } });
   await audit(v, "safety.settings_changed", "InspectionTemplate", templateId, { deleted: t.name });
   revalidatePath("/dashboard/inspections");
@@ -77,11 +77,11 @@ export async function scheduleInspection(_prev: InspectionFormState, formData: F
   if (!template) return { error: "Choose a checklist." };
   if (!site) return { error: "Choose a site." };
   if (!dueDate) return { error: "Choose a due date." };
-  if (!v.isSafetyTeam && site.id !== v.siteId) return { error: "Supervisors can schedule inspections for their own site." };
+  if (!v.isSafetyTeam && site.id !== v.siteId) return { error: "Supervisors can schedule inspections for their own site only." };
   const assigneeId = String(formData.get("assigneeId") ?? "") || null;
   if (assigneeId) {
     const a = await prisma.employee.findFirst({ where: { id: assigneeId, organizationId: v.organizationId } });
-    if (!a) return { error: "Assignee not found." };
+    if (!a) return { error: "Owner not found." };
   }
   const created = await prisma.inspection.create({ data: { organizationId: v.organizationId, templateId: template.id, siteId: site.id, assigneeId, dueDate } });
   await audit(v, "safety.inspection_completed", "Inspection", created.id, { scheduled: true });
@@ -98,7 +98,7 @@ export async function completeInspection(_prev: InspectionFormState, formData: F
   });
   if (!inspection) return { error: "Inspection not found." };
   const canRun = v.isSafetyTeam || (v.employeeId !== null && inspection.assigneeId === v.employeeId) || (v.isSupervisor && v.siteId === inspection.siteId);
-  if (!canRun) return { error: "You don't have access to run this inspection." };
+  if (!canRun) return { error: "You do not have access to run this inspection." };
   if (inspection.status === "COMPLETED") return { error: "This inspection is already complete." };
 
   const items = inspection.template.items as unknown as TemplateItem[];
@@ -106,7 +106,7 @@ export async function completeInspection(_prev: InspectionFormState, formData: F
     const r = String(formData.get(`result_${it.id}`) ?? "");
     return { itemId: it.id, label: it.label, critical: Boolean(it.critical), result: ["PASS", "FAIL", "NA"].includes(r) ? r : "", note: String(formData.get(`note_${it.id}`) ?? "").trim().slice(0, 500) };
   });
-  if (results.some((r) => r.result === "")) return { error: "Mark every item Pass, Fail or N/A before submitting." };
+  if (results.some((r) => r.result === "")) return { error: "Mark every item Pass, Fail, or N/A before submitting." };
 
   await prisma.inspection.update({
     where: { id: inspection.id },
@@ -163,12 +163,12 @@ export async function raiseReportFromInspection(inspectionId: string, itemId: st
   const inspection = await prisma.inspection.findFirst({ where: { id: inspectionId, organizationId: v.organizationId }, include: { template: true, site: true } });
   if (!inspection) throw new Error("Inspection not found.");
   const canRun = v.isSafetyTeam || (v.employeeId !== null && inspection.assigneeId === v.employeeId) || (v.isSupervisor && v.siteId === inspection.siteId);
-  if (!canRun) throw new Error("You don't have access to this inspection.");
+  if (!canRun) throw new Error("You do not have access to this inspection.");
   if (inspection.status !== "COMPLETED") throw new Error("Complete the inspection first.");
   const results = inspection.results as unknown as StoredResult[];
   const item = results.find((r) => r.itemId === itemId);
-  if (!item || item.result !== "FAIL") throw new Error("That item didn't fail.");
-  if (item.reportId) throw new Error("A report was already filed for this item.");
+  if (!item || item.result !== "FAIL") throw new Error("That item did not fail.");
+  if (item.reportId) throw new Error("A report has already been filed for this item.");
 
   const pack = getPack();
   const description = `Found during "${inspection.template.name}" at ${inspection.site.name}: ${item.label}.${item.note ? ` Inspector's note: ${item.note}` : ""}`;
@@ -195,8 +195,8 @@ export async function raiseReportFromInspection(inspectionId: string, itemId: st
       inspectionId: inspection.id,
     },
   });
-  await addReportEvent({ reportId: report.id, type: "CREATED", message: `Report raised from a failed inspection item (${inspection.template.name}).`, actor: { name: v.name, employeeId: v.employeeId } });
-  await addReportEvent({ reportId: report.id, type: "ASSIGNED", message: routing.ownerId ? "Routed to the site's owner." : "No owner matched. Waiting for the safety team to assign." });
+  await addReportEvent({ reportId: report.id, type: "CREATED", message: `Report created from a failed inspection item (${inspection.template.name}).`, actor: { name: v.name, employeeId: v.employeeId } });
+  await addReportEvent({ reportId: report.id, type: "ASSIGNED", message: routing.ownerId ? "Assigned to the site's owner." : "No owner matched. Waiting for the safety team to assign an owner." });
   // Attach the item's existing proposed action to the report so the hazard has one home.
   await prisma.correctiveAction.updateMany({
     where: { organizationId: v.organizationId, inspectionId: inspection.id, reportId: null, title: { startsWith: `Fix: ${item.label}`.slice(0, 160) } },

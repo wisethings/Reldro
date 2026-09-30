@@ -20,7 +20,7 @@ export function SafetyOnboarding({ companyName }: { companyName: string }) {
       </div>
       <div className="space-y-4 rounded-2xl border border-ink-200 bg-white p-5">
         <h2 className="text-sm font-semibold text-ink-900">Your emergency instructions</h2>
-        <Field label="What should someone do first in an emergency?" optional hint="Every reporter sees this above the report form. Reldro doesn't contact emergency services, so this is your own plan. Leave blank to show: “Call your local emergency number (911 in the US) and follow your site's emergency plan.”">
+        <Field label="What should someone do first in an emergency?" optional hint="Every reporter sees this on the report form, after the standard message about calling the local emergency number. Reldro does not contact emergency services, so this should reflect your own plan. Leave it blank to show the standard message only.">
           <Textarea name="emergencyInstructions" rows={3} maxLength={600} placeholder="e.g. Call 911, then the site superintendent at 555-0142. Muster at the north gate." />
         </Field>
       </div>
