@@ -11,6 +11,7 @@ import { EmptyHero, fmtShort, PageHeader, ReportProgress, ReportStatusBadge, Sev
 const STATUS_GROUPS: Record<string, string[] | undefined> = { open: ["NEW", "ASSIGNED", "INVESTIGATING", "ACTIONS_OPEN"], closed: ["CLOSED"] };
 
 import { PAGE_SIZE, Pagination, readPage } from "@/components/safety/Pagination";
+import { REPORT_LIST_FIELDS } from "@/lib/safety/selects";
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<{ status?: string; severity?: string; site?: string; q?: string; page?: string; attention?: string }> }) {
   const v = await requireViewer();
   const p = await searchParams;
@@ -38,7 +39,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const total = await prisma.safetyReport.count({ where });
   const page = Math.min(readPage(p.page), Math.max(1, Math.ceil(total / PAGE_SIZE)));
   const [reports, sites] = await Promise.all([
-    prisma.safetyReport.findMany({ where, orderBy: { createdAt: "desc" }, skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE, include: { site: true, incident: { select: { status: true } } } }),
+    prisma.safetyReport.findMany({ where, orderBy: { createdAt: "desc" }, skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE, select: { ...REPORT_LIST_FIELDS, site: true, incident: { select: { status: true } } } }),
     v.isSafetyTeam ? prisma.site.findMany({ where: { organizationId: v.organizationId }, orderBy: { name: "asc" } }) : Promise.resolve([]),
   ]);
   const owners = await prisma.employee.findMany({ where: { id: { in: reports.map((r) => r.ownerId).filter((x): x is string => Boolean(x)) } }, include: { user: { select: { name: true } } } });

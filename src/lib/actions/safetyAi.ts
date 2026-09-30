@@ -7,6 +7,7 @@ import { requireViewer } from "@/lib/safety/context";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { actionStatusInfo, categoryLabel, getPack, OPEN_ACTION_STATUSES, SITE_KINDS } from "@/lib/safety/pack";
 import { startOfTodayUTC } from "@/lib/safety/dates";
+import { REPORT_LIST_FIELDS } from "@/lib/safety/selects";
 import {
   draftCloseout,
   draftInvestigationQuestions,
@@ -89,7 +90,7 @@ export async function aiSummarizeThemes(windowDays = 90): Promise<SummaryDraft> 
   const since = new Date(Date.now() - windowDays * 86400_000);
   const pack = getPack();
   const [reports, investigations, overdue] = await Promise.all([
-    prisma.safetyReport.findMany({ where: { ...reportWhere(v), createdAt: { gte: since } }, include: { site: true } }),
+    prisma.safetyReport.findMany({ where: { ...reportWhere(v), createdAt: { gte: since } }, select: { ...REPORT_LIST_FIELDS, site: true } }),
     prisma.investigation.findMany({ where: { organizationId: v.organizationId, openedAt: { gte: since } }, select: { contributingFactors: true } }),
     prisma.correctiveAction.count({ where: { organizationId: v.organizationId, status: { in: OPEN_ACTION_STATUSES }, dueDate: { lt: startOfTodayUTC() } } }),
   ]);

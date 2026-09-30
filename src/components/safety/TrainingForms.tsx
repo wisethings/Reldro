@@ -10,6 +10,7 @@ import { AutoTextarea } from "@/components/ui/AutoTextarea";
 import { btnPrimary, btnSecondary, FormPanel, FormSection } from "@/components/ui/FormParts";
 import { AiTextDraft } from "./AiTextDraft";
 import { useAct } from "./useAct";
+import { useConfirm } from "@/components/ui/useConfirm";
 import { Alert } from "@/components/ui/Alert";
 
 /** The "New talk" entry point: a quiet header row that opens the guided form below it, and closes again. */
@@ -112,15 +113,11 @@ export function AcknowledgeButton({ talkId, compact = false }: { talkId: string;
   );
 }
 
-export function DeleteTalkButton({ talkId }: { talkId: string }) {
-  const { run, pending } = useAct();
-  return <button disabled={pending} onClick={() => confirm("Delete this toolbox talk and its acknowledgements?") && run(() => deleteToolboxTalk(talkId))} className="text-xs text-danger hover:underline">Delete</button>;
-}
-
 /** Secondary actions for a talk, kept out of the way of the main workflow. */
 export function TalkMenu({ talkId }: { talkId: string }) {
   const [open, setOpen] = useState(false);
   const { run, pending } = useAct();
+  const { ask, dialog } = useConfirm();
   const box = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
@@ -132,12 +129,13 @@ export function TalkMenu({ talkId }: { talkId: string }) {
   }, [open]);
   return (
     <div ref={box} className="relative">
+      {dialog}
       <button type="button" aria-label="More actions for this talk" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-500 hover:bg-surface-hover hover:text-ink-900">
         <MoreHorizontal size={16} aria-hidden />
       </button>
       {open && (
         <div role="menu" className="absolute right-0 z-20 mt-1 w-44 rounded-lg bg-white py-1 text-sm shadow-lg ring-1 ring-ink-200">
-          <button role="menuitem" disabled={pending} onClick={() => confirm("Delete this toolbox talk and its acknowledgements?") && run(() => deleteToolboxTalk(talkId))} className="block w-full px-3 py-2 text-left text-danger hover:bg-coral-soft/50 disabled:opacity-50">Delete talk</button>
+          <button role="menuitem" disabled={pending} onClick={() => { setOpen(false); ask({ title: "Delete this toolbox talk?", body: "The talk and everyone's acknowledgements of it will be deleted. This can't be undone.", confirmLabel: "Delete talk", destructive: true, onConfirm: () => run(() => deleteToolboxTalk(talkId)) }); }} className="block w-full px-3 py-2 text-left text-danger hover:bg-coral-soft/50 disabled:opacity-50">Delete talk</button>
         </div>
       )}
     </div>

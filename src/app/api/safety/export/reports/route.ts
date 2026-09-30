@@ -4,6 +4,7 @@ import { getFreshSession } from "@/lib/auth/guards";
 import { loadViewer } from "@/lib/safety/access";
 import { logAudit } from "@/lib/audit";
 import { categoryLabel, reportTypeLabel, severityInfo } from "@/lib/safety/pack";
+import { REPORT_LIST_FIELDS } from "@/lib/safety/selects";
 
 const cell = (v: unknown) => {
   const s = String(v ?? "");
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
 
   const days = Math.min(3650, Math.max(1, Number(request.nextUrl.searchParams.get("days")) || 90));
   const since = new Date(Date.now() - days * 86400_000);
-  const reports = await prisma.safetyReport.findMany({ where: { organizationId: v.organizationId, createdAt: { gte: since } }, include: { site: true, incident: { select: { status: true } } }, orderBy: { number: "asc" } });
+  const reports = await prisma.safetyReport.findMany({ where: { organizationId: v.organizationId, createdAt: { gte: since } }, select: { ...REPORT_LIST_FIELDS, site: true, incident: { select: { status: true } } }, orderBy: { number: "asc" } });
 
   // Reporter names are deliberately not exported; confidential and anonymous reports stay that way.
   // The free-text title and description are exported as written, so they can still contain names people typed.

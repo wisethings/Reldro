@@ -39,11 +39,6 @@ export function StarterTemplatesButton() {
   );
 }
 
-export function DeleteTemplateButton({ templateId }: { templateId: string }) {
-  const { run, pending } = useAct();
-  return <button disabled={pending} onClick={() => confirm("Delete this checklist? Scheduled inspections that use it will also be removed.") && run(() => deleteTemplate(templateId))} className="text-xs text-danger hover:underline">Delete</button>;
-}
-
 type Item = { id: string; label: string; critical?: boolean };
 
 export function InspectionRunner({ inspectionId, items }: { inspectionId: string; items: Item[] }) {

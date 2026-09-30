@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useConfirm } from "@/components/ui/useConfirm";
 import { useRouter } from "next/navigation";
 import { removeCompanyAdmin } from "@/lib/actions/invites";
 import { Avatar } from "@/components/ui/Avatar";
@@ -11,9 +12,11 @@ export function AdminRow({ admin, isSelf }: { admin: { id: string; name: string;
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { ask, dialog } = useConfirm();
 
   return (
     <div className="flex flex-wrap items-start gap-3 py-2.5 text-sm">
+      {dialog}
       <Avatar name={admin.name} size={28} />
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium text-ink-900">{admin.name}</p>
@@ -28,8 +31,7 @@ export function AdminRow({ admin, isSelf }: { admin: { id: string; name: string;
           <button
             type="button"
             disabled={pending}
-            onClick={() => {
-              if (!confirm(`Remove ${admin.name} as an admin? Their account will be deleted and they will lose access immediately.`)) return;
+            onClick={() => ask({ title: `Remove ${admin.name} as an admin?`, body: "Their account will be deleted and they will lose access immediately.", confirmLabel: "Remove admin", destructive: true, onConfirm: () => {
               setError(null);
               startTransition(async () => {
                 try {
@@ -40,7 +42,7 @@ export function AdminRow({ admin, isSelf }: { admin: { id: string; name: string;
                   setError("Couldn't remove this admin. Check your connection and try again.");
                 }
               });
-            }}
+            } })}
             className="rounded-full border border-danger px-3 py-1 text-xs font-medium text-danger hover:bg-danger/10 disabled:opacity-50"
           >
             {pending ? "Removing…" : "Remove"}

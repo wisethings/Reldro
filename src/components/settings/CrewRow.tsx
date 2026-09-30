@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useConfirm } from "@/components/ui/useConfirm";
 import { deleteDepartment, renameDepartment } from "@/lib/actions/settings";
 import { Input } from "@/components/ui/Field";
 import { useAct } from "@/components/safety/useAct";
@@ -8,11 +9,13 @@ import { useAct } from "@/components/safety/useAct";
 /** One crew in Settings: rename it, or delete it (people keep their accounts and just lose the crew label). */
 export function CrewRow({ id, name, people }: { id: string; name: string; people: number }) {
   const { run, pending, error } = useAct();
+  const { ask, dialog } = useConfirm();
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(name);
 
   return (
     <li className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-sm">
+      {dialog}
       {editing ? (
         <form
           className="flex min-w-0 flex-1 flex-wrap items-center gap-2"
@@ -35,7 +38,7 @@ export function CrewRow({ id, name, people }: { id: string; name: string; people
             <button onClick={() => setEditing(true)} className="text-xs font-medium text-orchid-deep hover:text-oxblood" aria-label={`Rename ${name}`}>Rename</button>
             <button
               disabled={pending}
-              onClick={() => confirm(people > 0 ? `Delete the crew "${name}"? The ${people} ${people === 1 ? "person" : "people"} in it will stay in Reldro with no crew.` : `Delete the crew "${name}"?`) && run(() => deleteDepartment(id))}
+              onClick={() => ask({ title: `Delete the crew "${name}"?`, body: people > 0 ? `The ${people} ${people === 1 ? "person" : "people"} in it will stay in Reldro with no crew.` : "No one is in this crew.", confirmLabel: "Delete crew", destructive: true, onConfirm: () => run(() => deleteDepartment(id)) })}
               className="text-xs font-medium text-danger hover:underline"
               aria-label={`Delete ${name}`}
             >

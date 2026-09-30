@@ -11,6 +11,7 @@ import { AcknowledgeButton } from "@/components/safety/TrainingForms";
 import { Queue, QueueRow } from "@/components/safety/Queue";
 import { ActivityList, FocusList, Panel, PulseLine, QuietActivity, SectionTitle, StatStrip, TextLink, UpcomingRow, type ActivityItem, type FocusEntry } from "@/components/safety/Dashboard";
 import { dayStartIn, daysUntil, isOverdue, startOfTodayUTC } from "@/lib/safety/dates";
+import { REPORT_LIST_FIELDS } from "@/lib/safety/selects";
 
 const ACTIVE_REPORT = ["NEW", "ASSIGNED", "INVESTIGATING", "ACTIONS_OPEN"];
 
@@ -68,7 +69,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   // ---- WORKER HOME -------------------------------------------------------
   if (!v.isSafetyTeam && !v.isSupervisor) {
     const [myReports, myActions, talks, acked, inspections, quals] = await Promise.all([
-      prisma.safetyReport.findMany({ where: { ...reportWhere(v), status: { in: ACTIVE_REPORT } }, orderBy: { createdAt: "desc" }, take: 5 }),
+      prisma.safetyReport.findMany({ where: { ...reportWhere(v), status: { in: ACTIVE_REPORT } }, orderBy: { createdAt: "desc" }, select: REPORT_LIST_FIELDS, take: 5 }),
       prisma.correctiveAction.findMany({ where: { AND: [actionWhere(v), { ownerId: v.employeeId ?? "__none__", status: { in: OPEN_ACTION_STATUSES } }] }, orderBy: { dueDate: "asc" }, take: 5 }),
       prisma.toolboxTalk.findMany({ where: { organizationId: v.organizationId, scheduledFor: { gte: new Date(Date.now() - 30 * 86400_000) }, OR: [{ siteId: null }, { siteId: v.siteId ?? "__none__" }] }, orderBy: { scheduledFor: "desc" }, take: 10 }),
       prisma.talkAcknowledgement.findMany({ where: { employeeId: v.employeeId ?? "__none__" }, select: { talkId: true } }),
@@ -283,9 +284,9 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   ] = await Promise.all([
     loadActiveIncidents(v),
     prisma.safetyReport.count({ where: respWhere }),
-    prisma.safetyReport.findMany({ where: respWhere, orderBy: { respondBy: "asc" }, include: { site: true }, take: 3 }),
+    prisma.safetyReport.findMany({ where: respWhere, orderBy: { respondBy: "asc" }, select: { ...REPORT_LIST_FIELDS, site: true }, take: 3 }),
     prisma.safetyReport.count({ where: noOwnerWhere }),
-    prisma.safetyReport.findMany({ where: noOwnerWhere, orderBy: { createdAt: "asc" }, include: { site: true }, take: 3 }),
+    prisma.safetyReport.findMany({ where: noOwnerWhere, orderBy: { createdAt: "asc" }, select: { ...REPORT_LIST_FIELDS, site: true }, take: 3 }),
     v.isSafetyTeam ? prisma.investigation.count({ where: invWhere }) : Promise.resolve(0),
     v.isSafetyTeam ? prisma.investigation.findFirst({ where: invWhere, orderBy: { openedAt: "asc" }, include: { report: true } }) : Promise.resolve(null),
     prisma.correctiveAction.count({ where: overdueWhere }),

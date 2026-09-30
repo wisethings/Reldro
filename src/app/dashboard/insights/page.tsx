@@ -6,6 +6,7 @@ import { categoryLabel, getPack, OPEN_ACTION_STATUSES, reportTypeLabel } from "@
 import { NoAccess } from "@/components/safety/ui";
 import { ThemesSummaryDraft } from "@/components/safety/AiDraftButtons";
 import { isOverdue } from "@/lib/safety/dates";
+import { REPORT_LIST_FIELDS } from "@/lib/safety/selects";
 
 function Bars({ rows, empty = "Nothing to show yet." }: { rows: { label: string; count: number; href?: string }[]; empty?: string }) {
   if (rows.length === 0) return <p className="text-sm text-ink-500">{empty}</p>;
@@ -63,7 +64,7 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
   const now = new Date();
 
   const [reports, investigations, actions, lessons, incidents] = await Promise.all([
-    prisma.safetyReport.findMany({ where: { organizationId: v.organizationId, createdAt: { gte: since } }, include: { site: true } }),
+    prisma.safetyReport.findMany({ where: { organizationId: v.organizationId, createdAt: { gte: since } }, select: { ...REPORT_LIST_FIELDS, site: true } }),
     prisma.investigation.findMany({ where: { organizationId: v.organizationId, openedAt: { gte: since } }, select: { contributingFactors: true } }),
     prisma.correctiveAction.findMany({ where: { organizationId: v.organizationId, createdAt: { gte: since } } }),
     prisma.investigation.findMany({ where: { organizationId: v.organizationId, shareLesson: true }, include: { report: { select: { category: true } } }, orderBy: { completedAt: "desc" }, take: 10 }),

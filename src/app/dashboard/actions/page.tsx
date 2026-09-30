@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/Badge";
 import { ActionStatusBadge, dueLabel, EmptyHero, fmtShort, PageHeader, SeverityBadge } from "@/components/safety/ui";
 import { StatStrip } from "@/components/safety/Dashboard";
 import { PAGE_SIZE, Pagination, readPage } from "@/components/safety/Pagination";
+import { ACTION_LIST_FIELDS } from "@/lib/safety/selects";
 import { daysUntil, startOfTodayUTC } from "@/lib/safety/dates";
 export default async function ActionsPage({ searchParams }: { searchParams: Promise<{ view?: string; page?: string }> }) {
   const v = await requireViewer();
@@ -28,7 +29,7 @@ export default async function ActionsPage({ searchParams }: { searchParams: Prom
   const page = Math.min(readPage(pageParam), Math.max(1, Math.ceil(total / PAGE_SIZE)));
   const actions = await prisma.correctiveAction.findMany({
     where: listWhere,
-    include: { report: { select: { id: true, number: true, title: true } } },
+    select: { ...ACTION_LIST_FIELDS, report: { select: { id: true, number: true, title: true } } },
     orderBy: [{ dueDate: "asc" }, { number: "desc" }],
     skip: (page - 1) * PAGE_SIZE,
     take: PAGE_SIZE,

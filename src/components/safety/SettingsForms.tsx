@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { useConfirm } from "@/components/ui/useConfirm";
 import { useRouter } from "next/navigation";
 import { createEscalationRule, deleteEscalationRule, saveEmergencyInstructions, saveSite, setSiteActive } from "@/lib/actions/safetySettings";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
@@ -43,7 +44,13 @@ export function EscalationRuleForm({ severities, categories, sites, people }: { 
 
 export function DeleteRuleButton({ ruleId }: { ruleId: string }) {
   const { run, pending } = useAct();
-  return <button disabled={pending} onClick={() => confirm("Delete this rule?") && run(() => deleteEscalationRule(ruleId))} className="text-xs text-danger hover:underline">Delete</button>;
+  const { ask, dialog } = useConfirm();
+  return (
+    <>
+      <button disabled={pending} onClick={() => ask({ title: "Delete this rule?", body: "New reports will no longer be routed by it. Reports already routed keep their owner.", confirmLabel: "Delete rule", destructive: true, onConfirm: () => run(() => deleteEscalationRule(ruleId)) })} className="text-xs text-danger hover:underline">Delete</button>
+      {dialog}
+    </>
+  );
 }
 
 export function SiteEditor({ site, people, trigger, siteExample = "Bayside Tower \u2014 Electrical Package", kinds = [{ key: "JOBSITE", label: "Jobsite" }, { key: "SHOP", label: "Shop or fabrication shop" }, { key: "YARD", label: "Yard or laydown area" }] }: { site?: { id: string; name: string; address: string; kind: string; safetyLeadId: string | null }; people: Opt[]; trigger: string; siteExample?: string; kinds?: KeyOpt[] }) {

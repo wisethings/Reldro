@@ -112,7 +112,20 @@ export async function deletePerson(employeeId: string) {
   if (emp.userId === session.sub) return fail("You can't delete your own account.");
   if (emp.user.role !== "EMPLOYEE") return fail("Company admins are removed from Settings.");
   try {
+    const org = emp.organizationId;
+    const id = emp.id;
     await prisma.$transaction([
+      // Nothing may keep pointing at a person who no longer exists: hand their work back to "no owner" so it shows up
+      // as unassigned on the safety team's lists instead of silently belonging to nobody.
+      prisma.safetyReport.updateMany({ where: { organizationId: org, ownerId: id }, data: { ownerId: null } }),
+      prisma.correctiveAction.updateMany({ where: { organizationId: org, ownerId: id }, data: { ownerId: null } }),
+      prisma.inspection.updateMany({ where: { organizationId: org, assigneeId: id, status: "SCHEDULED" }, data: { assigneeId: null } }),
+      prisma.site.updateMany({ where: { organizationId: org, safetyLeadId: id }, data: { safetyLeadId: null } }),
+      prisma.investigation.updateMany({ where: { organizationId: org, leadId: id }, data: { leadId: null } }),
+      prisma.incidentResponse.updateMany({ where: { organizationId: org, leadId: id }, data: { leadId: null } }),
+      prisma.incidentResponder.deleteMany({ where: { employeeId: id } }),
+      prisma.escalationRule.updateMany({ where: { organizationId: org, ownerId: id }, data: { ownerId: null } }),
+      prisma.escalationRule.updateMany({ where: { organizationId: org, escalateToId: id }, data: { escalateToId: null } }),
       prisma.aIUsageEvent.deleteMany({ where: { employeeId: emp.id } }),
       prisma.qualification.deleteMany({ where: { employeeId: emp.id } }),
       prisma.user.delete({ where: { id: emp.userId } }),

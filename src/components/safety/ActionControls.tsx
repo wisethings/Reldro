@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { useConfirm } from "@/components/ui/useConfirm";
 import { unwrap } from "@/lib/actionResult";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, CircleDot, ClipboardCheck, Clock, Hourglass, Play, ShieldCheck, XCircle } from "lucide-react";
@@ -28,6 +29,7 @@ const secondary = `${btn} border border-ink-300 text-ink-800 hover:bg-surface-ho
 /** What to do now, in plain words, with the one main button; everything else is tucked under "More options". */
 export function ActionControls({ actionId, status, ownerId, ownerName, isSafetyTeam, isOwner }: Props) {
   const { run, pending, error } = useAct();
+  const { ask, dialog } = useConfirm();
   const [completeState, completeForm, completing] = useActionState(completeAction, undefined);
   const [message, setMessage] = useState<string | null>(null);
   const [showDone, setShowDone] = useState(false);
@@ -68,6 +70,7 @@ export function ActionControls({ actionId, status, ownerId, ownerName, isSafetyT
 
   return (
     <div className="space-y-3">
+      {dialog}
       {error && <Alert tone="error">{error}</Alert>}
       {message && <Alert tone="success">{message}</Alert>}
 
@@ -114,7 +117,7 @@ export function ActionControls({ actionId, status, ownerId, ownerName, isSafetyT
               <button disabled={pending} onClick={() => run(async () => setMessage(unwrap(await remindOwner(actionId)).message))} className={secondary}>Email a reminder to {ownerName ?? "the owner"}</button>
             )}
             {!["VERIFIED", "CANCELLED"].includes(status) && (
-              <button disabled={pending} onClick={() => confirm("Cancel this corrective action? You can reopen it later.") && run(() => cancelAction(actionId))} className={`${secondary} text-danger`}>Cancel corrective action</button>
+              <button disabled={pending} onClick={() => ask({ title: "Cancel this corrective action?", body: "It will no longer count as open. You can send it back later if you need to.", confirmLabel: "Cancel corrective action", destructive: true, onConfirm: () => run(() => cancelAction(actionId)) })} className={`${secondary} text-danger`}>Cancel corrective action</button>
             )}
           </div>
         </details>

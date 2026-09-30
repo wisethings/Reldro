@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { useConfirm } from "@/components/ui/useConfirm";
 import { unwrap } from "@/lib/actionResult";
 import { addQuestions, addStatement, answerQuestion, deleteQuestion, deleteStatement } from "@/lib/actions/safetyInvestigations";
 import { aiDraftQuestions } from "@/lib/actions/safetyAi";
@@ -18,8 +19,10 @@ export function StatementsPanel({
 }) {
   const [state, formAction, pending] = useActionState(addStatement, undefined);
   const { run, error } = useAct();
+  const { ask, dialog } = useConfirm();
   return (
     <div className="space-y-4">
+      {dialog}
       <p className="rounded-lg bg-surface-muted px-3 py-2 text-xs text-ink-600">Statements are visible only to the safety team and the investigation lead. Use a role (for example "Journeyman electrician") if you don't need a name.</p>
       {error && <p className="text-xs text-danger">{error}</p>}
       {statements.length === 0 && <p className="text-sm text-ink-500">No statements yet.</p>}
@@ -28,7 +31,7 @@ export function StatementsPanel({
           <li key={s.id} className="border-t border-ink-100 pt-3">
             <div className="flex items-start justify-between gap-2">
               <p className="text-xs font-medium text-ink-600">{s.providedBy} · added by {s.addedByName} · {new Date(s.createdAt).toLocaleDateString()}</p>
-              <button onClick={() => confirm("Remove this statement?") && run(() => deleteStatement(s.id))} className="text-xs text-danger hover:underline">Remove</button>
+              <button onClick={() => ask({ title: "Remove this statement?", body: "It will be removed from the investigation.", confirmLabel: "Remove statement", destructive: true, onConfirm: () => run(() => deleteStatement(s.id)) })} className="text-xs text-danger hover:underline">Remove</button>
             </div>
             <p className="mt-1 whitespace-pre-wrap text-sm text-ink-800">{s.content}</p>
           </li>
