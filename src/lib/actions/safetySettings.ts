@@ -45,18 +45,25 @@ export async function setSiteActive(siteId: string, active: boolean) {
 }
 
 /** Only company admins can change who is on the safety team or supervises a site, so a safety lead can't promote themselves. */
-export async function setPersonRoles(employeeId: string, changes: { siteId?: string | null; isSafetyLead?: boolean; isSupervisor?: boolean }) {
+export async function setPersonRoles(employeeId: string, changes: { siteId?: string | null; departmentId?: string | null; isSafetyLead?: boolean; isSupervisor?: boolean }) {
   const v = await requireViewer();
   if (!v.isAdmin) throw new Error("Only company admins can change roles.");
   const emp = await prisma.employee.findFirst({ where: { id: employeeId, organizationId: v.organizationId } });
   if (!emp) throw new Error("Person not found.");
-  const data: { siteId?: string | null; isSafetyLead?: boolean; isDepartmentAdmin?: boolean } = {};
+  const data: { siteId?: string | null; departmentId?: string | null; isSafetyLead?: boolean; isDepartmentAdmin?: boolean } = {};
   if (changes.siteId !== undefined) {
     if (changes.siteId) {
       const site = await prisma.site.findFirst({ where: { id: changes.siteId, organizationId: v.organizationId } });
       if (!site) throw new Error("Site not found.");
     }
     data.siteId = changes.siteId;
+  }
+  if (changes.departmentId !== undefined) {
+    if (changes.departmentId) {
+      const crew = await prisma.department.findFirst({ where: { id: changes.departmentId, organizationId: v.organizationId } });
+      if (!crew) throw new Error("Crew not found.");
+    }
+    data.departmentId = changes.departmentId;
   }
   if (changes.isSafetyLead !== undefined) data.isSafetyLead = changes.isSafetyLead;
   if (changes.isSupervisor !== undefined) data.isDepartmentAdmin = changes.isSupervisor;

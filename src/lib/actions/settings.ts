@@ -47,6 +47,36 @@ export async function createDepartment(_prevState: CreateDepartmentState, formDa
   return { success: true };
 }
 
+/** Renames a crew. People keep their assignment; only the label changes. */
+export async function renameDepartment(departmentId: string, newName: string) {
+  const session = await requireRole(["COMPANY_ADMIN"]);
+  const name = newName.trim().slice(0, 80);
+  if (!name) throw new Error("Crew name is required.");
+  const dept = await prisma.department.findFirst({ where: { id: departmentId, organizationId: session.organizationId! } });
+  if (!dept) throw new Error("Crew not found.");
+  if (dept.name === name) return;
+  const clash = await prisma.department.findUnique({ where: { organizationId_name: { organizationId: session.organizationId!, name } } });
+  if (clash) throw new Error("A crew with that name already exists.");
+  await prisma.department.update({ where: { id: dept.id }, data: { name } });
+  await logAudit({ organizationId: session.organizationId!, userId: session.sub, action: "safety.settings_changed", entityType: "Department", entityId: dept.id, metadata: { renamed: true } });
+  revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard/training");
+}
+
+/** Deletes a crew. People in it are kept and simply have no crew until an admin assigns another. */
+export async function deleteDepartment(departmentId: string) {
+  const session = await requireRole(["COMPANY_ADMIN"]);
+  const dept = await prisma.department.findFirst({ where: { id: departmentId, organizationId: session.organizationId! } });
+  if (!dept) throw new Error("Crew not found.");
+  await prisma.$transaction([
+    prisma.employee.updateMany({ where: { departmentId: dept.id }, data: { departmentId: null } }),
+    prisma.department.delete({ where: { id: dept.id } }),
+  ]);
+  await logAudit({ organizationId: session.organizationId!, userId: session.sub, action: "safety.settings_changed", entityType: "Department", entityId: dept.id, metadata: { deleted: true } });
+  revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard/training");
+}
+
 export type InviteAdminState = ({ error?: string } & InviteDelivery) | undefined;
 
 /**

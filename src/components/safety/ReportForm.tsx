@@ -12,15 +12,33 @@ import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 
 type Option = { key: string; label: string; plain?: string };
 
+type SpeechResultLike = { isFinal: boolean; 0: { transcript: string }; length: number };
 type SpeechRecognitionLike = {
   lang: string;
   interimResults: boolean;
   continuous: boolean;
   start: () => void;
   stop: () => void;
-  onresult: ((e: { resultIndex: number; results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }> }) => void) | null;
+  abort: () => void;
+  onstart: (() => void) | null;
+  onresult: ((e: { results: ArrayLike<SpeechResultLike> }) => void) | null;
   onend: (() => void) | null;
-  onerror: (() => void) | null;
+  onerror: ((e: { error?: string }) => void) | null;
+};
+
+function speechCtor(): (new () => SpeechRecognitionLike) | null {
+  if (typeof window === "undefined") return null;
+  const w = window as unknown as { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike };
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
+}
+
+const VOICE_ERRORS: Record<string, string> = {
+  "not-allowed": "Microphone access is blocked. Allow the microphone for this site in your browser settings, then try again.",
+  "service-not-allowed": "Voice input is turned off on this device. Turn on dictation in your device settings, then try again.",
+  "no-speech": "No speech was heard. Try again and speak close to the microphone.",
+  "audio-capture": "No microphone was found on this device.",
+  network: "Voice input needs an internet connection. Check your connection and try again.",
+  "language-not-supported": "Voice input does not support your device language. Use your keyboard's microphone instead.",
 };
 
 const PRIVACY_OPTIONS = [
@@ -90,8 +108,11 @@ export function ReportForm({
   const [aiError, setAiError] = useState<string | null>(null);
   const [drafting, startDrafting] = useTransition();
   const [listening, setListening] = useState(false);
-  const [voiceSupported, setVoiceSupported] = useState(false);
+  const [voiceSupported, setVoiceSupported] = useState(true);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
   const recRef = useRef<SpeechRecognitionLike | null>(null);
+  const voiceBase = useRef("");
+  const voiceHeard = useRef("");
 
   const doneRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -104,35 +125,54 @@ export function ReportForm({
   }, [state]);
 
   useEffect(() => {
-    const w = window as unknown as { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike };
-    setVoiceSupported(Boolean(w.SpeechRecognition || w.webkitSpeechRecognition));
+    setVoiceSupported(Boolean(speechCtor()) && window.isSecureContext);
+    return () => recRef.current?.abort();
   }, []);
 
   function toggleVoice() {
+    setVoiceError(null);
     if (listening) {
       recRef.current?.stop();
       return;
     }
-    const w = window as unknown as { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike };
-    const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
-    if (!Ctor) return;
+    const Ctor = speechCtor();
+    if (!Ctor || !window.isSecureContext) {
+      setVoiceSupported(false);
+      return;
+    }
     const rec = new Ctor();
     rec.lang = navigator.language || "en-US";
-    rec.interimResults = false;
-    rec.continuous = true;
+    rec.interimResults = true;
+    // One phrase at a time is the most dependable mode on phones; tap again to add more.
+    rec.continuous = false;
+    voiceBase.current = description;
+    voiceHeard.current = "";
+    rec.onstart = () => setListening(true);
     rec.onresult = (e) => {
-      let said = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) said += e.results[i][0].transcript + " ";
-      if (said.trim()) {
-        setDescription((d) => (d ? d.trimEnd() + " " : "") + said.trim());
-        setTranscript((t) => (t ? t + " " : "") + said.trim());
-      }
+      // Rebuild from everything heard in this session so partial results are replaced, never repeated.
+      let heard = "";
+      for (let i = 0; i < e.results.length; i++) heard += e.results[i][0].transcript;
+      heard = heard.trim();
+      voiceHeard.current = heard;
+      const base = voiceBase.current.trimEnd();
+      setDescription(base ? `${base} ${heard}` : heard);
     };
-    rec.onend = () => setListening(false);
-    rec.onerror = () => setListening(false);
+    rec.onerror = (e) => {
+      setListening(false);
+      setVoiceError(VOICE_ERRORS[e.error ?? ""] ?? "Voice input stopped. Try again, or use your keyboard's microphone.");
+    };
+    rec.onend = () => {
+      setListening(false);
+      if (voiceHeard.current) setTranscript((t) => (t ? `${t} ` : "") + voiceHeard.current);
+    };
     recRef.current = rec;
-    setListening(true);
-    rec.start();
+    try {
+      rec.start();
+      setListening(true);
+    } catch {
+      setListening(false);
+      setVoiceError("Voice input could not start. Try again, or use your keyboard's microphone.");
+    }
   }
 
   function askAi() {
@@ -240,16 +280,15 @@ export function ReportForm({
           <label htmlFor="description" id="what-happened" className="text-sm font-semibold text-ink-900">
             Describe what happened
           </label>
-          {voiceSupported && (
-            <button
-              type="button"
-              onClick={toggleVoice}
-              aria-pressed={listening}
-              className={`rounded-full border px-3 py-1.5 text-xs font-medium ${listening ? "border-danger bg-coral-soft text-danger" : "border-ink-300 text-ink-700 hover:bg-ink-50"}`}
-            >
-              {listening ? "● Listening. Tap to stop" : "🎤 Use voice input"}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={toggleVoice}
+            disabled={!voiceSupported}
+            aria-pressed={listening}
+            className={`rounded-full border px-3 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50 ${listening ? "border-danger bg-coral-soft text-danger" : "border-ink-300 text-ink-700 hover:bg-ink-50"}`}
+          >
+            {listening ? "● Listening. Tap to stop" : "🎤 Use voice input"}
+          </button>
         </div>
         <Textarea
           id="description"
@@ -262,12 +301,13 @@ export function ReportForm({
           placeholder="Include what you saw, where it happened, and when, if you know."
           className="mt-2 text-base"
         />
+        {voiceError && <p role="alert" className="mt-1 rounded-lg bg-coral-soft px-3 py-2 text-xs text-danger">{voiceError}</p>}
         <p className="mt-1 text-[11px] text-ink-500" aria-live="polite">
-          {voiceSupported
-            ? listening
+          {!voiceSupported
+            ? "Voice input is not available in this browser. Use the microphone on your keyboard to dictate instead, then review and edit the text before you submit."
+            : listening
               ? "Listening. Your words appear above as a draft. Tap to stop, then review and edit the text."
-              : "Voice input types your words above as a draft. Review and edit it before you submit. Nothing is submitted until you choose Submit report."
-            : "Tip: use the microphone on your keyboard to dictate. Review and edit the text before you submit."}
+              : "Voice input types your words above as a draft. Review and edit it before you submit. Nothing is submitted until you choose Submit report."}
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <button

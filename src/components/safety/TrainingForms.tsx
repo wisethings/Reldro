@@ -92,9 +92,13 @@ export function PersonRoleControls({
   isSafetyLead,
   isSupervisor,
   sites,
+  crewId,
+  crews,
 }: {
   employeeId: string;
   siteId: string | null;
+  crewId: string | null;
+  crews: { id: string; name: string }[];
   isSafetyLead: boolean;
   isSupervisor: boolean;
   sites: { id: string; name: string }[];
@@ -105,6 +109,10 @@ export function PersonRoleControls({
       <Select aria-label="Home site" defaultValue={siteId ?? ""} disabled={pending} onChange={(e) => run(() => setPersonRoles(employeeId, { siteId: e.target.value || null }))} className="w-auto py-1 text-xs">
         <option value="">No home site</option>
         {sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+      </Select>
+      <Select aria-label="Crew" defaultValue={crewId ?? ""} disabled={pending} onChange={(e) => run(() => setPersonRoles(employeeId, { departmentId: e.target.value || null }))} className="w-auto py-1 text-xs">
+        <option value="">No crew</option>
+        {crews.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
       </Select>
       <label className="flex items-center gap-1.5 text-xs text-ink-700"><input type="checkbox" defaultChecked={isSupervisor} disabled={pending} onChange={(e) => run(() => setPersonRoles(employeeId, { isSupervisor: e.target.checked }))} /> Supervisor</label>
       <label className="flex items-center gap-1.5 text-xs text-ink-700"><input type="checkbox" defaultChecked={isSafetyLead} disabled={pending} onChange={(e) => run(() => setPersonRoles(employeeId, { isSafetyLead: e.target.checked }))} /> Safety lead</label>

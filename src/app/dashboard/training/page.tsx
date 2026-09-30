@@ -141,7 +141,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
                   <div className="flex min-w-0 items-center gap-3"><Avatar name={p.user.name} size={28} /><div className="min-w-0"><p className="truncate text-sm font-medium text-ink-900">{p.user.name}</p><p className="truncate text-xs text-ink-500">{p.jobTitle}{p.department ? ` · ${p.department.name}` : ""} · {p.user.email}</p></div></div>
                   {p.user.lastLoginAt === null && <div className="flex items-center gap-2"><Badge tone="amber">Invite pending</Badge><ResendInviteButton userId={p.userId} name={p.user.name} /></div>}
                 </div>
-                <PersonRoleControls employeeId={p.id} siteId={p.siteId} isSafetyLead={p.isSafetyLead} isSupervisor={p.isDepartmentAdmin} sites={sites.map((s) => ({ id: s.id, name: s.name }))} />
+                <PersonRoleControls employeeId={p.id} siteId={p.siteId} crewId={p.departmentId} crews={crews.map((c) => ({ id: c.id, name: c.name }))} isSafetyLead={p.isSafetyLead} isSupervisor={p.isDepartmentAdmin} sites={sites.map((s) => ({ id: s.id, name: s.name }))} />
               </li>
             ))}
           </ul>

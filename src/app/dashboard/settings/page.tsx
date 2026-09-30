@@ -8,6 +8,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { IconBadge } from "@/components/ui/IconBadge";
 import { OrgProfileForm } from "@/components/settings/OrgProfileForm";
 import { AddDepartmentForm } from "@/components/settings/AddDepartmentForm";
+import { CrewRow } from "@/components/settings/CrewRow";
 import { InviteAdminForm } from "@/components/settings/InviteAdminForm";
 import { AdminRow } from "@/components/settings/AdminRow";
 import { DeleteRuleButton, EmergencyInstructionsForm, EscalationRuleForm, SetupSupportForm } from "@/components/safety/SettingsForms";
@@ -28,6 +29,8 @@ export default async function SettingsPage() {
     prisma.employee.findMany({ where: { organizationId: orgId }, include: { user: { select: { name: true } } }, orderBy: { user: { name: "asc" } } }),
   ]);
   if (!org) redirect("/login");
+  const crewCounts = new Map<string, number>();
+  for (const e of await prisma.employee.findMany({ where: { organizationId: orgId, departmentId: { not: null } }, select: { departmentId: true } })) crewCounts.set(e.departmentId!, (crewCounts.get(e.departmentId!) ?? 0) + 1);
   const nameOf = (id: string | null) => (id ? people.find((p) => p.id === id)?.user.name ?? "Someone" : null);
   const siteName = (id: string | null) => (id ? sites.find((s) => s.id === id)?.name ?? "A site" : null);
 
@@ -81,12 +84,15 @@ export default async function SettingsPage() {
       </Card>
 
       <Card>
-        <CardHeader icon={<IconBadge icon={<Layers size={18} />} tone="sage" />} title="Crews" subtitle="Groups such as a prewire crew or service team. Sites and roles are managed under People and Sites." />
+        <CardHeader icon={<IconBadge icon={<Layers size={18} />} tone="sage" />} title="Crews" subtitle="Groups such as a prewire crew or service team. Rename or delete a crew here. Sites and roles are managed under People & Training and Sites." />
         <CardBody className="space-y-4">
-          <div className="flex flex-wrap gap-1.5">
-            {crews.map((d) => <span key={d.id} className="rounded-full bg-ink-100 px-3 py-1 text-xs font-medium text-ink-700">{d.name}</span>)}
-            {crews.length === 0 && <p className="text-sm text-ink-500">No crews yet.</p>}
-          </div>
+          {crews.length === 0 ? (
+            <p className="text-sm text-ink-500">No crews yet. Add a crew below, such as a prewire crew or a service team.</p>
+          ) : (
+            <ul className="divide-y divide-ink-200 rounded-lg border border-ink-200">
+              {crews.map((d) => <CrewRow key={d.id} id={d.id} name={d.name} people={crewCounts.get(d.id) ?? 0} />)}
+            </ul>
+          )}
           <AddDepartmentForm />
         </CardBody>
       </Card>
