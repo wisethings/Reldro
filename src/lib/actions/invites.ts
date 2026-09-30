@@ -48,7 +48,7 @@ export async function resendInvite(userId: string): Promise<ResendInviteResult> 
   });
 
   revalidatePath("/dashboard/settings");
-  revalidatePath("/dashboard/team");
+  revalidatePath("/dashboard/training");
   return delivery;
 }
 

@@ -1,48 +1,34 @@
 "use client";
 
 import { useState } from "react";
-import type { Role } from "@prisma/client";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
-import { AssistantWidget } from "./AssistantWidget";
-import { WelcomeTour } from "./WelcomeTour";
+import { MobileTabBar } from "./MobileTabBar";
+import type { NavAudience } from "./nav";
 
 export function DashboardShell({
-  role,
+  audience,
   orgName,
-  isDepartmentAdmin,
   name,
   roleLabel,
-  showAssistant,
-  showTour,
   children,
 }: {
-  role: Role;
+  audience: NavAudience;
   orgName: string | null;
-  isDepartmentAdmin?: boolean;
   name: string;
   roleLabel: string;
-  showAssistant: boolean;
-  showTour?: boolean;
   children: React.ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
     <div className="flex h-screen overflow-hidden bg-ink-50">
-      <Sidebar
-        role={role}
-        orgName={orgName}
-        isDepartmentAdmin={isDepartmentAdmin}
-        mobileOpen={mobileOpen}
-        onClose={() => setMobileOpen(false)}
-      />
+      <Sidebar audience={audience} orgName={orgName} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar name={name} roleLabel={roleLabel} onMenuClick={() => setMobileOpen(true)} />
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <main className="flex-1 overflow-y-auto pb-24 md:pb-0">{children}</main>
       </div>
-      {showAssistant && <AssistantWidget />}
-      {showTour && <WelcomeTour role={role} />}
+      <MobileTabBar onMenu={() => setMobileOpen(true)} />
     </div>
   );
 }

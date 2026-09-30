@@ -2,26 +2,19 @@
 
 import { useActionState } from "react";
 import { provisionOrganization } from "@/lib/actions/platform-admin";
-import { Field, FieldGrid, FieldSection, Input, Select } from "@/components/ui/Field";
-
-const SIZES = ["1-50", "51-200", "201-1000", "1000+"];
+import { Field, FieldGrid, FieldSection, Input } from "@/components/ui/Field";
+import { InviteResult } from "@/components/team/InviteResult";
 
 export function ProvisionOrgForm({ onDone }: { onDone?: () => void }) {
   const [state, formAction, pending] = useActionState(provisionOrganization, undefined);
 
   if (state?.emailSent || state?.tempPassword) {
     return (
-      <div className="rounded-lg border border-sage bg-sage/20 p-4 text-sm text-sage-deep">
-        <p className="font-medium">Workspace created.</p>
-        {state.emailSent ? (
-          <p className="mt-1">An invite email with a temporary password was sent to the new admin.</p>
-        ) : (
-          <p className="mt-1">
-            Email isn't configured in this environment - share this temporary password directly: <span className="font-mono font-semibold">{state.tempPassword}</span>
-          </p>
-        )}
+      <div className="space-y-3">
+        <p className="text-sm font-medium text-ink-900">Workspace created.</p>
+        <InviteResult result={state} />
         {onDone && (
-          <button onClick={onDone} className="mt-3 text-xs font-medium text-orchid-deep hover:text-oxblood">
+          <button onClick={onDone} className="text-xs font-medium text-orchid-deep hover:text-oxblood">
             Done
           </button>
         )}
@@ -38,20 +31,13 @@ export function ProvisionOrgForm({ onDone }: { onDone?: () => void }) {
             <Input name="companyName" required />
           </Field>
           <Field label="Industry" optional>
-            <Input name="industry" placeholder="Insurance" />
+            <Input name="industry" placeholder="Commercial electrical contracting" />
           </Field>
-          <Field label="Company size" optional>
-            <Select name="size" defaultValue="">
-              <option value="">Not set</option>
-              {SIZES.map((s) => (
-                <option key={s} value={s}>
-                  {s} employees
-                </option>
-              ))}
-            </Select>
+          <Field label="Headcount" optional>
+            <Input name="size" placeholder="e.g. 85" />
           </Field>
           <Field label="Geography" optional>
-            <Input name="geography" placeholder="North America" />
+            <Input name="geography" placeholder="Chicago metro" />
           </Field>
         </FieldGrid>
       </FieldSection>

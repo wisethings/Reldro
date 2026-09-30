@@ -1300,4 +1300,283 @@ CREATE INDEX IF NOT EXISTS "HiddenContent_organizationId_entityType_idx" ON "Hid
 
 DO $$ BEGIN ALTER TABLE "HiddenContent" ADD CONSTRAINT "HiddenContent_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
 
+-- Patch: frontline safety operations tables (idempotent, same rules).
+ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "isSafetyLead" BOOLEAN NOT NULL DEFAULT false;
+
+ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "siteId" TEXT;
+
+CREATE TABLE IF NOT EXISTS "Site" (
+    "id" TEXT NOT NULL,
+    "organizationId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "address" TEXT NOT NULL DEFAULT '',
+    "kind" TEXT NOT NULL DEFAULT 'JOBSITE',
+    "active" BOOLEAN NOT NULL DEFAULT true,
+    "safetyLeadId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Site_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "SafetyReport" (
+    "id" TEXT NOT NULL,
+    "organizationId" TEXT NOT NULL,
+    "number" INTEGER NOT NULL,
+    "type" TEXT NOT NULL,
+    "category" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "description" TEXT NOT NULL,
+    "transcript" TEXT,
+    "siteId" TEXT,
+    "occurredAt" TIMESTAMP(3) NOT NULL,
+    "severity" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'NEW',
+    "privacy" TEXT NOT NULL DEFAULT 'NAMED',
+    "injuryInvolved" BOOLEAN NOT NULL DEFAULT false,
+    "immediateAction" TEXT NOT NULL DEFAULT '',
+    "attachments" JSONB NOT NULL DEFAULT '[]',
+    "reporterId" TEXT,
+    "ownerId" TEXT,
+    "respondBy" TIMESTAMP(3),
+    "acknowledgedAt" TIMESTAMP(3),
+    "aiAssisted" BOOLEAN NOT NULL DEFAULT false,
+    "closedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "SafetyReport_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "ReportEvent" (
+    "id" TEXT NOT NULL,
+    "reportId" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "message" TEXT NOT NULL,
+    "actorName" TEXT NOT NULL DEFAULT '',
+    "actorId" TEXT,
+    "restricted" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ReportEvent_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "Investigation" (
+    "id" TEXT NOT NULL,
+    "reportId" TEXT NOT NULL,
+    "organizationId" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'OPEN',
+    "leadId" TEXT,
+    "facts" TEXT NOT NULL DEFAULT '',
+    "sequenceNotes" TEXT NOT NULL DEFAULT '',
+    "contributingFactors" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "rootCauseNotes" TEXT NOT NULL DEFAULT '',
+    "lessonText" TEXT NOT NULL DEFAULT '',
+    "shareLesson" BOOLEAN NOT NULL DEFAULT false,
+    "openedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "completedAt" TIMESTAMP(3),
+
+    CONSTRAINT "Investigation_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "InvestigationStatement" (
+    "id" TEXT NOT NULL,
+    "investigationId" TEXT NOT NULL,
+    "providedBy" TEXT NOT NULL,
+    "content" TEXT NOT NULL,
+    "addedByName" TEXT NOT NULL DEFAULT '',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "InvestigationStatement_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "InvestigationQuestion" (
+    "id" TEXT NOT NULL,
+    "investigationId" TEXT NOT NULL,
+    "text" TEXT NOT NULL,
+    "answer" TEXT NOT NULL DEFAULT '',
+    "aiDrafted" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "InvestigationQuestion_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "CorrectiveAction" (
+    "id" TEXT NOT NULL,
+    "organizationId" TEXT NOT NULL,
+    "number" INTEGER NOT NULL,
+    "reportId" TEXT,
+    "inspectionId" TEXT,
+    "title" TEXT NOT NULL,
+    "description" TEXT NOT NULL DEFAULT '',
+    "priority" TEXT NOT NULL DEFAULT 'MEDIUM',
+    "status" TEXT NOT NULL DEFAULT 'PROPOSED',
+    "ownerId" TEXT,
+    "dueDate" TIMESTAMP(3),
+    "proposedById" TEXT,
+    "approvedById" TEXT,
+    "approvedAt" TIMESTAMP(3),
+    "completionNotes" TEXT NOT NULL DEFAULT '',
+    "evidence" JSONB NOT NULL DEFAULT '[]',
+    "completedAt" TIMESTAMP(3),
+    "verifiedById" TEXT,
+    "verifiedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CorrectiveAction_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "InspectionTemplate" (
+    "id" TEXT NOT NULL,
+    "organizationId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "kind" TEXT NOT NULL DEFAULT 'SITE_INSPECTION',
+    "items" JSONB NOT NULL DEFAULT '[]',
+    "frequencyDays" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "InspectionTemplate_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "Inspection" (
+    "id" TEXT NOT NULL,
+    "organizationId" TEXT NOT NULL,
+    "templateId" TEXT NOT NULL,
+    "siteId" TEXT NOT NULL,
+    "assigneeId" TEXT,
+    "dueDate" TIMESTAMP(3) NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'SCHEDULED',
+    "results" JSONB NOT NULL DEFAULT '[]',
+    "notes" TEXT NOT NULL DEFAULT '',
+    "completedById" TEXT,
+    "completedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Inspection_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "ToolboxTalk" (
+    "id" TEXT NOT NULL,
+    "organizationId" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "topic" TEXT NOT NULL DEFAULT '',
+    "content" TEXT NOT NULL,
+    "sourceMaterial" TEXT NOT NULL DEFAULT '',
+    "siteId" TEXT,
+    "scheduledFor" TIMESTAMP(3) NOT NULL,
+    "aiDrafted" BOOLEAN NOT NULL DEFAULT false,
+    "createdByName" TEXT NOT NULL DEFAULT '',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ToolboxTalk_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "TalkAcknowledgement" (
+    "id" TEXT NOT NULL,
+    "talkId" TEXT NOT NULL,
+    "employeeId" TEXT NOT NULL,
+    "acknowledgedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "TalkAcknowledgement_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "Qualification" (
+    "id" TEXT NOT NULL,
+    "organizationId" TEXT NOT NULL,
+    "employeeId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "issuedOn" TIMESTAMP(3),
+    "expiresOn" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Qualification_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "EscalationRule" (
+    "id" TEXT NOT NULL,
+    "organizationId" TEXT NOT NULL,
+    "minSeverity" TEXT NOT NULL,
+    "category" TEXT,
+    "siteId" TEXT,
+    "ownerId" TEXT,
+    "respondWithinHours" INTEGER NOT NULL DEFAULT 24,
+    "escalateToId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "EscalationRule_pkey" PRIMARY KEY ("id")
+);
+
+CREATE INDEX IF NOT EXISTS "Site_organizationId_idx" ON "Site"("organizationId");
+
+CREATE INDEX IF NOT EXISTS "SafetyReport_organizationId_status_idx" ON "SafetyReport"("organizationId", "status");
+
+CREATE INDEX IF NOT EXISTS "SafetyReport_siteId_idx" ON "SafetyReport"("siteId");
+
+CREATE UNIQUE INDEX IF NOT EXISTS "SafetyReport_organizationId_number_key" ON "SafetyReport"("organizationId", "number");
+
+CREATE INDEX IF NOT EXISTS "ReportEvent_reportId_idx" ON "ReportEvent"("reportId");
+
+CREATE UNIQUE INDEX IF NOT EXISTS "Investigation_reportId_key" ON "Investigation"("reportId");
+
+CREATE INDEX IF NOT EXISTS "Investigation_organizationId_idx" ON "Investigation"("organizationId");
+
+CREATE INDEX IF NOT EXISTS "InvestigationStatement_investigationId_idx" ON "InvestigationStatement"("investigationId");
+
+CREATE INDEX IF NOT EXISTS "InvestigationQuestion_investigationId_idx" ON "InvestigationQuestion"("investigationId");
+
+CREATE INDEX IF NOT EXISTS "CorrectiveAction_organizationId_status_idx" ON "CorrectiveAction"("organizationId", "status");
+
+CREATE INDEX IF NOT EXISTS "CorrectiveAction_reportId_idx" ON "CorrectiveAction"("reportId");
+
+CREATE UNIQUE INDEX IF NOT EXISTS "CorrectiveAction_organizationId_number_key" ON "CorrectiveAction"("organizationId", "number");
+
+CREATE INDEX IF NOT EXISTS "InspectionTemplate_organizationId_idx" ON "InspectionTemplate"("organizationId");
+
+CREATE INDEX IF NOT EXISTS "Inspection_organizationId_status_idx" ON "Inspection"("organizationId", "status");
+
+CREATE INDEX IF NOT EXISTS "Inspection_siteId_idx" ON "Inspection"("siteId");
+
+CREATE INDEX IF NOT EXISTS "ToolboxTalk_organizationId_idx" ON "ToolboxTalk"("organizationId");
+
+CREATE UNIQUE INDEX IF NOT EXISTS "TalkAcknowledgement_talkId_employeeId_key" ON "TalkAcknowledgement"("talkId", "employeeId");
+
+CREATE INDEX IF NOT EXISTS "Qualification_organizationId_idx" ON "Qualification"("organizationId");
+
+CREATE INDEX IF NOT EXISTS "Qualification_employeeId_idx" ON "Qualification"("employeeId");
+
+CREATE INDEX IF NOT EXISTS "EscalationRule_organizationId_idx" ON "EscalationRule"("organizationId");
+
+DO $$ BEGIN ALTER TABLE "Site" ADD CONSTRAINT "Site_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "SafetyReport" ADD CONSTRAINT "SafetyReport_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "SafetyReport" ADD CONSTRAINT "SafetyReport_siteId_fkey" FOREIGN KEY ("siteId") REFERENCES "Site"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "ReportEvent" ADD CONSTRAINT "ReportEvent_reportId_fkey" FOREIGN KEY ("reportId") REFERENCES "SafetyReport"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "Investigation" ADD CONSTRAINT "Investigation_reportId_fkey" FOREIGN KEY ("reportId") REFERENCES "SafetyReport"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "InvestigationStatement" ADD CONSTRAINT "InvestigationStatement_investigationId_fkey" FOREIGN KEY ("investigationId") REFERENCES "Investigation"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "InvestigationQuestion" ADD CONSTRAINT "InvestigationQuestion_investigationId_fkey" FOREIGN KEY ("investigationId") REFERENCES "Investigation"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "CorrectiveAction" ADD CONSTRAINT "CorrectiveAction_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "CorrectiveAction" ADD CONSTRAINT "CorrectiveAction_reportId_fkey" FOREIGN KEY ("reportId") REFERENCES "SafetyReport"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "InspectionTemplate" ADD CONSTRAINT "InspectionTemplate_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "Inspection" ADD CONSTRAINT "Inspection_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "Inspection" ADD CONSTRAINT "Inspection_templateId_fkey" FOREIGN KEY ("templateId") REFERENCES "InspectionTemplate"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "Inspection" ADD CONSTRAINT "Inspection_siteId_fkey" FOREIGN KEY ("siteId") REFERENCES "Site"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "ToolboxTalk" ADD CONSTRAINT "ToolboxTalk_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "TalkAcknowledgement" ADD CONSTRAINT "TalkAcknowledgement_talkId_fkey" FOREIGN KEY ("talkId") REFERENCES "ToolboxTalk"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "Qualification" ADD CONSTRAINT "Qualification_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+DO $$ BEGIN ALTER TABLE "EscalationRule" ADD CONSTRAINT "EscalationRule_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
 `;

@@ -1,1992 +1,291 @@
-import type { Role } from "@prisma/client";
 import { prisma } from "../src/lib/prisma";
 import { hashPassword } from "../src/lib/auth/password";
-import { computeOrgAdoptionScore, computeFluencyScore } from "../src/lib/scoring";
-import { INTEGRATION_CATALOG } from "../src/lib/data/catalog";
-import { SIMULATION_CATALOG } from "../src/lib/simulationCatalog";
-import { COURSE_CATALOG } from "../src/lib/courseCatalog";
-import { pickIllustration } from "../src/lib/data/illustrations";
-import type { EmployeeSkillCategory } from "../src/lib/scoring";
+import { SCHEMA_SQL } from "../src/lib/schema-sql";
+import { getPack } from "../src/lib/safety/pack";
 
-// Mirrors src/lib/rewards.ts and src/lib/queries/certifications.ts. Duplicated
-// here (rather than imported) because those modules are marked "server-only"
-// for the Next.js app and can't be loaded by this standalone tsx script - see
-// seedRewardActivity below.
-const SEED_POINTS_RULES: Record<string, number> = {
-  course_completed: 50,
-  simulation_completed: 25,
-  simulation_passed: 50,
-  simulation_score_90: 50,
-  simulation_improved_15: 25,
-  certification_ai_practitioner: 100,
-  certification_ai_workflow_builder: 150,
-  certification_ai_champion: 250,
-  workflow_first_adopted: 100,
-  workflow_three_adopted: 150,
-  manager_recognition: 50,
-  peer_recognition: 25,
-};
-
-const SEED_CERTIFICATIONS: {
-  key: string;
-  title: string;
-  description: string;
-  minFluency: number | null;
-  requiredSkills: { skill: EmployeeSkillCategory; minScore: number }[];
-  minCoursesCompleted: number;
-  minSimulationsPassed: number;
-  pointsAwarded: number;
-  order: number;
-}[] = [
-  {
-    key: "ai-practitioner",
-    title: "AI Practitioner",
-    description: "Uses company-approved AI tools and workflows effectively in day-to-day work.",
-    minFluency: 55,
-    requiredSkills: [],
-    minCoursesCompleted: 1,
-    minSimulationsPassed: 1,
-    pointsAwarded: 100,
-    order: 1,
-  },
-  {
-    key: "ai-workflow-builder",
-    title: "AI Workflow Builder",
-    description: "Demonstrates strong workflow judgment and can adapt AI-enabled processes, not just follow them.",
-    minFluency: 70,
-    requiredSkills: [{ skill: "workflowDesign", minScore: 65 }],
-    minCoursesCompleted: 2,
-    minSimulationsPassed: 2,
-    pointsAwarded: 150,
-    order: 2,
-  },
-  {
-    key: "ai-champion",
-    title: "AI Champion",
-    description: "Advanced AI capability with consistently strong evaluation judgment across realistic scenarios.",
-    minFluency: 80,
-    requiredSkills: [{ skill: "evaluation", minScore: 75 }],
-    minCoursesCompleted: 3,
-    minSimulationsPassed: 3,
-    pointsAwarded: 250,
-    order: 3,
-  },
-];
+/**
+ * Demo data for the Frontline Safety Operations product: "Havenbrook", a
+ * fictional mid-size commercial electrical contractor. Every person, report
+ * and number here is invented. Running this WIPES the database's
+ * organizations and users first (it is meant for demo/dev environments).
+ */
 
 const DEMO_PASSWORD = "Demo1234!";
-
-const DEPARTMENTS = ["Claims", "Underwriting", "Customer Service", "Sales", "Marketing", "Finance", "Operations", "HR", "Compliance"] as const;
-
-function monthsAgo(n: number) {
-  const d = new Date();
-  d.setDate(1);
-  d.setHours(0, 0, 0, 0);
-  d.setMonth(d.getMonth() - n);
+const day = 86400_000;
+const daysAgo = (n: number, hour = 9) => {
+  const d = new Date(Date.now() - n * day);
+  d.setHours(hour, 15, 0, 0);
   return d;
-}
+};
+const daysFromNow = (n: number) => new Date(Date.now() + n * day);
 
-function pick<T>(arr: readonly T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
+async function ensureSchema() {
+  // Same idempotent patch the app applies on boot, so this works against a fresh or older database.
+  const statements = SCHEMA_SQL.split(";\n").map((s) => s.trim()).filter(Boolean);
+  for (const statement of statements) {
+    try {
+      await prisma.$executeRawUnsafe(statement);
+    } catch (e) {
+      const m = String(e);
+      if (!m.includes("42710") && !m.includes("42P07")) throw e;
+    }
+  }
 }
 
 async function clearDatabase() {
-  const tables = [
-    "AuditLog",
-    "Notification",
-    "MarketplaceTransaction",
-    "Invoice",
-    "Subscription",
-    "ROIMetric",
-    "AdoptionMetricSnapshot",
-    "AIUsageEvent",
-    "IntegrationConnection",
-    "Integration",
-    "Review",
-    "Message",
-    "ProjectDeliverable",
-    "ProjectMilestone",
-    "ProjectTask",
-    "Project",
-    "InitiativeWorkflow",
-    "InitiativeMember",
-    "Initiative",
-    "Opportunity",
-    "OrganizationWorkflow",
-    "WorkflowStep",
-    "Workflow",
-    "SimulationAttempt",
-    "Simulation",
-    "LessonCompletion",
-    "Lesson",
-    "Course",
-    "LearningPath",
-    "EmployeeSkill",
-    "Skill",
-    "AssessmentResponse",
-    "Assessment",
-    "SpecialistService",
-    "SpecialistTag",
-    "Specialist",
-    "Employee",
-    "User",
-    "Department",
-    "Organization",
-  ];
-  for (const table of tables) {
-    // @ts-expect-error dynamic model access for cleanup
-    await prisma[table.charAt(0).toLowerCase() + table.slice(1)].deleteMany();
-  }
+  await prisma.$executeRawUnsafe(`TRUNCATE TABLE "Organization", "User" RESTART IDENTITY CASCADE`);
 }
 
-async function seedIntegrations() {
-  const created = [];
-  for (const i of INTEGRATION_CATALOG) {
-    created.push(await prisma.integration.create({ data: { key: i.key, name: i.name, category: i.category, description: i.description, logoKey: i.key } }));
-  }
-  return created;
-}
+type Person = { key: string; name: string; email: string; title: string; crew: string; site: string | null; supervisor?: boolean; safetyLead?: boolean };
 
-type WorkflowSeed = {
-  title: string;
-  department: string;
-  industryTags: string[];
-  summary: string;
-  currentProcess: string;
-  aiProcess: string;
-  timeSavedMinutes: number;
-  difficulty: "LOW" | "MEDIUM" | "HIGH";
-  skillLevel: string;
-  toolsRequired: string[];
-  skillsRequired: string[];
-  securityNotes?: string;
-  trainingNotes?: string;
-  steps: { title: string; description: string; aiPrompt?: string; humanCheckpoint?: boolean }[];
-};
-
-const WORKFLOW_SEEDS: WorkflowSeed[] = [
-  {
-    title: "AI-Assisted Claims Document Processing",
-    department: "Claims",
-    industryTags: ["Insurance", "Financial services"],
-    summary: "Extract key facts from claim documents, flag discrepancies, and draft adjuster notes.",
-    currentProcess: "Adjusters manually read every document in a claim file (police reports, estimates, statements) to build their case summary.",
-    aiProcess: "AI extracts key facts from claim documents, flags discrepancies between sources, and drafts a structured summary for adjuster review.",
-    timeSavedMinutes: 35,
-    difficulty: "MEDIUM",
-    skillLevel: "Intermediate",
-    toolsRequired: ["Claims Portal", "ChatGPT"],
-    skillsRequired: ["Prompting", "Evaluation"],
-    securityNotes: "Claim documents contain policyholder medical and financial details. Only use the Claims Portal's built-in assistant, which is covered by Havenbrook's data processing agreement.",
-    trainingNotes: "Adjusters need a session on requiring AI to flag discrepancies explicitly rather than silently resolving them.",
-    steps: [
-      { title: "Claim file received", description: "A new claim file with supporting documents is assigned to an adjuster." },
-      { title: "AI extracts key facts", description: "AI pulls key facts from each document with page references.", aiPrompt: "Extract the key facts from this claim document, citing the page or section for each." },
-      { title: "AI flags discrepancies", description: "AI flags any contradicting facts, dates, or figures across documents." },
-      { title: "AI drafts case summary", description: "AI drafts a structured summary for the adjuster's notes.", aiPrompt: "Draft a case summary from these extracted facts, clearly marking anything unresolved." },
-      { title: "Adjuster reviews and finalizes", description: "The adjuster resolves flagged discrepancies and finalizes the file.", humanCheckpoint: true },
-    ],
-  },
-  {
-    title: "Claims Triage & Routing",
-    department: "Claims",
-    industryTags: ["Insurance"],
-    summary: "Automatically classify incoming claims by type and severity and route to the right adjuster queue.",
-    currentProcess: "A triage adjuster manually reads every incoming claim and routes it to the correct queue based on type and severity.",
-    aiProcess: "AI classifies claim type, severity, and potential fraud signals, then auto-routes it, flagging high-severity claims for immediate attention.",
-    timeSavedMinutes: 15,
-    difficulty: "MEDIUM",
-    skillLevel: "Intermediate",
-    toolsRequired: ["Claims Portal"],
-    skillsRequired: ["Workflow design"],
-    steps: [
-      { title: "Claim submitted", description: "A new claim enters the intake queue." },
-      { title: "AI classifies type and severity", description: "AI tags the claim by type and estimated severity.", aiPrompt: "Classify this claim's type and severity (low/medium/high)." },
-      { title: "Auto-route to adjuster queue", description: "The claim routes automatically to the right adjuster team." },
-      { title: "Supervisor spot-checks high-severity claims", description: "A supervisor reviews any claim flagged high-severity.", humanCheckpoint: true },
-    ],
-  },
-  {
-    title: "AI-Assisted Underwriting Research",
-    department: "Underwriting",
-    industryTags: ["Insurance", "Financial services"],
-    summary: "Research a commercial applicant's public risk profile and draft a source-cited summary.",
-    currentProcess: "Underwriters manually research an applicant's safety record, litigation history, and financial stability signals.",
-    aiProcess: "AI gathers public risk signals about an applicant with sources cited; the underwriter verifies and makes the pricing decision.",
-    timeSavedMinutes: 40,
-    difficulty: "MEDIUM",
-    skillLevel: "Intermediate",
-    toolsRequired: ["ChatGPT", "Power BI"],
-    skillsRequired: ["Prompting", "Evaluation"],
-    trainingNotes: "Underwriters need training on the difference between 'no evidence found' and a confirmed clean record.",
-    steps: [
-      { title: "Application received", description: "A new commercial insurance application enters the underwriting queue." },
-      { title: "AI researches public risk signals", description: "AI gathers safety, litigation, and financial stability signals with sources cited.", aiPrompt: "Research this business's public safety record, litigation history, and financial signals, citing sources for each finding." },
-      { title: "Underwriter verifies findings", description: "The underwriter checks cited sources before including any finding in the risk profile.", humanCheckpoint: true },
-      { title: "Pricing decision made", description: "The underwriter finalizes the risk profile and pricing." },
-    ],
-  },
-  {
-    title: "Policy Renewal Risk Review",
-    department: "Underwriting",
-    industryTags: ["Insurance"],
-    summary: "Draft a renewal risk review from the past year's claims and account activity.",
-    currentProcess: "Underwriters manually review a policy's claims history and account changes ahead of each renewal.",
-    aiProcess: "AI drafts a first-pass renewal risk summary from the account's claims history and activity; the underwriter verifies and decides.",
-    timeSavedMinutes: 30,
-    difficulty: "MEDIUM",
-    skillLevel: "Intermediate",
-    toolsRequired: ["ChatGPT", "Power BI"],
-    skillsRequired: ["Evaluation"],
-    steps: [
-      { title: "Renewal window opens", description: "A policy enters its renewal review window." },
-      { title: "AI drafts the risk review", description: "AI summarizes claims history and account changes since the last renewal.", aiPrompt: "Summarize this account's claims history and any changes since the last renewal." },
-      { title: "Underwriter reviews and decides", description: "The underwriter verifies the summary and makes the renewal pricing decision.", humanCheckpoint: true },
-    ],
-  },
-  {
-    title: "AI-Assisted Policy & Claims Inquiry Response",
-    department: "Customer Service",
-    industryTags: ["Insurance", "Financial services"],
-    summary: "Draft accurate responses to policyholder questions about coverage and claim status.",
-    currentProcess: "Representatives manually look up policy terms and claim status, then write a response from scratch.",
-    aiProcess: "AI drafts a response referencing the policyholder's actual policy terms and claim status, flagged for verification before sending.",
-    timeSavedMinutes: 18,
-    difficulty: "MEDIUM",
-    skillLevel: "Intermediate",
-    toolsRequired: ["Claims Portal", "Claude"],
-    skillsRequired: ["Prompting", "Evaluation"],
-    securityNotes: "Never let a draft state or imply a coverage decision that hasn't actually been made or approved.",
-    steps: [
-      { title: "Inquiry received", description: "A policyholder contacts customer service about a policy or claim question." },
-      { title: "AI pulls policy and claim details", description: "AI retrieves the actual policy terms and claim status from the Claims Portal." },
-      { title: "AI drafts a response", description: "AI drafts a response referencing the specific policy and claim details.", aiPrompt: "Draft a response to this policyholder inquiry using their actual policy terms and claim status." },
-      { title: "Representative reviews and sends", description: "The representative verifies accuracy and sends.", humanCheckpoint: true },
-    ],
-  },
-  {
-    title: "AI-Assisted Insurance Sales Prospecting",
-    department: "Sales",
-    industryTags: ["Insurance", "Financial services"],
-    summary: "Research prospects, draft personalized outreach, and pre-fill CRM records.",
-    currentProcess: "Agents manually research each prospect, draft outreach emails, and enter notes into the CRM.",
-    aiProcess: "AI researches the prospect's business, drafts a personalized outreach email, and pre-fills CRM fields for agent approval.",
-    timeSavedMinutes: 35,
-    difficulty: "MEDIUM",
-    skillLevel: "Intermediate",
-    toolsRequired: ["Salesforce", "ChatGPT"],
-    skillsRequired: ["Prompting", "Workflow design"],
-    trainingNotes: "Agents should learn how to verify AI-researched facts before sending outreach.",
-    steps: [
-      { title: "Agent receives inbound lead", description: "A new commercial insurance lead enters the pipeline." },
-      { title: "AI researches the business", description: "AI gathers public information about the prospect's business and risk profile.", aiPrompt: "Research this business and summarize their size, industry, and insurance needs." },
-      { title: "AI drafts personalized outreach", description: "AI writes a first-draft outreach email referencing the research.", aiPrompt: "Draft a personalized outreach email using the research above." },
-      { title: "Agent reviews and approves", description: "The agent edits and approves the draft before sending.", humanCheckpoint: true },
-      { title: "CRM is updated", description: "Account and activity fields are updated automatically in Salesforce." },
-    ],
-  },
-  {
-    title: "Quote Proposal Drafting",
-    department: "Sales",
-    industryTags: ["Insurance"],
-    summary: "Draft first-pass insurance quote proposals from a coverage content library.",
-    currentProcess: "Agents manually assemble quote proposals from a shared content library, copy-pasting relevant coverage sections.",
-    aiProcess: "AI drafts a first-pass quote proposal from the coverage content library; agents customize and finalize it.",
-    timeSavedMinutes: 40,
-    difficulty: "MEDIUM",
-    skillLevel: "Intermediate",
-    toolsRequired: ["Salesforce", "ChatGPT"],
-    skillsRequired: ["Prompting", "Evaluation"],
-    steps: [
-      { title: "Quote request received", description: "A prospect requests a quote for a specific coverage need." },
-      { title: "AI drafts proposal from content library", description: "AI matches the coverage need to existing approved proposal content.", aiPrompt: "Draft a quote proposal for these coverage needs using our approved content library." },
-      { title: "Agent customizes and finalizes", description: "The agent edits the draft for this specific prospect.", humanCheckpoint: true },
-    ],
-  },
-  {
-    title: "AI-Generated Campaign Briefs & Copy Drafts",
-    department: "Marketing",
-    industryTags: ["Insurance", "Financial services"],
-    summary: "Draft campaign briefs and channel-specific copy from a single input brief.",
-    currentProcess: "Marketers draft campaign briefs and first-pass copy manually for every channel.",
-    aiProcess: "AI drafts a campaign brief and channel-specific copy variants from a single input brief for marketer review.",
-    timeSavedMinutes: 40,
-    difficulty: "LOW",
-    skillLevel: "Beginner",
-    toolsRequired: ["Microsoft 365", "Claude"],
-    skillsRequired: ["Prompting"],
-    securityNotes: "Any coverage or guarantee-style language in AI-drafted copy must be routed through compliance before it ships.",
-    steps: [
-      { title: "Campaign kickoff", description: "Marketer defines the campaign goal and audience." },
-      { title: "AI drafts the campaign brief", description: "AI expands the goal into a structured brief.", aiPrompt: "Turn this campaign goal into a structured campaign brief." },
-      { title: "AI drafts channel copy", description: "AI generates copy variants for email, social, and web.", aiPrompt: "Draft 3 copy variants for email and social based on this brief." },
-      { title: "Marketer and compliance review", description: "Marketer edits copy and compliance reviews any coverage language before approval.", humanCheckpoint: true },
-    ],
-  },
-  {
-    title: "Competitive & Market Intelligence Briefs",
-    department: "Marketing",
-    industryTags: ["Insurance", "Financial services"],
-    summary: "Monitor competitor rates and market moves, and draft a monthly intelligence brief.",
-    currentProcess: "Marketing manually tracks competitor rate filings and market moves and compiles a brief once a month.",
-    aiProcess: "AI monitors public competitor and market signals and drafts a monthly brief for marketing and product review.",
-    timeSavedMinutes: 25,
-    difficulty: "LOW",
-    skillLevel: "Beginner",
-    toolsRequired: ["Claude"],
-    skillsRequired: ["Evaluation"],
-    steps: [
-      { title: "Signals collected", description: "Public competitor and market signals (rate filings, launches, press) are gathered." },
-      { title: "AI drafts the brief", description: "AI synthesizes signals into a structured brief.", aiPrompt: "Summarize this month's competitor and market signals into a one-page brief." },
-      { title: "Marketer reviews and distributes", description: "Marketer fact-checks and shares with the team.", humanCheckpoint: true },
-    ],
-  },
-  {
-    title: "AI-Assisted Financial Reporting Narratives",
-    department: "Finance",
-    industryTags: ["Insurance", "Financial services"],
-    summary: "Draft the narrative and loss-ratio variance commentary for monthly financial reports.",
-    currentProcess: "Finance analysts manually write commentary for monthly loss-ratio and budget reports.",
-    aiProcess: "AI drafts the narrative and variance commentary directly from the numbers; analysts confirm the cause with claims or underwriting and finalize.",
-    timeSavedMinutes: 30,
-    difficulty: "MEDIUM",
-    skillLevel: "Intermediate",
-    toolsRequired: ["Power BI", "ChatGPT"],
-    skillsRequired: ["Evaluation", "AI safety"],
-    securityNotes: "Financial figures should only be shared with AI tools approved under Havenbrook's data governance policy.",
-    steps: [
-      { title: "Monthly close completes", description: "Finance closes the books for the month." },
-      { title: "AI drafts variance commentary", description: "AI writes commentary explaining month-over-month loss-ratio changes.", aiPrompt: "Draft variance commentary explaining these loss-ratio changes." },
-      { title: "Analyst confirms cause and finalizes", description: "An analyst confirms the actual cause with claims/underwriting and finalizes the narrative.", humanCheckpoint: true },
-    ],
-  },
-  {
-    title: "Expense Anomaly Detection",
-    department: "Finance",
-    industryTags: ["Insurance", "Financial services"],
-    summary: "Flag unusual expenses for review before they're approved.",
-    currentProcess: "Finance manually spot-checks expense reports for anomalies.",
-    aiProcess: "AI flags unusual expenses against historical patterns for finance review before approval.",
-    timeSavedMinutes: 18,
-    difficulty: "MEDIUM",
-    skillLevel: "Intermediate",
-    toolsRequired: ["Power BI"],
-    skillsRequired: ["Automation"],
-    steps: [
-      { title: "Expense submitted", description: "An employee submits an expense report." },
-      { title: "AI flags anomalies", description: "AI compares the expense against historical patterns and flags outliers." },
-      { title: "Finance reviews flagged items", description: "Finance reviews only the flagged subset instead of every report.", humanCheckpoint: true },
-    ],
-  },
-  {
-    title: "Internal Knowledge Management Assistant",
-    department: "Operations",
-    industryTags: ["Insurance", "Financial services"],
-    summary: "Answer internal procedure questions from Havenbrook's own SOPs, with a citation.",
-    currentProcess: "Employees ask senior staff the same recurring procedural questions, or rely on their own possibly outdated memory of the SOP.",
-    aiProcess: "AI searches Havenbrook's internal SOP documents and answers procedural questions with a section citation for verification.",
-    timeSavedMinutes: 20,
-    difficulty: "LOW",
-    skillLevel: "Beginner",
-    toolsRequired: ["Microsoft 365", "Claude"],
-    skillsRequired: ["Evaluation", "Automation"],
-    trainingNotes: "Staff need to check that a cited SOP section is the current version, not a superseded one.",
-    steps: [
-      { title: "Question asked", description: "An employee has a procedural question they're not fully sure of." },
-      { title: "AI searches internal SOPs", description: "AI searches the actual SOP documents and drafts an answer with a section citation.", aiPrompt: "Answer this procedure question using only our internal SOP documents, and cite the specific section." },
-      { title: "Employee confirms currency", description: "The employee checks that the cited section reflects the current policy version.", humanCheckpoint: true },
-    ],
-  },
-  {
-    title: "AI-Assisted Job Descriptions & Resume Screening",
-    department: "HR",
-    industryTags: ["Insurance", "Financial services"],
-    summary: "Draft job descriptions and pre-screen resumes against role criteria.",
-    currentProcess: "Recruiters write job descriptions from scratch and manually screen every resume.",
-    aiProcess: "AI drafts job descriptions and pre-screens resumes against role criteria for recruiter review.",
-    timeSavedMinutes: 28,
-    difficulty: "LOW",
-    skillLevel: "Beginner",
-    toolsRequired: ["Microsoft 365", "ChatGPT"],
-    skillsRequired: ["Prompting"],
-    securityNotes: "Screening criteria should be reviewed for bias before deployment.",
-    steps: [
-      { title: "Role opens", description: "A hiring manager requests a new role (e.g. Claims Adjuster, Underwriter)." },
-      { title: "AI drafts the job description", description: "AI writes a first-draft JD from role requirements.", aiPrompt: "Draft a job description for this role and level." },
-      { title: "AI pre-screens resumes", description: "AI scores incoming resumes against the written role criteria." },
-      { title: "Recruiter reviews shortlist", description: "Recruiter reviews the AI-shortlisted candidates and spot-checks rejections.", humanCheckpoint: true },
-    ],
-  },
-  {
-    title: "AI-Assisted Regulatory Compliance Review",
-    department: "Compliance",
-    industryTags: ["Insurance", "Financial services"],
-    summary: "Flag potentially non-compliant marketing and communications language before it ships.",
-    currentProcess: "Compliance manually reads every piece of marketing and policyholder communication against state regulatory guidelines.",
-    aiProcess: "AI compares copy against state-specific regulatory guidelines and flags potential issues for a compliance officer's final decision.",
-    timeSavedMinutes: 30,
-    difficulty: "HIGH",
-    skillLevel: "Advanced",
-    toolsRequired: ["ChatGPT"],
-    skillsRequired: ["Evaluation", "AI safety"],
-    securityNotes: "AI may only flag potential issues. A licensed compliance officer must make the final release decision, especially across multiple states.",
-    steps: [
-      { title: "Copy submitted for review", description: "Marketing or communications submits copy ahead of a multi-state launch." },
-      { title: "AI flags potential issues", description: "AI compares the copy against state-specific regulatory guidelines and flags risky language.", aiPrompt: "Flag any language in this copy that may conflict with our state insurance marketing guidelines." },
-      { title: "Compliance officer decides", description: "A licensed compliance officer reviews flagged items and makes the final call.", humanCheckpoint: true },
-    ],
-  },
-  {
-    title: "Contract & Policy Language Review",
-    department: "Legal",
-    industryTags: ["Insurance", "Legal", "Financial services"],
-    summary: "Flag non-standard clauses in incoming vendor contracts before legal review.",
-    currentProcess: "Legal manually reads every incoming contract line by line to find non-standard terms.",
-    aiProcess: "AI flags non-standard or high-risk clauses against Havenbrook's playbook before legal review.",
-    timeSavedMinutes: 55,
-    difficulty: "HIGH",
-    skillLevel: "Advanced",
-    toolsRequired: ["ChatGPT"],
-    skillsRequired: ["Evaluation", "AI safety"],
-    securityNotes: "Vendor contracts, especially claims-data vendors, contain confidential terms. Only use AI tools covered by a signed data processing agreement.",
-    steps: [
-      { title: "Contract received", description: "A new vendor contract arrives for review." },
-      { title: "AI flags non-standard clauses", description: "AI compares clauses against the approved playbook.", aiPrompt: "Flag any clauses in this contract that deviate from our standard playbook." },
-      { title: "Attorney reviews flagged clauses", description: "An attorney reviews only the flagged sections in depth and decides on risk.", humanCheckpoint: true },
-    ],
-  },
-  {
-    title: "AI-Assisted Board Reporting",
-    department: "Executive",
-    industryTags: ["Insurance", "Financial services"],
-    summary: "Draft board-ready summaries from operating metrics across departments.",
-    currentProcess: "Executives and their teams manually compile a board deck narrative from department updates.",
-    aiProcess: "AI drafts a first-pass board narrative from department metrics, executives verify every figure and finalize.",
-    timeSavedMinutes: 65,
-    difficulty: "MEDIUM",
-    skillLevel: "Intermediate",
-    toolsRequired: ["Microsoft 365", "Claude"],
-    skillsRequired: ["Evaluation"],
-    steps: [
-      { title: "Department updates compiled", description: "Metrics and updates are gathered from claims, underwriting, sales, compliance, and IT." },
-      { title: "AI drafts the narrative", description: "AI writes a first-pass board narrative from the metrics.", aiPrompt: "Draft a board-ready narrative summarizing these department updates." },
-      { title: "Executive team verifies and finalizes", description: "The executive team traces every figure to its source before finalizing.", humanCheckpoint: true },
-    ],
-  },
-  {
-    title: "AI Code Review Assistant",
-    department: "IT",
-    industryTags: ["Insurance"],
-    summary: "Get an AI first-pass review on Claims Portal pull requests before human review.",
-    currentProcess: "Every pull request to the Claims Portal waits for a human reviewer to check style, bugs, and test coverage.",
-    aiProcess: "AI reviews the diff first for bugs, style, and missing tests, then a human reviewer focuses on design.",
-    timeSavedMinutes: 20,
-    difficulty: "MEDIUM",
-    skillLevel: "Intermediate",
-    toolsRequired: ["ChatGPT"],
-    skillsRequired: ["Evaluation", "Automation"],
-    steps: [
-      { title: "PR opened", description: "An engineer opens a pull request against the Claims Portal." },
-      { title: "AI reviews the diff", description: "AI flags likely bugs, style issues, and missing test coverage." },
-      { title: "Human reviewer focuses on design", description: "A human reviewer focuses on architecture and design decisions.", humanCheckpoint: true },
-    ],
-  },
+const PEOPLE: Person[] = [
+  { key: "maria", name: "Maria Delgado", email: "maria.delgado@havenbrook.com", title: "Safety Manager", crew: "Office", site: "shop", safetyLead: true },
+  { key: "kevin", name: "Kevin Park", email: "kevin.park@havenbrook.com", title: "Site Safety Coordinator", crew: "Office", site: "lakeshore", safetyLead: true },
+  { key: "tom", name: "Tom Brennan", email: "tom.brennan@havenbrook.com", title: "General Foreman", crew: "Prewire Crew", site: "riverside", supervisor: true },
+  { key: "danielle", name: "Danielle Okafor", email: "danielle.okafor@havenbrook.com", title: "Foreman", crew: "Service & Maintenance", site: "lakeshore", supervisor: true },
+  { key: "luis", name: "Luis Ortega", email: "luis.ortega@havenbrook.com", title: "Shop Supervisor", crew: "Fabrication Shop", site: "shop", supervisor: true },
+  { key: "priya", name: "Priya Shah", email: "priya.shah@havenbrook.com", title: "Journeyman Electrician", crew: "Prewire Crew", site: "riverside" },
+  { key: "marcus", name: "Marcus Bennett", email: "marcus.bennett@havenbrook.com", title: "Journeyman Electrician", crew: "Prewire Crew", site: "riverside" },
+  { key: "sofia", name: "Sofia Rossi", email: "sofia.rossi@havenbrook.com", title: "Apprentice Electrician", crew: "Prewire Crew", site: "riverside" },
+  { key: "james", name: "James Coleman", email: "james.coleman@havenbrook.com", title: "Journeyman Electrician", crew: "Prewire Crew", site: "riverside" },
+  { key: "wei", name: "Wei Zhang", email: "wei.zhang@havenbrook.com", title: "Electrician", crew: "Service & Maintenance", site: "lakeshore" },
+  { key: "isabella", name: "Isabella Ferreira", email: "isabella.ferreira@havenbrook.com", title: "Apprentice Electrician", crew: "Service & Maintenance", site: "lakeshore" },
+  { key: "noah", name: "Noah Park", email: "noah.park@havenbrook.com", title: "Journeyman Electrician", crew: "Service & Maintenance", site: "lakeshore" },
+  { key: "fatima", name: "Fatima Haddad", email: "fatima.haddad@havenbrook.com", title: "Fire Alarm Technician", crew: "Service & Maintenance", site: "lakeshore" },
+  { key: "liam", name: "Liam O'Brien", email: "liam.obrien@havenbrook.com", title: "Fabricator", crew: "Fabrication Shop", site: "shop" },
+  { key: "aiko", name: "Aiko Tanaka", email: "aiko.tanaka@havenbrook.com", title: "Fabricator", crew: "Fabrication Shop", site: "shop" },
+  { key: "daniel", name: "Daniel Silva", email: "daniel.silva@havenbrook.com", title: "Warehouse Lead", crew: "Fabrication Shop", site: "shop" },
+  { key: "grace", name: "Grace Murphy", email: "grace.murphy@havenbrook.com", title: "Electrician", crew: "Prewire Crew", site: "northgate" },
+  { key: "mateo", name: "Mateo Alvarez", email: "mateo.alvarez@havenbrook.com", title: "Apprentice Electrician", crew: "Prewire Crew", site: "northgate" },
 ];
-
-async function seedWorkflows() {
-  const created = [];
-  for (const w of WORKFLOW_SEEDS) {
-    created.push(
-      await prisma.workflow.create({
-        data: {
-          title: w.title,
-          department: w.department,
-          industryTags: w.industryTags,
-          summary: w.summary,
-          currentProcess: w.currentProcess,
-          aiProcess: w.aiProcess,
-          timeSavedMinutes: w.timeSavedMinutes,
-          difficulty: w.difficulty,
-          skillLevel: w.skillLevel,
-          toolsRequired: w.toolsRequired,
-          skillsRequired: w.skillsRequired,
-          securityNotes: w.securityNotes,
-          trainingNotes: w.trainingNotes,
-          steps: {
-            create: w.steps.map((s, i) => ({
-              order: i + 1,
-              title: s.title,
-              description: s.description,
-              aiPrompt: s.aiPrompt,
-              humanCheckpoint: s.humanCheckpoint ?? false,
-              imageUrl: pickIllustration(`${s.title} ${s.description} ${w.title}`),
-            })),
-          },
-        },
-      })
-    );
-  }
-  return created;
-}
-
-async function seedCoursesAndLessons(workflows: Awaited<ReturnType<typeof seedWorkflows>>) {
-  for (const c of COURSE_CATALOG) {
-    const workflow = workflows.find((w) => w.title === c.workflowTitle);
-    await prisma.course.create({
-      data: {
-        title: c.title,
-        description: c.description,
-        department: c.department,
-        workflowId: workflow?.id,
-        role: c.role,
-        skills: c.skills,
-        tools: c.tools,
-        lessons: {
-          create: c.lessons.map((l, i) => ({
-            order: i + 1,
-            ...l,
-            imageUrl: pickIllustration(`${l.title} ${c.title} ${c.skills.join(" ")}`),
-          })),
-        },
-      },
-    });
-  }
-}
-
-async function seedSimulations() {
-  return prisma.simulation.createMany({ data: SIMULATION_CATALOG, skipDuplicates: true });
-}
-
-const SPECIALIST_SEEDS = [
-  {
-    email: "maya@reldro-specialists.com",
-    name: "Maya Johnson",
-    headline: "AI Marketing & Automation Specialist",
-    bio: "I help consumer brands and agencies fold AI into their marketing operations, from campaign briefs to lifecycle automation, without losing brand voice. 8 years in marketing ops, the last 4 focused entirely on AI-assisted workflows.",
-    yearsExperience: 8,
-    hourlyRate: 175,
-    availability: "Available now",
-    location: "Austin, TX",
-    ratingAvg: 4.9,
-    ratingCount: 38,
-    completedProjects: 42,
-    approved: true,
-    featured: true,
-    industries: ["Retail", "Consumer products (CPG)", "Marketing agency"],
-    functions: ["Marketing"],
-    tools: ["HubSpot", "Claude", "ChatGPT"],
-    certifications: ["HubSpot Certified"],
-    services: [
-      { name: "AI Marketing Workflow Audit", description: "A 2-week audit of your marketing workflows with a prioritized AI adoption roadmap.", priceType: "PROJECT" as const, price: 6500 },
-      { name: "Campaign Automation Build", description: "End-to-end build of an AI-assisted campaign brief-to-copy workflow.", priceType: "PROJECT" as const, price: 12000 },
-    ],
-  },
-  {
-    email: "david.chen@reldro-specialists.com",
-    name: "David Chen",
-    headline: "AI Sales & RevOps Specialist",
-    bio: "Former RevOps lead turned AI implementation consultant. I build AI-assisted prospecting, CRM enrichment, and forecasting workflows for B2B sales teams.",
-    yearsExperience: 6,
-    hourlyRate: 150,
-    availability: "2 weeks out",
-    location: "Chicago, IL",
-    ratingAvg: 4.8,
-    ratingCount: 24,
-    completedProjects: 31,
-    approved: true,
-    featured: false,
-    industries: ["Technology", "Financial services"],
-    functions: ["Sales", "RevOps"],
-    tools: ["Salesforce", "ChatGPT", "Claude"],
-    certifications: ["Salesforce Certified Administrator"],
-    services: [
-      { name: "AI Prospecting Workflow Setup", description: "Set up AI-assisted research and outreach drafting inside your CRM.", priceType: "PROJECT" as const, price: 9000 },
-    ],
-  },
-  {
-    email: "amara@reldro-specialists.com",
-    name: "Amara Okafor",
-    headline: "AI Automation & Workflow Consultant",
-    bio: "I design and implement AI-powered automation across operations, from demand forecasting to procurement, for manufacturing and retail companies with complex supply chains.",
-    yearsExperience: 10,
-    hourlyRate: 195,
-    availability: "Available now",
-    location: "Toronto, ON",
-    ratingAvg: 5.0,
-    ratingCount: 47,
-    completedProjects: 55,
-    approved: true,
-    featured: true,
-    industries: ["Manufacturing", "Retail", "Consumer products (CPG)"],
-    functions: ["Operations"],
-    tools: ["OpenAI", "Notion", "Excel"],
-    certifications: [],
-    services: [
-      { name: "Demand Forecasting AI Pilot", description: "A 6-week pilot integrating AI-assisted forecasting into your planning process.", priceType: "PROJECT" as const, price: 18000 },
-    ],
-  },
-  {
-    email: "priya.n@reldro-specialists.com",
-    name: "Priya Natarajan",
-    headline: "AI Customer Support Specialist",
-    bio: "I help support teams deploy AI-assisted triage, summarization, and response drafting without sacrificing customer experience.",
-    yearsExperience: 5,
-    hourlyRate: 140,
-    availability: "Available now",
-    location: "Remote",
-    ratingAvg: 4.7,
-    ratingCount: 16,
-    completedProjects: 22,
-    approved: true,
-    featured: false,
-    industries: ["Technology", "Consumer products (CPG)"],
-    functions: ["Customer Support"],
-    tools: ["Zendesk", "Claude"],
-    certifications: [],
-    services: [
-      { name: "Support AI Rollout", description: "End-to-end rollout of AI-assisted summarization and response drafting.", priceType: "PROJECT" as const, price: 11000 },
-    ],
-  },
-  {
-    email: "tom.reilly@reldro-specialists.com",
-    name: "Tom Reilly",
-    headline: "AI Finance & Data Specialist",
-    bio: "I bring AI into FP&A workflows, including reporting narratives, anomaly detection, and forecasting, for mid-market finance teams.",
-    yearsExperience: 7,
-    hourlyRate: 165,
-    availability: "Booked",
-    location: "Boston, MA",
-    ratingAvg: 4.6,
-    ratingCount: 12,
-    completedProjects: 18,
-    approved: true,
-    featured: false,
-    industries: ["Financial services", "Professional services"],
-    functions: ["Finance"],
-    tools: ["QuickBooks", "OpenAI"],
-    certifications: ["CFA Level II"],
-    services: [
-      { name: "Finance Reporting AI Setup", description: "Set up AI-drafted variance commentary for monthly reporting.", priceType: "PROJECT" as const, price: 8000 },
-    ],
-  },
-  {
-    email: "elena.petrova@reldro-specialists.com",
-    name: "Elena Petrova",
-    headline: "AI Agent Builder",
-    bio: "I design and build custom AI agents and internal tools for engineering and product teams looking to go beyond off-the-shelf assistants.",
-    yearsExperience: 9,
-    hourlyRate: 210,
-    availability: "2 weeks out",
-    location: "Berlin, Germany",
-    ratingAvg: 4.9,
-    ratingCount: 9,
-    completedProjects: 12,
-    approved: false,
-    featured: false,
-    industries: ["Technology"],
-    functions: ["Engineering"],
-    tools: ["OpenAI", "Anthropic"],
-    certifications: [],
-    services: [
-      { name: "Custom AI Agent Build", description: "Design and build a custom internal AI agent for a specific workflow.", priceType: "PROJECT" as const, price: 25000 },
-    ],
-  },
-];
-
-async function seedSpecialists() {
-  const created = [];
-  for (const s of SPECIALIST_SEEDS) {
-    const user = await prisma.user.create({
-      data: { email: s.email, name: s.name, passwordHash: await hashPassword(DEMO_PASSWORD), role: "SPECIALIST" as Role },
-    });
-    const specialist = await prisma.specialist.create({
-      data: {
-        userId: user.id,
-        headline: s.headline,
-        bio: s.bio,
-        yearsExperience: s.yearsExperience,
-        hourlyRate: s.hourlyRate,
-        availability: s.availability,
-        location: s.location,
-        ratingAvg: s.ratingAvg,
-        ratingCount: s.ratingCount,
-        completedProjects: s.completedProjects,
-        approved: s.approved,
-        featured: s.featured,
-        tags: {
-          create: [
-            ...s.industries.map((v) => ({ type: "INDUSTRY" as const, value: v })),
-            ...s.functions.map((v) => ({ type: "FUNCTION" as const, value: v })),
-            ...s.tools.map((v) => ({ type: "TOOL" as const, value: v })),
-            ...s.certifications.map((v) => ({ type: "CERTIFICATION" as const, value: v })),
-          ],
-        },
-        services: { create: s.services },
-      },
-    });
-    created.push(specialist);
-  }
-  return created;
-}
-
-async function seedPlatformAdmin() {
-  return prisma.user.create({
-    data: {
-      email: "platform@reldro.com",
-      name: "Reldro Platform Team",
-      passwordHash: await hashPassword(DEMO_PASSWORD),
-      role: "PLATFORM_ADMIN",
-    },
-  });
-}
-
-const FIRST_NAMES = ["Priya", "Marcus", "Sofia", "James", "Wei", "Isabella", "Noah", "Fatima", "Liam", "Aiko", "Daniel", "Grace", "Mateo", "Zoe", "Ethan", "Amara", "Lucas", "Nadia", "Ryan", "Chloe", "Omar", "Hannah", "Diego", "Mei", "Caleb", "Layla", "Jack", "Priyanka", "Owen", "Sara", "Adrian", "Ines", "Felix", "Nora", "Victor", "Leah", "Tariq", "Emma", "Kenji", "Ava"];
-const LAST_NAMES = ["Shah", "Bennett", "Rossi", "Coleman", "Zhang", "Ferreira", "Park", "Haddad", "O'Brien", "Tanaka", "Silva", "Murphy", "Alvarez", "Novak", "Reed", "Okafor", "Bianchi", "Farah", "Sullivan", "Kim", "Haddad", "Whitfield", "Reyes", "Chen", "Foster", "Aziz", "Turner", "Iyer", "Bishop", "Nguyen", "Costa", "Duarte", "Weber", "Blake", "Petrov", "Marsh", "Rahman", "Wells", "Sato", "Hunt"];
-
-const JOB_TITLES: Record<string, string[]> = {
-  Claims: ["Claims Adjuster", "Senior Claims Adjuster", "Claims Examiner", "Claims Team Lead", "Claims Processor"],
-  Underwriting: ["Underwriter", "Senior Underwriter", "Underwriting Analyst", "Underwriting Assistant"],
-  "Customer Service": ["Customer Service Representative", "Customer Service Team Lead", "Customer Success Manager", "Service Operations Analyst"],
-  Sales: ["Insurance Sales Agent", "Account Executive", "Sales Manager", "Regional Sales Director", "Sales Operations Analyst"],
-  Marketing: ["Marketing Manager", "Content Strategist", "Brand Manager", "Marketing Coordinator", "Campaign Manager"],
-  Finance: ["Financial Analyst", "Accountant", "FP&A Manager", "Controller", "Actuarial Analyst"],
-  Operations: ["Operations Manager", "Policy Operations Analyst", "Operations Coordinator", "Process Improvement Analyst"],
-  HR: ["HR Business Partner", "Recruiter", "People Operations Manager", "HR Generalist"],
-  Compliance: ["Compliance Analyst", "Compliance Officer", "Regulatory Affairs Specialist", "Compliance Manager"],
-};
-
-async function seedHavenbrook() {
-  const org = await prisma.organization.create({
-    data: {
-      name: "Havenbrook",
-      industry: "Insurance",
-      size: "318",
-      revenueRange: "$100M-$500M",
-      geography: "New York, Chicago, Atlanta, Dallas",
-      businessModel: "B2B2C",
-      goals: ["Standardize AI tool usage", "Increase productivity", "Reduce costs", "Improve customer experience", "Improve decision making"],
-      onboardingDone: true,
-      onboardingStep: 5,
-    },
-  });
-
-  const departments = await Promise.all(
-    DEPARTMENTS.map((name) => prisma.department.create({ data: { organizationId: org.id, name } }))
-  );
-
-  await prisma.user.create({
-    data: {
-      email: "admin@havenbrook.com",
-      name: "Jordan Cole",
-      passwordHash: await hashPassword(DEMO_PASSWORD),
-      role: "COMPANY_ADMIN",
-      organizationId: org.id,
-    },
-  });
-
-  // Havenbrook's proprietary internal system - a custom, org-specific tool (not part of the shared global catalog).
-  const claimsPortal = await prisma.tool.create({
-    data: {
-      name: "Claims Portal",
-      category: "INTERNAL_PLATFORM",
-      vendor: "Havenbrook (internal)",
-      description: "Havenbrook's proprietary system for claim intake, document management, and adjuster workflows. Includes a built-in AI assistant covered by Havenbrook's data processing agreement.",
-      capabilities: ["Claim intake", "Document management", "Built-in AI assistant", "Adjuster workflows"],
-      isCustom: true,
-      organizationId: org.id,
-    },
-  });
-  await prisma.organizationTool.create({
-    data: { organizationId: org.id, toolId: claimsPortal.id, status: "APPROVED" },
-  });
-
-  return { org, departments };
-}
-
-async function seedEmployees(org: { id: string }, departments: { id: string; name: string }[]) {
-  const deptCounts: Record<string, number> = {
-    Claims: 13,
-    Underwriting: 9,
-    "Customer Service": 10,
-    Sales: 8,
-    Marketing: 6,
-    Finance: 7,
-    Operations: 6,
-    HR: 4,
-    Compliance: 4,
-  };
-
-  const employees = [];
-  const usedEmails = new Set<string>();
-  let nameIndex = 0;
-  for (const dept of departments) {
-    const count = deptCounts[dept.name] ?? 5;
-    for (let i = 0; i < count; i++) {
-      const first = FIRST_NAMES[nameIndex % FIRST_NAMES.length];
-      const last = LAST_NAMES[(nameIndex * 7) % LAST_NAMES.length];
-      nameIndex++;
-      const name = `${first} ${last}`;
-      let email = `${first.toLowerCase()}.${last.toLowerCase().replace(/[^a-z]/g, "")}@havenbrook.com`;
-      if (usedEmails.has(email)) {
-        email = `${first.toLowerCase()}.${last.toLowerCase().replace(/[^a-z]/g, "")}${nameIndex}@havenbrook.com`;
-      }
-      usedEmails.add(email);
-      const jobTitle = pick(JOB_TITLES[dept.name] ?? ["Specialist"]);
-
-      const user = await prisma.user.create({
-        data: { email, name, passwordHash: await hashPassword(DEMO_PASSWORD), role: "EMPLOYEE", organizationId: org.id },
-      });
-      const employee = await prisma.employee.create({
-        data: {
-          userId: user.id,
-          organizationId: org.id,
-          departmentId: dept.id,
-          jobTitle,
-          isDepartmentAdmin: i === 0,
-          hireDate: new Date(Date.now() - Math.floor(Math.random() * 1000 * 60 * 60 * 24 * 700)),
-        },
-      });
-      employees.push({ ...employee, departmentName: dept.name });
-    }
-  }
-
-  // Give priya.shah@havenbrook.com a predictable identity for the demo login button.
-  // The randomly-cycled name pool can independently produce the same "Priya Shah"
-  // combination for a different employee - free that email first if so.
-  const priya = employees.find((e) => e.departmentName === "Marketing");
-  if (priya) {
-    const conflicting = await prisma.user.findUnique({ where: { email: "priya.shah@havenbrook.com" } });
-    if (conflicting && conflicting.id !== priya.userId) {
-      await prisma.user.update({ where: { id: conflicting.id }, data: { email: `priya.shah.${conflicting.id.slice(-6)}@havenbrook.com` } });
-    }
-    const user = await prisma.user.findUnique({ where: { id: priya.userId } });
-    if (user) {
-      await prisma.user.update({ where: { id: user.id }, data: { email: "priya.shah@havenbrook.com", name: "Priya Shah" } });
-    }
-  }
-
-  return employees;
-}
-
-async function seedOrgIntegrations(org: { id: string }, integrations: { id: string; key: string }[]) {
-  const connectedKeys = ["microsoft_365", "slack", "salesforce", "quickbooks"];
-  for (const integration of integrations) {
-    const connected = connectedKeys.includes(integration.key);
-    await prisma.integrationConnection.create({
-      data: {
-        organizationId: org.id,
-        integrationId: integration.id,
-        status: connected ? "CONNECTED" : "DISCONNECTED",
-        connectedAt: connected ? new Date(Date.now() - 1000 * 60 * 60 * 24 * 60) : null,
-        lastSyncAt: connected ? new Date(Date.now() - 1000 * 60 * 60 * 6) : null,
-        mockData: connected ? { recordsSynced: Math.floor(500 + Math.random() * 3000) } : undefined,
-      },
-    });
-  }
-}
-
-async function seedOrgWorkflowAdoption(org: { id: string }, workflows: { id: string; title: string }[]) {
-  const adopted = [
-    "AI-Generated Campaign Briefs & Copy Drafts",
-    "AI-Assisted Job Descriptions & Resume Screening",
-  ];
-  const inProgress = ["AI-Assisted Claims Document Processing", "AI-Assisted Policy & Claims Inquiry Response", "AI-Assisted Insurance Sales Prospecting"];
-  const learning = ["Internal Knowledge Management Assistant"];
-
-  for (const w of workflows) {
-    let status: "NOT_ADOPTED" | "LEARNING" | "IN_PROGRESS" | "ADOPTED" = "NOT_ADOPTED";
-    if (adopted.includes(w.title)) status = "ADOPTED";
-    else if (inProgress.includes(w.title)) status = "IN_PROGRESS";
-    else if (learning.includes(w.title)) status = "LEARNING";
-    else continue;
-
-    await prisma.organizationWorkflow.create({
-      data: {
-        organizationId: org.id,
-        workflowId: w.id,
-        status,
-        adoptedAt: status === "ADOPTED" ? new Date(Date.now() - 1000 * 60 * 60 * 24 * 30) : null,
-        usersAdopted: status === "ADOPTED" ? Math.floor(5 + Math.random() * 20) : 0,
-      },
-    });
-  }
-}
-
-type OpportunitySeed = {
-  title: string;
-  department: string;
-  workflowTitle?: string;
-  currentProcess: string;
-  aiOpportunity: string;
-  impact: "LOW" | "MEDIUM" | "HIGH";
-  complexity: "LOW" | "MEDIUM" | "HIGH";
-  estHoursSavedMonthly: number;
-  estAnnualValue: number;
-  status: "IDENTIFIED" | "PLANNED" | "IN_PROGRESS" | "IMPLEMENTED" | "DEFERRED";
-  recommendedSpecialist: boolean;
-  businessImpactScore: number;
-  adoptionPotentialScore: number;
-  frequencyScore: number;
-  riskScore: number;
-  toolsRequired: string[];
-};
-
-const OPPORTUNITY_SEEDS: OpportunitySeed[] = [
-  {
-    title: "AI-Assisted Claims Document Processing",
-    department: "Claims",
-    workflowTitle: "AI-Assisted Claims Document Processing",
-    currentProcess: "Adjusters manually read every document in a claim file to build their case summary.",
-    aiOpportunity: "AI extracts key facts from claim documents, flags discrepancies, and drafts a structured summary for adjuster review. At full scale this could save the claims team roughly 1,100 hours per month.",
-    impact: "HIGH",
-    complexity: "MEDIUM",
-    estHoursSavedMonthly: 440,
-    estAnnualValue: 260000,
-    status: "IN_PROGRESS",
-    recommendedSpecialist: true,
-    businessImpactScore: 85,
-    adoptionPotentialScore: 72,
-    frequencyScore: 92,
-    riskScore: 28,
-    toolsRequired: ["Claims Portal", "ChatGPT"],
-  },
-  {
-    title: "Claims Triage & Routing",
-    department: "Claims",
-    workflowTitle: "Claims Triage & Routing",
-    currentProcess: "A triage adjuster manually reads every incoming claim and routes it to the correct queue.",
-    aiOpportunity: "AI classifies claim type and severity and auto-routes it, flagging high-severity claims for immediate attention.",
-    impact: "MEDIUM",
-    complexity: "MEDIUM",
-    estHoursSavedMonthly: 150,
-    estAnnualValue: 80000,
-    status: "IDENTIFIED",
-    recommendedSpecialist: false,
-    businessImpactScore: 60,
-    adoptionPotentialScore: 70,
-    frequencyScore: 90,
-    riskScore: 24,
-    toolsRequired: ["Claims Portal"],
-  },
-  {
-    title: "AI-Assisted Underwriting Research",
-    department: "Underwriting",
-    workflowTitle: "AI-Assisted Underwriting Research",
-    currentProcess: "Underwriters manually research an applicant's public risk profile before pricing.",
-    aiOpportunity: "AI gathers public risk signals with sources cited; the underwriter verifies and prices the policy.",
-    impact: "HIGH",
-    complexity: "MEDIUM",
-    estHoursSavedMonthly: 260,
-    estAnnualValue: 175000,
-    status: "IDENTIFIED",
-    recommendedSpecialist: true,
-    businessImpactScore: 76,
-    adoptionPotentialScore: 60,
-    frequencyScore: 70,
-    riskScore: 40,
-    toolsRequired: ["ChatGPT", "Power BI"],
-  },
-  {
-    title: "AI-Assisted Policy & Claims Inquiry Response",
-    department: "Customer Service",
-    workflowTitle: "AI-Assisted Policy & Claims Inquiry Response",
-    currentProcess: "Representatives manually look up policy terms and claim status, then write a response from scratch.",
-    aiOpportunity: "AI drafts a response referencing the policyholder's actual policy and claim status for representative review.",
-    impact: "HIGH",
-    complexity: "MEDIUM",
-    estHoursSavedMonthly: 300,
-    estAnnualValue: 165000,
-    status: "IN_PROGRESS",
-    recommendedSpecialist: true,
-    businessImpactScore: 79,
-    adoptionPotentialScore: 68,
-    frequencyScore: 88,
-    riskScore: 30,
-    toolsRequired: ["Claims Portal", "Claude"],
-  },
-  {
-    title: "AI-Assisted Insurance Sales Prospecting",
-    department: "Sales",
-    workflowTitle: "AI-Assisted Insurance Sales Prospecting",
-    currentProcess: "Agents manually research prospects, draft outreach, and log activity in the CRM.",
-    aiOpportunity: "AI researches prospect businesses, drafts personalized outreach, and pre-fills CRM fields for agent approval.",
-    impact: "HIGH",
-    complexity: "MEDIUM",
-    estHoursSavedMonthly: 220,
-    estAnnualValue: 150000,
-    status: "IDENTIFIED",
-    recommendedSpecialist: true,
-    businessImpactScore: 74,
-    adoptionPotentialScore: 62,
-    frequencyScore: 80,
-    riskScore: 22,
-    toolsRequired: ["Salesforce", "ChatGPT"],
-  },
-  {
-    title: "Quote Proposal Drafting",
-    department: "Sales",
-    workflowTitle: "Quote Proposal Drafting",
-    currentProcess: "Agents assemble quote proposals manually from a shared coverage content library.",
-    aiOpportunity: "AI drafts first-pass quote proposals from the content library; agents customize and finalize.",
-    impact: "MEDIUM",
-    complexity: "MEDIUM",
-    estHoursSavedMonthly: 90,
-    estAnnualValue: 60000,
-    status: "DEFERRED",
-    recommendedSpecialist: false,
-    businessImpactScore: 50,
-    adoptionPotentialScore: 32,
-    frequencyScore: 20,
-    riskScore: 28,
-    toolsRequired: ["Salesforce", "ChatGPT"],
-  },
-  {
-    title: "AI-Generated Campaign Briefs & Copy Drafts",
-    department: "Marketing",
-    workflowTitle: "AI-Generated Campaign Briefs & Copy Drafts",
-    currentProcess: "Marketers draft campaign briefs and first-pass copy manually for every channel.",
-    aiOpportunity: "AI drafts campaign briefs and channel-specific copy variants from a single input brief for marketer review.",
-    impact: "MEDIUM",
-    complexity: "LOW",
-    estHoursSavedMonthly: 150,
-    estAnnualValue: 80000,
-    status: "IMPLEMENTED",
-    recommendedSpecialist: false,
-    businessImpactScore: 58,
-    adoptionPotentialScore: 74,
-    frequencyScore: 78,
-    riskScore: 18,
-    toolsRequired: ["Microsoft 365", "Claude"],
-  },
-  {
-    title: "Competitive & Market Intelligence Briefs",
-    department: "Marketing",
-    workflowTitle: "Competitive & Market Intelligence Briefs",
-    currentProcess: "Marketing manually tracks competitor rate moves and compiles briefs monthly.",
-    aiOpportunity: "AI monitors public competitor and market signals and drafts a monthly brief for review.",
-    impact: "LOW",
-    complexity: "LOW",
-    estHoursSavedMonthly: 35,
-    estAnnualValue: 18000,
-    status: "IDENTIFIED",
-    recommendedSpecialist: false,
-    businessImpactScore: 28,
-    adoptionPotentialScore: 48,
-    frequencyScore: 25,
-    riskScore: 10,
-    toolsRequired: ["Claude"],
-  },
-  {
-    title: "AI-Assisted Financial Reporting Narratives",
-    department: "Finance",
-    workflowTitle: "AI-Assisted Financial Reporting Narratives",
-    currentProcess: "Finance analysts manually write commentary for monthly loss-ratio and budget reports.",
-    aiOpportunity: "AI drafts the narrative and variance commentary from the numbers; analysts confirm the cause and finalize.",
-    impact: "MEDIUM",
-    complexity: "MEDIUM",
-    estHoursSavedMonthly: 95,
-    estAnnualValue: 68000,
-    status: "IDENTIFIED",
-    recommendedSpecialist: true,
-    businessImpactScore: 56,
-    adoptionPotentialScore: 42,
-    frequencyScore: 30,
-    riskScore: 35,
-    toolsRequired: ["Power BI", "ChatGPT"],
-  },
-  {
-    title: "Expense Anomaly Detection",
-    department: "Finance",
-    workflowTitle: "Expense Anomaly Detection",
-    currentProcess: "Finance manually spot-checks expense reports for anomalies.",
-    aiOpportunity: "AI flags unusual expenses against historical patterns for finance review before approval.",
-    impact: "LOW",
-    complexity: "MEDIUM",
-    estHoursSavedMonthly: 35,
-    estAnnualValue: 18000,
-    status: "IDENTIFIED",
-    recommendedSpecialist: false,
-    businessImpactScore: 28,
-    adoptionPotentialScore: 45,
-    frequencyScore: 30,
-    riskScore: 25,
-    toolsRequired: ["Power BI"],
-  },
-  {
-    title: "Internal Knowledge Management Assistant",
-    department: "Operations",
-    workflowTitle: "Internal Knowledge Management Assistant",
-    currentProcess: "Employees ask senior staff the same recurring procedural questions.",
-    aiOpportunity: "AI answers internal procedure questions from Havenbrook's actual SOPs, with a citation for verification.",
-    impact: "MEDIUM",
-    complexity: "LOW",
-    estHoursSavedMonthly: 100,
-    estAnnualValue: 55000,
-    status: "IDENTIFIED",
-    recommendedSpecialist: false,
-    businessImpactScore: 48,
-    adoptionPotentialScore: 55,
-    frequencyScore: 60,
-    riskScore: 20,
-    toolsRequired: ["Microsoft 365", "Claude"],
-  },
-  {
-    title: "AI-Assisted Job Descriptions & Resume Screening",
-    department: "HR",
-    workflowTitle: "AI-Assisted Job Descriptions & Resume Screening",
-    currentProcess: "Recruiters write job descriptions from scratch and manually screen every resume.",
-    aiOpportunity: "AI drafts job descriptions and pre-screens resumes against role criteria for recruiter review.",
-    impact: "MEDIUM",
-    complexity: "LOW",
-    estHoursSavedMonthly: 60,
-    estAnnualValue: 40000,
-    status: "IMPLEMENTED",
-    recommendedSpecialist: false,
-    businessImpactScore: 45,
-    adoptionPotentialScore: 60,
-    frequencyScore: 40,
-    riskScore: 20,
-    toolsRequired: ["Microsoft 365", "ChatGPT"],
-  },
-  {
-    title: "AI-Assisted Regulatory Compliance Review",
-    department: "Compliance",
-    workflowTitle: "AI-Assisted Regulatory Compliance Review",
-    currentProcess: "Compliance manually reads every piece of marketing and communication against state regulatory guidelines.",
-    aiOpportunity: "AI flags potentially non-compliant language against state-specific guidelines for a compliance officer's final decision.",
-    impact: "HIGH",
-    complexity: "HIGH",
-    estHoursSavedMonthly: 70,
-    estAnnualValue: 95000,
-    status: "IDENTIFIED",
-    recommendedSpecialist: true,
-    businessImpactScore: 70,
-    adoptionPotentialScore: 38,
-    frequencyScore: 35,
-    riskScore: 60,
-    toolsRequired: ["ChatGPT"],
-  },
-];
-
-async function seedOpportunities(
-  org: { id: string },
-  departments: { id: string; name: string }[],
-  workflows: { id: string; title: string }[]
-) {
-  const deptByName = new Map(departments.map((d) => [d.name, d.id]));
-  const workflowByTitle = new Map(workflows.map((w) => [w.title, w.id]));
-
-  const created = [];
-  for (const o of OPPORTUNITY_SEEDS) {
-    created.push(
-      await prisma.opportunity.create({
-        data: {
-          organizationId: org.id,
-          departmentId: deptByName.get(o.department),
-          workflowId: o.workflowTitle ? workflowByTitle.get(o.workflowTitle) : undefined,
-          title: o.title,
-          currentProcess: o.currentProcess,
-          aiOpportunity: o.aiOpportunity,
-          impact: o.impact,
-          complexity: o.complexity,
-          estHoursSavedMonthly: o.estHoursSavedMonthly,
-          estAnnualValue: o.estAnnualValue,
-          status: o.status,
-          recommendedSpecialist: o.recommendedSpecialist,
-          businessImpactScore: o.businessImpactScore,
-          adoptionPotentialScore: o.adoptionPotentialScore,
-          frequencyScore: o.frequencyScore,
-          riskScore: o.riskScore,
-          toolsRequired: o.toolsRequired,
-        },
-      })
-    );
-  }
-  return created;
-}
-
-async function seedInitiatives(
-  org: { id: string },
-  departments: { id: string; name: string }[],
-  employees: { id: string; departmentName: string }[],
-  opportunities: { id: string; title: string }[]
-) {
-  const deptId = (name: string) => departments.find((d) => d.name === name)!.id;
-  void deptId;
-
-  const salesMarketingEmployees = employees.filter((e) => e.departmentName === "Sales" || e.departmentName === "Marketing").slice(0, 8);
-  const claimsEmployees = employees.filter((e) => e.departmentName === "Claims").slice(0, 6);
-
-  const salesInitiative = await prisma.initiative.create({
-    data: {
-      organizationId: org.id,
-      name: "AI Sales Transformation",
-      goalDescription: "Increase sales-team AI adoption from 32% to 70% within 90 days.",
-      startDate: monthsAgo(2),
-      endDate: new Date(monthsAgo(2).getTime() + 1000 * 60 * 60 * 24 * 90),
-      departments: ["Sales", "Marketing"],
-      status: "IN_PROGRESS",
-      kpis: [
-        { label: "AI adoption", baseline: 32, current: 53, target: 70, unit: "%" },
-        { label: "Time saved (hrs/week/rep)", baseline: 0, current: 3.5, target: 6, unit: "h" },
-        { label: "Pipeline productivity index", baseline: 100, current: 118, target: 140, unit: "" },
-        { label: "Training completion", baseline: 0, current: 64, target: 100, unit: "%" },
-      ],
-      members: {
-        create: salesMarketingEmployees.map((e, i) => ({ employeeId: e.id, roleOnInitiative: i === 0 ? "Lead" : "Contributor" })),
-      },
-      workflows: {
-        create: [
-          { opportunityId: opportunities.find((o) => o.title === "AI-Assisted Insurance Sales Prospecting")?.id },
-          { opportunityId: opportunities.find((o) => o.title === "AI-Generated Campaign Briefs & Copy Drafts")?.id },
-        ],
-      },
-    },
-  });
-
-  const claimsInitiative = await prisma.initiative.create({
-    data: {
-      organizationId: org.id,
-      name: "Claims AI Rollout",
-      goalDescription: "Deploy AI-assisted document processing and inquiry response across the claims team.",
-      startDate: monthsAgo(4),
-      endDate: monthsAgo(1),
-      departments: ["Claims"],
-      status: "COMPLETED",
-      kpis: [
-        { label: "AI adoption", baseline: 20, current: 76, target: 75, unit: "%" },
-        { label: "Avg. claim review time", baseline: 45, current: 28, target: 28, unit: " min" },
-        { label: "Training completion", baseline: 0, current: 100, target: 100, unit: "%" },
-      ],
-      members: {
-        create: claimsEmployees.map((e, i) => ({ employeeId: e.id, roleOnInitiative: i === 0 ? "Lead" : "Contributor" })),
-      },
-      workflows: {
-        create: [{ opportunityId: opportunities.find((o) => o.title === "AI-Assisted Claims Document Processing")?.id }],
-      },
-    },
-  });
-
-  return [salesInitiative, claimsInitiative];
-}
-
-async function seedProjects(
-  org: { id: string; name: string },
-  specialists: { id: string; headline: string }[],
-  opportunities: { id: string; title: string; workflowId: string | null }[]
-) {
-  const maya = specialists[0];
-  const david = specialists[1];
-  const amara = specialists[2];
-  const priya = specialists[3];
-
-  const campaignOpp = opportunities.find((o) => o.title === "AI-Generated Campaign Briefs & Copy Drafts");
-  const prospectingOpp = opportunities.find((o) => o.title === "AI-Assisted Insurance Sales Prospecting");
-  const underwritingOpp = opportunities.find((o) => o.title === "AI-Assisted Underwriting Research");
-  const claimsInquiryOpp = opportunities.find((o) => o.title === "AI-Assisted Policy & Claims Inquiry Response");
-
-  // Completed project with reviews
-  const completedProject = await prisma.project.create({
-    data: {
-      organizationId: org.id,
-      specialistId: maya.id,
-      opportunityId: campaignOpp?.id,
-      workflowId: campaignOpp?.workflowId ?? undefined,
-      title: "AI Campaign Brief & Copy Rollout",
-      description: "Implemented AI-assisted campaign brief and copy drafting across the marketing team.",
-      stage: "OPTIMIZATION",
-      status: "COMPLETED",
-      budget: 12000,
-      startDate: monthsAgo(5),
-      targetEndDate: monthsAgo(3),
-      milestones: {
-        create: ["DISCOVERY", "WORKFLOW_DESIGN", "IMPLEMENTATION", "TRAINING", "LAUNCH", "MEASUREMENT", "OPTIMIZATION"].map((stage, i) => ({
-          title: stage.replace("_", " "),
-          stage: stage as never,
-          dueDate: new Date(monthsAgo(5).getTime() + 1000 * 60 * 60 * 24 * 7 * (i + 1)),
-          completed: true,
-        })),
-      },
-      tasks: {
-        create: [
-          { title: "Audit current campaign workflow", status: "DONE", order: 1 },
-          { title: "Design AI-assisted brief template", status: "DONE", order: 2 },
-          { title: "Train marketing team", status: "DONE", order: 3 },
-        ],
-      },
-    },
-  });
-  await prisma.review.create({
-    data: {
-      projectId: completedProject.id,
-      specialistId: maya.id,
-      organizationId: org.id,
-      rating: 5,
-      comment: "Maya turned a vague request into a working AI workflow in three weeks. Our team adopted it immediately.",
-    },
-  });
-
-  const opsProject = await prisma.project.create({
-    data: {
-      organizationId: org.id,
-      specialistId: amara.id,
-      opportunityId: underwritingOpp?.id,
-      workflowId: underwritingOpp?.workflowId ?? undefined,
-      title: "Underwriting Research AI Pilot",
-      description: "Piloting AI-assisted public risk research for commercial underwriting.",
-      stage: "MEASUREMENT",
-      status: "COMPLETED",
-      budget: 18000,
-      startDate: monthsAgo(6),
-      targetEndDate: monthsAgo(2),
-      milestones: {
-        create: ["DISCOVERY", "WORKFLOW_DESIGN", "IMPLEMENTATION", "TRAINING", "LAUNCH", "MEASUREMENT"].map((stage, i) => ({
-          title: stage.replace("_", " "),
-          stage: stage as never,
-          dueDate: new Date(monthsAgo(6).getTime() + 1000 * 60 * 60 * 24 * 7 * (i + 1)),
-          completed: true,
-        })),
-      },
-    },
-  });
-  await prisma.review.create({
-    data: {
-      projectId: opsProject.id,
-      specialistId: amara.id,
-      organizationId: org.id,
-      rating: 5,
-      comment: "Deep expertise in underwriting risk research and very clear about tradeoffs. Underwriters trust the new process.",
-    },
-  });
-
-  // Active project
-  await prisma.project.create({
-    data: {
-      organizationId: org.id,
-      specialistId: david.id,
-      opportunityId: prospectingOpp?.id,
-      workflowId: prospectingOpp?.workflowId ?? undefined,
-      title: "AI-Assisted Insurance Sales Prospecting Implementation",
-      description: "Implementing AI-assisted account research and outreach drafting inside Salesforce.",
-      stage: "IMPLEMENTATION",
-      status: "ACTIVE",
-      budget: 9000,
-      startDate: monthsAgo(1),
-      targetEndDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
-      milestones: {
-        create: ["DISCOVERY", "WORKFLOW_DESIGN", "IMPLEMENTATION", "TRAINING", "LAUNCH", "MEASUREMENT", "OPTIMIZATION"].map((stage, i) => ({
-          title: stage.replace("_", " "),
-          stage: stage as never,
-          dueDate: new Date(monthsAgo(1).getTime() + 1000 * 60 * 60 * 24 * 7 * (i + 1)),
-          completed: i < 2,
-        })),
-      },
-      tasks: {
-        create: [
-          { title: "Kickoff call with sales leadership", status: "DONE", order: 1 },
-          { title: "Audit current prospecting workflow", status: "DONE", order: 2 },
-          { title: "Configure AI research integration", status: "IN_PROGRESS", order: 3 },
-          { title: "Pilot with 5 reps", status: "TODO", order: 4 },
-        ],
-      },
-    },
-  });
-
-  // Proposed project (new request for specialist)
-  await prisma.project.create({
-    data: {
-      organizationId: org.id,
-      specialistId: priya.id,
-      opportunityId: claimsInquiryOpp?.id,
-      workflowId: claimsInquiryOpp?.workflowId ?? undefined,
-      title: "Policyholder Inquiry AI Rollout Proposal",
-      description: "Proposal to roll out AI-assisted policy and claims inquiry response across customer service tiers.",
-      stage: "DISCOVERY",
-      status: "PROPOSED",
-      startDate: new Date(),
-      targetEndDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 60),
-      milestones: {
-        create: ["DISCOVERY", "WORKFLOW_DESIGN", "IMPLEMENTATION", "TRAINING", "LAUNCH", "MEASUREMENT", "OPTIMIZATION"].map((stage, i) => ({
-          title: stage.replace("_", " "),
-          stage: stage as never,
-          dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7 * (i + 1)),
-          completed: false,
-        })),
-      },
-      tasks: {
-        create: [{ title: "Initial discovery call", status: "TODO", order: 1 }],
-      },
-    },
-  });
-}
-
-async function seedAssessments(org: { id: string }, employees: { id: string; userId: string }[]) {
-  const orgBreakdown = { literacy: 72, usage: 43, workflowIntegration: 38, governance: 67, measurement: 29, leadershipAdoption: 61 };
-  const overallScore = computeOrgAdoptionScore(orgBreakdown);
-
-  await prisma.assessment.create({
-    data: {
-      type: "ORGANIZATION",
-      status: "COMPLETED",
-      organizationId: org.id,
-      overallScore,
-      scoreBreakdown: orgBreakdown,
-      completedAt: monthsAgo(0),
-      responses: {
-        create: [
-          { category: "literacy", questionKey: "lit_1", questionText: "Employees understand what generative AI can and can't do for their role.", score: 75 },
-          { category: "literacy", questionKey: "lit_2", questionText: "Employees can explain the basics of how AI tools produce their output.", score: 69 },
-          { category: "usage", questionKey: "usage_1", questionText: "Employees regularly use AI tools as part of their daily work.", score: 45 },
-          { category: "usage", questionKey: "usage_2", questionText: "AI usage extends beyond a small group of early adopters.", score: 41 },
-          { category: "workflowIntegration", questionKey: "wf_1", questionText: "AI is embedded directly into our core workflows and tools, not just used ad hoc.", score: 35 },
-          { category: "workflowIntegration", questionKey: "wf_2", questionText: "We have documented AI-enabled versions of our key processes.", score: 41 },
-          { category: "governance", questionKey: "gov_1", questionText: "We have clear policies on acceptable AI use, data privacy, and risk.", score: 70 },
-          { category: "governance", questionKey: "gov_2", questionText: "There is a defined owner accountable for AI adoption.", score: 64 },
-          { category: "measurement", questionKey: "meas_1", questionText: "We track how much time or cost AI is saving us.", score: 30 },
-          { category: "measurement", questionKey: "meas_2", questionText: "We can quantify the business impact of our AI initiatives.", score: 28 },
-          { category: "leadershipAdoption", questionKey: "lead_1", questionText: "Senior leadership actively uses and champions AI tools.", score: 63 },
-          { category: "leadershipAdoption", questionKey: "lead_2", questionText: "Leadership allocates budget and time toward AI adoption.", score: 59 },
-        ],
-      },
-    },
-  });
-
-  // Employee assessments for a subset (~60%) of employees
-  const shuffled = [...employees].sort(() => Math.random() - 0.5);
-  const assessed = shuffled.slice(0, Math.floor(employees.length * 0.6));
-
-  for (const e of assessed) {
-    const breakdown = {
-      fundamentals: 50 + Math.floor(Math.random() * 45),
-      prompting: 30 + Math.floor(Math.random() * 55),
-      workflowDesign: 20 + Math.floor(Math.random() * 55),
-      evaluation: 35 + Math.floor(Math.random() * 50),
-      automation: 15 + Math.floor(Math.random() * 55),
-    };
-    const fluency = computeFluencyScore(breakdown);
-    await prisma.assessment.create({
-      data: {
-        type: "EMPLOYEE",
-        status: "COMPLETED",
-        employeeId: e.id,
-        organizationId: org.id,
-        overallScore: fluency,
-        scoreBreakdown: breakdown,
-        completedAt: monthsAgo(Math.floor(Math.random() * 3)),
-      },
-    });
-    await prisma.employee.update({ where: { id: e.id }, data: { aiFluencyScore: fluency } });
-  }
-}
-
-async function seedAdoptionMetrics(org: { id: string }, departments: { id: string; name: string }[], employees: { id: string }[]) {
-  const totalUsers = employees.length;
-  const orgScores = [
-    { m: 3, score: 41, adoptionPct: 24 },
-    { m: 2, score: 46, adoptionPct: 31 },
-    { m: 1, score: 51, adoptionPct: 37 },
-    { m: 0, score: 54, adoptionPct: 42 },
-  ];
-
-  for (const s of orgScores) {
-    const activeUsers = Math.round((totalUsers * s.adoptionPct) / 100);
-    const ratio = s.score / 54;
-    await prisma.adoptionMetricSnapshot.create({
-      data: {
-        organizationId: org.id,
-        department: null,
-        month: monthsAgo(s.m),
-        activeUsers,
-        totalUsers,
-        adoptionPct: s.adoptionPct,
-        hoursSavedMonthly: Math.round(1840 * ratio),
-        aiAdoptionScore: s.score,
-        literacyScore: Math.round(72 * ratio),
-        usageScore: Math.round(43 * ratio),
-        workflowIntegrationScore: Math.round(38 * ratio),
-        governanceScore: Math.round(67 * ratio),
-        measurementScore: Math.round(29 * ratio),
-        leadershipScore: Math.round(61 * ratio),
-      },
-    });
-  }
-
-  const deptAdoption: Record<string, number> = {
-    Claims: 76,
-    "Customer Service": 71,
-    Marketing: 68,
-    Sales: 62,
-    Underwriting: 50,
-    Finance: 44,
-    HR: 55,
-    Operations: 38,
-    Compliance: 29,
-  };
-
-  for (const dept of departments) {
-    const deptEmployeeCount = Math.max(1, Math.round(totalUsers / departments.length));
-    const adoptionPct = deptAdoption[dept.name] ?? 40;
-    const activeUsers = Math.round((deptEmployeeCount * adoptionPct) / 100);
-    await prisma.adoptionMetricSnapshot.create({
-      data: {
-        organizationId: org.id,
-        department: dept.name,
-        month: monthsAgo(0),
-        activeUsers,
-        totalUsers: deptEmployeeCount,
-        adoptionPct,
-        hoursSavedMonthly: Math.round((adoptionPct / 100) * 400),
-        aiAdoptionScore: Math.round(adoptionPct * 0.9),
-        literacyScore: Math.min(95, adoptionPct + 15),
-        usageScore: adoptionPct,
-        workflowIntegrationScore: Math.max(10, adoptionPct - 20),
-        governanceScore: 60,
-        measurementScore: Math.max(10, adoptionPct - 30),
-        leadershipScore: Math.min(90, adoptionPct + 5),
-      },
-    });
-  }
-}
-
-async function seedRoiMetrics(org: { id: string }) {
-  const month = monthsAgo(0);
-  const rows = [
-    { workflowLabel: "AI Claims Document Processing", investment: 24000, annualValue: 260000 },
-    { workflowLabel: "AI Policy & Claims Inquiry Response", investment: 20000, annualValue: 165000 },
-    { workflowLabel: "AI Sales Prospecting", investment: 18000, annualValue: 150000 },
-    { workflowLabel: "AI Marketing Campaigns", investment: 14000, annualValue: 80000 },
-    { workflowLabel: "AI Underwriting Research", investment: 18000, annualValue: 175000 },
-  ];
-  for (const r of rows) {
-    await prisma.rOIMetric.create({ data: { organizationId: org.id, month, ...r } });
-  }
-}
-
-async function seedUsageEvents(org: { id: string }, employees: { id: string; departmentName: string }[]) {
-  const toolsByDept: Record<string, string[]> = {
-    Claims: ["Claims Portal", "ChatGPT"],
-    Underwriting: ["ChatGPT", "Power BI"],
-    "Customer Service": ["Claims Portal", "Claude"],
-    Sales: ["Salesforce Einstein", "ChatGPT"],
-    Marketing: ["Microsoft Copilot", "Claude"],
-    Finance: ["Power BI", "ChatGPT"],
-    Operations: ["Claude", "Microsoft Copilot"],
-    HR: ["ChatGPT", "Microsoft Copilot"],
-    Compliance: ["ChatGPT"],
-  };
-
-  const events = [];
-  for (const e of employees) {
-    if (Math.random() > 0.55) continue; // only "active" users log events
-    const tools = toolsByDept[e.departmentName] ?? ["ChatGPT"];
-    const eventCount = 1 + Math.floor(Math.random() * 6);
-    for (let i = 0; i < eventCount; i++) {
-      events.push({
-        organizationId: org.id,
-        employeeId: e.id,
-        tool: pick(tools),
-        eventType: pick(["draft_generated", "summary_generated", "classification", "research"]),
-        createdAt: new Date(Date.now() - Math.floor(Math.random() * 1000 * 60 * 60 * 24 * 30)),
-      });
-    }
-  }
-  await prisma.aIUsageEvent.createMany({ data: events });
-}
-
-async function seedLessonProgress(employees: { id: string; departmentName: string }[]) {
-  const courses = await prisma.course.findMany({ include: { lessons: true } });
-  for (const e of employees) {
-    const relevantCourses = courses.filter((c) => c.department === e.departmentName);
-    for (const course of relevantCourses) {
-      for (const lesson of course.lessons) {
-        if (Math.random() < 0.55) {
-          await prisma.lessonCompletion.create({
-            data: { employeeId: e.id, lessonId: lesson.id, score: 80 + Math.floor(Math.random() * 20) },
-          }).catch(() => undefined);
-        }
-      }
-    }
-  }
-}
-
-const RECOGNITION_CATEGORIES = [
-  "AI_ADOPTION",
-  "WORKFLOW_INNOVATION",
-  "LEARNING",
-  "BUSINESS_IMPACT",
-  "COLLABORATION",
-  "AI_LEADERSHIP",
-] as const;
-
-function clampScore(n: number) {
-  return Math.max(0, Math.min(100, Math.round(n)));
-}
-
-async function seedAwardPoints(params: {
-  employeeId: string;
-  organizationId: string;
-  ruleKey: string;
-  reason: string;
-  entityType?: string;
-  entityId?: string;
-  dedupeKey?: string;
-}): Promise<boolean> {
-  const points = SEED_POINTS_RULES[params.ruleKey];
-  if (!points) return false;
-  if (params.dedupeKey) {
-    const existing = await prisma.pointsTransaction.findFirst({
-      where: { employeeId: params.employeeId, ruleKey: params.ruleKey, entityType: params.entityType, entityId: params.entityId },
-      select: { id: true },
-    });
-    if (existing) return false;
-  }
-  await prisma.pointsTransaction.create({
-    data: {
-      employeeId: params.employeeId,
-      organizationId: params.organizationId,
-      amount: points,
-      reason: params.reason,
-      ruleKey: params.ruleKey,
-      entityType: params.entityType,
-      entityId: params.entityId,
-    },
-  });
-  return true;
-}
-
-async function seedCheckAndAwardCertifications(employeeId: string, organizationId: string) {
-  const [assessment, earned] = await Promise.all([
-    prisma.assessment.findFirst({
-      where: { employeeId, type: "EMPLOYEE", status: "COMPLETED" },
-      orderBy: { completedAt: "desc" },
-    }),
-    prisma.employeeCertification.findMany({ where: { employeeId }, select: { certificationId: true } }),
-  ]);
-  const earnedIds = new Set(earned.map((e) => e.certificationId));
-  const breakdown = (assessment?.scoreBreakdown as Record<EmployeeSkillCategory, number> | null) ?? null;
-
-  const courses = await prisma.course.findMany({ select: { id: true, lessons: { select: { id: true } } } });
-  const completedLessonIds = new Set(
-    (await prisma.lessonCompletion.findMany({ where: { employeeId }, select: { lessonId: true } })).map((l) => l.lessonId)
-  );
-  const coursesCompleted = courses.filter((c) => c.lessons.length > 0 && c.lessons.every((l) => completedLessonIds.has(l.id))).length;
-  const simulationsPassed = (
-    await prisma.simulationAttempt.findMany({ where: { employeeId, passed: true }, select: { simulationId: true }, distinct: ["simulationId"] })
-  ).length;
-
-  for (const cert of SEED_CERTIFICATIONS) {
-    const dbCert = await prisma.certification.findUnique({ where: { key: cert.key } });
-    if (!dbCert || earnedIds.has(dbCert.id)) continue;
-
-    const meetsFluency = !cert.minFluency || (assessment?.overallScore ?? 0) >= cert.minFluency;
-    const meetsSkills = cert.requiredSkills.every((rs) => (breakdown?.[rs.skill] ?? 0) >= rs.minScore);
-    const meetsCourses = coursesCompleted >= cert.minCoursesCompleted;
-    const meetsSims = simulationsPassed >= cert.minSimulationsPassed;
-    if (!meetsFluency || !meetsSkills || !meetsCourses || !meetsSims) continue;
-
-    await prisma.employeeCertification.create({ data: { employeeId, certificationId: dbCert.id } });
-    if (cert.pointsAwarded > 0) {
-      await seedAwardPoints({
-        employeeId,
-        organizationId,
-        ruleKey: `certification_${cert.key.replace(/-/g, "_")}`,
-        reason: `Earned ${cert.title} certification`,
-        entityType: "Certification",
-        entityId: dbCert.id,
-        dedupeKey: `certification:${dbCert.id}`,
-      });
-    }
-  }
-}
-
-/**
- * Backfills the reward ledger, simulation attempts, per-employee workflow
- * adoption, certifications, and recognitions from the activity already
- * seeded above (lesson completions, department, org-adopted workflows).
- * Without this, every points/certification/"workflows used" view is a real
- * but permanently-empty zero, since seeding rows directly (rather than
- * through the app's own actions) never runs the award logic those actions
- * trigger. This mirrors that same award logic (see the note on
- * SEED_POINTS_RULES above for why it's duplicated rather than imported), so
- * the numbers stay honest.
- */
-async function seedRewardActivity(org: { id: string }, employees: { id: string; userId: string; departmentName: string; isDepartmentAdmin: boolean }[]) {
-  await prisma.pointsRule.createMany({
-    data: Object.entries(SEED_POINTS_RULES).map(([key, points]) => ({ organizationId: org.id, key, label: key, points })),
-    skipDuplicates: true,
-  });
-  await prisma.certification.createMany({
-    data: SEED_CERTIFICATIONS.map((c) => ({
-      key: c.key,
-      title: c.title,
-      description: c.description,
-      minFluency: c.minFluency,
-      requiredSkills: c.requiredSkills,
-      minCoursesCompleted: c.minCoursesCompleted,
-      minSimulationsPassed: c.minSimulationsPassed,
-      pointsAwarded: c.pointsAwarded,
-      order: c.order,
-    })),
-    skipDuplicates: true,
-  });
-
-  const courses = await prisma.course.findMany({ include: { lessons: true } });
-  const simulations = await prisma.simulation.findMany();
-  const adoptedWorkflows = await prisma.organizationWorkflow.findMany({
-    where: { organizationId: org.id, status: { in: ["ADOPTED", "IN_PROGRESS"] } },
-    include: { workflow: { include: { steps: { orderBy: { order: "asc" } } } } },
-  });
-  const managerByDept = new Map(employees.filter((e) => e.isDepartmentAdmin).map((e) => [e.departmentName, e]));
-
-  for (const e of employees) {
-    // Course completion points, from the lessons already marked complete.
-    for (const course of courses.filter((c) => c.department === e.departmentName && c.lessons.length > 0)) {
-      const completedCount = await prisma.lessonCompletion.count({
-        where: { employeeId: e.id, lessonId: { in: course.lessons.map((l) => l.id) } },
-      });
-      if (completedCount === course.lessons.length) {
-        await seedAwardPoints({
-          employeeId: e.id,
-          organizationId: org.id,
-          ruleKey: "course_completed",
-          reason: `Completed learning path: ${course.title}`,
-          entityType: "Course",
-          entityId: course.id,
-          dedupeKey: `course_completed:${course.id}`,
-        });
-      }
-    }
-
-    // Simulation attempts relevant to this employee's department.
-    const deptSims = simulations.filter((s) => s.department === e.departmentName);
-    if (deptSims.length > 0 && Math.random() < 0.65) {
-      const attemptCount = 1 + Math.floor(Math.random() * Math.min(3, deptSims.length));
-      const chosenSims = [...deptSims].sort(() => Math.random() - 0.5).slice(0, attemptCount);
-      for (const sim of chosenSims) {
-        const score = clampScore(55 + Math.random() * 45);
-        const passed = score >= 70;
-        const jitter = () => clampScore(score + (Math.random() * 20 - 10));
-        await prisma.simulationAttempt.create({
-          data: {
-            employeeId: e.id,
-            simulationId: sim.id,
-            score,
-            feedback: passed ? "Solid handling of the scenario overall." : "Some gaps in approach - review the debrief for what to improve.",
-            dimensions: { reasoning: jitter(), aiUsage: jitter(), promptQuality: jitter(), accuracy: jitter(), workflowAdherence: jitter() },
-            passed,
-          },
-        });
-        await seedAwardPoints({
-          employeeId: e.id,
-          organizationId: org.id,
-          ruleKey: "simulation_completed",
-          reason: `Completed simulation: ${sim.title}`,
-          entityType: "Simulation",
-          entityId: sim.id,
-        });
-        if (passed) {
-          await seedAwardPoints({
-            employeeId: e.id,
-            organizationId: org.id,
-            ruleKey: "simulation_passed",
-            reason: `Passed simulation: ${sim.title}`,
-            entityType: "Simulation",
-            entityId: sim.id,
-            dedupeKey: `simulation_passed:${sim.id}`,
-          });
-        }
-        if (score >= 90) {
-          await seedAwardPoints({
-            employeeId: e.id,
-            organizationId: org.id,
-            ruleKey: "simulation_score_90",
-            reason: `Scored 90+ on: ${sim.title}`,
-            entityType: "Simulation",
-            entityId: sim.id,
-            dedupeKey: `simulation_score_90:${sim.id}`,
-          });
-        }
-      }
-    }
-
-    // Per-employee workflow adoption: complete every step of a realistic subset
-    // of the org's adopted/in-progress workflows relevant to this department.
-    const relevantWorkflows = adoptedWorkflows.filter((aw) => aw.workflow.department === e.departmentName && aw.workflow.steps.length > 0);
-    const toAdopt = relevantWorkflows.filter(() => Math.random() < 0.6);
-    let distinctWorkflowCount = 0;
-    for (const aw of toAdopt) {
-      await prisma.workflowStepCompletion.createMany({
-        data: aw.workflow.steps.map((step) => ({ employeeId: e.id, workflowStepId: step.id })),
-        skipDuplicates: true,
-      });
-      distinctWorkflowCount++;
-      if (distinctWorkflowCount === 1) {
-        await seedAwardPoints({
-          employeeId: e.id,
-          organizationId: org.id,
-          ruleKey: "workflow_first_adopted",
-          reason: "Used your first AI workflow",
-          entityType: "Workflow",
-          entityId: aw.workflowId,
-          dedupeKey: "workflow_first_adopted",
-        });
-      }
-      if (distinctWorkflowCount === 3) {
-        await seedAwardPoints({
-          employeeId: e.id,
-          organizationId: org.id,
-          ruleKey: "workflow_three_adopted",
-          reason: "Used 3 different AI workflows",
-          entityType: "Workflow",
-          entityId: aw.workflowId,
-          dedupeKey: "workflow_three_adopted",
-        });
-      }
-    }
-  }
-
-  // Certifications depend on fluency + course + simulation data, all now in place.
-  for (const e of employees) {
-    await seedCheckAndAwardCertifications(e.id, org.id);
-  }
-
-  // Recognitions: managers recognizing their team, and peers recognizing each other.
-  for (const e of employees) {
-    const manager = managerByDept.get(e.departmentName);
-    if (manager && manager.id !== e.id && Math.random() < 0.35) {
-      const recognition = await prisma.recognition.create({
-        data: {
-          organizationId: org.id,
-          fromUserId: manager.userId,
-          toEmployeeId: e.id,
-          type: "MANAGER",
-          category: pick(RECOGNITION_CATEGORIES),
-          message: "Great work applying AI tools to real workflows this quarter.",
-        },
-      });
-      const awarded = await seedAwardPoints({
-        employeeId: e.id,
-        organizationId: org.id,
-        ruleKey: "manager_recognition",
-        reason: "Manager recognition",
-        entityType: "Recognition",
-        entityId: recognition.id,
-      });
-      if (awarded) await prisma.recognition.update({ where: { id: recognition.id }, data: { pointsAwarded: 50 } });
-    }
-
-    const peers = employees.filter((o) => o.departmentName === e.departmentName && o.id !== e.id);
-    if (peers.length > 0 && Math.random() < 0.25) {
-      const peer = pick(peers);
-      const recognition = await prisma.recognition.create({
-        data: {
-          organizationId: org.id,
-          fromUserId: peer.userId,
-          toEmployeeId: e.id,
-          type: "PEER",
-          category: pick(RECOGNITION_CATEGORIES),
-          message: "Thanks for the help getting this workflow off the ground.",
-        },
-      });
-      const awarded = await seedAwardPoints({
-        employeeId: e.id,
-        organizationId: org.id,
-        ruleKey: "peer_recognition",
-        reason: "Peer recognition",
-        entityType: "Recognition",
-        entityId: recognition.id,
-      });
-      if (awarded) await prisma.recognition.update({ where: { id: recognition.id }, data: { pointsAwarded: 25 } });
-    }
-  }
-}
-
-async function seedSubscription(org: { id: string }) {
-  await prisma.subscription.create({
-    data: {
-      organizationId: org.id,
-      tier: "GROWTH",
-      status: "ACTIVE",
-      seats: 150,
-      pricePerMonth: 1500,
-      currentPeriodEnd: new Date(Date.now() + 1000 * 60 * 60 * 24 * 20),
-    },
-  });
-
-  await prisma.invoice.createMany({
-    data: [
-      { organizationId: org.id, amount: 150000, status: "PAID", issuedAt: monthsAgo(2), dueAt: monthsAgo(2), description: "Growth plan: monthly subscription" },
-      { organizationId: org.id, amount: 150000, status: "PAID", issuedAt: monthsAgo(1), dueAt: monthsAgo(1), description: "Growth plan: monthly subscription" },
-      { organizationId: org.id, amount: 150000, status: "OPEN", issuedAt: monthsAgo(0), dueAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 10), description: "Growth plan: monthly subscription" },
-    ],
-  });
-}
 
 export async function seedDatabase() {
-  console.log("Clearing database...");
+  console.log("Preparing schema…");
+  await ensureSchema();
+  console.log("Clearing organizations and users…");
   await clearDatabase();
+  const pack = getPack();
+  const hash = await hashPassword(DEMO_PASSWORD);
 
-  console.log("Seeding integrations...");
-  const integrations = await seedIntegrations();
+  await prisma.user.create({ data: { email: "platform@reldro.com", name: "Reldro Platform Team", passwordHash: hash, role: "PLATFORM_ADMIN" } });
 
-  console.log("Seeding workflows...");
-  const workflows = await seedWorkflows();
+  const org = await prisma.organization.create({
+    data: {
+      name: "Havenbrook Electrical",
+      industry: "Commercial electrical contracting",
+      size: "62",
+      revenueRange: "$10M-$50M",
+      geography: "Chicago metro and Northern Indiana",
+      businessModel: "Design-build and bid-build electrical contractor",
+      goals: [],
+      onboardingDone: true,
+      onboardingStep: 1,
+    },
+  });
+  await prisma.user.create({ data: { email: "admin@havenbrook.com", name: "Jordan Cole", passwordHash: hash, role: "COMPANY_ADMIN", organizationId: org.id, lastLoginAt: daysAgo(0) } });
 
-  console.log("Seeding courses & lessons...");
-  await seedCoursesAndLessons(workflows);
+  const crewNames = ["Prewire Crew", "Service & Maintenance", "Fabrication Shop", "Office"];
+  const crews = Object.fromEntries(await Promise.all(crewNames.map(async (name) => [name, await prisma.department.create({ data: { organizationId: org.id, name } })])));
 
-  console.log("Seeding simulations...");
-  await seedSimulations();
+  const siteDefs = [
+    { key: "riverside", name: "Riverside Medical Center, Level 3 buildout", address: "1200 River Rd, Chicago IL", kind: "JOBSITE" },
+    { key: "lakeshore", name: "Lakeshore Tower retrofit", address: "455 N Lake Shore Dr, Chicago IL", kind: "JOBSITE" },
+    { key: "shop", name: "Havenbrook fabrication shop", address: "88 Industrial Way, Gary IN", kind: "SHOP" },
+    { key: "northgate", name: "Northgate distribution center fit-out", address: "9100 Northgate Pkwy, Hammond IN", kind: "JOBSITE" },
+  ];
+  const sites: Record<string, string> = {};
+  for (const s of siteDefs) sites[s.key] = (await prisma.site.create({ data: { organizationId: org.id, name: s.name, address: s.address, kind: s.kind } })).id;
 
-  console.log("Seeding specialists...");
-  const specialists = await seedSpecialists();
+  const emp: Record<string, string> = {};
+  const userOf: Record<string, string> = {};
+  for (const p of PEOPLE) {
+    const u = await prisma.user.create({ data: { email: p.email, name: p.name, passwordHash: hash, role: "EMPLOYEE", organizationId: org.id, lastLoginAt: daysAgo(1) } });
+    const e = await prisma.employee.create({
+      data: { userId: u.id, organizationId: org.id, departmentId: crews[p.crew].id, jobTitle: p.title, siteId: p.site ? sites[p.site] : null, isDepartmentAdmin: Boolean(p.supervisor), isSafetyLead: Boolean(p.safetyLead), hireDate: daysAgo(200 + Math.floor(Math.random() * 900)) },
+    });
+    emp[p.key] = e.id;
+    userOf[p.key] = u.id;
+  }
+  // Two newly invited people who have not logged in yet.
+  for (const p of [{ name: "Ryan Kowalski", email: "ryan.kowalski@havenbrook.com", title: "Apprentice Electrician" }]) {
+    const u = await prisma.user.create({ data: { email: p.email, name: p.name, passwordHash: hash, role: "EMPLOYEE", organizationId: org.id } });
+    await prisma.employee.create({ data: { userId: u.id, organizationId: org.id, departmentId: crews["Prewire Crew"].id, jobTitle: p.title, siteId: sites.riverside } });
+  }
 
-  console.log("Seeding platform admin...");
-  await seedPlatformAdmin();
+  await prisma.site.update({ where: { id: sites.riverside }, data: { safetyLeadId: emp.maria } });
+  await prisma.site.update({ where: { id: sites.lakeshore }, data: { safetyLeadId: emp.kevin } });
+  await prisma.site.update({ where: { id: sites.shop }, data: { safetyLeadId: emp.maria } });
+  // Northgate deliberately has no safety lead yet: reports there show up as unassigned.
 
-  console.log("Seeding Havenbrook...");
-  const { org, departments } = await seedHavenbrook();
+  await prisma.escalationRule.createMany({
+    data: [
+      { organizationId: org.id, minSeverity: "CRITICAL", respondWithinHours: 1, escalateToId: emp.maria },
+      { organizationId: org.id, minSeverity: "HIGH", respondWithinHours: 4, escalateToId: emp.maria },
+      { organizationId: org.id, minSeverity: "MEDIUM", category: "ELECTRICAL", respondWithinHours: 12, escalateToId: emp.maria },
+      { organizationId: org.id, minSeverity: "LOW", respondWithinHours: 48, escalateToId: emp.maria },
+    ],
+  });
 
-  console.log("Seeding employees...");
-  const employees = await seedEmployees(org, departments);
+  // ---- Reports ----------------------------------------------------------
+  type R = {
+    n: number; type: string; category: string; severity: string; title: string; description: string; site: string; ago: number; by: string | null;
+    owner?: string | null; status: string; privacy?: string; injury?: boolean; immediate?: string; acked?: boolean; ai?: boolean;
+  };
+  const reports: R[] = [
+    { n: 1, type: "NEAR_MISS", category: "LADDERS_LIFTS", severity: "HIGH", title: "Stepladder slipped on wet floor while pulling wire", description: "Pulling MC cable at the ceiling in corridor 3B. The floor had been mopped and the stepladder feet slid about a foot. I grabbed the door frame and didn't fall. Nobody was hurt.", site: "riverside", ago: 6, by: "sofia", owner: "maria", status: "INVESTIGATING", acked: true, immediate: "Stopped work in the corridor, moved to a platform ladder." },
+    { n: 2, type: "HAZARD", category: "FALLS", severity: "CRITICAL", title: "Unprotected floor opening at level 3 shaft", description: "The temporary cover over the shaft opening near grid C4 was missing this morning. It looks like another trade moved it. Opening is about 3 feet by 4 feet.", site: "riverside", ago: 41, by: "priya", owner: "maria", status: "CLOSED", acked: true, immediate: "Barricaded with tape and posted a person until the cover was replaced." },
+    { n: 3, type: "INJURY", category: "TOOLS", severity: "MEDIUM", title: "Cut hand on conduit bender edge", description: "Deburring 1-1/2 inch EMT at the bender station. Hand slipped on a sharp edge, 2 inch cut on my left palm. Cleaned it and put on a bandage from the shop kit, went to urgent care for stitches.", site: "shop", ago: 25, by: "liam", owner: "maria", status: "CLOSED", injury: true, acked: true },
+    { n: 4, type: "EQUIPMENT", category: "ELECTRICAL", severity: "HIGH", title: "Frayed extension cord and no GFCI on temporary power", description: "Extension cord powering the drills on the north side has a frayed jacket near the plug and the temporary panel doesn't have a GFCI on that circuit.", site: "lakeshore", ago: 3, by: "wei", owner: "kevin", status: "ACTIONS_OPEN", acked: true, immediate: "Tagged the cord out and swapped for a new one." },
+    { n: 5, type: "CONCERN", category: "ENVIRONMENT", severity: "LOW", title: "No shade or water station on the roof today", description: "It's hot on the roof staging area. We have a couple of water jugs but no shaded spot to take a break. A few of us are getting headaches by afternoon.", site: "lakeshore", ago: 2, by: "isabella", owner: "kevin", status: "ASSIGNED", acked: false },
+    { n: 6, type: "NEAR_MISS", category: "STRUCK_BY", severity: "MEDIUM", title: "Tool dropped from scaffold landing near walkway", description: "A drill fell about 12 feet from the second scaffold level and landed a few feet from where two of us were working. No tool lanyard was in use.", site: "riverside", ago: 12, by: "marcus", owner: "maria", status: "ACTIONS_OPEN", acked: true },
+    { n: 7, type: "HAZARD", category: "ELECTRICAL", severity: "HIGH", title: "Lockout tags missing on panel LP-3", description: "Panel LP-3 was being worked on but there were no lockout tags or locks on the main breaker when I walked past. I don't know if it was energized.", site: "riverside", ago: 9, by: "priya", owner: "maria", status: "INVESTIGATING", privacy: "CONFIDENTIAL", acked: true },
+    { n: 8, type: "CONCERN", category: "FALLS", severity: "MEDIUM", title: "Feeling pushed to skip setting up fall protection to hit schedule", description: "We were told the harness setup was slowing us down and to just be careful for the short tasks near the edge. I don't feel comfortable but I don't want to say who.", site: "lakeshore", ago: 15, by: null, owner: "kevin", status: "ACTIONS_OPEN", privacy: "ANONYMOUS", acked: true },
+    { n: 9, type: "HAZARD", category: "HOUSEKEEPING", severity: "MEDIUM", title: "Cords and scrap across the main walkway", description: "Extension cords and cut conduit scraps are across the main walkway on level 5. Someone is going to trip.", site: "lakeshore", ago: 20, by: "noah", owner: "kevin", status: "CLOSED", acked: true },
+    { n: 10, type: "HAZARD", category: "HOUSEKEEPING", severity: "MEDIUM", title: "Debris and cords blocking egress route again", description: "Same issue as last month. The stair landing on level 4 is stacked with boxes and cords.", site: "lakeshore", ago: 10, by: "danielle", owner: "kevin", status: "ACTIONS_OPEN", acked: true },
+    { n: 11, type: "NEAR_MISS", category: "HOUSEKEEPING", severity: "LOW", title: "Tripped over cord but caught myself", description: "Caught my foot on a cord in the corridor on level 5 and stumbled. Didn't fall.", site: "lakeshore", ago: 5, by: "fatima", owner: "kevin", status: "ASSIGNED", acked: true },
+    { n: 12, type: "NEAR_MISS", category: "FALLS", severity: "MEDIUM", title: "Almost stepped into uncovered floor sleeve", description: "A core-drilled sleeve near the corridor wall was uncovered. I almost stepped in it carrying conduit.", site: "riverside", ago: 18, by: "james", owner: "maria", status: "CLOSED", acked: true },
+    { n: 13, type: "HAZARD", category: "PPE", severity: "MEDIUM", title: "No safety glasses available for new hires at the trailer", description: "The PPE cabinet at the trailer has no safety glasses left. The new apprentices are using their own sunglasses.", site: "northgate", ago: 4, by: "mateo", owner: null, status: "NEW", acked: false },
+    { n: 14, type: "EQUIPMENT", category: "TOOLS", severity: "MEDIUM", title: "Bandsaw guard missing in fab shop", description: "The blade guard on the horizontal bandsaw is off and lying next to the saw.", site: "shop", ago: 8, by: "aiko", owner: "maria", status: "ACTIONS_OPEN", acked: true },
+    { n: 15, type: "HAZARD", category: "CHEMICALS_DUST", severity: "HIGH", title: "Cutting concrete dry with no dust control", description: "Another trade was dry-cutting concrete for a penetration near our work area with no water and no respirators. Lots of dust in the air.", site: "northgate", ago: 1, by: "grace", owner: null, status: "NEW", acked: false, ai: true },
+    { n: 16, type: "NEAR_MISS", category: "VEHICLES", severity: "MEDIUM", title: "Van backed toward laydown area without a spotter", description: "A van backed up toward the material laydown while two people were unloading and nobody was spotting.", site: "shop", ago: 30, by: "daniel", owner: "maria", status: "CLOSED", acked: true },
+  ];
+  const created: Record<number, string> = {};
+  for (const r of reports) {
+    const createdAt = daysAgo(r.ago, 8 + (r.n % 8));
+    const routedOwner = r.owner ? emp[r.owner] : null;
+    const rule = await prisma.escalationRule.findFirst({ where: { organizationId: org.id, minSeverity: r.severity } });
+    const respondHours = rule?.respondWithinHours ?? (r.severity === "LOW" ? 48 : r.severity === "MEDIUM" ? 48 : 4);
+    const rep = await prisma.safetyReport.create({
+      data: {
+        organizationId: org.id, number: r.n, type: r.type, category: r.category, severity: r.severity, title: r.title, description: r.description,
+        siteId: sites[r.site], occurredAt: createdAt, status: r.status, privacy: r.privacy ?? "NAMED", injuryInvolved: Boolean(r.injury), immediateAction: r.immediate ?? "",
+        reporterId: r.by && r.privacy !== "ANONYMOUS" ? emp[r.by] : null, ownerId: routedOwner, respondBy: new Date(createdAt.getTime() + respondHours * 3600_000),
+        acknowledgedAt: r.acked ? new Date(createdAt.getTime() + 2 * 3600_000) : null, aiAssisted: Boolean(r.ai), closedAt: r.status === "CLOSED" ? new Date(createdAt.getTime() + 12 * day) : null, createdAt,
+      },
+    });
+    created[r.n] = rep.id;
+    const ev = [
+      { type: "CREATED", message: r.privacy === "ANONYMOUS" ? "Report filed anonymously." : "Report filed.", actorName: r.privacy === "NAMED" && r.by ? PEOPLE.find((p) => p.key === r.by)?.name ?? "" : "", at: createdAt },
+      { type: "ASSIGNED", message: routedOwner ? `Routed to ${PEOPLE.find((p) => emp[p.key] === routedOwner)?.name} as the site safety lead.` : "No owner matched. Waiting for the safety team to assign.", actorName: "", at: new Date(createdAt.getTime() + 1000) },
+    ];
+    if (r.acked) ev.push({ type: "ACKNOWLEDGED", message: "Report acknowledged.", actorName: PEOPLE.find((p) => emp[p.key] === routedOwner)?.name ?? "", at: new Date(createdAt.getTime() + 2 * 3600_000) });
+    if (r.ai) ev.push({ type: "AI_DRAFT", message: "The reporter used an AI-assisted draft and confirmed the details.", actorName: "", at: new Date(createdAt.getTime() + 2000) });
+    await prisma.reportEvent.createMany({ data: ev.map((e) => ({ reportId: rep.id, type: e.type, message: e.message, actorName: e.actorName, createdAt: e.at })) });
+  }
 
-  console.log("Seeding org integration connections...");
-  await seedOrgIntegrations(org, integrations);
+  // ---- Investigations ----------------------------------------------------
+  const inv1 = await prisma.investigation.create({
+    data: {
+      reportId: created[1], organizationId: org.id, leadId: emp.maria, status: "OPEN", openedAt: daysAgo(5),
+      facts: "Corridor 3B was mopped at about 7:30. Ladder is a 6 ft fiberglass stepladder with rubber feet, feet look worn. No wet-floor sign was up at the corridor entry.",
+      sequenceNotes: "Cleaning crew mopped the corridor before the shift. Electrician set up the stepladder near the door frame and began pulling MC cable. Ladder feet slid; electrician grabbed the frame.",
+      contributingFactors: ["Site layout, access or housekeeping", "Coordination with other trades"],
+    },
+  });
+  await prisma.investigationQuestion.createMany({
+    data: [
+      { investigationId: inv1.id, text: "When did the cleaning crew finish and who told the electricians?", answer: "Cleaning finished around 7:30 per the crew lead. No message went to our foreman.", aiDrafted: false },
+      { investigationId: inv1.id, text: "When were the ladder feet last inspected?", answer: "", aiDrafted: true },
+      { investigationId: inv1.id, text: "Was a platform ladder available for this task?", answer: "", aiDrafted: true },
+    ],
+  });
+  await prisma.investigationStatement.create({ data: { investigationId: inv1.id, providedBy: "Apprentice electrician (reporter)", content: "I didn't see the floor was wet until I was up the ladder. The floor looked dry from the door.", addedByName: "Maria Delgado" } });
 
-  console.log("Seeding workflow adoption...");
-  await seedOrgWorkflowAdoption(org, workflows);
+  const inv3 = await prisma.investigation.create({
+    data: {
+      reportId: created[3], organizationId: org.id, leadId: emp.maria, status: "COMPLETE", openedAt: daysAgo(24), completedAt: daysAgo(14),
+      facts: "Burr on cut EMT end was sharp. The deburring tool was worn and a cut-resistant glove was available but not required at the bender station.",
+      sequenceNotes: "Fabricator cut 1-1/2 in EMT, then deburred by hand with a worn reamer. Hand contacted the burr while turning the piece.",
+      contributingFactors: ["Equipment condition or availability", "PPE availability or suitability", "Procedure missing, unclear or not followed in practice"],
+      rootCauseNotes: "The station had no defined deburring step, the reamer was past its useful life, and cut-resistant gloves weren't part of the station's PPE requirements. The fix is to standardize the step and equipment at the station.",
+      lessonText: "Deburr every cut end with a sharp tool before handling, and replace worn deburring tools. Cut-resistant gloves are now required at bending and cutting stations.",
+      shareLesson: true,
+    },
+  });
+  await prisma.investigationStatement.create({ data: { investigationId: inv3.id, providedBy: "Fabricator (injured worker)", content: "It happened fast when I was turning the piece. I didn't think to grab gloves.", addedByName: "Maria Delgado" } });
+  await prisma.investigation.create({ data: { reportId: created[7], organizationId: org.id, leadId: emp.maria, status: "IN_REVIEW", openedAt: daysAgo(8), facts: "Lockout was performed on the breaker but tags fell off; the lock remained. Electrician verified de-energized before starting.", contributingFactors: ["Procedure missing, unclear or not followed in practice"] } });
 
-  console.log("Seeding opportunities...");
-  const opportunities = await seedOpportunities(org, departments, workflows);
+  // ---- Corrective actions ------------------------------------------------
+  type A = { n: number; report?: number; title: string; description?: string; priority: string; status: string; owner?: string; due: number; proposedBy?: string; note?: string };
+  const actions: A[] = [
+    { n: 1, report: 2, title: "Replace shaft cover with a bolted, marked cover", priority: "CRITICAL", status: "VERIFIED", owner: "tom", due: -35, note: "Installed a plywood cover screwed to the deck and marked with warning paint." },
+    { n: 2, report: 3, title: "Replace worn deburring tools and standardize deburr step at bender station", priority: "MEDIUM", status: "VERIFIED", owner: "luis", due: -15, note: "New reamers issued and the step added to the station card." },
+    { n: 3, report: 3, title: "Require cut-resistant gloves at cutting and bending stations", priority: "MEDIUM", status: "COMPLETED", owner: "luis", due: -5, note: "Glove dispenser installed at the station; signage posted." },
+    { n: 4, report: 1, title: "Add wet-floor coordination with cleaning crew to the daily huddle", priority: "HIGH", status: "IN_PROGRESS", owner: "tom", due: 3 },
+    { n: 5, report: 1, title: "Inspect and replace worn ladder feet across the Riverside fleet", priority: "HIGH", status: "APPROVED", owner: "tom", due: -4 },
+    { n: 6, report: 4, title: "Install GFCI protection on all temporary power circuits", priority: "HIGH", status: "IN_PROGRESS", owner: "danielle", due: 2 },
+    { n: 7, report: 6, title: "Require tool lanyards above 6 feet and post at scaffold access", priority: "MEDIUM", status: "APPROVED", owner: "tom", due: 9 },
+    { n: 8, report: 8, title: "Reinforce that fall protection is never skipped for schedule, in a talk with all foremen", priority: "HIGH", status: "PROPOSED", owner: "kevin", due: 7, proposedBy: "kevin" },
+    { n: 9, report: 10, title: "Assign a daily housekeeping walk on level 4 and 5 and remove stacked material from the stair landing", priority: "MEDIUM", status: "APPROVED", owner: "danielle", due: -6 },
+    { n: 10, report: 14, title: "Reinstall bandsaw guard and tag out saw until inspected", priority: "HIGH", status: "IN_PROGRESS", owner: "luis", due: -1 },
+    { n: 11, title: "Restock safety glasses at Northgate trailer", priority: "MEDIUM", status: "PROPOSED", owner: undefined, due: 5, proposedBy: "grace" },
+  ];
+  for (const a of actions) {
+    const owner = a.owner ? emp[a.owner] : null;
+    await prisma.correctiveAction.create({
+      data: {
+        organizationId: org.id, number: a.n, reportId: a.report ? created[a.report] : null, title: a.title, description: a.description ?? "", priority: a.priority, status: a.status,
+        ownerId: owner, dueDate: daysFromNow(a.due), proposedById: a.proposedBy ? emp[a.proposedBy] : emp.maria, approvedById: a.status === "PROPOSED" ? null : emp.maria, approvedAt: a.status === "PROPOSED" ? null : daysAgo(20),
+        completionNotes: a.note ?? "", completedAt: ["COMPLETED", "VERIFIED"].includes(a.status) ? daysAgo(10) : null, verifiedById: a.status === "VERIFIED" ? emp.maria : null, verifiedAt: a.status === "VERIFIED" ? daysAgo(8) : null,
+        createdAt: daysAgo(Math.max(1, 30 - a.n)),
+      },
+    });
+  }
 
-  console.log("Seeding initiatives...");
-  await seedInitiatives(org, departments, employees, opportunities);
+  // ---- Inspections -------------------------------------------------------
+  const tpls: Record<string, string> = {};
+  for (const t of pack.inspectionTemplates) {
+    tpls[t.kind] = (await prisma.inspectionTemplate.create({ data: { organizationId: org.id, name: t.name, kind: t.kind, frequencyDays: t.frequencyDays, items: t.items.map((it, i) => ({ id: `i${i + 1}`, label: it.label, critical: Boolean(it.critical) })) } })).id;
+  }
+  const tplItems = pack.inspectionTemplates[0].items.map((it, i) => ({ itemId: `i${i + 1}`, label: it.label, critical: Boolean(it.critical) }));
+  await prisma.inspection.create({
+    data: {
+      organizationId: org.id, templateId: tpls.SITE_INSPECTION, siteId: sites.riverside, assigneeId: emp.tom, dueDate: daysAgo(7), status: "COMPLETED", completedById: emp.tom, completedAt: daysAgo(7),
+      results: tplItems.map((it, i) => ({ ...it, result: i === 1 ? "FAIL" : "PASS", note: i === 1 ? "Level 3 shaft edge needs a second toe board." : "" })),
+    },
+  });
+  await prisma.inspection.create({ data: { organizationId: org.id, templateId: tpls.SITE_INSPECTION, siteId: sites.riverside, assigneeId: emp.tom, dueDate: daysFromNow(0) } });
+  await prisma.inspection.create({ data: { organizationId: org.id, templateId: tpls.SITE_INSPECTION, siteId: sites.lakeshore, assigneeId: emp.danielle, dueDate: daysAgo(2) } });
+  await prisma.inspection.create({ data: { organizationId: org.id, templateId: tpls.READINESS, siteId: sites.northgate, assigneeId: emp.maria, dueDate: daysFromNow(3) } });
+  await prisma.inspection.create({ data: { organizationId: org.id, templateId: tpls.SITE_INSPECTION, siteId: sites.shop, assigneeId: emp.luis, dueDate: daysFromNow(5) } });
 
-  console.log("Seeding projects & specialist engagements...");
-  const opportunitiesWithWorkflow = await prisma.opportunity.findMany({ where: { organizationId: org.id } });
-  await seedProjects(org, specialists, opportunitiesWithWorkflow);
+  // ---- Toolbox talks and acknowledgements -------------------------------
+  const talks = [
+    { title: "Ladder setup and inspection", topic: "Ladders", scheduledFor: daysAgo(3), siteId: null as string | null, ai: false, content: "Why it matters\nLadder incidents are among our most frequent near misses.\n\nKey points\n• Inspect feet, rails and rungs before every use.\n• Set the base one foot out for every four feet of height.\n• Check the floor: no wet or slick surfaces.\n• Three points of contact at all times.\n\nDiscussion\n• What ladders on our site have worn feet?\n• Where is a platform ladder a better choice?" },
+    { title: "Heat illness: water, rest and shade", topic: "Heat", scheduledFor: daysAgo(1), siteId: sites.lakeshore, ai: true, content: "Why it matters\nHot roof and staging work raises the risk of heat illness.\n\nKey points (from the approved heat-illness procedure)\n• Water within reach; drink before you are thirsty.\n• Short rest breaks in shade.\n• Watch a coworker for confusion, dizziness or stopping sweating.\n\nSign-off: Everyone attending confirms they heard and understood the points above." },
+    { title: "Lockout/tagout refresher", topic: "LOTO", scheduledFor: daysAgo(12), siteId: null, ai: false, content: "Every energized circuit gets a lock and a tag from the person doing the work. Verify de-energized with a tester before starting. Tags fall off, so the lock is what protects you." },
+  ];
+  const allEmp = await prisma.employee.findMany({ where: { organizationId: org.id } });
+  for (const t of talks) {
+    const talk = await prisma.toolboxTalk.create({ data: { organizationId: org.id, title: t.title, topic: t.topic, content: t.content, siteId: t.siteId, scheduledFor: t.scheduledFor, aiDrafted: t.ai, createdByName: "Maria Delgado" } });
+    const audience = allEmp.filter((e) => !t.siteId || e.siteId === t.siteId);
+    const take = t.title.startsWith("Lockout") ? audience : audience.slice(0, Math.ceil(audience.length * 0.6));
+    for (const e of take) if (e.id !== emp.priya || t.title.startsWith("Lockout")) await prisma.talkAcknowledgement.create({ data: { talkId: talk.id, employeeId: e.id } });
+  }
 
-  console.log("Seeding assessments...");
-  await seedAssessments(org, employees);
+  // ---- Qualifications ----------------------------------------------------
+  const quals: { who: string; name: string; issued: number; expires: number | null }[] = [
+    { who: "priya", name: "OSHA 30", issued: -700, expires: null },
+    { who: "priya", name: "Aerial lift", issued: -700, expires: 20 },
+    { who: "marcus", name: "First aid / CPR", issued: -680, expires: -12 },
+    { who: "marcus", name: "OSHA 30", issued: -900, expires: null },
+    { who: "sofia", name: "OSHA 10", issued: -200, expires: null },
+    { who: "tom", name: "OSHA 30", issued: -1200, expires: null },
+    { who: "tom", name: "Fall protection", issued: -300, expires: 200 },
+    { who: "liam", name: "Forklift", issued: -340, expires: 25 },
+    { who: "danielle", name: "First aid / CPR", issued: -400, expires: 300 },
+    { who: "wei", name: "Electrical safety (NFPA 70E)", issued: -350, expires: 380 },
+  ];
+  for (const q of quals) await prisma.qualification.create({ data: { organizationId: org.id, employeeId: emp[q.who], name: q.name, issuedOn: daysFromNow(q.issued), expiresOn: q.expires === null ? null : daysFromNow(q.expires) } });
 
-  console.log("Seeding adoption metrics...");
-  await seedAdoptionMetrics(org, departments, employees);
-
-  console.log("Seeding ROI metrics...");
-  await seedRoiMetrics(org);
-
-  console.log("Seeding AI usage events...");
-  await seedUsageEvents(org, employees);
-
-  console.log("Seeding lesson progress...");
-  await seedLessonProgress(employees);
-
-  console.log("Seeding reward activity (simulations, workflow adoption, certifications, recognition)...");
-  await seedRewardActivity(org, employees);
-
-  console.log("Seeding subscription & billing...");
-  await seedSubscription(org);
+  await prisma.subscription.create({ data: { organizationId: org.id, tier: "GROWTH", status: "ACTIVE", seats: 75, pricePerMonth: 900, currentPeriodEnd: daysFromNow(20) } }).catch(() => {});
 
   console.log("Done. Demo password for all seeded accounts:", DEMO_PASSWORD);
+  console.log("  Platform admin: platform@reldro.com");
+  console.log("  Company admin:  admin@havenbrook.com");
+  console.log("  Safety manager: maria.delgado@havenbrook.com");
+  console.log("  Supervisor:     tom.brennan@havenbrook.com");
+  console.log("  Employee:       priya.shah@havenbrook.com");
 }
 
 if (typeof require !== "undefined" && require.main === module) {

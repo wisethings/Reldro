@@ -25,6 +25,14 @@ export type AuditAction =
   | "content.updated"
   | "content.deleted"
   | "content.restored"
+  | "safety.report_created"
+  | "safety.report_updated"
+  | "safety.investigation_updated"
+  | "safety.action_updated"
+  | "safety.inspection_completed"
+  | "safety.settings_changed"
+  | "safety.exported"
+  | "setup_support.requested"
   | "invite.resent"
   | "admin.removed"
   | "account.profile_updated"
@@ -104,6 +112,14 @@ const ACTION_LABELS: Record<AuditAction, string> = {
   "content.updated": "Edited team content",
   "content.deleted": "Deleted team content",
   "content.restored": "Restored deleted content",
+  "safety.report_created": "Filed a safety report",
+  "safety.report_updated": "Updated a safety report",
+  "safety.investigation_updated": "Updated an investigation",
+  "safety.action_updated": "Updated a corrective action",
+  "safety.inspection_completed": "Completed an inspection",
+  "safety.settings_changed": "Changed safety settings",
+  "safety.exported": "Exported safety data",
+  "setup_support.requested": "Requested optional setup support",
   "invite.resent": "Resent an invite",
   "admin.removed": "Removed a company admin",
   "account.profile_updated": "Updated their profile",

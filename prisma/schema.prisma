@@ -194,6 +194,14 @@ model Organization {
   workflows                    Workflow[]
   templates                    Template[]
   hiddenContent                HiddenContent[]
+  sites                        Site[]
+  safetyReports                SafetyReport[]
+  correctiveActions            CorrectiveAction[]
+  inspectionTemplates          InspectionTemplate[]
+  inspections                  Inspection[]
+  toolboxTalks                 ToolboxTalk[]
+  qualifications               Qualification[]
+  escalationRules              EscalationRule[]
   workflowChecklistCompletions WorkflowChecklistCompletion[]
   workflowLinks                WorkflowLink[]
   workflowDependencies         WorkflowDependency[]
@@ -262,6 +270,10 @@ model Employee {
   // granted to a specific employee instead. Meant for a demo persona who
   // needs to show breadth across departments, not a real permission tier.
   viewAllDepartments Boolean      @default(false)
+  // Frontline safety: the site (jobsite/shop) this person normally works at,
+  // and whether they are on the safety team (sees every report/investigation).
+  siteId             String?
+  isSafetyLead       Boolean      @default(false)
   aiFluencyScore     Int?
   hireDate           DateTime     @default(now())
   createdAt          DateTime     @default(now())
@@ -1355,5 +1367,252 @@ model Recognition {
   createdAt      DateTime            @default(now())
 
   @@index([toEmployeeId])
+  @@index([organizationId])
+}
+
+// ---------------------------------------------------------------------------
+// Frontline safety operations
+//
+// Statuses, categories and severities are plain strings on purpose: the
+// allowed values live in src/lib/safety/pack.ts (a "workflow pack" per
+// industry), so adding an adjacent industry is configuration, not a schema
+// migration.
+// ---------------------------------------------------------------------------
+
+model Site {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  address        String       @default("")
+  kind           String       @default("JOBSITE") // JOBSITE | SHOP | YARD
+  active         Boolean      @default(true)
+  safetyLeadId   String? // Employee who receives reports for this site by default
+  createdAt      DateTime     @default(now())
+
+  reports     SafetyReport[]
+  inspections Inspection[]
+
+  @@index([organizationId])
+}
+
+model SafetyReport {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  number          Int // human-friendly per-organization sequence (SR-0012)
+  type            String // HAZARD | NEAR_MISS | INJURY | EQUIPMENT | CONCERN
+  category        String
+  title           String
+  description     String
+  transcript      String? // raw voice-note text, kept so a person can compare with the structured version
+  siteId          String?
+  site            Site?        @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  occurredAt      DateTime
+  severity        String // LOW | MEDIUM | HIGH | CRITICAL
+  status          String       @default("NEW") // NEW | ASSIGNED | INVESTIGATING | ACTIONS_OPEN | CLOSED
+  privacy         String       @default("NAMED") // NAMED | CONFIDENTIAL | ANONYMOUS
+  injuryInvolved  Boolean      @default(false)
+  immediateAction String       @default("")
+  attachments     Json         @default("[]") // [{ name, dataUri }]
+  reporterId      String? // Employee id; null when anonymous
+  ownerId         String? // Employee id currently responsible
+  respondBy       DateTime? // from the escalation rule that matched at creation
+  acknowledgedAt  DateTime? // when the owner first acknowledged the report
+  aiAssisted      Boolean      @default(false)
+  closedAt        DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  events        ReportEvent[]
+  investigation Investigation?
+  actions       CorrectiveAction[]
+
+  @@unique([organizationId, number])
+  @@index([organizationId, status])
+  @@index([siteId])
+}
+
+model ReportEvent {
+  id         String       @id @default(cuid())
+  reportId   String
+  report     SafetyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  type       String // CREATED | ASSIGNED | ACKNOWLEDGED | STATUS | COMMENT | ESCALATED | INVESTIGATION | ACTION | AI_DRAFT
+  message    String
+  actorName  String       @default("")
+  actorId    String?
+  restricted Boolean      @default(false) // safety-team-only note
+  createdAt  DateTime     @default(now())
+
+  @@index([reportId])
+}
+
+model Investigation {
+  id                  String       @id @default(cuid())
+  reportId            String       @unique
+  report              SafetyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  organizationId      String
+  status              String       @default("OPEN") // OPEN | IN_REVIEW | COMPLETE
+  leadId              String? // Employee id
+  facts               String       @default("")
+  sequenceNotes       String       @default("") // what happened, in order
+  contributingFactors String[]     @default([])
+  rootCauseNotes      String       @default("") // written by a person; never auto-filled
+  lessonText          String       @default("") // de-identified lesson approved for sharing
+  shareLesson         Boolean      @default(false)
+  openedAt            DateTime     @default(now())
+  completedAt         DateTime?
+
+  statements InvestigationStatement[]
+  questions  InvestigationQuestion[]
+
+  @@index([organizationId])
+}
+
+model InvestigationStatement {
+  id              String        @id @default(cuid())
+  investigationId String
+  investigation   Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+  providedBy      String // a role label ("Journeyman electrician"), not necessarily a name
+  content         String
+  addedByName     String        @default("")
+  createdAt       DateTime      @default(now())
+
+  @@index([investigationId])
+}
+
+model InvestigationQuestion {
+  id              String        @id @default(cuid())
+  investigationId String
+  investigation   Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+  text            String
+  answer          String        @default("")
+  aiDrafted       Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+
+  @@index([investigationId])
+}
+
+model CorrectiveAction {
+  id              String        @id @default(cuid())
+  organizationId  String
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  number          Int
+  reportId        String?
+  report          SafetyReport? @relation(fields: [reportId], references: [id], onDelete: SetNull)
+  inspectionId    String?
+  title           String
+  description     String        @default("")
+  priority        String        @default("MEDIUM") // LOW | MEDIUM | HIGH | CRITICAL
+  status          String        @default("PROPOSED") // PROPOSED | APPROVED | IN_PROGRESS | COMPLETED | VERIFIED | CANCELLED
+  ownerId         String? // Employee id
+  dueDate         DateTime?
+  proposedById    String?
+  approvedById    String?
+  approvedAt      DateTime?
+  completionNotes String        @default("")
+  evidence        Json          @default("[]") // [{ name, dataUri }]
+  completedAt     DateTime?
+  verifiedById    String?
+  verifiedAt      DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([organizationId, number])
+  @@index([organizationId, status])
+  @@index([reportId])
+}
+
+model InspectionTemplate {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  kind           String       @default("SITE_INSPECTION") // SITE_INSPECTION | READINESS | OBSERVATION
+  items          Json         @default("[]") // [{ id, label, critical }]
+  frequencyDays  Int? // when set, completing one schedules the next
+  createdAt      DateTime     @default(now())
+
+  inspections Inspection[]
+
+  @@index([organizationId])
+}
+
+model Inspection {
+  id             String             @id @default(cuid())
+  organizationId String
+  organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  templateId     String
+  template       InspectionTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  siteId         String
+  site           Site               @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  assigneeId     String? // Employee id
+  dueDate        DateTime
+  status         String             @default("SCHEDULED") // SCHEDULED | COMPLETED
+  results        Json               @default("[]") // [{ itemId, label, result: PASS | FAIL | NA, note }]
+  notes          String             @default("")
+  completedById  String?
+  completedAt    DateTime?
+  createdAt      DateTime           @default(now())
+
+  @@index([organizationId, status])
+  @@index([siteId])
+}
+
+model ToolboxTalk {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  title          String
+  topic          String       @default("")
+  content        String
+  sourceMaterial String       @default("") // company-approved text the outline was drafted from
+  siteId         String? // null = company-wide
+  scheduledFor   DateTime
+  aiDrafted      Boolean      @default(false)
+  createdByName  String       @default("")
+  createdAt      DateTime     @default(now())
+
+  acknowledgements TalkAcknowledgement[]
+
+  @@index([organizationId])
+}
+
+model TalkAcknowledgement {
+  id             String      @id @default(cuid())
+  talkId         String
+  talk           ToolboxTalk @relation(fields: [talkId], references: [id], onDelete: Cascade)
+  employeeId     String
+  acknowledgedAt DateTime    @default(now())
+
+  @@unique([talkId, employeeId])
+}
+
+model Qualification {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  employeeId     String
+  name           String // "OSHA 30", "Aerial lift", "First aid / CPR"
+  issuedOn       DateTime?
+  expiresOn      DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId])
+  @@index([employeeId])
+}
+
+model EscalationRule {
+  id                 String       @id @default(cuid())
+  organizationId     String
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  minSeverity        String // rule applies at this severity or higher
+  category           String? // null = any category
+  siteId             String? // null = any site
+  ownerId            String? // Employee assigned when the rule matches (else the site's safety lead)
+  respondWithinHours Int          @default(24)
+  escalateToId       String? // Employee alerted when nobody has acknowledged in time
+  createdAt          DateTime     @default(now())
+
   @@index([organizationId])
 }

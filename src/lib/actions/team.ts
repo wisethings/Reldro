@@ -15,6 +15,7 @@ export async function inviteEmployee(_prevState: FormState, formData: FormData):
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const departmentId = String(formData.get("departmentId") ?? "");
   const jobTitle = String(formData.get("jobTitle") ?? "").trim();
+  const siteId = String(formData.get("siteId") ?? "");
 
   if (!name || !email || !jobTitle) return { error: "Name, email, and job title are required." };
 
@@ -26,6 +27,11 @@ export async function inviteEmployee(_prevState: FormState, formData: FormData):
     if (!department || department.organizationId !== session.organizationId) {
       return { error: "That department wasn't found." };
     }
+  }
+
+  if (siteId) {
+    const site = await prisma.site.findUnique({ where: { id: siteId } });
+    if (!site || site.organizationId !== session.organizationId) return { error: "That site wasn't found." };
   }
 
   const existing = await prisma.user.findUnique({ where: { email } });
@@ -47,6 +53,7 @@ export async function inviteEmployee(_prevState: FormState, formData: FormData):
         create: {
           organizationId: session.organizationId!,
           departmentId: departmentId || null,
+          siteId: siteId || null,
           jobTitle,
         },
       },
@@ -70,56 +77,6 @@ export async function inviteEmployee(_prevState: FormState, formData: FormData):
     tempPassword,
   });
 
-  revalidatePath("/dashboard/team");
+  revalidatePath("/dashboard/training");
   return delivery;
-}
-
-/**
- * Toggles department-lead status for an employee. Nothing stops more than
- * one employee in the same department from holding this at once - the ask
- * was for multiple team leads per department, and isDepartmentAdmin was
- * already a per-employee boolean with no such constraint, so this just adds
- * the missing control surface rather than a new capability.
- */
-export async function setDepartmentAdmin(employeeId: string, isDepartmentAdmin: boolean) {
-  const session = await requireRole(["COMPANY_ADMIN"]);
-  const employee = await prisma.employee.findUnique({ where: { id: employeeId } });
-  if (!employee || employee.organizationId !== session.organizationId) throw new Error("Employee not found.");
-
-  await prisma.employee.update({ where: { id: employeeId }, data: { isDepartmentAdmin } });
-
-  await logAudit({
-    organizationId: session.organizationId,
-    userId: session.sub,
-    action: isDepartmentAdmin ? "employee.made_department_lead" : "employee.removed_department_lead",
-    entityType: "Employee",
-    entityId: employeeId,
-  });
-
-  revalidatePath("/dashboard/team");
-}
-
-/**
- * Cross-department content visibility override - see
- * Employee.viewAllDepartments's doc comment. Not a real permission tier,
- * just a per-employee toggle for someone (typically a demo persona) who
- * needs to see every department's opportunities/templates/workflows/
- * lessons instead of only their own.
- */
-export async function setViewAllDepartments(employeeId: string, viewAllDepartments: boolean) {
-  const session = await requireRole(["COMPANY_ADMIN"]);
-  const employee = await prisma.employee.findUnique({ where: { id: employeeId } });
-  if (!employee || employee.organizationId !== session.organizationId) throw new Error("Employee not found.");
-
-  await prisma.employee.update({ where: { id: employeeId }, data: { viewAllDepartments } });
-
-  await logAudit({
-    organizationId: session.organizationId,
-    userId: session.sub,
-    action: viewAllDepartments ? "employee.granted_all_department_access" : "employee.revoked_all_department_access",
-    entityType: "Employee",
-    entityId: employeeId,
-  });
-
-  revalidatePath("/dashboard/team");
 }

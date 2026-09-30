@@ -1,47 +1,47 @@
-import { AlertTriangle } from "lucide-react";
+import Link from "next/link";
+import { LifeBuoy } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { StatTile } from "@/components/ui/StatTile";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { IconBadge } from "@/components/ui/IconBadge";
-import Link from "next/link";
 
+/**
+ * Deliberately aggregate-only. Platform staff can see how many organizations,
+ * people and reports exist, never the content of a customer's reports,
+ * investigations or statements.
+ */
 export default async function PlatformAdminOverview() {
-  const [orgCount, userCount, pendingSpecialists, approvedSpecialists, activeProjects, subscriptions] = await Promise.all([
+  const since = new Date(Date.now() - 30 * 86400_000);
+  const [orgCount, onboarded, userCount, sites, reports30, subscriptions, supportOpen] = await Promise.all([
     prisma.organization.count(),
-    prisma.user.count(),
-    prisma.specialist.count({ where: { approved: false } }),
-    prisma.specialist.count({ where: { approved: true } }),
-    prisma.project.count({ where: { status: "ACTIVE" } }),
+    prisma.organization.count({ where: { onboardingDone: true } }),
+    prisma.user.count({ where: { role: { in: ["COMPANY_ADMIN", "EMPLOYEE"] } } }),
+    prisma.site.count({ where: { active: true } }),
+    prisma.safetyReport.count({ where: { createdAt: { gte: since } } }),
     prisma.subscription.findMany(),
+    prisma.auditLog.count({ where: { action: "setup_support.requested", createdAt: { gte: since } } }),
   ]);
-
   const mrr = subscriptions.reduce((sum, s) => sum + s.pricePerMonth, 0);
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold text-ink-900">Platform overview</h1>
-        <p className="text-sm text-ink-500">Global visibility across every organization on Reldro.</p>
+        <p className="text-sm text-ink-500">Customers on Reldro. Counts only: report and investigation content stays inside each customer's organization.</p>
       </div>
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile label="Organizations" value={orgCount} />
-        <StatTile label="Total users" value={userCount} />
-        <StatTile label="Approved specialists" value={approvedSpecialists} />
-        <StatTile label="Active expert-help projects" value={activeProjects} />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <StatTile label="Organizations" value={orgCount} helpText={`${onboarded} finished setup`} />
+        <StatTile label="People with accounts" value={userCount} />
+        <StatTile label="Active sites" value={sites} />
+        <StatTile label="Reports filed, last 30 days" value={reports30} />
         <StatTile label="MRR (subscriptions)" value={`$${mrr.toLocaleString()}`} />
       </div>
-
-      {pendingSpecialists > 0 && (
+      {supportOpen > 0 && (
         <Card>
-          <CardHeader icon={<IconBadge icon={<AlertTriangle size={18} />} tone="coral" />} title="Action needed" />
+          <CardHeader icon={<IconBadge icon={<LifeBuoy size={18} />} tone="coral" />} title="Setup support requests" />
           <CardBody>
-            <p className="text-sm text-ink-700">
-              {pendingSpecialists} specialist application{pendingSpecialists > 1 ? "s" : ""} awaiting approval.
-            </p>
-            <Link href="/platform-admin/specialists" className="mt-2 inline-block text-xs font-medium text-orchid-deep hover:text-oxblood">
-              Review specialists →
-            </Link>
+            <p className="text-sm text-ink-700">{supportOpen} request{supportOpen > 1 ? "s" : ""} for optional setup or advisor help in the last 30 days.</p>
+            <Link href="/platform-admin/setup-support" className="mt-2 inline-block text-xs font-medium text-orchid-deep hover:text-oxblood">Review requests →</Link>
           </CardBody>
         </Card>
       )}

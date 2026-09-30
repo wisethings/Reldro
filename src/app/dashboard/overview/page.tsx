@@ -1,742 +1,162 @@
 import Link from "next/link";
-import { requireSession } from "@/lib/auth/guards";
-import type { SessionPayload } from "@/lib/auth/session";
+import { Plus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { getOrgTrend, getLatestOrgSnapshot, getRealAdoptionMetrics } from "@/lib/queries/adoption";
-import { getOrgValueCapture } from "@/lib/queries/value";
-import { getOrgRecommendations } from "@/lib/recommendations";
-import { StatTile } from "@/components/ui/StatTile";
-import { Card, CardHeader, CardBody } from "@/components/ui/Card";
-import { IconBadge } from "@/components/ui/IconBadge";
-import { InfoTooltip } from "@/components/ui/InfoTooltip";
-import { ScoreRing, ProgressBar, MilestoneProgressBar } from "@/components/ui/Progress";
-import { AdoptionTrendChart } from "@/components/charts/AdoptionTrendChart";
+import { actionWhere, reportWhere } from "@/lib/safety/access";
+import { requireViewer } from "@/lib/safety/context";
+import { escalationTargetFor } from "@/lib/safety/routing";
+import { categoryLabel, getPack, OPEN_ACTION_STATUSES, severityRank } from "@/lib/safety/pack";
 import { Badge } from "@/components/ui/Badge";
-import { maturityBand, ORG_MATURITY_LABELS, type OrgMaturityCategory } from "@/lib/scoring";
-import { DEPLOYED_STATUSES } from "@/lib/workflowLifecycle";
-import { getFluencyForEmployee, getStrongestSkill, getWeakestSkill, EMPLOYEE_SKILL_LABELS } from "@/lib/queries/fluency";
-import { getWeeklyBrief } from "@/lib/queries/weeklyBrief";
-import { getEmployeeRecommendations } from "@/lib/queries/employeeRecommendations";
-import { getPointsBalance, getRecentPointsTransactions, getRewardMilestones } from "@/lib/rewards";
-import { getAiActivityFeed, ACTIVITY_FEED_TYPE_LABEL, type ActivityFeedAction } from "@/lib/activityFeed";
-import { getWorkflowDeploymentStats } from "@/lib/queries/workflowDeployment";
-import { ownDepartmentFilter } from "@/lib/departmentVisibility";
-import { QueryParamSelect } from "@/components/ui/QueryParamSelect";
-import { CardArrow } from "@/components/ui/CardArrow";
-import { redirect } from "next/navigation";
-import { getHiddenIds } from "@/lib/queries/hidden";
-import {
-  Gauge,
-  TrendingUp,
-  Newspaper,
-  DollarSign,
-  Sparkles,
-  BarChart3,
-  Target,
-  Activity,
-  FileText,
-  BookOpen,
-  Share2,
-  User,
-  Users,
-  UserCheck,
-  Clock,
-  Lightbulb,
-  Building2,
-  Briefcase,
-  Wallet,
-  Percent,
-  ClipboardCheck,
-  Zap,
-  Gift,
-  Award,
-  Heart,
-} from "lucide-react";
+import { ActionStatusBadge, dueLabel, fmtDate, ReportStatusBadge, SeverityBadge } from "@/components/safety/ui";
+import { Queue, QueueRow } from "@/components/safety/Queue";
 
-const MONTHS_OPTIONS = [
-  { value: "3", label: "Last 3 months" },
-  { value: "6", label: "Last 6 months" },
-  { value: "12", label: "Last 12 months" },
-];
+const ACTIVE_REPORT = ["NEW", "ASSIGNED", "INVESTIGATING", "ACTIONS_OPEN"];
 
-const ACTIVITY_FILTER_OPTIONS = [
-  { value: "all", label: "All activity" },
-  ...(Object.entries(ACTIVITY_FEED_TYPE_LABEL) as [ActivityFeedAction, string][]).map(([value, label]) => ({ value, label })),
-];
+export default async function OverviewPage() {
+  const v = await requireViewer();
+  const now = new Date();
+  const soon = new Date(Date.now() + 7 * 86400_000);
+  const in30 = new Date(Date.now() + 30 * 86400_000);
+  const pack = getPack();
 
-const ACTIVITY_ICON: Record<ActivityFeedAction, { icon: typeof Zap; tone: "orchid" | "olive" | "sage" | "coral" }> = {
-  "workflow.adopted": { icon: Zap, tone: "sage" },
-  "reward.points_awarded": { icon: Gift, tone: "orchid" },
-  "reward.redeemed": { icon: Gift, tone: "olive" },
-  "certification.earned": { icon: Award, tone: "olive" },
-  "reward.recognition_given": { icon: Heart, tone: "coral" },
-};
+  const org = await prisma.organization.findUnique({ where: { id: v.organizationId }, select: { name: true } });
+  const firstName = v.name.split(" ")[0];
 
-const RECOMMENDATION_ICON = { opportunity: Target, assessment: ClipboardCheck } as const;
+  // ---- WORKER HOME -------------------------------------------------------
+  if (!v.isSafetyTeam && !v.isSupervisor) {
+    const [myReports, myActions, talks, acked, inspections, quals] = await Promise.all([
+      prisma.safetyReport.findMany({ where: { ...reportWhere(v), status: { in: ACTIVE_REPORT } }, orderBy: { createdAt: "desc" }, take: 5 }),
+      prisma.correctiveAction.findMany({ where: { AND: [actionWhere(v), { ownerId: v.employeeId ?? "__none__", status: { in: OPEN_ACTION_STATUSES } }] }, orderBy: { dueDate: "asc" }, take: 5 }),
+      prisma.toolboxTalk.findMany({ where: { organizationId: v.organizationId, scheduledFor: { gte: new Date(Date.now() - 30 * 86400_000) }, OR: [{ siteId: null }, { siteId: v.siteId ?? "__none__" }] }, orderBy: { scheduledFor: "desc" }, take: 10 }),
+      prisma.talkAcknowledgement.findMany({ where: { employeeId: v.employeeId ?? "__none__" }, select: { talkId: true } }),
+      prisma.inspection.findMany({ where: { organizationId: v.organizationId, status: "SCHEDULED", assigneeId: v.employeeId ?? "__none__" }, include: { template: true, site: true }, orderBy: { dueDate: "asc" }, take: 5 }),
+      prisma.qualification.findMany({ where: { employeeId: v.employeeId ?? "__none__", expiresOn: { lte: in30 } }, orderBy: { expiresOn: "asc" } }),
+    ]);
+    const ackedIds = new Set(acked.map((a) => a.talkId));
+    const toAck = talks.filter((t) => !ackedIds.has(t.id));
 
-export default async function OverviewPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ months?: string; activity?: string }>;
-}) {
-  const session = await requireSession();
-  if (!session.organizationId) redirect("/login");
+    return (
+      <div className="mx-auto max-w-3xl space-y-5 p-4 sm:p-6">
+        <div>
+          <h1 className="text-xl font-semibold text-ink-900">Hi {firstName}</h1>
+          <p className="text-sm text-ink-500">{org?.name}</p>
+        </div>
+        <Link href="/dashboard/reports/new" className="flex items-center justify-center gap-3 rounded-2xl bg-brand-700 px-6 py-6 text-lg font-semibold text-white shadow-sm hover:bg-brand-800">
+          <Plus size={26} /> Report something
+        </Link>
+        <p className="-mt-2 text-center text-xs text-ink-500">A hazard, near miss, injury or anything that doesn't feel right. About a minute.</p>
 
-  if (session.role === "EMPLOYEE") {
-    return <EmployeeOverview session={session} name={session.name} />;
+        <Queue title="Toolbox talks to acknowledge" count={toAck.length} href="/dashboard/training" tone="alert" empty="You're up to date.">
+          {toAck.slice(0, 3).map((t) => <QueueRow key={t.id} href="/dashboard/training" title={t.title} meta={fmtDate(t.scheduledFor)} right={<Badge tone="amber">Needs you</Badge>} />)}
+        </Queue>
+        <Queue title="My open reports" count={myReports.length} href="/dashboard/reports" empty="You have no open reports.">
+          {myReports.map((r) => <QueueRow key={r.id} href={`/dashboard/reports/${r.id}`} title={r.title} meta={`SR-${String(r.number).padStart(4, "0")} · ${fmtDate(r.createdAt)}`} right={<ReportStatusBadge status={r.status} />} />)}
+        </Queue>
+        <Queue title="Actions assigned to me" count={myActions.length} href="/dashboard/actions" tone="alert" empty="Nothing assigned to you.">
+          {myActions.map((a) => { const d = dueLabel(a.dueDate, true); return <QueueRow key={a.id} href={`/dashboard/actions/${a.id}`} title={a.title} meta={d.text} right={<ActionStatusBadge status={a.status} />} />; })}
+        </Queue>
+        {inspections.length > 0 && (
+          <Queue title="Inspections assigned to me" count={inspections.length} href="/dashboard/inspections" empty="">
+            {inspections.map((i) => <QueueRow key={i.id} href={`/dashboard/inspections/${i.id}`} title={`${i.template.name} · ${i.site.name}`} meta={dueLabel(i.dueDate, true).text} />)}
+          </Queue>
+        )}
+        {quals.length > 0 && (
+          <Queue title="My qualifications needing renewal" count={quals.length} tone="alert" empty="">
+            {quals.map((q) => <li key={q.id} className="px-4 py-2.5 text-sm sm:px-5"><span className="font-medium text-ink-900">{q.name}</span> <span className="text-ink-500">{q.expiresOn && q.expiresOn < now ? "expired" : "expires"} {fmtDate(q.expiresOn)}</span></li>)}
+          </Queue>
+        )}
+      </div>
+    );
   }
 
-  const params = await searchParams;
-  return <OrgOverview organizationId={session.organizationId} months={params.months} activity={params.activity} />;
-}
+  // ---- SUPERVISOR + SAFETY TEAM -----------------------------------------
+  const scopedReports = reportWhere(v);
+  const scopedActions = actionWhere(v);
+  const scopedSite = v.isSafetyTeam ? {} : { siteId: v.siteId ?? "__none__" };
 
-async function OrgOverview({ organizationId, months, activity }: { organizationId: string; months?: string; activity?: string }) {
-  const monthsCount = [3, 6, 12].includes(Number(months)) ? Number(months) : 6;
-  const activityFilter = activity && activity in ACTIVITY_FEED_TYPE_LABEL ? (activity as ActivityFeedAction) : undefined;
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-
-  const [
-    org,
-    trend,
-    latest,
-    metrics,
-    workflowsDeployed,
-    workflowsDeployedRecently,
-    opportunitiesCount,
-    opportunitiesCreatedRecently,
-    activeInitiatives,
-    initiativesCreatedRecently,
-    activeProjects,
-    projectsCreatedRecently,
-    topOpportunities,
-    valueCapture,
-    recommendations,
-    weeklyBrief,
-    activityFeed,
-  ] = await Promise.all([
-    prisma.organization.findUnique({ where: { id: organizationId } }),
-    getOrgTrend(organizationId, monthsCount),
-    getLatestOrgSnapshot(organizationId),
-    getRealAdoptionMetrics(organizationId),
-    prisma.organizationWorkflow.count({ where: { organizationId, status: { in: DEPLOYED_STATUSES } } }),
-    prisma.organizationWorkflow.count({ where: { organizationId, status: { in: DEPLOYED_STATUSES }, adoptedAt: { gte: thirtyDaysAgo } } }),
-    prisma.opportunity.count({ where: { organizationId } }),
-    prisma.opportunity.count({ where: { organizationId, createdAt: { gte: thirtyDaysAgo } } }),
-    prisma.initiative.count({ where: { organizationId, status: "IN_PROGRESS" } }),
-    prisma.initiative.count({ where: { organizationId, createdAt: { gte: thirtyDaysAgo } } }),
-    prisma.project.count({ where: { organizationId, status: "ACTIVE" } }),
-    prisma.project.count({ where: { organizationId, createdAt: { gte: thirtyDaysAgo } } }),
-    prisma.opportunity.findMany({
-      where: { organizationId, status: { in: ["IDENTIFIED", "PLANNED"] } },
-      orderBy: { estAnnualValue: "desc" },
-      take: 4,
-      include: { department: true },
-    }),
-    getOrgValueCapture(organizationId),
-    getOrgRecommendations(organizationId),
-    getWeeklyBrief(organizationId),
-    getAiActivityFeed(organizationId, 12, activityFilter),
+  const [unassigned, overdueResponse, investigations, overdueActions, awaiting, proposed, inspections, qualsExpiring, talks, empCount, byCategory] = await Promise.all([
+    prisma.safetyReport.findMany({ where: { AND: [scopedReports, { status: { in: ["NEW"] } }] }, orderBy: { createdAt: "asc" }, include: { site: true }, take: 6 }),
+    prisma.safetyReport.findMany({ where: { AND: [scopedReports, { status: { in: ["NEW", "ASSIGNED"] }, acknowledgedAt: null, respondBy: { lt: now } }] }, orderBy: { respondBy: "asc" }, include: { site: true }, take: 6 }),
+    v.isSafetyTeam ? prisma.investigation.findMany({ where: { organizationId: v.organizationId, status: { in: ["OPEN", "IN_REVIEW"] } }, include: { report: { include: { site: true } } }, take: 20 }) : Promise.resolve([]),
+    prisma.correctiveAction.findMany({ where: { AND: [scopedActions, { status: { in: OPEN_ACTION_STATUSES }, dueDate: { lt: now } }] }, orderBy: { dueDate: "asc" }, take: 6 }),
+    v.isSafetyTeam ? prisma.correctiveAction.findMany({ where: { organizationId: v.organizationId, status: "COMPLETED" }, orderBy: { completedAt: "asc" }, take: 6 }) : Promise.resolve([]),
+    v.isSafetyTeam ? prisma.correctiveAction.findMany({ where: { organizationId: v.organizationId, status: "PROPOSED" }, orderBy: { createdAt: "asc" }, take: 6 }) : Promise.resolve([]),
+    prisma.inspection.findMany({ where: { organizationId: v.organizationId, status: "SCHEDULED", dueDate: { lte: soon }, ...scopedSite }, include: { template: true, site: true }, orderBy: { dueDate: "asc" }, take: 8 }),
+    prisma.qualification.findMany({ where: { organizationId: v.organizationId, expiresOn: { lte: in30 }, ...(v.isSafetyTeam ? {} : { employeeId: { in: (await prisma.employee.findMany({ where: { organizationId: v.organizationId, siteId: v.siteId ?? "__none__" }, select: { id: true } })).map((e) => e.id) } }) }, orderBy: { expiresOn: "asc" }, take: 8 }),
+    prisma.toolboxTalk.findMany({ where: { organizationId: v.organizationId, scheduledFor: { gte: new Date(Date.now() - 14 * 86400_000) } }, include: { _count: { select: { acknowledgements: true } } }, orderBy: { scheduledFor: "desc" }, take: 3 }),
+    prisma.employee.count({ where: { organizationId: v.organizationId } }),
+    v.isSafetyTeam ? prisma.safetyReport.groupBy({ by: ["category"], where: { organizationId: v.organizationId, createdAt: { gte: new Date(Date.now() - 90 * 86400_000) } }, _count: { _all: true } }) : Promise.resolve([]),
   ]);
 
-  const score = latest?.aiAdoptionScore ?? 0;
-  const band = maturityBand(score);
-  const breakdown: Record<OrgMaturityCategory, number> = {
-    literacy: latest?.literacyScore ?? 0,
-    usage: latest?.usageScore ?? 0,
-    workflowIntegration: latest?.workflowIntegrationScore ?? 0,
-    governance: latest?.governanceScore ?? 0,
-    measurement: latest?.measurementScore ?? 0,
-    leadershipAdoption: latest?.leadershipScore ?? 0,
-  };
-  // A real month-over-month score delta - both points come from the same
-  // survey-based snapshot table, so (unlike the live adoption/hours metrics)
-  // this is an honest apples-to-apples comparison.
-  const prevScore = trend.length > 1 ? trend[trend.length - 2].score : null;
-  const scoreTrend = prevScore !== null ? score - prevScore : null;
+  investigations.sort((a, b) => severityRank(b.report.severity) - severityRank(a.report.severity));
+  const employees = await prisma.employee.findMany({ where: { id: { in: [...qualsExpiring.map((q) => q.employeeId)] } }, include: { user: { select: { name: true } } } });
+  const empName = new Map(employees.map((e) => [e.id, e.user.name]));
+  const escalations = await Promise.all(overdueResponse.map(async (r) => ({ r, to: await escalationTargetFor({ organizationId: v.organizationId, siteId: r.siteId, category: r.category, severity: r.severity }) })));
+  const targetIds = escalations.map((e) => e.to).filter((x): x is string => Boolean(x));
+  const targets = await prisma.employee.findMany({ where: { id: { in: targetIds } }, include: { user: { select: { name: true } } } });
+  const targetName = new Map(targets.map((t) => [t.id, t.user.name]));
+  const topCats = [...byCategory].sort((a, b) => b._count._all - a._count._all).slice(0, 5);
+  const maxCat = Math.max(1, ...topCats.map((c) => c._count._all));
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 p-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="mx-auto max-w-6xl space-y-5 p-4 sm:p-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-ink-900">Overview</h1>
-          <p className="text-sm text-ink-500">How well is {org?.name} adopting AI?</p>
+          <h1 className="text-xl font-semibold text-ink-900">{v.isSafetyTeam ? "Safety overview" : "Your site"}</h1>
+          <p className="text-sm text-ink-500">{org?.name} · what needs attention today</p>
         </div>
-        <QueryParamSelect paramKey="months" options={MONTHS_OPTIONS} defaultValue="6" />
+        <Link href="/dashboard/reports/new" className="rounded-full bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-800 sm:hidden">Report something</Link>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-1">
-          <CardBody className="flex flex-col items-center text-center">
-            <IconBadge icon={<Gauge size={18} />} tone="orchid" className="mx-auto" />
-            <p className="mt-2 text-xs font-medium text-ink-500">AI Adoption Score</p>
-            <div className="mt-3">
-              <ScoreRing value={score} size={130} label="/ 100" />
-            </div>
-            <div className="mt-3 flex items-center gap-2">
-              <Badge tone="brand">{band.label}</Badge>
-              {scoreTrend !== null && (
-                <span className={`text-xs font-medium ${scoreTrend >= 0 ? "text-sage-deep" : "text-danger"}`}>
-                  {scoreTrend >= 0 ? "↑" : "↓"} {Math.abs(scoreTrend)} vs last month
-                </span>
-              )}
-            </div>
-            <p className="mt-2 text-xs text-ink-500">{band.description}</p>
-          </CardBody>
-        </Card>
-        <Card className="lg:col-span-2">
-          <CardHeader
-            icon={<IconBadge icon={<TrendingUp size={18} />} tone="orchid" />}
-            title="AI Adoption Score over time"
-            subtitle={`Org-wide, last ${monthsCount} months`}
-            action={
-              scoreTrend !== null ? (
-                <Badge tone={scoreTrend >= 0 ? "green" : "red"}>
-                  {scoreTrend >= 0 ? "+" : ""}{scoreTrend} vs previous period
-                </Badge>
-              ) : undefined
-            }
-          />
-          <CardBody>
-            <AdoptionTrendChart data={trend.map((t) => ({ month: t.month, score: t.score }))} />
-          </CardBody>
-        </Card>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile
-          icon={<IconBadge icon={<Users size={16} />} tone="orchid" className="h-8 w-8" />}
-          label="AI adoption"
-          value={`${metrics.adoptionPct}%`}
-          helpText="Employees active on Reldro in the last 30 days"
-          trend={
-            metrics.adoptionPct !== metrics.adoptionPctPrevPeriod
-              ? { value: `${Math.abs(metrics.adoptionPct - metrics.adoptionPctPrevPeriod)}pt vs prior 30 days`, positive: metrics.adoptionPct >= metrics.adoptionPctPrevPeriod }
-              : undefined
-          }
-        />
-        <StatTile
-          icon={<IconBadge icon={<UserCheck size={16} />} tone="sage" className="h-8 w-8" />}
-          label="Employees actively using AI"
-          value={`${metrics.activeUsers} / ${metrics.totalUsers}`}
-          trend={
-            metrics.activeUsers !== metrics.activeUsersPrevPeriod
-              ? { value: `${Math.abs(metrics.activeUsers - metrics.activeUsersPrevPeriod)} vs prior 30 days`, positive: metrics.activeUsers >= metrics.activeUsersPrevPeriod }
-              : undefined
-          }
-        />
-        <StatTile
-          icon={<IconBadge icon={<Share2 size={16} />} tone="olive" className="h-8 w-8" />}
-          label="AI workflows deployed"
-          value={workflowsDeployed}
-          trend={workflowsDeployedRecently > 0 ? { value: `${workflowsDeployedRecently} this month`, positive: true } : undefined}
-        />
-        <StatTile
-          icon={<IconBadge icon={<Clock size={16} />} tone="coral" className="h-8 w-8" />}
-          label="Est. monthly hours saved"
-          value={metrics.hoursSavedMonthly.toLocaleString()}
-          helpText="Across all teams with adopted workflows"
-        />
-        <StatTile
-          icon={<IconBadge icon={<Lightbulb size={16} />} tone="orchid" className="h-8 w-8" />}
-          label="AI opportunities identified"
-          value={opportunitiesCount}
-          trend={opportunitiesCreatedRecently > 0 ? { value: `${opportunitiesCreatedRecently} this month`, positive: true } : undefined}
-        />
-        <StatTile
-          icon={<IconBadge icon={<BarChart3 size={16} />} tone="sage" className="h-8 w-8" />}
-          label="Active AI initiatives"
-          value={activeInitiatives}
-          trend={initiativesCreatedRecently > 0 ? { value: `${initiativesCreatedRecently} this month`, positive: true } : undefined}
-        />
-        <StatTile
-          icon={<IconBadge icon={<Briefcase size={16} />} tone="olive" className="h-8 w-8" />}
-          label="Specialist projects"
-          value={activeProjects}
-          trend={projectsCreatedRecently > 0 ? { value: `${projectsCreatedRecently} this month`, positive: true } : undefined}
-        />
-        <StatTile
-          icon={<IconBadge icon={<Building2 size={16} />} tone="coral" className="h-8 w-8" />}
-          label="Company size"
-          value={org?.size ?? "-"}
-        />
-      </div>
-
-      <Card>
-        <CardHeader
-          icon={<IconBadge icon={<Newspaper size={18} />} tone="olive" />}
-          title="Your AI adoption brief"
-          subtitle="What changed this week, compared to the week before"
-          action={
-            <Link
-              href="/reports/ai-transformation"
-              className="shrink-0 rounded-full border border-ink-300 px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-ink-50"
-            >
-              View full brief →
-            </Link>
-          }
-        />
-        <CardBody className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatTile
-              icon={<IconBadge icon={<UserCheck size={16} />} tone="orchid" className="h-8 w-8" />}
-              label="Active users"
-              value={weeklyBrief.activeUsersThisWeek}
-              trend={{
-                value: `${Math.abs(weeklyBrief.activeUsersThisWeek - weeklyBrief.activeUsersLastWeek)} vs last week`,
-                positive: weeklyBrief.activeUsersThisWeek >= weeklyBrief.activeUsersLastWeek,
-              }}
-            />
-            <StatTile
-              icon={<IconBadge icon={<Gauge size={16} />} tone="sage" className="h-8 w-8" />}
-              label="AI fluency"
-              value={weeklyBrief.fluencyNow ?? "-"}
-              helpText={
-                weeklyBrief.fluencyNow !== null && weeklyBrief.fluencyLastWeek !== null
-                  ? `${weeklyBrief.fluencyNow >= weeklyBrief.fluencyLastWeek ? "+" : ""}${weeklyBrief.fluencyNow - weeklyBrief.fluencyLastWeek} vs last week`
-                  : "Not enough data yet"
-              }
-            />
-            <StatTile
-              icon={<IconBadge icon={<BookOpen size={16} />} tone="olive" className="h-8 w-8" />}
-              label="Lessons completed"
-              value={weeklyBrief.lessonsCompletedThisWeek}
-              helpText={`${weeklyBrief.lessonsCompletedLastWeek} last week`}
-            />
-            <StatTile
-              icon={<IconBadge icon={<DollarSign size={16} />} tone="coral" className="h-8 w-8" />}
-              label="Value captured this week"
-              value={`$${Math.round(weeklyBrief.valueCapturedThisWeek / 1000)}k`}
-            />
-          </div>
-          {(weeklyBrief.workflowsNewlyAdopted.length > 0 || weeklyBrief.fastestGrowingDepartment) && (
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">What changed</p>
-              <ul className="mt-1.5 space-y-1 text-sm text-ink-700">
-                {weeklyBrief.workflowsNewlyAdopted.map((w) => (
-                  <li key={w.id}>
-                    <Link href={`/dashboard/workflows/${w.id}`} className="text-orchid-deep hover:text-oxblood">{w.title}</Link> was newly adopted this week.
-                  </li>
-                ))}
-                {weeklyBrief.fastestGrowingDepartment && (
-                  <li>
-                    {weeklyBrief.fastestGrowingDepartment.name} is the fastest-growing team this week (+{weeklyBrief.fastestGrowingDepartment.delta} active users).
-                  </li>
-                )}
-              </ul>
-            </div>
-          )}
-        </CardBody>
-      </Card>
-
-      <Card>
-        <CardHeader
-          icon={<IconBadge icon={<DollarSign size={18} />} tone="olive" />}
-          title="AI transformation value"
-          subtitle="Estimated potential value vs. value captured from adopted workflows"
-        />
-        <CardBody>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatTile
-              icon={<IconBadge icon={<DollarSign size={16} />} tone="orchid" className="h-8 w-8" />}
-              label="Potential AI value"
-              value={`$${(valueCapture.potentialValue / 1000).toFixed(0)}k`}
-              helpText="Estimated, across all identified opportunities"
-            />
-            <StatTile
-              icon={<IconBadge icon={<Wallet size={16} />} tone="sage" className="h-8 w-8" />}
-              label="Value captured"
-              value={`$${(valueCapture.capturedValue / 1000).toFixed(0)}k`}
-              helpText="From opportunities whose workflow is adopted"
-            />
-            <StatTile
-              icon={<IconBadge icon={<Target size={16} />} tone="coral" className="h-8 w-8" />}
-              label="Value remaining"
-              value={`$${(valueCapture.remainingValue / 1000).toFixed(0)}k`}
-              helpText="Potential minus captured"
-            />
-            <StatTile
-              icon={<IconBadge icon={<Percent size={16} />} tone="olive" className="h-8 w-8" />}
-              label="Capture rate"
-              value={`${valueCapture.captureRatePct}%`}
-              helpText="Captured ÷ potential"
-            />
-          </div>
-        </CardBody>
-      </Card>
-
-      {recommendations.length > 0 && (
-        <Card>
-          <CardHeader
-            icon={<IconBadge icon={<Sparkles size={18} />} tone="orchid" />}
-            title="What should we do next?"
-            subtitle="Recommended based on your opportunities and assessment"
-          />
-          <CardBody className="space-y-4">
-            {recommendations.map((rec) => {
-              const RecIcon = RECOMMENDATION_ICON[rec.category];
-              return (
-              <div key={rec.id} className="rounded-xl border border-ink-200 p-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="flex min-w-0 gap-3">
-                    <IconBadge icon={<RecIcon size={18} />} tone={rec.category === "opportunity" ? "coral" : "sage"} />
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-ink-900">{rec.title}</p>
-                      <p className="mt-1 text-sm text-ink-600">{rec.reason}</p>
-                    </div>
-                  </div>
-                  <Link
-                    href={rec.actionHref}
-                    className="shrink-0 rounded-full bg-brand-700 px-4 py-2 text-xs font-medium text-white hover:bg-brand-800"
-                  >
-                    {rec.actionLabel}
-                  </Link>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {rec.evidence.map((e) => (
-                    <Badge key={e} tone="neutral">{e}</Badge>
-                  ))}
-                </div>
-                <p className="mt-2 text-xs text-ink-500">Expected impact: {rec.expectedImpact}</p>
-                {(rec.relatedWorkflowHref || rec.relatedLearningHref) && (
-                  <div className="mt-2 flex flex-wrap gap-4 text-xs">
-                    {rec.relatedWorkflowHref && (
-                      <Link href={rec.relatedWorkflowHref} className="font-medium text-orchid-deep hover:text-oxblood">
-                        Related workflow: {rec.relatedWorkflowLabel} →
-                      </Link>
-                    )}
-                    {rec.relatedLearningHref && (
-                      <Link href={rec.relatedLearningHref} className="font-medium text-orchid-deep hover:text-oxblood">
-                        Related learning: {rec.relatedLearningLabel} →
-                      </Link>
-                    )}
-                  </div>
-                )}
-              </div>
-              );
-            })}
-          </CardBody>
-        </Card>
-      )}
-
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-1">
-          <CardHeader
-            icon={<IconBadge icon={<BarChart3 size={18} />} tone="orchid" />}
-            title="Maturity breakdown"
-            subtitle="Latest assessment"
-          />
-          <CardBody className="space-y-3">
-            {(Object.keys(breakdown) as OrgMaturityCategory[]).map((cat) => (
-              <div key={cat}>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-ink-600">{ORG_MATURITY_LABELS[cat]}</span>
-                  <span className="font-medium text-ink-900">{breakdown[cat]}</span>
-                </div>
-                <ProgressBar value={breakdown[cat]} className="mt-1" />
-              </div>
-            ))}
-            <Link href="/dashboard/assessment" className="mt-2 inline-block text-xs font-medium text-orchid-deep hover:text-oxblood">
-              View full assessment →
-            </Link>
-          </CardBody>
-        </Card>
-
-        <Card className="lg:col-span-2">
-          <CardHeader
-            icon={<IconBadge icon={<Target size={18} />} tone="olive" />}
-            title="Top AI opportunities"
-            subtitle="Ranked by estimated annual value"
-            action={
-              <Link href="/dashboard/opportunities" className="text-xs font-medium text-orchid-deep hover:text-oxblood">
-                View all →
-              </Link>
-            }
-          />
-          <CardBody className="divide-y divide-ink-200 p-0">
-            {topOpportunities.length === 0 && <p className="p-5 text-sm text-ink-500">No opportunities identified yet.</p>}
-            {topOpportunities.map((o) => (
-              <Link key={o.id} href={`/dashboard/opportunities/${o.id}`} className="flex items-center gap-4 px-5 py-3 hover:bg-ink-50">
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-ink-900">{o.title}</p>
-                  <p className="text-xs text-ink-500">{o.department?.name ?? "Cross-functional"}</p>
-                </div>
-                <div className="shrink-0 text-right">
-                  <p className="text-sm font-semibold text-ink-900">${(o.estAnnualValue / 1000).toFixed(0)}k/yr</p>
-                  <p className="text-[11px] text-ink-500">{o.estHoursSavedMonthly} hrs/mo</p>
-                </div>
-                <CardArrow />
-              </Link>
-            ))}
-          </CardBody>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader
-          icon={<IconBadge icon={<Activity size={18} />} tone="sage" />}
-          title="AI activity"
-          subtitle="Activity across the organization: learning, workflow adoption, and recognition"
-          action={<QueryParamSelect paramKey="activity" options={ACTIVITY_FILTER_OPTIONS} defaultValue="all" />}
-        />
-        <CardBody className="divide-y divide-ink-200 p-0">
-          {activityFeed.length === 0 && <p className="p-5 text-sm text-ink-500">No activity matches this filter yet.</p>}
-          {activityFeed.map((item) => {
-            const { icon: ItemIcon, tone } = ACTIVITY_ICON[item.action];
-            return (
-              <div key={item.id} className="flex items-center gap-3 px-5 py-3">
-                <IconBadge icon={<ItemIcon size={16} />} tone={tone} className="h-8 w-8" />
-                <p className="min-w-0 flex-1 text-sm text-ink-800">{item.text}</p>
-                <span className="shrink-0 text-xs text-ink-400">{item.createdAt.toLocaleDateString()}</span>
-              </div>
-            );
-          })}
-        </CardBody>
-      </Card>
-    </div>
-  );
-}
-
-async function EmployeeOverview({ session, name }: { session: SessionPayload; name: string }) {
-  const employeeId = session.employeeId!;
-  const employee = await prisma.employee.findUnique({
-    where: { id: employeeId },
-    include: { department: true, organization: true },
-  });
-  if (!employee) redirect("/login");
-
-  const ownDepartment = ownDepartmentFilter(session, employee);
-
-  const [
-    assignedLessons,
-    totalLessonsInScope,
-    workflows,
-    opportunity,
-    fluency,
-    recommendations,
-    pointsBalance,
-    recentPoints,
-    rewardMilestones,
-  ] = await Promise.all([
-    prisma.lessonCompletion.findMany({ where: { employeeId }, include: { lesson: { include: { course: true } } } }),
-    prisma.course
-      .findMany({
-        where: { id: { notIn: await getHiddenIds(employee.organizationId, "COURSE") }, OR: [{ organizationId: null }, { organizationId: employee.organizationId }], department: ownDepartment },
-        include: { _count: { select: { lessons: true } } },
-      })
-      .then((courses) => courses.reduce((sum, c) => sum + c._count.lessons, 0)),
-    prisma.organizationWorkflow.findMany({
-      where: { organizationId: employee.organizationId },
-      include: { workflow: true },
-      take: 4,
-    }),
-    prisma.opportunity.findFirst({
-      where: { organizationId: employee.organizationId, departmentId: employee.departmentId ?? undefined },
-      orderBy: { estAnnualValue: "desc" },
-      include: { workflow: true },
-    }),
-    getFluencyForEmployee(employeeId),
-    getEmployeeRecommendations(employeeId),
-    getPointsBalance(employeeId),
-    getRecentPointsTransactions(employeeId, 3),
-    getRewardMilestones(employeeId, employee.organizationId),
-  ]);
-
-  const relevantWorkflows = workflows.filter((w) => w.workflow.department === employee.department?.name || !employee.department);
-  const opportunityAdopters = opportunity?.workflowId
-    ? await getWorkflowDeploymentStats(employee.organizationId, { id: opportunity.workflowId, department: opportunity.workflow!.department, steps: [] })
-    : null;
-
-  return (
-    <div className="mx-auto max-w-5xl space-y-6 p-6">
-      <div>
-        <h1 className="text-xl font-semibold text-ink-900">Welcome back, {name.split(" ")[0]}</h1>
-        <p className="text-sm text-ink-500">
-          {employee.jobTitle} · {employee.department?.name ?? "Unassigned department"}
-        </p>
-      </div>
-
-      {recommendations.length > 0 && (
-        <Card>
-          <CardHeader
-            icon={<IconBadge icon={<Sparkles size={18} />} tone="orchid" />}
-            title="What should I do next?"
-            subtitle="Personalized based on your skills, workflows, and activity"
-          />
-          <CardBody className="space-y-3">
-            {recommendations.map((rec) => (
-              <div key={rec.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-ink-200 p-3">
-                <div className="flex min-w-0 items-start gap-3">
-                  <IconBadge icon={<FileText size={16} />} tone="orchid" className="h-8 w-8" />
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-ink-900">
-                      {rec.title}
-                      {rec.estimatedMinutes && <span className="ml-2 text-xs font-normal text-ink-500">{rec.estimatedMinutes} min</span>}
-                    </p>
-                    <p className="text-xs text-ink-500">{rec.reason}</p>
-                  </div>
-                </div>
-                <Link
-                  href={rec.actionHref}
-                  className="shrink-0 rounded-full bg-brand-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-800"
-                >
-                  {rec.actionLabel}
-                </Link>
-              </div>
-            ))}
-          </CardBody>
-        </Card>
-      )}
-
-      <Card>
-        <CardHeader
-          icon={<IconBadge icon={<BarChart3 size={18} />} tone="olive" />}
-          title="Your AI progress"
-          action={
-            <Link href="/dashboard/rewards" className="text-xs font-medium text-orchid-deep hover:text-oxblood">
-              View rewards →
-            </Link>
-          }
-        />
-        <CardBody className="space-y-4">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="text-2xl font-semibold text-ink-900">{pointsBalance.toLocaleString()} pts</p>
-              {rewardMilestones.length > 1 ? (
-                <p className="text-xs text-ink-500">
-                  {rewardMilestones[1].value - pointsBalance} pts away from {rewardMilestones[1].label}
-                </p>
-              ) : (
-                <p className="text-xs text-ink-500">Earned from learning paths, simulations, workflows, and recognition</p>
-              )}
-            </div>
-            {recentPoints.length > 0 && (
-              <div className="min-w-0 flex-1 space-y-1 sm:max-w-xs">
-                {recentPoints.map((t) => (
-                  <p key={t.id} className="truncate text-xs text-ink-600">
-                    <span className={t.amount >= 0 ? "font-medium text-sage-deep" : "font-medium text-ink-500"}>
-                      {t.amount >= 0 ? "+" : ""}{t.amount}
-                    </span>{" "}
-                    {t.reason}
-                  </p>
-                ))}
-              </div>
-            )}
-          </div>
-          {rewardMilestones.length > 1 && <MilestoneProgressBar value={pointsBalance} milestones={rewardMilestones} />}
-        </CardBody>
-      </Card>
-
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardHeader
-            icon={<IconBadge icon={<Gauge size={18} />} tone="orchid" />}
-            title={
-              <span className="flex items-center gap-1.5">
-                Your AI Fluency
-                <InfoTooltip text="This measures how effectively you use AI. AI adoption measures how much you use it." />
-              </span>
-            }
-          />
-          <CardBody className="flex items-center gap-4">
-            <ScoreRing value={employee.aiFluencyScore ?? 0} size={72} label="/ 100" />
-            <div>
-              {fluency && (
-                <p className="text-[11px] text-ink-600">
-                  Strongest: {EMPLOYEE_SKILL_LABELS[getStrongestSkill(fluency.breakdown)]} · Focus area: {EMPLOYEE_SKILL_LABELS[getWeakestSkill(fluency.breakdown)]}
-                </p>
-              )}
-              <Link href="/dashboard/assessment" className="text-xs font-medium text-orchid-deep hover:text-oxblood">
-                View breakdown →
-              </Link>
-            </div>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardHeader icon={<IconBadge icon={<BookOpen size={18} />} tone="orchid" />} title="Lessons completed" />
-          <CardBody>
-            <p className="text-2xl font-semibold text-ink-900">
-              {assignedLessons.length} <span className="text-sm font-normal text-ink-500">of {totalLessonsInScope}</span>
-            </p>
-            <p className="text-xs text-ink-500">
-              {totalLessonsInScope > 0 ? Math.round((assignedLessons.length / totalLessonsInScope) * 100) : 0}% complete
-            </p>
-            <ProgressBar value={assignedLessons.length} max={totalLessonsInScope || 1} className="mt-2" />
-            <div className="mt-2 flex items-center gap-3 text-[11px] text-ink-500">
-              <span className="flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-orchid-deep" /> Completed {assignedLessons.length}
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-ink-200" /> Not started {Math.max(0, totalLessonsInScope - assignedLessons.length)}
-              </span>
-            </div>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardHeader icon={<IconBadge icon={<Share2 size={18} />} tone="olive" />} title="Workflows available to you" />
-          <CardBody>
-            <p className="text-2xl font-semibold text-ink-900">{relevantWorkflows.length}</p>
-            <p className="text-xs text-ink-500">Based on your role, team, and recent activity.</p>
-            <Link href="/dashboard/workflows" className="mt-1 inline-block text-xs font-medium text-orchid-deep hover:text-oxblood">
-              Browse workflows →
-            </Link>
-          </CardBody>
-        </Card>
-      </div>
-
-      {opportunity && (
-        <Card>
-          <CardHeader
-            icon={<IconBadge icon={<Target size={18} />} tone="olive" />}
-            title={`Highest-value opportunity in ${employee.department?.name ?? "your area"}`}
-          />
-          <CardBody>
-            <p className="text-sm font-medium text-ink-900">{opportunity.title}</p>
-            <p className="mt-1 text-sm text-ink-600">{opportunity.aiOpportunity}</p>
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              <Badge tone={opportunity.impact === "HIGH" ? "green" : opportunity.impact === "MEDIUM" ? "amber" : "neutral"}>
-                {opportunity.impact.toLowerCase()} impact
-              </Badge>
-              {opportunity.workflow && <Badge>Est. {opportunity.workflow.timeSavedMinutes} min/day</Badge>}
-              {opportunityAdopters && opportunityAdopters.activeAdopters > 0 && (
-                <Badge>Used by {opportunityAdopters.activeAdopters} teammate{opportunityAdopters.activeAdopters === 1 ? "" : "s"}</Badge>
-              )}
-            </div>
-            <Link href={`/dashboard/opportunities/${opportunity.id}`} className="mt-3 inline-block text-xs font-medium text-orchid-deep hover:text-oxblood">
-              Explore this opportunity →
-            </Link>
-          </CardBody>
-        </Card>
-      )}
-
-      <Card>
-        <CardHeader
-          icon={<IconBadge icon={<User size={18} />} tone="olive" />}
-          title="Recommended for your role"
-          action={
-            <Link href="/dashboard/workflows" className="text-xs font-medium text-orchid-deep hover:text-oxblood">
-              Browse workflow library →
-            </Link>
-          }
-        />
-        <CardBody className="divide-y divide-ink-200 p-0">
-          {relevantWorkflows.length === 0 && <p className="p-5 text-sm text-ink-500">No workflows tailored to your department yet.</p>}
-          {relevantWorkflows.map((ow) => (
-            <Link key={ow.id} href={`/dashboard/workflows/${ow.workflow.id}`} className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-ink-50">
-              <div className="flex min-w-0 items-center gap-3">
-                <IconBadge icon={<FileText size={14} />} tone="orchid" className="h-8 w-8" />
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-ink-900">{ow.workflow.title}</p>
-                  <div className="mt-1 flex flex-wrap gap-1.5">
-                    <Badge tone="neutral">{ow.workflow.department}</Badge>
-                    <Badge tone="neutral">{ow.workflow.difficulty.toLowerCase()} difficulty</Badge>
-                  </div>
-                </div>
-              </div>
-              <Badge tone={ow.status === "ADOPTED" ? "green" : "neutral"}>{ow.status.replace("_", " ").toLowerCase()}</Badge>
-            </Link>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Queue title="Response overdue" count={overdueResponse.length} href="/dashboard/reports?status=open" tone="alert" empty="Every report has been acknowledged within its response time.">
+          {escalations.map(({ r, to }) => (
+            <QueueRow key={r.id} href={`/dashboard/reports/${r.id}`} title={r.title} meta={`${r.site?.name ?? "No site"} · due ${fmtDate(r.respondBy)}${to ? ` · escalate to ${targetName.get(to) ?? "a lead"}` : " · no escalation contact set"}`} right={<SeverityBadge severity={r.severity} />} />
           ))}
-        </CardBody>
-      </Card>
+        </Queue>
+        <Queue title="New and unassigned reports" count={unassigned.length} href="/dashboard/reports?status=open" tone="alert" empty="No new reports waiting.">
+          {unassigned.map((r) => <QueueRow key={r.id} href={`/dashboard/reports/${r.id}`} title={r.title} meta={`${categoryLabel(r.category, pack)} · ${r.site?.name ?? "No site"} · ${fmtDate(r.createdAt)}`} right={<SeverityBadge severity={r.severity} />} />)}
+        </Queue>
+        {v.isSafetyTeam && (
+          <Queue title="Active investigations" count={investigations.length} href="/dashboard/investigations" empty="No open investigations.">
+            {investigations.slice(0, 6).map((i) => <QueueRow key={i.id} href={`/dashboard/investigations/${i.id}`} title={i.report.title} meta={`${i.report.site?.name ?? "No site"} · opened ${fmtDate(i.openedAt)}`} right={<SeverityBadge severity={i.report.severity} />} />)}
+          </Queue>
+        )}
+        <Queue title="Overdue corrective actions" count={overdueActions.length} href="/dashboard/actions?view=overdue" tone="alert" empty="No overdue actions.">
+          {overdueActions.map((a) => <QueueRow key={a.id} href={`/dashboard/actions/${a.id}`} title={a.title} meta={dueLabel(a.dueDate, true).text} right={<ActionStatusBadge status={a.status} />} />)}
+        </Queue>
+        {v.isSafetyTeam && (
+          <Queue title="Actions waiting on you" count={awaiting.length + proposed.length} href="/dashboard/actions?view=attention" empty="No actions waiting for approval or verification.">
+            {[...proposed, ...awaiting].slice(0, 6).map((a) => <QueueRow key={a.id} href={`/dashboard/actions/${a.id}`} title={a.title} meta={a.status === "PROPOSED" ? "Proposed. Needs approval" : "Marked done. Needs verification"} right={<ActionStatusBadge status={a.status} />} />)}
+          </Queue>
+        )}
+        <Queue title="Inspections due in 7 days" count={inspections.length} href="/dashboard/inspections" tone="alert" empty="No inspections due soon.">
+          {inspections.map((i) => { const d = dueLabel(i.dueDate, true); return <QueueRow key={i.id} href={`/dashboard/inspections/${i.id}`} title={`${i.template.name} · ${i.site.name}`} meta={d.text} right={d.overdue ? <Badge tone="red">Overdue</Badge> : undefined} />; })}
+        </Queue>
+        <Queue title="Qualifications expiring within 30 days" count={qualsExpiring.length} href="/dashboard/training?tab=qualifications" tone="alert" empty="No qualifications need renewal.">
+          {qualsExpiring.map((q) => <QueueRow key={q.id} href="/dashboard/training?tab=qualifications" title={`${empName.get(q.employeeId) ?? "Someone"} · ${q.name}`} meta={`${q.expiresOn && q.expiresOn < now ? "Expired" : "Expires"} ${fmtDate(q.expiresOn)}`} />)}
+        </Queue>
+        <Queue title="Recent toolbox talks" count={talks.length} href="/dashboard/training" empty="No toolbox talks in the last two weeks.">
+          {talks.map((t) => <QueueRow key={t.id} href="/dashboard/training" title={t.title} meta={fmtDate(t.scheduledFor)} right={<span className="text-xs text-ink-500 tabular-nums">{t._count.acknowledgements}/{empCount} acknowledged</span>} />)}
+        </Queue>
+      </div>
+
+      {v.isSafetyTeam && topCats.length > 0 && (
+        <div className="rounded-xl border border-ink-200 bg-white p-4 sm:p-5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-ink-900">Reports by topic, last 90 days</h2>
+            <Link href="/dashboard/insights" className="text-xs font-medium text-orchid-deep hover:text-oxblood">See patterns →</Link>
+          </div>
+          <ul className="mt-3 space-y-2">
+            {topCats.map((c) => (
+              <li key={c.category} className="grid grid-cols-[minmax(0,14rem),1fr,2rem] items-center gap-3 text-sm">
+                <span className="truncate text-ink-700">{categoryLabel(c.category, pack)}</span>
+                <span className="h-2 rounded-full bg-surface-sunken"><span className="block h-2 rounded-full bg-orchid-deep" style={{ width: `${(c._count._all / maxCat) * 100}%` }} /></span>
+                <span className="text-right tabular-nums text-ink-600">{c._count._all}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

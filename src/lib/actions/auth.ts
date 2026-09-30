@@ -48,6 +48,10 @@ export async function login(_prevState: FormState, formData: FormData): Promise<
     return { error: "Invalid email or password." };
   }
 
+  if (user.role === "SPECIALIST") {
+    return { error: "This account type is no longer supported. Please contact your Reldro representative." };
+  }
+
   await prisma.user.update({ where: { id: user.id }, data: { failedLoginAttempts: 0, lockedUntil: null, lastLoginAt: new Date() } });
 
   await createSession({

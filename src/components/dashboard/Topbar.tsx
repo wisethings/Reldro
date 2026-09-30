@@ -34,7 +34,13 @@ export function Topbar({
         </button>
         {title && <h1 className="truncate text-base font-semibold text-ink-900">{title}</h1>}
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 sm:gap-4">
+        <Link
+          href="/dashboard/reports/new"
+          className="hidden rounded-full bg-brand-700 px-4 py-1.5 text-sm font-medium text-white hover:bg-brand-800 sm:inline-block"
+        >
+          Report something
+        </Link>
         <Link href="/dashboard/account" className="flex items-center gap-2.5 hover:opacity-80">
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-xs font-semibold text-orchid-deep">
             {initials}

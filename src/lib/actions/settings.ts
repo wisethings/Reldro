@@ -14,12 +14,6 @@ export async function updateOrgProfile(_prevState: FormState, formData: FormData
   const name = String(formData.get("name") ?? "").trim();
   if (!name) return { error: "Company name is required." };
 
-  const hourlyRateRaw = String(formData.get("blendedHourlyRate") ?? "").trim();
-  const blendedHourlyRate = hourlyRateRaw ? Number(hourlyRateRaw) : undefined;
-  if (blendedHourlyRate !== undefined && (!Number.isFinite(blendedHourlyRate) || blendedHourlyRate <= 0)) {
-    return { error: "Enter a valid blended hourly rate." };
-  }
-
   await prisma.organization.update({
     where: { id: session.organizationId! },
     data: {
@@ -27,7 +21,6 @@ export async function updateOrgProfile(_prevState: FormState, formData: FormData
       industry: String(formData.get("industry") ?? ""),
       size: String(formData.get("size") ?? ""),
       geography: String(formData.get("geography") ?? ""),
-      blendedHourlyRate,
     },
   });
 
@@ -35,80 +28,22 @@ export async function updateOrgProfile(_prevState: FormState, formData: FormData
   return { success: true };
 }
 
-/**
- * Value estimates ($/year) are computed once, at opportunity-creation time,
- * from that org's blendedHourlyRate at the time - changing the rate in
- * Settings doesn't retroactively touch existing Opportunity rows on its own.
- * This applies the org's *current* rate to every existing opportunity's
- * already-stored estHoursSavedMonthly, so an admin who corrects an
- * unrealistic default doesn't have to wait for new opportunities to see it
- * reflected. Uses a single UPDATE (not a per-row loop) since the formula is
- * the same for every row.
- */
-export async function recalculateOpportunityValues(): Promise<{ updated: number }> {
-  const session = await requireRole(["COMPANY_ADMIN"]);
-  const organizationId = session.organizationId!;
-
-  const org = await prisma.organization.findUniqueOrThrow({ where: { id: organizationId }, select: { blendedHourlyRate: true } });
-
-  const updated = await prisma.$executeRaw`
-    UPDATE "Opportunity"
-    SET "estAnnualValue" = ROUND("estHoursSavedMonthly" * 12 * ${org.blendedHourlyRate})::integer
-    WHERE "organizationId" = ${organizationId}
-  `;
-
-  await logAudit({
-    organizationId,
-    userId: session.sub,
-    action: "settings.value_estimates_recalculated",
-    entityType: "Organization",
-    entityId: organizationId,
-    metadata: { blendedHourlyRate: org.blendedHourlyRate, updated },
-  });
-
-  revalidatePath("/dashboard/settings");
-  revalidatePath("/dashboard/opportunities");
-  revalidatePath("/dashboard/roi");
-  revalidatePath("/dashboard/analytics");
-  revalidatePath("/dashboard/overview");
-  return { updated };
-}
-
-export async function setDepartmentIsolation(enabled: boolean) {
-  const session = await requireRole(["COMPANY_ADMIN"]);
-  await prisma.organization.update({
-    where: { id: session.organizationId! },
-    data: { departmentIsolationEnabled: enabled },
-  });
-  await logAudit({
-    organizationId: session.organizationId,
-    userId: session.sub,
-    action: enabled ? "settings.department_isolation_enabled" : "settings.department_isolation_disabled",
-    entityType: "Organization",
-    entityId: session.organizationId,
-  });
-  revalidatePath("/dashboard/settings");
-  revalidatePath("/dashboard/workflows");
-  revalidatePath("/dashboard/learn");
-  revalidatePath("/dashboard/templates");
-}
-
 export type CreateDepartmentState = { error?: string; success?: boolean } | undefined;
 
 export async function createDepartment(_prevState: CreateDepartmentState, formData: FormData): Promise<CreateDepartmentState> {
   const session = await requireRole(["COMPANY_ADMIN"]);
   const name = String(formData.get("name") ?? "").trim();
-  if (!name) return { error: "Department name is required." };
+  if (!name) return { error: "Crew name is required." };
 
   const existing = await prisma.department.findUnique({
     where: { organizationId_name: { organizationId: session.organizationId!, name } },
   });
-  if (existing) return { error: "A department with that name already exists." };
+  if (existing) return { error: "A crew with that name already exists." };
 
   await prisma.department.create({ data: { organizationId: session.organizationId!, name } });
 
   revalidatePath("/dashboard/settings");
-  revalidatePath("/dashboard/team");
+  revalidatePath("/dashboard/training");
   return { success: true };
 }
 
