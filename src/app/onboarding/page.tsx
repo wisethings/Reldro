@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { requireOrganization } from "@/lib/auth/guards";
 import { SafetyOnboarding } from "@/components/onboarding/SafetyOnboarding";
 import { Logo } from "@/components/ui/Logo";
+import { getPack } from "@/lib/safety/pack";
+import { repeatLabel } from "@/lib/safety/repeat";
 
 export default async function OnboardingPage() {
   const session = await requireOrganization();
@@ -10,12 +12,14 @@ export default async function OnboardingPage() {
   if (!org) redirect("/login");
   if (org.onboardingDone) redirect("/dashboard/overview");
 
+  const starters = getPack().inspectionTemplates.map((t) => ({ name: t.name, cadence: repeatLabel(t.frequencyDays), items: t.items.length }));
+
   return (
-    <div className="min-h-screen bg-ink-50 px-6 py-10">
-      <div className="mx-auto max-w-2xl">
-        <div className="mb-8 flex items-center gap-2"><Logo height={30} /></div>
-        <SafetyOnboarding companyName={org.name} />
+    <main className="min-h-[100dvh] bg-ink-50 px-4 py-8 sm:px-6 sm:py-12">
+      <div className="mx-auto max-w-[640px]">
+        <div className="mb-8 flex items-center"><Logo height={28} /></div>
+        <SafetyOnboarding companyName={org.name} starters={starters} />
       </div>
-    </div>
+    </main>
   );
 }

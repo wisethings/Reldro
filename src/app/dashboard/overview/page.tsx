@@ -12,6 +12,7 @@ import { Queue, QueueRow } from "@/components/safety/Queue";
 import { ActivityList, FocusList, Panel, PulseLine, QuietActivity, SectionTitle, StatStrip, TextLink, UpcomingRow, type ActivityItem, type FocusEntry } from "@/components/safety/Dashboard";
 import { dayStartIn, daysUntil, isOverdue, startOfTodayUTC } from "@/lib/safety/dates";
 import { REPORT_LIST_FIELDS } from "@/lib/safety/selects";
+import { GetStarted } from "@/components/safety/GetStarted";
 
 const ACTIVE_REPORT = ["NEW", "ASSIGNED", "INVESTIGATING", "ACTIONS_OPEN"];
 
@@ -405,6 +406,8 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
           {org?.name} · {summary}
         </p>
       </header>
+
+      {v.isAdmin && <GetStarted organizationId={v.organizationId} />}
 
       <div className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start">
         <section aria-labelledby="attention" className="surface p-4 sm:p-5">
