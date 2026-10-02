@@ -37,9 +37,27 @@ function speechCtor(): (new () => SpeechRecognitionLike) | null {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
+/** Where the page is running decides whether the browser's speech recognition can work at all. */
+function voiceEnvironment() {
+  const ua = navigator.userAgent;
+  const ios = /iPad|iPhone|iPod/.test(ua) || (ua.includes("Macintosh") && navigator.maxTouchPoints > 1);
+  const standalone = (navigator as unknown as { standalone?: boolean }).standalone === true || window.matchMedia?.("(display-mode: standalone)").matches === true;
+  // Apps that open links in their own browser view (social apps, WebViews) generally cannot use speech recognition.
+  const inApp = /FBAN|FBAV|Instagram|LinkedInApp|Snapchat|Twitter|MicroMessenger|Line\/|GSA\/|; wv\)/.test(ua);
+  return { ios, standalone, inApp };
+}
+
+/** Why voice cannot be used here, or null when it should work. Always ends with the dependable alternative. */
+function voiceUnavailableReason(): string | null {
+  const { ios, standalone, inApp } = voiceEnvironment();
+  if (ios && standalone) return "Speaking does not run in a home-screen app on iPhone. Tap the microphone on your keyboard instead, or open Reldro in Safari.";
+  if (inApp) return "Speaking does not run inside this app's browser. Tap the microphone on your keyboard instead, or open Reldro in Safari or Chrome.";
+  return null;
+}
+
 const VOICE_ERRORS: Record<string, string> = {
   "not-allowed": "Microphone access is blocked. Allow the microphone for this site in your browser settings, then try again.",
-  "service-not-allowed": "Voice input is turned off on this device. Turn on dictation in your device settings, then try again.",
+  "service-not-allowed": "Voice input is not available here. Tap the microphone on your keyboard instead. On iPhone you can also turn on Dictation in Settings, General, Keyboard.",
   "no-speech": "No speech was heard. Try again and speak close to the microphone.",
   "audio-capture": "No microphone was found on this device.",
   network: "Voice input needs an internet connection. Check your connection and try again.",
@@ -118,6 +136,7 @@ export function ReportForm({
   const [listening, setListening] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(true);
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [voiceNote, setVoiceNote] = useState<string | null>(null);
   const recRef = useRef<SpeechRecognitionLike | null>(null);
   const voiceBase = useRef("");
   const voiceHeard = useRef("");
@@ -133,7 +152,9 @@ export function ReportForm({
   }, [state]);
 
   useEffect(() => {
-    setVoiceSupported(Boolean(speechCtor()) && window.isSecureContext);
+    const reason = voiceUnavailableReason();
+    setVoiceNote(reason);
+    setVoiceSupported(Boolean(speechCtor()) && window.isSecureContext && !reason);
     return () => recRef.current?.abort();
   }, []);
 
@@ -168,6 +189,8 @@ export function ReportForm({
     rec.onerror = (e) => {
       setListening(false);
       setVoiceError(VOICE_ERRORS[e.error ?? ""] ?? "Voice input stopped. Try again, or use your keyboard's microphone.");
+      // These two will fail the same way every time on this device, so stop offering a button that cannot work.
+      if (e.error === "service-not-allowed" || e.error === "not-allowed") setVoiceSupported(false);
     };
     rec.onend = () => {
       setListening(false);
@@ -340,10 +363,15 @@ export function ReportForm({
               {listening ? <><span aria-hidden className="h-2 w-2 animate-pulse rounded-full bg-danger" /> Listening. Tap to stop</> : <><Mic size={13} aria-hidden /> Speak instead</>}
             </button>
           </div>
-          {voiceError && <Alert tone="warning" className="mt-2 text-xs">{voiceError}</Alert>}
+          {voiceError && (
+            <Alert tone="warning" className="mt-2 text-xs">
+              <span>{voiceError}</span>{" "}
+              <button type="button" onClick={() => document.getElementById("description")?.focus()} className="font-semibold underline underline-offset-2">Type or use keyboard microphone</button>
+            </Alert>
+          )}
           <p className="mt-1.5 text-xs text-ink-500" aria-live="polite">
             {!voiceSupported
-              ? "Speaking is not available in this browser. Use the microphone on your keyboard, then review the text."
+              ? voiceNote ?? "Speaking is not available in this browser. Use the microphone on your keyboard, then review the text."
               : listening
                 ? "Listening. Your words appear above as a draft. Review and edit them before you submit."
                 : "Speaking types your words as a draft. Review it before you submit. Nothing is sent until you choose Submit report."}

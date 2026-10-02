@@ -42,7 +42,7 @@ export default async function ActionsPage({ searchParams }: { searchParams: Prom
   const views = v.isSafetyTeam
     ? [["attention", "Needs attention"], ["overdue", "Overdue"], ["open", "All open"], ["mine", "Mine"], ["done", "Done"]]
     : [["open", "Open"], ["overdue", "Overdue"], ["done", "Done"]];
-  const chip = (active: boolean) => `rounded-full border px-2.5 py-1 text-xs font-medium ${active ? "border-brand-700 bg-orchid-soft text-orchid-deep" : "border-ink-200 bg-white text-ink-600 hover:bg-surface-hover"}`;
+  const chip = (active: boolean) => `pill ${active ? "pill-on" : "pill-off"}`;
 
   const day30 = new Date(Date.now() - 30 * 86400_000);
   const [sOpen, sOverdue, sReady, sVerified] = await Promise.all([

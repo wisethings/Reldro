@@ -125,6 +125,68 @@ select {
   }
 }
 
+/* One size for every filter pill and segmented control in the product, so moving between sections never changes their
+   height, width or weight. Active and inactive states differ only in colour, never in metrics. */
+@layer components {
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    height: 2rem;
+    padding: 0 0.75rem;
+    border: 1px solid transparent;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    line-height: 1;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+  }
+  .pill-off { border-color: theme("colors.ink.200"); background-color: #fff; color: theme("colors.ink.600"); }
+  .pill-on { border-color: theme("colors.brand.700"); background-color: theme("colors.orchid.soft"); color: theme("colors.orchid.deep"); }
+  @media (hover: hover) { .pill-off:hover { background-color: theme("colors.surface.hover"); } }
+
+  .seg-group {
+    display: flex;
+    max-width: 100%;
+    overflow-x: auto;
+    border-radius: 0.5rem;
+    background-color: theme("colors.ink.100");
+    padding: 2px;
+    scrollbar-width: none;
+  }
+  .seg-group::-webkit-scrollbar { display: none; }
+  .seg {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    height: 1.875rem;
+    padding: 0 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    line-height: 1;
+    font-weight: 500;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+  }
+  .seg-off { color: theme("colors.ink.600"); }
+  .seg-on { background-color: #fff; color: theme("colors.ink.900"); box-shadow: 0 0 0 1px rgba(42, 10, 12, 0.08); }
+  @media (hover: hover) { .seg-off:hover { color: theme("colors.ink.900"); } }
+}
+
+/* The tapped pill takes the active look at once (the page behind it may take a moment), and the one it replaces lets go,
+   so a choice never feels like it lagged or flickered. QueryLink renders .pending-bar only while its page is loading. */
+.pill > .pending-bar, .seg > .pending-bar { display: none; }
+.pill:has(> .pending-bar) { border-color: theme("colors.brand.700"); background-color: theme("colors.orchid.soft"); color: theme("colors.orchid.deep"); }
+:has(> .pill > .pending-bar) > .pill-on:not(:has(> .pending-bar)) { border-color: theme("colors.ink.200"); background-color: #fff; color: theme("colors.ink.600"); }
+.seg:has(> .pending-bar) { background-color: #fff; color: theme("colors.ink.900"); box-shadow: 0 0 0 1px rgba(42, 10, 12, 0.08); }
+:has(> .seg > .pending-bar) > .seg-on:not(:has(> .pending-bar)) { background-color: transparent; color: theme("colors.ink.600"); box-shadow: none; }
+
 @layer utilities {
   .scrollbar-thin::-webkit-scrollbar {
     width: 6px;

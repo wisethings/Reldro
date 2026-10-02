@@ -382,3 +382,45 @@ test("certifications: a requirement shows who is missing, a record closes the ga
     }
   }
 });
+
+test("voice input: a device that cannot dictate gets a clear next step instead of a dead end", async () => {
+  // 1. A speech engine that refuses (dictation off): the message offers the keyboard microphone and the button stops offering a retry.
+  let page = await signIn("priya", { phone: true });
+  try {
+    await page.addInitScript(() => {
+      const Fake = class {
+        start() { setTimeout(() => this.onerror?.({ error: "service-not-allowed" }), 10); }
+        stop() {}
+        abort() {}
+      };
+      window.SpeechRecognition = Fake;
+      window.webkitSpeechRecognition = Fake;
+    });
+    await page.goto(`${BASE}/dashboard/reports/new`, { waitUntil: "networkidle" });
+    await page.getByRole("button", { name: /Speak instead/ }).click();
+    await page.getByText(/Voice input is not available here/).waitFor();
+    assert.ok(await page.getByRole("button", { name: /keyboard microphone/ }).isVisible());
+    assert.equal(await page.getByRole("button", { name: /Speak instead/ }).isDisabled(), true);
+    await page.getByRole("button", { name: /keyboard microphone/ }).click();
+    assert.equal(await page.evaluate(() => document.activeElement?.id), "description", "the text box takes focus so the keyboard microphone is one tap away");
+  } finally {
+    await page.context().close();
+  }
+  // 2. A home-screen app on iPhone cannot run speech recognition at all: say so up front and disable the button.
+  const b = await launch();
+  const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1" });
+  await ctx.addInitScript(() => { Object.defineProperty(navigator, "standalone", { value: true }); window.SpeechRecognition = window.webkitSpeechRecognition = class { start() {} stop() {} abort() {} }; });
+  page = await ctx.newPage();
+  try {
+    await page.goto(`${BASE}/login`);
+    await page.fill("input[name=email]", "priya.shah@havenbrook.com");
+    await page.fill("input[name=password]", "Demo1234!");
+    await page.click("button[type=submit]");
+    await page.waitForURL(/dashboard/, { timeout: 60_000 });
+    await page.goto(`${BASE}/dashboard/reports/new`, { waitUntil: "networkidle" });
+    await page.getByText(/does not run in a home-screen app on iPhone/).waitFor();
+    assert.equal(await page.getByRole("button", { name: /Speak instead/ }).isDisabled(), true);
+  } finally {
+    await ctx.close();
+  }
+});

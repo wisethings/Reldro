@@ -54,7 +54,7 @@ export default async function SitesPage({ searchParams }: { searchParams: Promis
   const { rows: pageSites, page } = paginate(shown, pageParam, 12);
   const siteHref = (n: number) => { const sp = new URLSearchParams(); if (view !== "all") sp.set("view", view); if (q) sp.set("q", q); if (n > 1) sp.set("page", String(n)); return `?${sp.toString()}`; };
   const showTools = sites.length > 3;
-  const chip = (on: boolean) => `rounded-md px-3 py-1 text-xs font-medium transition-colors ${on ? "bg-white text-ink-900 shadow-[0_0_0_1px_rgba(42,10,12,0.08)]" : "text-ink-600 hover:text-ink-900"}`;
+  const chip = (on: boolean) => `seg ${on ? "seg-on" : "seg-off"}`;
   const HEALTH = {
     attention: { label: "Needs attention", edge: "bg-danger", text: "text-danger", dot: "bg-danger" },
     nolead: { label: "No safety lead", edge: "bg-gold-deep/70", text: "text-gold-deep", dot: "bg-gold-deep" },
@@ -82,7 +82,7 @@ export default async function SitesPage({ searchParams }: { searchParams: Promis
 
       {showTools && (
         <div className="flex flex-wrap items-center gap-2">
-          <div role="group" aria-label="Filter sites" className="flex rounded-lg bg-ink-100 p-0.5 max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0 [&>*]:whitespace-nowrap">
+          <div role="group" aria-label="Filter sites" className="seg-group">
             <QueryLink href="?" className={chip(view === "all")}>All</QueryLink>
             <QueryLink href="?view=attention" className={chip(view === "attention")}>Needs attention{needsAttention > 0 ? ` (${needsAttention})` : ""}</QueryLink>
             <QueryLink href="?view=track" className={chip(view === "track")}>On track</QueryLink>

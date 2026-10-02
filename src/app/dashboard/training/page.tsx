@@ -32,7 +32,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
   const in30 = new Date(Date.now() + 30 * 86400_000);
 
   const tabs = [["talks", v.isSafetyTeam || v.isSupervisor ? "Toolbox talks" : "Toolbox talks"], ...(canManage ? [["qualifications", "Certifications"]] : [["mine", "My certifications"]]), ...(v.isAdmin ? [["people", "People"]] : [])];
-  const chip = (active: boolean) => `rounded-full border px-3 py-1.5 text-xs font-medium ${active ? "border-brand-700 bg-orchid-soft text-orchid-deep" : "border-ink-200 bg-white text-ink-600 hover:bg-surface-hover"}`;
+  const chip = (active: boolean) => `pill ${active ? "pill-on" : "pill-off"}`;
   const activeTab = tabs.some(([k]) => k === tab) ? tab : "talks";
 
   const sites = await prisma.site.findMany({ where: { organizationId: v.organizationId, active: true }, orderBy: { name: "asc" } });
@@ -75,7 +75,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
       for (const [k, val] of Object.entries(merged)) if (val) sp.set(k, val);
       return `?${sp.toString()}`;
     };
-    const seg = (on: boolean) => `rounded-md px-3 py-1 text-xs font-medium transition-colors ${on ? "bg-white text-ink-900 shadow-[0_0_0_1px_rgba(42,10,12,0.08)]" : "text-ink-600 hover:text-ink-900"}`;
+    const seg = (on: boolean) => `seg ${on ? "seg-on" : "seg-off"}`;
     const STATUS = { needs: { label: "Needs acknowledgment", tone: "gold" as const }, upcoming: { label: "Upcoming", tone: "sky" as const }, completed: { label: "Completed", tone: "green" as const } };
 
     const TalkRow = ({ r }: { r: Row }) => {
@@ -133,7 +133,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
     body = (
       <div className="space-y-6">
         <div className="flex flex-wrap items-center gap-2">
-          <div role="group" aria-label="Filter talks" className="flex rounded-lg bg-ink-100 p-0.5 max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0 [&>*]:whitespace-nowrap">
+          <div role="group" aria-label="Filter talks" className="seg-group">
             <QueryLink href={href({ filter: undefined })} className={seg(filter === "all")}>All</QueryLink>
             <QueryLink href={href({ filter: "needs" })} className={seg(filter === "needs")}>Needs acknowledgment{counts.needs > 0 ? ` (${counts.needs})` : ""}</QueryLink>
             <QueryLink href={href({ filter: "upcoming" })} className={seg(filter === "upcoming")}>Upcoming</QueryLink>
@@ -191,10 +191,10 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
       : { employeeId: v.employeeId ?? "__none__" };
     const requiredCount = canManage ? await prisma.certificationType.count({ where: { organizationId: v.organizationId, requiredScope: { not: "NONE" } } }) : 0;
     const cview: "records" | "compliance" | "requirements" = sp.cview === "records" || sp.cview === "compliance" || (sp.cview === "requirements" && v.isSafetyTeam) ? sp.cview : requiredCount > 0 && canManage ? "compliance" : "records";
-    const certSeg = (on: boolean) => `rounded-md px-3 py-1 text-xs font-medium transition-colors ${on ? "bg-white text-ink-900 shadow-[0_0_0_1px_rgba(42,10,12,0.08)]" : "text-ink-600 hover:text-ink-900"}`;
+    const certSeg = (on: boolean) => `seg ${on ? "seg-on" : "seg-off"}`;
     const certNav = canManage ? (
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div role="group" aria-label="Certifications view" className="flex max-w-full overflow-x-auto rounded-lg bg-ink-100 p-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0 [&>*]:whitespace-nowrap">
+        <div role="group" aria-label="Certifications view" className="seg-group">
           <QueryLink scroll={false} href="?tab=qualifications&cview=compliance" className={certSeg(cview === "compliance")}>Compliance</QueryLink>
           <QueryLink scroll={false} href="?tab=qualifications&cview=records" className={certSeg(cview === "records")}>Records</QueryLink>
           {v.isSafetyTeam && <QueryLink scroll={false} href="?tab=qualifications&cview=requirements" className={certSeg(cview === "requirements")}>Requirements</QueryLink>}
@@ -314,7 +314,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
         for (const [k, val] of Object.entries(merged)) if (val) q2.set(k, val);
         return `?${q2.toString()}`;
       };
-      const seg2 = (on: boolean, hot?: "red" | "amber") => `rounded-md px-3 py-1 text-xs font-medium transition-colors ${on ? "bg-white text-ink-900 shadow-[0_0_0_1px_rgba(42,10,12,0.08)]" : hot && counts[hot === "red" ? "expired" : "soon"] > 0 ? "text-ink-800 hover:text-ink-900" : "text-ink-600 hover:text-ink-900"}`;
+      const seg2 = (on: boolean, hot?: "red" | "amber") => `seg ${on ? "seg-on" : "seg-off"}`;
       const filteredQ = Boolean(qq || qs || sp.qtype || sp.qemp || whenDays);
       body = (
         <div className="space-y-4">
@@ -330,7 +330,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <div role="group" aria-label="Filter by status" className="flex rounded-lg bg-ink-100 p-0.5 max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0 [&>*]:whitespace-nowrap">
+            <div role="group" aria-label="Filter by status" className="seg-group">
               <QueryLink scroll={false} href={qHref({ qs: undefined, qpage: undefined })} className={seg2(!qs)}>All ({counts.all})</QueryLink>
               <QueryLink scroll={false} href={qHref({ qs: "expired", qpage: undefined })} className={`${seg2(qs === "expired", "red")} ${counts.expired > 0 && qs !== "expired" ? "!text-danger" : ""}`}>Expired ({counts.expired})</QueryLink>
               <QueryLink scroll={false} href={qHref({ qs: "soon", qpage: undefined })} className={`${seg2(qs === "soon", "amber")} ${counts.soon > 0 && qs !== "soon" ? "!text-amber-deep" : ""}`}>Expiring soon ({counts.soon})</QueryLink>

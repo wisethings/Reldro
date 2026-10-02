@@ -211,7 +211,7 @@ export function IncidentComposer({ reportId, isSafetyTeam }: { reportId: string;
             role="radio"
             aria-checked={kind === t.key}
             onClick={() => setKind(t.key)}
-            className={`rounded-full border px-3 py-1.5 text-xs font-medium ${kind === t.key ? "border-brand-700 bg-orchid-soft text-orchid-deep" : "border-ink-200 bg-white text-ink-600 hover:bg-surface-hover"}`}
+            className={`pill ${kind === t.key ? "pill-on" : "pill-off"}`}
           >
             {t.label}
           </button>

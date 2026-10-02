@@ -95,7 +95,7 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
   const incidentsResolved = incidents.filter((i) => i.status === "RESOLVED" && !i.standDownReason);
   const incidentsStoodDown = incidents.filter((i) => i.standDownReason).length;
   const incidentsOpen = incidents.filter((i) => i.status !== "RESOLVED").length;
-  const seg = (active: boolean) => `rounded-md px-3 py-1 text-xs font-medium transition-colors ${active ? "bg-white text-ink-900 shadow-[0_0_0_1px_rgba(42,10,12,0.08)]" : "text-ink-600 hover:text-ink-900"}`;
+  const seg = (active: boolean) => `seg ${active ? "seg-on" : "seg-off"}`;
 
   return (
     <div className={LIST_PAGE}>
@@ -105,7 +105,7 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
           <p className="mt-0.5 max-w-2xl text-sm text-ink-500">Review reporting and follow-up patterns across sites, teams, and topics. Report counts alone do not show how safe a site is.</p>
         </div>
         <div className="flex items-center gap-2">
-          <div role="group" aria-label="Time period" className="flex rounded-lg bg-ink-100 p-0.5 max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0 [&>*]:whitespace-nowrap">
+          <div role="group" aria-label="Time period" className="seg-group">
             {[30, 90, 365].map((n) => <QueryLink key={n} href={`?days=${n}`} className={seg(days === n)} aria-pressed={days === n}>{n === 365 ? "Last year" : `${n} days`}</QueryLink>)}
           </div>
           <Link href={`/api/safety/export/reports?days=${days}`} className="rounded-full border border-ink-300 px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-surface-hover">Export reports (CSV)</Link>

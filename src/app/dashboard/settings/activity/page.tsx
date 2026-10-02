@@ -48,7 +48,7 @@ export default async function ActivityLogPage({ searchParams }: { searchParams: 
     const s = q.toString();
     return `/dashboard/settings/activity${s ? `?${s}` : ""}`;
   };
-  const chip = (on: boolean) => `rounded-full border px-3 py-1 text-xs font-medium ${on ? "border-brand-700 bg-orchid-soft text-orchid-deep" : "border-ink-200 bg-white text-ink-700 hover:bg-surface-hover"}`;
+  const chip = (on: boolean) => `pill ${on ? "pill-on" : "pill-off"}`;
 
   return (
     <div className={LIST_PAGE}>

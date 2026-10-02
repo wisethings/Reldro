@@ -73,7 +73,7 @@ export default async function InspectionsPage({ searchParams }: { searchParams: 
     const str = p2.toString();
     return str ? `?${str}` : "?";
   };
-  const seg = (on: boolean) => `rounded-md px-3 py-1 text-xs font-medium transition-colors ${on ? "bg-white text-ink-900 shadow-[0_0_0_1px_rgba(42,10,12,0.08)]" : "text-ink-600 hover:text-ink-900"}`;
+  const seg = (on: boolean) => `seg ${on ? "seg-on" : "seg-off"}`;
   const failedCount = (r: unknown) => (r as { result: string }[]).filter((x) => x.result === "FAIL").length;
   const dueCell = (due: Date) => {
     const d = dueLabel(due, true);
@@ -100,7 +100,7 @@ export default async function InspectionsPage({ searchParams }: { searchParams: 
       {inList ? (
         <>
           <div className="flex flex-wrap items-center gap-2">
-            <div role="group" aria-label="Filter inspections" className="flex rounded-lg bg-ink-100 p-0.5 max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0 [&>*]:whitespace-nowrap">
+            <div role="group" aria-label="Filter inspections" className="seg-group">
               <QueryLink scroll={false} href={href({ view: undefined, page: undefined })} className={seg(view === "all")}>All ({nAll})</QueryLink>
               <QueryLink scroll={false} href={href({ view: "overdue", page: undefined })} className={`${seg(view === "overdue")} ${view !== "overdue" && nLate > 0 ? "!text-danger" : ""}`}>Overdue ({nLate})</QueryLink>
               <QueryLink scroll={false} href={href({ view: "soon", page: undefined })} className={`${seg(view === "soon")} ${view !== "soon" && nSoon > 0 ? "!text-amber-deep" : ""}`}>Due soon ({nSoon})</QueryLink>

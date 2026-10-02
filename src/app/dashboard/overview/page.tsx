@@ -359,7 +359,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   feed.sort((a, b) => b.at.getTime() - a.at.getTime());
   const recent = feed.slice(0, 8);
 
-  const chip = (active: boolean) => `rounded-full px-2.5 py-1 text-xs font-medium ${active ? "bg-ink-900 text-white" : "text-ink-600 hover:bg-ink-100"}`;
+  const chip = (active: boolean) => `seg ${active ? "seg-on" : "seg-off"}`;
   const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
   const overdueBy = (d: Date | null) => (d ? dueLabel(d, true).text : "");
 
@@ -461,7 +461,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
       <section className="mt-8 surface p-5" aria-labelledby="pulse">
         <SectionTitle
           action={
-            <div className="flex gap-0.5" role="group" aria-label="Time period">
+            <div className="seg-group" role="group" aria-label="Time period">
               {[7, 30, 90].map((n) => <QueryLink key={n} href={`?pulse=${n}`} className={chip(pulseDays === n)} aria-pressed={pulseDays === n}>{n} days</QueryLink>)}
             </div>
           }

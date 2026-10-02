@@ -43,9 +43,9 @@ export function ReportFilters({ statuses, severities, sites, showSeverity }: { s
 
   return (
     <div role="search" aria-busy={busy} className={`flex w-full sm:w-fit max-w-full flex-wrap items-center gap-2 surface p-1.5 transition-opacity ${busy ? "opacity-80" : ""}`}>
-      <div role="group" aria-label="Status" className="flex rounded-lg bg-ink-100 p-0.5 max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0 [&>*]:whitespace-nowrap">
+      <div role="group" aria-label="Status" className="seg-group">
         {statuses.map((s) => (
-          <button key={s.value} type="button" onClick={() => go({ status: s.value, attention: "" })} aria-pressed={status === s.value && !attention} className={`h-7 rounded-md px-3 text-xs font-medium transition-colors ${status === s.value && !attention ? "bg-white text-ink-900 shadow-[0_0_0_1px_rgba(42,10,12,0.08)]" : "text-ink-600 hover:text-ink-900"}`}>
+          <button key={s.value} type="button" onClick={() => go({ status: s.value, attention: "" })} aria-pressed={status === s.value && !attention} className={`seg ${status === s.value && !attention ? "seg-on" : "seg-off"}`}>
             {s.label}
           </button>
         ))}

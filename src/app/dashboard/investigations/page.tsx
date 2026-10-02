@@ -33,7 +33,7 @@ export default async function InvestigationsPage({ searchParams }: { searchParam
   const loaded = await prisma.investigation.findMany({ where: { id: { in: pageIds } }, include: { report: { include: { site: true } } } });
   const list = pageIds.map((id) => loaded.find((l) => l.id === id)).filter((l): l is (typeof loaded)[number] => Boolean(l));
 
-  const chip = (active: boolean) => `rounded-full border px-2.5 py-1 text-xs font-medium ${active ? "border-brand-700 bg-orchid-soft text-orchid-deep" : "border-ink-200 bg-white text-ink-600 hover:bg-surface-hover"}`;
+  const chip = (active: boolean) => `pill ${active ? "pill-on" : "pill-off"}`;
 
   const orgWhere = { organizationId: v.organizationId, ...(v.isSafetyTeam ? {} : { leadId: v.employeeId ?? "__none__" }) };
   const [sOpen, sReview, sDone, sShared] = await Promise.all([
