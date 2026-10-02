@@ -5,6 +5,13 @@ import { prisma } from "@/lib/prisma";
 /** Best-effort client IP for Server Actions, which don't get a request object directly. */
 export async function getClientIp(): Promise<string> {
   const h = await headers();
+  // Behind Cloudflare, Netlify sees Cloudflare's edge address, so the visitor's real address is in CF-Connecting-IP.
+  // Only trusted once TRUST_CLOUDFLARE_IP=true is set (after the proxy is live), because anyone who reaches the
+  // origin directly could otherwise send their own value.
+  if (process.env.TRUST_CLOUDFLARE_IP === "true") {
+    const cf = h.get("cf-connecting-ip")?.trim();
+    if (cf && /^[0-9a-fA-F:.]{3,45}$/.test(cf)) return cf;
+  }
   const nf = h.get("x-nf-client-connection-ip");
   if (nf) return nf;
   const fwd = h.get("x-forwarded-for");
