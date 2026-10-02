@@ -417,7 +417,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
           {shown.length === 0 ? (
             <div className="rounded-lg border border-dashed border-ink-200 px-5 py-8 text-center">
               <p className="text-sm font-medium text-ink-900">You’re caught up</p>
-              <p className="mt-1 text-sm text-ink-600">No incident responses, late responses, unowned reports or overdue corrective actions. Upcoming work is on the right.</p>
+              <p className="mx-auto mt-1 max-w-[36ch] text-balance text-sm text-ink-600">Nothing is late or waiting on you. Upcoming work is on the right.</p>
             </div>
           ) : (
             <FocusList entries={shown} />
