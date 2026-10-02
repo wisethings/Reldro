@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { lookupFollowUp, sendFollowUpReply, type FollowUpView } from "@/lib/actions/safetyFollowUp";
-import { Field, Input, Textarea } from "@/components/ui/Field";
+import { Field, Textarea } from "@/components/ui/Field";
+import { authButtonIdle, authButtonLg, authCard, authHint, authInput, authLabel } from "@/components/auth/styles";
 import { Alert } from "@/components/ui/Alert";
 import { Spinner } from "@/components/ui/Spinner";
 
@@ -38,22 +39,26 @@ export function FollowUpClient() {
   }
 
   if (!view) {
+    const ready = code.replace(/[^a-z0-9]/gi, "").length >= 12;
     return (
-      <form onSubmit={look} className="space-y-4 rounded-xl border border-ink-200 bg-white p-5">
-        {error && <Alert tone="error">{error}</Alert>}
-        <Field label="Case code" hint="For example, K7QF-3MXP-9WDA. It was shown once, right after you submitted the report.">
-          <Input
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            autoComplete="off"
-            autoCapitalize="characters"
-            spellCheck={false}
-            inputMode="text"
-            className="type-code text-base uppercase"
-            required
-          />
-        </Field>
-        <button disabled={pending || code.replace(/[^a-z0-9]/gi, "").length < 12} className="w-full rounded-full bg-brand-700 px-5 py-3 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-40">
+      <form onSubmit={look} className={`${authCard} p-6 sm:p-9`}>
+        {error && <Alert tone="error" className="mb-6">{error}</Alert>}
+        <label htmlFor="case-code" className={authLabel}>Case code</label>
+        <input
+          id="case-code"
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          autoComplete="off"
+          autoCapitalize="characters"
+          spellCheck={false}
+          inputMode="text"
+          required
+          aria-describedby="case-code-hint"
+          aria-invalid={error ? true : undefined}
+          className={`${authInput} type-code mt-2 !text-base uppercase`}
+        />
+        <p id="case-code-hint" className={`${authHint} mt-2.5`}>For example, K7QF-3MXP-9WDA. It was shown once, right after you submitted the report.</p>
+        <button disabled={pending || !ready} className={`${authButtonLg} mt-8 ${!ready && !pending ? authButtonIdle : ""}`}>
           {pending ? <><Spinner /> Checking…</> : "Check for updates"}
         </button>
       </form>
@@ -62,13 +67,13 @@ export function FollowUpClient() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-ink-200 bg-white p-5">
+      <div className={`${authCard} p-5`}>
         <p className="tabular-nums text-xs text-ink-400">{view.reference}</p>
         <p className="mt-1 text-lg font-semibold text-ink-900">{view.status}</p>
         <p className="text-xs text-ink-500">Sent {fmt(view.submittedAt)}</p>
       </div>
 
-      <ol className="space-y-3 rounded-xl border border-ink-200 bg-white p-5" aria-label="Updates on your report">
+      <ol className={`space-y-3 ${authCard} p-5`} aria-label="Updates on your report">
         {view.steps.map((s, i) => (
           <li key={i} className="text-sm">
             <p className="text-xs font-medium uppercase tracking-wide text-ink-400">{s.from === "you" ? "You" : s.from === "team" ? "Safety team" : "Update"} · {fmt(s.at)}</p>
@@ -78,12 +83,12 @@ export function FollowUpClient() {
       </ol>
 
       {!view.closed ? (
-        <form onSubmit={send} className="space-y-3 rounded-xl border border-ink-200 bg-white p-5">
+        <form onSubmit={send} className={`space-y-3 ${authCard} p-5`}>
           {error && <Alert tone="error">{error}</Alert>}
           <Field label="Reply to the safety team" hint="Share only what you are comfortable sharing. Names or places could reveal who you are.">
             <Textarea value={reply} onChange={(e) => setReply(e.target.value)} rows={4} maxLength={2000} />
           </Field>
-          <button disabled={pending || reply.trim().length < 2} className="rounded-full bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-40">
+          <button disabled={pending || reply.trim().length < 2} className="h-10 rounded-[10px] bg-brand-700 px-5 text-sm font-medium text-white transition-colors duration-150 hover:bg-brand-800 active:bg-oxblood disabled:cursor-not-allowed disabled:!bg-ink-100 disabled:!text-ink-400">
             {pending ? <><Spinner /> Sending…</> : "Send reply"}
           </button>
         </form>
