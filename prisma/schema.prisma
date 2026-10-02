@@ -171,6 +171,7 @@ model Organization {
   updatedAt                  DateTime @updatedAt
 
   departments                  Department[]
+  certificationTypes           CertificationType[]
   employees                    Employee[]
   users                        User[]
   assessments                  Assessment[]
@@ -211,9 +212,9 @@ model Organization {
   workflowLinks                WorkflowLink[]
   workflowDependencies         WorkflowDependency[]
   workflowTimeSavedLogs        WorkflowTimeSavedLog[]
+  supportMessages              SupportMessage[]
 
   @@index([industry])
-  supportMessages SupportMessage[]
 }
 
 model Department {
@@ -256,9 +257,9 @@ model User {
   sentMessages      Message[]
   auditLogs         AuditLog[]
   recognitionsGiven Recognition[]
+  supportMessages   SupportMessage[]
 
   @@index([organizationId])
-  supportMessages SupportMessage[]
 }
 
 model Employee {
@@ -1660,17 +1661,44 @@ model TalkAcknowledgement {
 }
 
 model Qualification {
-  id             String       @id @default(cuid())
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  employeeId     String
-  name           String // "OSHA 30", "Aerial lift", "First aid / CPR"
-  issuedOn       DateTime?
-  expiresOn      DateTime?
-  createdAt      DateTime     @default(now())
+  id                String             @id @default(cuid())
+  organizationId    String
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  employeeId        String
+  name              String // "OSHA 30", "Aerial lift", "First aid / CPR"
+  typeId            String? // catalog entry this record counts toward; null for a free-text record
+  type              CertificationType? @relation(fields: [typeId], references: [id], onDelete: SetNull)
+  certificateNumber String             @default("")
+  issuingBody       String             @default("")
+  notes             String             @default("")
+  issuedOn          DateTime?
+  expiresOn         DateTime?
+  verifiedAt        DateTime? // a safety lead checked the certificate itself
+  verifiedById      String? // User id of whoever verified it
+  createdAt         DateTime           @default(now())
 
   @@index([organizationId])
   @@index([employeeId])
+  @@index([typeId])
+}
+
+/// The certifications an organization tracks (OSHA 30, aerial lift, ...) and who must hold each one.
+model CertificationType {
+  id              String          @id @default(cuid())
+  organizationId  String
+  organization    Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name            String
+  category        String          @default("") // free label such as "Safety training" or "Equipment operation"
+  issuingBody     String          @default("")
+  validityMonths  Int? // null = does not expire; used to suggest an expiry date when a record is added
+  requiredScope   String          @default("NONE") // NONE | ALL | SELECTED
+  requiredSiteIds String[] // with SELECTED: people at these sites must hold it
+  requiredCrewIds String[] // with SELECTED: people in these crews must hold it
+  createdAt       DateTime        @default(now())
+  qualifications  Qualification[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
 }
 
 model EscalationRule {

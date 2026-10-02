@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MoreHorizontal } from "lucide-react";
+import { BadgeCheck, MoreHorizontal } from "lucide-react";
 import { deleteQualifications, setQualificationsExpiry, updateQualification } from "@/lib/actions/safetyTraining";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
@@ -12,7 +12,7 @@ import { useAct } from "./useAct";
 import { Spinner } from "@/components/ui/Spinner";
 
 export type QualStatus = "expired" | "soon" | "current";
-export type QualRow = { id: string; employee: string; name: string; status: QualStatus; issued: string; expires: string; expiresIso: string; issuedIso: string; rel: string | null; group: string | null };
+export type QualRow = { id: string; employee: string; name: string; status: QualStatus; issued: string; expires: string; expiresIso: string; issuedIso: string; rel: string | null; group: string | null; detail: string; verified: boolean };
 
 const GRID = "md:grid md:grid-cols-[1.5rem_minmax(0,1fr)_minmax(0,1fr)_7.5rem_6.5rem_9rem_2rem] md:items-center md:gap-3";
 
@@ -24,9 +24,9 @@ export function StatusBadge({ status }: { status: QualStatus }) {
 function ConfirmRemove({ count, label, onClose, ids }: { count: number; label: string; onClose: () => void; ids: string[] }) {
   const { run, pending, error } = useAct();
   return (
-    <Modal title={count === 1 ? "Remove this qualification?" : `Remove ${count} qualifications?`} onClose={onClose}>
+    <Modal title={count === 1 ? "Remove this certification?" : `Remove ${count} certifications?`} onClose={onClose}>
       <div className="max-w-md space-y-3">
-        <p className="text-sm text-ink-700">{count === 1 ? <><span className="font-semibold text-ink-900">{label}</span> will be removed from the record.</> : `${count} qualification records will be removed.`} This can’t be undone.</p>
+        <p className="text-sm text-ink-700">{count === 1 ? <><span className="font-semibold text-ink-900">{label}</span> will be removed from the record.</> : `${count} certification records will be removed.`} This can’t be undone.</p>
         {error && <p role="alert" className="text-sm text-danger">{error}</p>}
         <div className="flex gap-2">
           <button disabled={pending} onClick={() => run(() => deleteQualifications(ids), onClose)} className="rounded-full bg-danger px-5 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50">{pending ? <><Spinner /> Removing…</> : "Remove"}</button>
@@ -94,7 +94,7 @@ export function QualificationTable({ rows }: { rows: QualRow[] }) {
       <div role="table">
         <div role="row" className={`hidden border-b border-ink-200 bg-ink-100 px-4 py-2 text-xs font-medium text-ink-700 ${picked.size === 0 ? "rounded-t-xl" : ""} ${GRID}`}>
           <input type="checkbox" aria-label="Select all on this page" checked={allOn} onChange={() => setPicked(allOn ? new Set() : new Set(rows.map((r) => r.id)))} />
-          <span>Employee</span><span>Qualification</span><span>Status</span><span>Issued</span><span>Expires</span><span className="sr-only">Actions</span>
+          <span>Employee</span><span>Certification</span><span>Status</span><span>Issued</span><span>Expires</span><span className="sr-only">Actions</span>
         </div>
         <div role="rowgroup">
           {rows.map((r, i) => (
@@ -108,10 +108,14 @@ export function QualificationTable({ rows }: { rows: QualRow[] }) {
                 <input type="checkbox" aria-label={`Select ${r.employee}, ${r.name}`} checked={picked.has(r.id)} onChange={() => toggle(r.id)} className="absolute left-4 top-3.5 md:static" />
                 <div className="min-w-0 pl-7 md:pl-0">
                   <p className="truncate text-sm font-semibold text-ink-900">{r.employee}</p>
-                  <p className="truncate text-sm font-medium text-ink-800 md:hidden">{r.name}</p>
+                  <p className="flex items-center gap-1.5 text-sm font-medium text-ink-800 md:hidden"><span className="truncate">{r.name}</span>{r.verified && <BadgeCheck size={14} className="shrink-0 text-sage-deep" aria-label="Verified" />}</p>
+                  {r.detail && <p className="truncate text-xs text-ink-500 md:hidden">{r.detail}</p>}
                   <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-ink-500 md:hidden"><StatusBadge status={r.status} /><span>{r.expires}{r.rel ? ` · ${r.rel}` : ""}</span></div>
                 </div>
-                <p className="hidden min-w-0 truncate text-sm font-medium text-ink-900 md:block"><Link href={`/dashboard/training/qualifications/${r.id}`} className="outline-none hover:text-orchid-deep focus-visible:underline">{r.name}</Link></p>
+                <div className="hidden min-w-0 md:block">
+                  <p className="flex min-w-0 items-center gap-1.5 text-sm font-medium text-ink-900"><Link href={`/dashboard/training/qualifications/${r.id}`} className="min-w-0 truncate outline-none hover:text-orchid-deep focus-visible:underline">{r.name}</Link>{r.verified && <BadgeCheck size={14} className="shrink-0 text-sage-deep" aria-label="Verified" />}</p>
+                  {r.detail && <p className="truncate text-xs text-ink-500">{r.detail}</p>}
+                </div>
                 <div className="hidden md:block"><StatusBadge status={r.status} /></div>
                 <p className="hidden text-xs text-ink-500 md:block">{r.issued}</p>
                 <p className="hidden text-sm md:block"><span className={r.status === "expired" ? "font-semibold text-danger" : r.status === "soon" ? "font-semibold text-amber-deep" : "text-ink-700"}>{r.expires}</span>{r.rel && <span className="block text-xs font-normal text-ink-500">{r.rel}</span>}</p>
@@ -126,20 +130,26 @@ export function QualificationTable({ rows }: { rows: QualRow[] }) {
   );
 }
 
-/** Edit form on the qualification detail page. */
-export function QualificationEditForm({ id, name, issuedIso, expiresIso }: { id: string; name: string; issuedIso: string; expiresIso: string }) {
+/** Edit form on the certification detail page. */
+export function QualificationEditForm({ id, name, issuedIso, expiresIso, certificateNumber = "", issuingBody = "", notes = "" }: { id: string; name: string; issuedIso: string; expiresIso: string; certificateNumber?: string; issuingBody?: string; notes?: string }) {
   const [n, setN] = useState(name);
   const [i, setI] = useState(issuedIso);
   const [e, setE] = useState(expiresIso);
+  const [num, setNum] = useState(certificateNumber);
+  const [body, setBody] = useState(issuingBody);
+  const [note, setNote] = useState(notes);
   const { run, pending, error } = useAct();
   const [saved, setSaved] = useState(false);
   return (
-    <form onSubmit={(ev) => { ev.preventDefault(); setSaved(false); run(() => updateQualification(id, { name: n, issuedOn: i, expiresOn: e }), () => setSaved(true)); }} className="grid gap-3 sm:grid-cols-3">
-      <Field label="Qualification" className="sm:col-span-3"><Input value={n} onChange={(x) => setN(x.target.value)} required /></Field>
+    <form onSubmit={(ev) => { ev.preventDefault(); setSaved(false); run(() => updateQualification(id, { name: n, issuedOn: i, expiresOn: e, certificateNumber: num, issuingBody: body, notes: note }), () => setSaved(true)); }} className="grid gap-3 sm:grid-cols-2">
+      <Field label="Certification" className="sm:col-span-2"><Input value={n} onChange={(x) => setN(x.target.value)} required /></Field>
       <Field label="Issued" optional><Input type="date" value={i} onChange={(x) => setI(x.target.value)} /></Field>
       <Field label="Expires" optional><Input type="date" value={e} onChange={(x) => setE(x.target.value)} /></Field>
-      <div className="flex items-end gap-3"><button disabled={pending} className="rounded-full bg-brand-700 px-5 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? <><Spinner /> Saving…</> : "Save changes"}</button>{saved && !error && <span role="status" className="text-xs text-sage-deep">Saved</span>}</div>
-      {error && <p role="alert" className="text-sm text-danger sm:col-span-3">{error}</p>}
+      <Field label="Certificate number" optional><Input value={num} onChange={(x) => setNum(x.target.value)} autoComplete="off" /></Field>
+      <Field label="Issuing body" optional><Input value={body} onChange={(x) => setBody(x.target.value)} /></Field>
+      <Field label="Notes" optional className="sm:col-span-2"><Input value={note} onChange={(x) => setNote(x.target.value)} maxLength={500} /></Field>
+      <div className="flex items-center gap-3 sm:col-span-2"><button disabled={pending} className="rounded-full bg-brand-700 px-5 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? <><Spinner /> Saving…</> : "Save changes"}</button>{saved && <span className="text-sm text-sage-deep">Saved.</span>}</div>
+      {error && <p role="alert" className="text-sm text-danger sm:col-span-2">{error}</p>}
     </form>
   );
 }

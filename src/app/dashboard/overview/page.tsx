@@ -122,7 +122,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
           items={[
             { label: "Talks to acknowledge", value: toAck.length, href: "#talks" },
             { label: "Corrective actions assigned to me", value: myActions.length, href: "#actions", alert: late > 0 },
-            { label: "Qualifications due for renewal", value: quals.length, href: "#quals", alert: expiredQuals > 0 },
+            { label: "Certifications due for renewal", value: quals.length, href: "#quals", alert: expiredQuals > 0 },
             { label: "Open reports", value: myReports.length, href: "#reports" },
           ]}
         />
@@ -176,7 +176,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
 
           {quals.length > 0 && (
             <>
-              <SubHead id="quals" title="Qualifications due for renewal" count={quals.length} />
+              <SubHead id="quals" title="Certifications due for renewal" count={quals.length} />
               <ul className="divide-y divide-ink-100">
                 {quals.map((q) => {
                   const expired = isOverdue(q.expiresOn);
@@ -394,7 +394,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   const shortDate = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
   const up: Up[] = [
     ...inspItems.map((i): Up => ({ key: `i${i.id}`, at: i.dueDate.getTime(), when: isOverdue(i.dueDate) ? "Overdue" : shortDate(i.dueDate), title: `${i.template.name}`, detail: i.site.name, href: `/dashboard/inspections/${i.id}`, warn: isOverdue(i.dueDate) })),
-    ...qualItems.map((q): Up => ({ key: `q${q.id}`, at: q.expiresOn?.getTime() ?? 0, when: isOverdue(q.expiresOn) ? "Expired" : q.expiresOn ? shortDate(q.expiresOn) : "", title: `${personName(q.employeeId)}: ${q.name}`, detail: "Qualification", href: "/dashboard/training?tab=qualifications", warn: Boolean(q.expiresOn && q.expiresOn < now) })),
+    ...qualItems.map((q): Up => ({ key: `q${q.id}`, at: q.expiresOn?.getTime() ?? 0, when: isOverdue(q.expiresOn) ? "Expired" : q.expiresOn ? shortDate(q.expiresOn) : "", title: `${personName(q.employeeId)}: ${q.name}`, detail: "Certification", href: "/dashboard/training?tab=qualifications", warn: Boolean(q.expiresOn && q.expiresOn < now) })),
   ].sort((a, b) => a.at - b.at).slice(0, 4);
 
   return (
@@ -436,7 +436,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
               <span id="coming-up">Coming up</span>
             </SectionTitle>
             {up.length === 0 ? (
-              <p className="text-sm text-ink-500">No inspections due or qualifications expiring soon.</p>
+              <p className="text-sm text-ink-500">No inspections due or certifications expiring soon.</p>
             ) : (
               <ul className="-mx-1 divide-y divide-ink-100 px-1">
                 {up.map((u) => <UpcomingRow key={u.key} href={u.href} when={u.when} title={u.title} detail={u.detail} warn={u.warn} />)}

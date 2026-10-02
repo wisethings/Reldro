@@ -6,10 +6,10 @@ import { BASE, closeBrowser, hasSideways, launch, signIn } from "./helpers.mjs";
 after(closeBrowser);
 
 const PAGES = {
-  admin: ["overview", "reports", "reports/new", "investigations", "actions", "inspections", "training", "sites", "insights", "settings", "settings/activity"],
-  maria: ["overview", "reports", "investigations", "actions", "inspections", "training", "insights"],
-  tom: ["overview", "reports", "actions", "inspections", "training"],
-  priya: ["overview", "reports", "reports/new", "actions", "training"],
+  admin: ["overview", "reports", "reports/new", "investigations", "actions", "inspections", "training", "training?tab=qualifications", "training?tab=qualifications&cview=records", "training?tab=qualifications&cview=requirements", "sites", "insights", "settings", "settings/activity"],
+  maria: ["overview", "reports", "investigations", "actions", "inspections", "training", "training?tab=qualifications", "insights"],
+  tom: ["overview", "reports", "actions", "inspections", "training", "training?tab=qualifications"],
+  priya: ["overview", "reports", "reports/new", "actions", "training", "training?tab=mine"],
 };
 
 test("health endpoint reports the database and schema", async () => {
@@ -308,6 +308,77 @@ test("person fields are searchable pickers: focus on open, filter as you type, p
       assert.equal(await hasSideways(page), false);
     } finally {
       await page.context().close();
+    }
+  }
+});
+
+test("certifications: a requirement shows who is missing, a record closes the gap, verification sticks, exports work, and only the safety team can export", async () => {
+  const name = `E2E cert ${Date.now() % 1000000}`;
+  const page = await signIn("admin");
+  try {
+    // Define a certification that everyone must hold.
+    await page.goto(`${BASE}/dashboard/training?tab=qualifications&cview=requirements`, { waitUntil: "networkidle" });
+    await page.getByRole("button", { name: "Add certification" }).click();
+    await page.getByLabel(/^Name/).first().fill(name);
+    await page.getByLabel(/Valid for/).fill("24");
+    await page.getByLabel(/Everyone/).check();
+    await page.getByRole("button", { name: "Add certification" }).last().click();
+    await page.getByText(name).first().waitFor();
+
+    // It shows up as a gap for people who do not have it.
+    await page.goto(`${BASE}/dashboard/training?tab=qualifications&cview=compliance&gq=${encodeURIComponent(name)}`, { waitUntil: "networkidle" });
+    assert.ok((await page.getByText("Missing", { exact: true }).count()) > 0, "everyone should be missing the new certification");
+
+    // Recording one fills the suggested expiry from the validity and closes that person's gap.
+    await page.goto(`${BASE}/dashboard/training?tab=qualifications&cview=records`, { waitUntil: "networkidle" });
+    await page.getByRole("button", { name: /Person/ }).click();
+    await page.getByRole("combobox", { name: /Search by name/ }).fill("Priya");
+    await page.getByRole("combobox", { name: /Search by name/ }).press("ArrowDown");
+    await page.getByRole("combobox", { name: /Search by name/ }).press("Enter");
+    await page.locator("select[name=typeId]").selectOption({ label: name });
+    await page.getByLabel(/Issued/).fill("2026-10-03");
+    assert.equal(await page.getByLabel(/Expires/).inputValue(), "2028-10-03", "24 months after the issue date is suggested");
+    await page.getByLabel(/Certificate number/).fill("E2E-1");
+    await page.getByRole("checkbox", { name: /I have seen the certificate/ }).check();
+    await page.getByRole("button", { name: "Save certification" }).click();
+    await page.getByText(/Recorded|recorded/).first().waitFor();
+
+    await page.goto(`${BASE}/dashboard/training?tab=qualifications&cview=records&qq=${encodeURIComponent(name)}`, { waitUntil: "networkidle" });
+    assert.equal(await page.getByText("Priya Shah").count() > 0, true);
+    await page.getByRole("link", { name }).first().click();
+    await page.waitForURL(/qualifications\//);
+    await page.getByText(/Verified .* by /).waitFor();
+
+    // Exports are CSV and carry the new record; the formula guard and the audit trail are covered by the route itself.
+    const records = await page.request.get(`${BASE}/api/safety/export/certifications?kind=records`);
+    assert.equal(records.status(), 200);
+    assert.match(records.headers()["content-type"], /text\/csv/);
+    assert.ok((await records.text()).includes(name));
+    const gaps = await page.request.get(`${BASE}/api/safety/export/certifications?kind=gaps`);
+    assert.equal(gaps.status(), 200);
+    assert.ok((await gaps.text()).startsWith('"Person"'));
+
+    // Clean up: remove the certification and the record.
+    await page.getByRole("button", { name: "Remove" }).click();
+    await page.getByRole("button", { name: "Remove" }).last().click();
+    await page.goto(`${BASE}/dashboard/training?tab=qualifications&cview=requirements`, { waitUntil: "networkidle" });
+    await page.getByRole("button", { name: `Remove ${name}` }).click();
+    await page.getByRole("button", { name: "Remove", exact: true }).last().click();
+    await page.waitForTimeout(1500);
+    await page.goto(`${BASE}/dashboard/training?tab=qualifications&cview=requirements`, { waitUntil: "networkidle" });
+    assert.equal(await page.getByText(name).count(), 0);
+  } finally {
+    await page.context().close();
+  }
+
+  // Supervisors and workers cannot export; they are told no, not shown data.
+  for (const who of ["tom", "priya"]) {
+    const other = await signIn(who);
+    try {
+      const res = await other.request.get(`${BASE}/api/safety/export/certifications?kind=records`);
+      assert.equal(res.status(), 403, `${who} must not be able to export certifications`);
+    } finally {
+      await other.context().close();
     }
   }
 });

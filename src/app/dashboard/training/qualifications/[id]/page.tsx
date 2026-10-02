@@ -3,20 +3,21 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireViewer } from "@/lib/safety/context";
 import { fmtDate, NoAccess } from "@/components/safety/ui";
+import { VerifyButton } from "@/components/safety/CertificationForms";
 import { QualificationEditForm, RemoveQualificationButton, StatusBadge, type QualStatus } from "@/components/safety/QualificationTable";
 import { qualStatus } from "@/lib/safety/dates";
 
 export default async function QualificationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const v = await requireViewer();
-  if (!v.isSafetyTeam && !v.isSupervisor) return <NoAccess what="qualification records" />;
+  if (!v.isSafetyTeam && !v.isSupervisor) return <NoAccess what="certification records" />;
   const q = await prisma.qualification.findFirst({ where: { id, organizationId: v.organizationId } });
   if (!q) notFound();
   const emp = await prisma.employee.findUnique({ where: { id: q.employeeId }, include: { user: { select: { name: true, email: true } }, department: true } });
   if (!emp) notFound();
-  if (!v.isSafetyTeam && (!v.siteId || emp.siteId !== v.siteId)) return <NoAccess what="this person's qualifications" />;
+  if (!v.isSafetyTeam && (!v.siteId || emp.siteId !== v.siteId)) return <NoAccess what="this person's certifications" />;
   const site = emp.siteId ? await prisma.site.findUnique({ where: { id: emp.siteId }, select: { name: true } }) : null;
-  const now = new Date();
+  const verifier = q.verifiedById ? await prisma.user.findUnique({ where: { id: q.verifiedById }, select: { name: true } }) : null;
   const status: QualStatus = qualStatus(q.expiresOn);
   // History: every record of this qualification for this person, newest first.
   const history = await prisma.qualification.findMany({ where: { organizationId: v.organizationId, employeeId: q.employeeId, name: q.name }, orderBy: [{ issuedOn: "desc" }, { createdAt: "desc" }] });
@@ -25,7 +26,7 @@ export default async function QualificationPage({ params }: { params: Promise<{ 
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-4 px-4 py-4 sm:px-6 sm:py-6">
-      <Link href="/dashboard/training?tab=qualifications" className="text-xs font-medium text-ink-500 hover:text-ink-800">← Qualifications</Link>
+      <Link href="/dashboard/training?tab=qualifications&cview=records" className="text-xs font-medium text-ink-500 hover:text-ink-800">← Certifications</Link>
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-tight text-ink-900">{q.name}</h1>
@@ -37,12 +38,20 @@ export default async function QualificationPage({ params }: { params: Promise<{ 
       <section aria-labelledby="qual-details" className="expand-panel overflow-hidden">
         <div className="border-b border-ink-100 px-4 py-3 sm:px-5"><h2 id="qual-details" className="text-sm font-semibold text-ink-900">Details</h2><p className="text-xs text-ink-500">Change the name or dates. Saved changes apply straight away.</p></div>
         <div className="space-y-4 px-4 py-5 sm:px-5">
-          <QualificationEditForm id={q.id} name={q.name} issuedIso={iso(q.issuedOn)} expiresIso={iso(q.expiresOn)} />
+          <QualificationEditForm id={q.id} name={q.name} issuedIso={iso(q.issuedOn)} expiresIso={iso(q.expiresOn)} certificateNumber={q.certificateNumber} issuingBody={q.issuingBody} notes={q.notes} />
           <div className="flex items-center justify-between gap-3 border-t border-ink-100 pt-4">
             <p className="text-xs text-ink-500">Recorded {fmtDate(q.createdAt)}</p>
             <RemoveQualificationButton id={q.id} label={`${emp.user.name}, ${q.name}`} />
           </div>
         </div>
+      </section>
+
+      <section aria-labelledby="qual-verify" className="surface flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5">
+        <div className="min-w-0">
+          <h2 id="qual-verify" className="text-sm font-semibold text-ink-900">Verification</h2>
+          <p className="text-xs text-ink-500">{q.verifiedAt ? `Verified ${fmtDate(q.verifiedAt)}${verifier ? ` by ${verifier.name}` : ""}. Changing the dates or certificate number clears it.` : "Not verified yet. Mark it verified once a safety lead has seen the certificate or card."}</p>
+        </div>
+        {v.isSafetyTeam && <VerifyButton id={q.id} verified={Boolean(q.verifiedAt)} />}
       </section>
 
       <section aria-labelledby="qual-history" className="surface overflow-hidden">

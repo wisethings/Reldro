@@ -1662,4 +1662,36 @@ CREATE INDEX IF NOT EXISTS "SupportMessage_organizationId_idx" ON "SupportMessag
 DO $$ BEGIN ALTER TABLE "SupportMessage" ADD CONSTRAINT "SupportMessage_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
 
 DO $$ BEGIN ALTER TABLE "SupportMessage" ADD CONSTRAINT "SupportMessage_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+CREATE TABLE IF NOT EXISTS "CertificationType" (
+    "id" TEXT NOT NULL,
+    "organizationId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "category" TEXT NOT NULL DEFAULT '',
+    "issuingBody" TEXT NOT NULL DEFAULT '',
+    "validityMonths" INTEGER,
+    "requiredScope" TEXT NOT NULL DEFAULT 'NONE',
+    "requiredSiteIds" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "requiredCrewIds" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CertificationType_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "CertificationType_organizationId_name_key" ON "CertificationType"("organizationId", "name");
+
+CREATE INDEX IF NOT EXISTS "CertificationType_organizationId_idx" ON "CertificationType"("organizationId");
+
+DO $$ BEGIN ALTER TABLE "CertificationType" ADD CONSTRAINT "CertificationType_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
+ALTER TABLE "Qualification" ADD COLUMN IF NOT EXISTS "typeId" TEXT;
+ALTER TABLE "Qualification" ADD COLUMN IF NOT EXISTS "certificateNumber" TEXT NOT NULL DEFAULT '';
+ALTER TABLE "Qualification" ADD COLUMN IF NOT EXISTS "issuingBody" TEXT NOT NULL DEFAULT '';
+ALTER TABLE "Qualification" ADD COLUMN IF NOT EXISTS "notes" TEXT NOT NULL DEFAULT '';
+ALTER TABLE "Qualification" ADD COLUMN IF NOT EXISTS "verifiedAt" TIMESTAMP(3);
+ALTER TABLE "Qualification" ADD COLUMN IF NOT EXISTS "verifiedById" TEXT;
+
+CREATE INDEX IF NOT EXISTS "Qualification_typeId_idx" ON "Qualification"("typeId");
+
+DO $$ BEGIN ALTER TABLE "Qualification" ADD CONSTRAINT "Qualification_typeId_fkey" FOREIGN KEY ("typeId") REFERENCES "CertificationType"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$;
+
 `;

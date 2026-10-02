@@ -20,6 +20,64 @@ const daysAgo = (n: number, hour = 9) => {
 };
 const daysFromNow = (n: number) => new Date(Date.now() + n * day);
 
+/**
+ * The certification catalog for a workspace, with requirements, and links existing records to it. Safe to call on a workspace
+ * that already has records: it only adds the catalog and fills in details on records that match by name.
+ */
+export async function seedCertificationCatalog(orgId: string, crewIds: Record<string, string>, siteIds: Record<string, string>, verifierUserId: string | null) {
+  const defs: { name: string; category: string; issuingBody: string; months: number | null; scope: "NONE" | "ALL" | "SELECTED"; sites?: string[]; crews?: string[]; prefix: string }[] = [
+    { name: "OSHA 10", category: "Safety training", issuingBody: "OSHA", months: null, scope: "ALL", prefix: "O10" },
+    { name: "First aid / CPR", category: "Medical", issuingBody: "American Red Cross", months: 24, scope: "SELECTED", sites: ["lakeshore", "riverside"], prefix: "FA" },
+    { name: "Aerial lift", category: "Equipment operation", issuingBody: "Employer evaluation", months: 36, scope: "SELECTED", crews: ["Prewire Crew"], prefix: "AL" },
+    { name: "Fall protection", category: "Safety training", issuingBody: "OSHA authorized trainer", months: 36, scope: "SELECTED", sites: ["lakeshore"], prefix: "FP" },
+    { name: "Forklift", category: "Equipment operation", issuingBody: "Employer evaluation", months: 36, scope: "SELECTED", crews: ["Fabrication Shop"], prefix: "FK" },
+    { name: "Electrical safety (NFPA 70E)", category: "Electrical", issuingBody: "NFPA", months: 36, scope: "SELECTED", crews: ["Service & Maintenance"], prefix: "E70" },
+    { name: "OSHA 30", category: "Safety training", issuingBody: "OSHA", months: null, scope: "NONE", prefix: "O30" },
+    { name: "Confined space", category: "Safety training", issuingBody: "OSHA authorized trainer", months: 12, scope: "NONE", prefix: "CS" },
+  ];
+  for (const d of defs) {
+    const type = await prisma.certificationType.upsert({
+      where: { organizationId_name: { organizationId: orgId, name: d.name } },
+      update: {},
+      create: {
+        organizationId: orgId,
+        name: d.name,
+        category: d.category,
+        issuingBody: d.issuingBody,
+        validityMonths: d.months,
+        requiredScope: d.scope,
+        requiredSiteIds: (d.sites ?? []).map((k) => siteIds[k]).filter(Boolean),
+        requiredCrewIds: (d.crews ?? []).map((k) => crewIds[k]).filter(Boolean),
+      },
+    });
+    // Most required people already hold it; leave a realistic handful without.
+    if (d.scope !== "NONE") {
+      const siteSet = new Set((d.sites ?? []).map((k) => siteIds[k]));
+      const crewSet = new Set((d.crews ?? []).map((k) => crewIds[k]));
+      const staff = await prisma.employee.findMany({ where: { organizationId: orgId }, orderBy: { createdAt: "asc" }, select: { id: true, siteId: true, departmentId: true } });
+      const required = staff.filter((e) => d.scope === "ALL" || (e.siteId && siteSet.has(e.siteId)) || (e.departmentId && crewSet.has(e.departmentId)));
+      const held = new Set((await prisma.qualification.findMany({ where: { organizationId: orgId, name: d.name }, select: { employeeId: true } })).map((r) => r.employeeId));
+      for (const [i, e] of required.filter((x) => !held.has(x.id)).entries()) {
+        if (i % 7 === 6) continue;
+        const issued = -(120 + ((i * 53) % 500));
+        await prisma.qualification.create({ data: { organizationId: orgId, employeeId: e.id, name: d.name, issuedOn: daysFromNow(issued), expiresOn: d.months ? daysFromNow(issued + d.months * 30) : null } });
+      }
+    }
+    const records = await prisma.qualification.findMany({ where: { organizationId: orgId, name: d.name }, orderBy: { createdAt: "asc" } });
+    for (const [i, r] of records.entries()) {
+      await prisma.qualification.update({
+        where: { id: r.id },
+        data: {
+          typeId: type.id,
+          issuingBody: d.issuingBody,
+          certificateNumber: r.certificateNumber || `${d.prefix}-${String(48200 + i * 37).padStart(6, "0")}`,
+          ...(verifierUserId && i % 3 !== 2 && !r.verifiedAt ? { verifiedAt: daysAgo(30 + i * 5), verifiedById: verifierUserId } : {}),
+        },
+      });
+    }
+  }
+}
+
 async function ensureSchema() {
   // Same idempotent patch the app applies on boot, so this works against a fresh or older database.
   const statements = SCHEMA_SQL.split(";\n").map((s) => s.trim()).filter(Boolean);
@@ -678,6 +736,9 @@ export async function seedDatabase() {
   for (const [who, name, issued, expires] of [["fatima", "First aid / CPR", -700, 14], ["tom", "First aid / CPR", -690, 21], ["marcus", "Aerial lift", -700, 11], ["wei", "OSHA 10", -400, null]] as [string, string, number, number | null][]) {
     await prisma.qualification.create({ data: { organizationId: org.id, employeeId: emp[who], name, issuedOn: daysFromNow(issued), expiresOn: expires === null ? null : daysFromNow(expires) } });
   }
+
+  const certVerifier = await prisma.user.findUnique({ where: { email: "admin@havenbrook.com" }, select: { id: true } });
+  await seedCertificationCatalog(org.id, Object.fromEntries(Object.entries(crews).map(([k, c]) => [k, (c as { id: string }).id])), sites, certVerifier?.id ?? null);
 
   await prisma.subscription.create({ data: { organizationId: org.id, tier: "GROWTH", status: "ACTIVE", seats: 75, pricePerMonth: 900, currentPeriodEnd: daysFromNow(20) } }).catch(() => {});
 

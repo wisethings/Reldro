@@ -115,7 +115,7 @@ export function PersonMenu({ userId, employeeId, name, jobTitle, isSupervisor, i
       {dialog === "delete" && (
         <Modal title="Delete this person?" onClose={close}>
           <div className="max-w-md space-y-3">
-            <p className="text-sm text-ink-700"><span className="font-semibold text-ink-900">{name}</span> will lose access immediately, and their login, acknowledgements and qualifications are deleted. Reports and investigations they were part of stay in your records. This can’t be undone.</p>
+            <p className="text-sm text-ink-700"><span className="font-semibold text-ink-900">{name}</span> will lose access immediately, and their login, acknowledgements and certifications are deleted. Reports and investigations they were part of stay in your records. This can’t be undone.</p>
             {error && <p role="alert" className="text-sm text-danger">{error}</p>}
             <div className="flex gap-2"><button disabled={pending} onClick={() => run(() => deletePerson(employeeId), close)} className="rounded-full bg-danger px-5 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50">{pending ? <><Spinner /> Deleting…</> : "Delete person"}</button><button type="button" onClick={close} className="rounded-full border border-ink-300 px-5 py-2 text-sm font-medium text-ink-800 hover:bg-surface-hover">Cancel</button></div>
           </div>

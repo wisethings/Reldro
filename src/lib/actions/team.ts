@@ -105,7 +105,7 @@ export async function updatePerson(employeeId: string, changes: { name: string; 
 
 /**
  * Permanently removes a person and their account. Reports, investigations and actions they were part of stay in the
- * company's records; only their login and personal records (acknowledgements, qualifications) go.
+ * company's records; only their login and personal records (acknowledgements, certifications) go.
  */
 export async function deletePerson(employeeId: string) {
   const { session, emp } = await personForAdmin(employeeId);

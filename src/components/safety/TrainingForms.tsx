@@ -144,24 +144,6 @@ export function TalkMenu({ talkId }: { talkId: string }) {
   );
 }
 
-export function QualificationForm({ people, suggestions }: { people: PersonOpt[]; suggestions: string[] }) {
-  const [state, formAction, pending] = useActionState(addQualification, undefined);
-  const router = useRouter();
-  useEffect(() => { if (state?.success) router.refresh(); }, [state, router]);
-  return (
-    <form action={formAction} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_9rem_9rem_auto]" key={state?.success ? "x" : "y"}>
-      <Field label="Person"><PersonSelect name="employeeId" required people={people} /></Field>
-      <Field label="Qualification"><Input name="name" list="qual-suggestions" required placeholder="e.g. OSHA 30" /><datalist id="qual-suggestions">{suggestions.map((s) => <option key={s} value={s} />)}</datalist></Field>
-      <Field label="Issued"><Input name="issuedOn" type="date" /></Field>
-      <Field label="Expires"><Input name="expiresOn" type="date" /></Field>
-      <div className="flex items-end"><button disabled={pending} className="w-full rounded-full bg-brand-700 px-5 py-2 text-sm font-medium text-white hover:bg-brand-800 disabled:opacity-50">{pending ? <><Spinner /> Saving…</> : "Record"}</button></div>
-      {state?.error && <p role="alert" className="text-sm text-danger sm:col-span-2 lg:col-span-5">{state.error}</p>}
-      {state?.success && <p className="text-sm text-sage-deep sm:col-span-2 lg:col-span-5">{state.success}</p>}
-    </form>
-  );
-}
-
-
 /** Who has not acknowledged yet: the first few names in one quiet line, with the rest a click away. */
 export function StillToAcknowledge({ names, preview = 4 }: { names: string[]; preview?: number }) {
   const [all, setAll] = useState(false);

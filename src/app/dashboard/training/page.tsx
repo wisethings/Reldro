@@ -11,14 +11,16 @@ import { EmptyState, fmtDate, PageHeader } from "@/components/safety/ui";
 import { StatStrip } from "@/components/safety/Dashboard";
 import { PAGE_SIZE, paginate, Pagination, readPage } from "@/components/safety/Pagination";
 import { TalkContent } from "@/components/safety/TalkContent";
-import { AcknowledgeButton, CreateTalkPanel, QualificationForm, StillToAcknowledge, TalkMenu } from "@/components/safety/TrainingForms";
+import { AcknowledgeButton, CreateTalkPanel, StillToAcknowledge, TalkMenu } from "@/components/safety/TrainingForms";
 import { QualificationTable, type QualRow } from "@/components/safety/QualificationTable";
+import { CertificationRecordForm } from "@/components/safety/CertificationForms";
+import { ComplianceView, RequirementsView, loadCertData } from "@/components/safety/CertificationsViews";
 import { ListToolbar } from "@/components/safety/ListToolbar";
 import { PersonAccess, PersonAssignment, PersonMenu } from "@/components/team/PeopleControls";
 import { InviteEmployeeForm } from "@/components/team/InviteEmployeeForm";
 import { LIST_PAGE } from "@/components/ui/layout";
 
-export default async function TrainingPage({ searchParams }: { searchParams: Promise<{ tab?: string; filter?: string; q?: string; page?: string; new?: string; qq?: string; qs?: string; qtype?: string; qemp?: string; qwhen?: string; qsort?: string; qpage?: string; pq?: string; psite?: string; pcrew?: string; pacc?: string; psort?: string; ppage?: string }> }) {
+export default async function TrainingPage({ searchParams }: { searchParams: Promise<{ tab?: string; filter?: string; q?: string; page?: string; new?: string; qq?: string; qs?: string; qtype?: string; qemp?: string; qwhen?: string; cview?: string; remp?: string; rtype?: string; gq?: string; gstate?: string; gtype?: string; gsite?: string; gcrew?: string; gpage?: string; qsort?: string; qpage?: string; pq?: string; psite?: string; pcrew?: string; pacc?: string; psort?: string; ppage?: string }> }) {
   const v = await requireViewer();
   const sp = await searchParams;
   const { tab = "talks", filter: f, q, page: pageParam, new: newParam } = sp;
@@ -28,7 +30,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
   const now = new Date();
   const in30 = new Date(Date.now() + 30 * 86400_000);
 
-  const tabs = [["talks", v.isSafetyTeam || v.isSupervisor ? "Toolbox talks" : "Toolbox talks"], ...(canManage ? [["qualifications", "Qualifications"]] : [["mine", "My qualifications"]]), ...(v.isAdmin ? [["people", "People"]] : [])];
+  const tabs = [["talks", v.isSafetyTeam || v.isSupervisor ? "Toolbox talks" : "Toolbox talks"], ...(canManage ? [["qualifications", "Certifications"]] : [["mine", "My certifications"]]), ...(v.isAdmin ? [["people", "People"]] : [])];
   const chip = (active: boolean) => `rounded-full border px-3 py-1.5 text-xs font-medium ${active ? "border-brand-700 bg-orchid-soft text-orchid-deep" : "border-ink-200 bg-white text-ink-600 hover:bg-surface-hover"}`;
   const activeTab = tabs.some(([k]) => k === tab) ? tab : "talks";
 
@@ -186,6 +188,22 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
     const scope = canManage
       ? v.isSafetyTeam ? {} : { employeeId: { in: (await prisma.employee.findMany({ where: { organizationId: v.organizationId, siteId: v.siteId ?? "__none__" }, select: { id: true } })).map((e) => e.id) } }
       : { employeeId: v.employeeId ?? "__none__" };
+    const requiredCount = canManage ? await prisma.certificationType.count({ where: { organizationId: v.organizationId, requiredScope: { not: "NONE" } } }) : 0;
+    const cview: "records" | "compliance" | "requirements" = sp.cview === "records" || sp.cview === "compliance" || (sp.cview === "requirements" && v.isSafetyTeam) ? sp.cview : requiredCount > 0 && canManage ? "compliance" : "records";
+    const certSeg = (on: boolean) => `rounded-md px-3 py-1 text-xs font-medium transition-colors ${on ? "bg-white text-ink-900 shadow-[0_0_0_1px_rgba(42,10,12,0.08)]" : "text-ink-600 hover:text-ink-900"}`;
+    const certNav = canManage ? (
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div role="group" aria-label="Certifications view" className="flex max-w-full overflow-x-auto rounded-lg bg-ink-100 p-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0 [&>*]:whitespace-nowrap">
+          <QueryLink scroll={false} href="?tab=qualifications&cview=compliance" className={certSeg(cview === "compliance")}>Compliance</QueryLink>
+          <QueryLink scroll={false} href="?tab=qualifications&cview=records" className={certSeg(cview === "records")}>Records</QueryLink>
+          {v.isSafetyTeam && <QueryLink scroll={false} href="?tab=qualifications&cview=requirements" className={certSeg(cview === "requirements")}>Requirements</QueryLink>}
+        </div>
+        {v.isSafetyTeam && cview === "records" && (
+          <a href="/api/safety/export/certifications?kind=records" download className="inline-flex h-8 items-center rounded-full border border-ink-300 bg-white px-3.5 text-xs font-medium text-ink-800 hover:bg-surface-hover">Export records</a>
+        )}
+      </div>
+    ) : null;
+    const certTypes = canManage ? await prisma.certificationType.findMany({ where: { organizationId: v.organizationId }, orderBy: { name: "asc" } }) : [];
     const [quals, people] = await Promise.all([
       prisma.qualification.findMany({ where: { organizationId: v.organizationId, ...scope }, orderBy: [{ expiresOn: "asc" }] }),
       canManage ? prisma.employee.findMany({ where: { organizationId: v.organizationId, ...(v.isSafetyTeam ? {} : { siteId: v.siteId ?? "__none__" }) }, include: { user: { select: { name: true } } }, orderBy: { user: { name: "asc" } } }) : Promise.resolve([]),
@@ -200,7 +218,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
     if (!canManage) {
       const mine = paginate(all.sort((a, b) => rank[a.status] - rank[b.status] || (a.q.expiresOn?.getTime() ?? Infinity) - (b.q.expiresOn?.getTime() ?? Infinity)), sp.qpage);
       body = all.length === 0 ? (
-        <EmptyState title="No qualifications recorded" body="Your supervisor records your certifications." />
+        <EmptyState title="No certifications recorded" body="Your supervisor records your certifications." />
       ) : (
         <div className="space-y-3">
           <ul className="surface divide-y divide-ink-100">
@@ -212,7 +230,15 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
               </li>
             ))}
           </ul>
-          <Pagination page={mine.page} total={all.length} noun="qualifications" hrefFor={(n) => `?tab=${activeTab}${n > 1 ? `&qpage=${n}` : ""}`} />
+          <Pagination page={mine.page} total={all.length} noun="certifications" hrefFor={(n) => `?tab=${activeTab}${n > 1 ? `&qpage=${n}` : ""}`} />
+        </div>
+      );
+    } else if (cview !== "records") {
+      const data = await loadCertData(v);
+      body = (
+        <div className="space-y-4">
+          {certNav}
+          {cview === "compliance" ? <ComplianceView v={v} sp={sp} data={data} /> : <RequirementsView v={v} data={data} />}
         </div>
       );
     } else {
@@ -225,7 +251,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
       const exp = (r: (typeof all)[number]) => r.q.expiresOn?.getTime() ?? Infinity;
       const list = all
         .filter((r) =>
-          (!qq || `${r.employee} ${r.q.name}`.toLowerCase().includes(qq)) &&
+          (!qq || `${r.employee} ${r.q.name} ${r.q.certificateNumber} ${r.q.issuingBody}`.toLowerCase().includes(qq)) &&
           (!qs || r.status === qs) &&
           (!sp.qtype || r.q.name === sp.qtype) &&
           (!sp.qemp || r.q.employeeId === sp.qemp) &&
@@ -255,6 +281,8 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
         issuedIso: iso(r.q.issuedOn),
         expiresIso: iso(r.q.expiresOn),
         rel: r.status === "current" && !r.q.expiresOn ? null : rel(r.q.expiresOn, r.status),
+        detail: [r.q.certificateNumber ? `No. ${r.q.certificateNumber}` : "", r.q.issuingBody].filter(Boolean).join(" · "),
+        verified: Boolean(r.q.verifiedAt),
         group: qsort === "status" && (i === 0 || pg.rows[i - 1].status !== r.status) ? label[r.status] : null,
       }));
       const qHref = (over: Record<string, string | undefined>) => {
@@ -267,10 +295,16 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
       const filteredQ = Boolean(qq || qs || sp.qtype || sp.qemp || whenDays);
       body = (
         <div className="space-y-4">
-          <section aria-labelledby="record-qual" className="surface p-4">
-            <h2 id="record-qual" className="mb-3 text-sm font-semibold text-ink-900">Record a qualification <span className="font-normal text-ink-500">· Reldro flags it 30 days before it expires</span></h2>
-            <QualificationForm people={people.map((p) => ({ id: p.id, name: p.user.name, hint: p.jobTitle }))} suggestions={pack.qualificationSuggestions} />
-          </section>
+          {certNav}
+          <div id="record" className="scroll-mt-4">
+            <CertificationRecordForm
+              people={people.map((p) => ({ id: p.id, name: p.user.name, hint: p.jobTitle }))}
+              types={certTypes.map((t) => ({ id: t.id, name: t.name, issuingBody: t.issuingBody, validityMonths: t.validityMonths }))}
+              canVerify={v.isSafetyTeam}
+              defaultEmployeeId={sp.remp}
+              defaultTypeId={sp.rtype}
+            />
+          </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <div role="group" aria-label="Filter by status" className="flex rounded-lg bg-ink-100 p-0.5 max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0 [&>*]:whitespace-nowrap">
@@ -283,27 +317,27 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
           <ListToolbar
             searchParam="qq"
             pageParam="qpage"
-            placeholder="Search employee or qualification"
+            placeholder="Search employee or certification"
             selects={[
-              { param: "qtype", label: "All qualifications", noun: "qualification", options: types.map((t) => ({ value: t, label: t })) },
+              { param: "qtype", label: "All certifications", noun: "certification", options: types.map((t) => ({ value: t, label: t })) },
               { param: "qemp", label: "All employees", search: true, noun: "person", options: people.map((p) => ({ value: p.id, label: p.user.name, hint: p.jobTitle })) },
               { param: "qwhen", label: "Any expiry date", options: [{ value: "30", label: "Expires in 30 days" }, { value: "60", label: "Expires in 60 days" }, { value: "90", label: "Expires in 90 days" }] },
             ]}
-            sort={{ param: "qsort", label: "Sort qualifications", options: [{ value: "", label: "Needs action first" }, { value: "expires", label: "Expiry date" }, { value: "employee", label: "Employee" }, { value: "type", label: "Qualification" }] }}
+            sort={{ param: "qsort", label: "Sort certifications", options: [{ value: "", label: "Needs action first" }, { value: "expires", label: "Expiry date" }, { value: "employee", label: "Employee" }, { value: "type", label: "Qualification" }] }}
           />
 
           {all.length === 0 ? (
-            <EmptyState title="No qualifications recorded" body="Add the certifications your crews need, such as aerial lift, first aid, or OSHA 30, so expiry dates are not missed." />
+            <EmptyState title="No certifications recorded" body="Add the certifications your crews need, such as aerial lift, first aid, or OSHA 30, so expiry dates are not missed." />
           ) : list.length === 0 ? (
             <div className="surface border-dashed px-6 py-10 text-center">
-              <p className="text-sm font-medium text-ink-900">No qualifications match</p>
+              <p className="text-sm font-medium text-ink-900">No certifications match</p>
               <p className="mt-1 text-sm text-ink-600">Try a different search, or clear the filters.</p>
               {(filteredQ || qs) && <QueryLink href="?tab=qualifications" className="mt-3 inline-block text-sm font-medium text-orchid-deep hover:text-oxblood">Clear filters</QueryLink>}
             </div>
           ) : (
             <QualificationTable rows={rows} />
           )}
-          <Pagination page={pg.page} total={list.length} noun="qualifications" hrefFor={(n) => qHref({ qpage: n > 1 ? String(n) : undefined })} />
+          <Pagination page={pg.page} total={list.length} noun="certifications" hrefFor={(n) => qHref({ qpage: n > 1 ? String(n) : undefined })} />
         </div>
       );
     }
@@ -441,13 +475,13 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
   return (
     <div className="min-h-full bg-surface-muted">
     <div className={LIST_PAGE}>
-      <PageHeader title={v.isAdmin || v.isSafetyTeam ? "People & Training" : v.isSupervisor ? "Training" : "Toolbox talks"} subtitle={canManage ? "Manage worker qualifications, toolbox talks, and training acknowledgements." : "Toolbox talks shared with your team, and your acknowledgements."} />
+      <PageHeader title={v.isAdmin || v.isSafetyTeam ? "People & Training" : v.isSupervisor ? "Training" : "Toolbox talks"} subtitle={canManage ? "Manage worker certifications, toolbox talks, and training acknowledgements." : "Toolbox talks shared with your team, and your acknowledgements."} />
       {canManage && (
         <StatStrip items={[
           { label: "Toolbox talks in the last 30 days", value: nTalks, href: "?tab=talks" },
           { label: "Acknowledged, last 30 days", value: ackRate === null ? "—" : `${ackRate}%`, href: "?tab=talks&filter=needs" },
-          { label: "Qualifications expiring in 30 days", value: nExpiring, href: "?tab=qualifications" },
-          { label: "Qualifications expired", value: nExpired, href: "?tab=qualifications", alert: nExpired > 0 },
+          { label: "Certifications expiring in 30 days", value: nExpiring, href: "?tab=qualifications" },
+          { label: "Certifications expired", value: nExpired, href: "?tab=qualifications", alert: nExpired > 0 },
         ]} />
       )}
       {tabs.length > 1 && (
