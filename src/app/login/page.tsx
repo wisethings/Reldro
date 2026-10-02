@@ -1,25 +1,23 @@
 import Link from "next/link";
+import { AuthShell } from "@/components/auth/AuthShell";
 import { LoginForm } from "@/components/auth/LoginForm";
-import { Logo } from "@/components/ui/Logo";
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-ink-50 px-6 py-12">
-      <div className="w-full max-w-sm">
-        <Link href="/" className="mb-8 flex items-center justify-center gap-2">
-          <Logo height={30} />
-        </Link>
-        <div className="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
-          <h1 className="text-2xl font-semibold tracking-tight text-ink-900">Sign in</h1>
-          <div className="mt-5">
-            <LoginForm />
-          </div>
-        </div>
-        <p className="mt-5 text-center text-xs text-ink-500">
+    <AuthShell
+      footer={
+        <>
           Submitted a report without your name?{" "}
-          <Link href="/follow-up" className="font-medium text-orchid-deep underline-offset-2 hover:underline">Use your case code to check for updates</Link>
-        </p>
+          <Link href="/follow-up" className="font-medium text-orchid-deep transition-colors duration-150 hover:text-oxblood focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40">
+            Use your case code to check for updates
+          </Link>
+        </>
+      }
+    >
+      <h1 className="text-[22px] font-semibold leading-[1.15] tracking-[-0.02em] text-ink-900">Sign in</h1>
+      <div className="mt-7">
+        <LoginForm />
       </div>
-    </div>
+    </AuthShell>
   );
 }
