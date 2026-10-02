@@ -14,7 +14,8 @@ import { TalkContent } from "@/components/safety/TalkContent";
 import { AcknowledgeButton, CreateTalkPanel, StillToAcknowledge, TalkMenu } from "@/components/safety/TrainingForms";
 import { QualificationTable, type QualRow } from "@/components/safety/QualificationTable";
 import { CertificationRecordForm } from "@/components/safety/CertificationForms";
-import { ComplianceView, RequirementsView, loadCertData } from "@/components/safety/CertificationsViews";
+import { ComplianceView, RequirementsView, StateBadge, loadCertData } from "@/components/safety/CertificationsViews";
+import { requirementsFor } from "@/lib/safety/certifications";
 import { ListToolbar } from "@/components/safety/ListToolbar";
 import { PersonAccess, PersonAssignment, PersonMenu } from "@/components/team/PeopleControls";
 import { InviteEmployeeForm } from "@/components/team/InviteEmployeeForm";
@@ -216,11 +217,33 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
     const counts = { all: all.length, expired: all.filter((r) => r.status === "expired").length, soon: all.filter((r) => r.status === "soon").length, current: all.filter((r) => r.status === "current").length };
 
     if (!canManage) {
+      // What the company requires of this person, and where they stand on each.
+      const me = v.employeeId ? await prisma.employee.findUnique({ where: { id: v.employeeId }, select: { id: true, siteId: true, departmentId: true } }) : null;
+      const myTypes = me ? await prisma.certificationType.findMany({ where: { organizationId: v.organizationId, requiredScope: { not: "NONE" } }, orderBy: { name: "asc" } }) : [];
+      const myReqs = me ? requirementsFor(myTypes, [me], quals) : [];
+      const myTypeName = new Map(myTypes.map((t) => [t.id, t.name]));
       const mine = paginate(all.sort((a, b) => rank[a.status] - rank[b.status] || (a.q.expiresOn?.getTime() ?? Infinity) - (b.q.expiresOn?.getTime() ?? Infinity)), sp.qpage);
+      const requiredBlock = myReqs.length > 0 ? (
+        <section aria-labelledby="required-for-you" className="surface overflow-hidden">
+          <div className="border-b border-ink-100 px-4 py-2.5"><h2 id="required-for-you" className="text-sm font-semibold text-ink-900">Required for you</h2><p className="text-xs text-ink-500">What your company needs you to hold. Tell your supervisor if something is missing or about to expire.</p></div>
+          <ul className="divide-y divide-ink-100">
+            {myReqs.sort((a, b) => ({ expired: 0, missing: 1, expiring: 2, valid: 3 })[a.state] - ({ expired: 0, missing: 1, expiring: 2, valid: 3 })[b.state]).map((r) => (
+              <li key={r.typeId} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                <div className="min-w-0"><p className="truncate text-sm font-medium text-ink-900">{myTypeName.get(r.typeId)}</p><p className="text-xs text-ink-500">{r.record?.expiresOn ? `${r.state === "expired" ? "Expired" : "Expires"} ${fmtDate(r.record.expiresOn)}` : r.state === "missing" ? "Not on record" : "No expiry"}</p></div>
+                <StateBadge state={r.state} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null;
       body = all.length === 0 ? (
-        <EmptyState title="No certifications recorded" body="Your supervisor records your certifications." />
+        <div className="space-y-3">
+          {requiredBlock}
+          <EmptyState title="No certifications recorded" body="Your supervisor records your certifications." />
+        </div>
       ) : (
         <div className="space-y-3">
+          {requiredBlock}
           <ul className="surface divide-y divide-ink-100">
             {mine.rows.map(({ q, status }) => (
               <li key={q.id} className="grid min-h-[2.75rem] grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 px-4 py-2.5">

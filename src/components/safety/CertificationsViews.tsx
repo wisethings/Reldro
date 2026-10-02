@@ -119,7 +119,7 @@ export async function ComplianceView({ v, sp, data }: { v: Viewer; sp: SP; data:
         ]}
       />
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-2">
         <CoverageList title="By certification" rows={byType} />
         <div className="space-y-4">
           <CoverageList title="By site" rows={bySite} />

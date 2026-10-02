@@ -149,10 +149,10 @@ export function SafetyOnboarding({ companyName, starters }: { companyName: strin
                   <span className="mt-0.5 block text-xs text-ink-600">{starters.length} checklists, ready to schedule.</span>
                   <ul className="mt-3 space-y-2">
                     {starters.map((t) => (
-                      <li key={t.name} className="flex items-center gap-2.5 rounded-lg bg-white/80 px-3 py-2 text-sm text-ink-800 ring-1 ring-inset ring-ink-100">
+                      <li key={t.name} className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 rounded-lg bg-white/80 px-3 py-2 text-sm text-ink-800 ring-1 ring-inset ring-ink-100">
                         <ClipboardCheck size={15} className="shrink-0 text-orchid-deep" aria-hidden />
-                        <span className="min-w-0 flex-1 truncate">{t.name}</span>
-                        <span className="shrink-0 text-xs text-ink-500">{t.cadence ?? "As needed"} · {t.items} items</span>
+                        <span className="min-w-0 flex-1 basis-40">{t.name}</span>
+                        <span className="w-full shrink-0 pl-[1.4rem] text-xs text-ink-500 sm:w-auto sm:pl-0">{t.cadence ?? "As needed"} · {t.items} items</span>
                       </li>
                     ))}
                   </ul>
