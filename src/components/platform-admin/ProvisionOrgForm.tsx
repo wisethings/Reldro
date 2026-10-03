@@ -55,6 +55,11 @@ export function ProvisionOrgForm({ onDone }: { onDone?: () => void }) {
             </Field>
           </FieldGrid>
         </FormSection>
+        <FormSection title="Seats" hint="How many people, admins included, this workspace may have. You can change it later.">
+          <Field label="Seats" optional>
+            <Input name="seats" inputMode="numeric" placeholder="No limit" className="sm:max-w-[12rem]" />
+          </Field>
+        </FormSection>
         <FormSection title="First admin" hint="They get the invite email and run the first-time setup.">
           <FieldGrid columns={2}>
             <Field label="Admin name" required>

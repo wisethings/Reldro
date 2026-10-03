@@ -7,7 +7,7 @@ export async function GET() {
   await requireRole(["PLATFORM_ADMIN"]);
 
   const organizations = await prisma.organization.findMany({
-    include: { employees: true, subscription: true },
+    include: { _count: { select: { users: { where: { role: { in: ["COMPANY_ADMIN", "EMPLOYEE"] } } } } } },
     orderBy: { createdAt: "desc" },
   });
 
@@ -19,10 +19,10 @@ export async function GET() {
     revenueRange: org.revenueRange,
     geography: org.geography,
     businessModel: org.businessModel,
-    employeeCount: org.employees.length,
+    peopleCount: org._count.users,
+    seatLimit: org.seatLimit ?? "",
     onboardingDone: org.onboardingDone ? "yes" : "no",
-    subscriptionTier: org.subscription?.tier ?? "",
-    subscriptionStatus: org.subscription?.status ?? "",
+    status: org.suspendedAt ? "suspended" : "active",
     createdAt: org.createdAt.toISOString(),
   }));
 
@@ -34,10 +34,10 @@ export async function GET() {
     { key: "revenueRange", label: "Revenue range" },
     { key: "geography", label: "Geography" },
     { key: "businessModel", label: "Business model" },
-    { key: "employeeCount", label: "Employee count" },
+    { key: "peopleCount", label: "People with accounts" },
+    { key: "seatLimit", label: "Seats" },
     { key: "onboardingDone", label: "Onboarded" },
-    { key: "subscriptionTier", label: "Subscription tier" },
-    { key: "subscriptionStatus", label: "Subscription status" },
+    { key: "status", label: "Status" },
     { key: "createdAt", label: "Created at" },
   ]);
 

@@ -7,6 +7,7 @@ import { requireRole } from "@/lib/auth/guards";
 import { hashPassword } from "@/lib/auth/password";
 import { deliverInvite, generateTempPassword, type InviteDelivery } from "@/lib/invites";
 import { logAudit } from "@/lib/audit";
+import { seatBlockMessage } from "@/lib/seats";
 
 export type FormState = ({ error?: string } & InviteDelivery) | undefined;
 
@@ -37,6 +38,9 @@ export async function inviteEmployee(_prevState: FormState, formData: FormData):
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return { error: "An account with that email already exists." };
+
+  const noSeat = await seatBlockMessage(session.organizationId!);
+  if (noSeat) return { error: noSeat };
 
   const tempPassword = generateTempPassword();
   const passwordHash = await hashPassword(tempPassword);

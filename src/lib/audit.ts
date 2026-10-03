@@ -59,7 +59,14 @@ export type AuditAction =
   | "project.budget_updated"
   | "project.target_date_updated"
   | "project.description_updated"
-  | "project.team_notified";
+  | "project.team_notified"
+  | "platform.org_provisioned"
+  | "platform.seats_changed"
+  | "platform.org_suspended"
+  | "platform.org_reactivated"
+  | "platform.invite_resent"
+  | "platform.two_factor_enabled"
+  | "platform.signed_in";
 
 /**
  * Records a sensitive action to the audit trail. Best-effort: a failure here
@@ -128,7 +135,6 @@ const ACTION_LABELS: Record<AuditAction, string> = {
   "admin.removed": "Removed a company admin",
   "account.profile_updated": "Updated their profile",
   "certification.earned": "Earned a certification",
-  "product_update.sent": "Sent a product update email",
   "project.member_added": "Added a team member to a project",
   "project.member_removed": "Removed a team member from a project",
   "admin.invited": "Invited a company admin",
@@ -149,6 +155,14 @@ const ACTION_LABELS: Record<AuditAction, string> = {
   "project.target_date_updated": "Updated a project's target completion date",
   "project.description_updated": "Updated a project's description",
   "project.team_notified": "Notified the project team",
+  "platform.org_provisioned": "Created a workspace",
+  "platform.seats_changed": "Changed a workspace's seat count",
+  "platform.org_suspended": "Suspended a workspace",
+  "platform.org_reactivated": "Reopened a workspace",
+  "platform.invite_resent": "Resent an admin invite",
+  "platform.two_factor_enabled": "Turned on two-factor sign-in",
+  "platform.signed_in": "Signed in to the platform console",
+  "product_update.sent": "Sent a product update email",
 };
 
 export function describeAuditAction(action: string): string {

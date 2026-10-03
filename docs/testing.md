@@ -7,7 +7,7 @@
 2. Unit tests (`npm test`): who can see which reports, confidential and anonymous reporters, restricted notes, severity suggestions, photo rules
 3. A production build
 4. Post-deploy checks (`npm run smoke -- <url>`)
-5. Browser tests (`npm run test:e2e`): every role opens every page on a phone and a desktop with no errors or sideways scrolling, the report form, the anonymous case code and follow-up, the help button, admin-only pages, and confidential reporter privacy
+5. Browser tests (`npm run test:e2e`): every role opens every page on a phone and a desktop with no errors or sideways scrolling, the report form, the anonymous case code and follow-up, the support email link, staff two-factor sign-in, workspace seats and suspension, admin-only pages, and confidential reporter privacy
 
 ## Run them locally
 ```

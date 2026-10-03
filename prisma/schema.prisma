@@ -167,6 +167,10 @@ model Organization {
   emergencyInstructions      String   @default("")
   // True only for the clearly labeled sample workspace. Never set for a customer workspace.
   isDemo                     Boolean  @default(false)
+  // How many people (admins and employees) Reldro has agreed this workspace may have. null = no limit set.
+  seatLimit                  Int?
+  // Set by Reldro staff to lock a workspace. Nobody in it can sign in until it is cleared.
+  suspendedAt                DateTime?
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
 
@@ -212,7 +216,6 @@ model Organization {
   workflowLinks                WorkflowLink[]
   workflowDependencies         WorkflowDependency[]
   workflowTimeSavedLogs        WorkflowTimeSavedLog[]
-  supportMessages              SupportMessage[]
 
   @@index([industry])
 }
@@ -250,6 +253,10 @@ model User {
   lockedUntil         DateTime?
   // null = invited but has never logged in (an invite still pending).
   lastLoginAt         DateTime?
+  // Two-factor sign-in (Reldro staff accounts). The secret is stored encrypted; the step blocks re-using a code.
+  totpSecret          String?
+  totpEnabledAt       DateTime?
+  totpLastStep        Int?
 
   employee          Employee?
   specialist        Specialist?
@@ -257,7 +264,6 @@ model User {
   sentMessages      Message[]
   auditLogs         AuditLog[]
   recognitionsGiven Recognition[]
-  supportMessages   SupportMessage[]
 
   @@index([organizationId])
 }
@@ -1141,24 +1147,6 @@ model Notification {
   @@index([userId])
 }
 
-/// A support conversation between a company admin and the Reldro team. One thread per admin.
-model SupportMessage {
-  id             String       @id @default(cuid())
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  userId         String
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  fromStaff      Boolean      @default(false)
-  senderName     String
-  body           String
-  /// When the admin saw a message from staff, and when staff saw a message from the admin.
-  readAt         DateTime?
-  createdAt      DateTime     @default(now())
-
-  @@index([userId, createdAt])
-  @@index([organizationId])
-}
-
 model AuditLog {
   id             String        @id @default(cuid())
   organizationId String?
@@ -1172,6 +1160,7 @@ model AuditLog {
   createdAt      DateTime      @default(now())
 
   @@index([organizationId])
+  @@index([action, createdAt])
 }
 
 // ---------------------------------------------------------------------------

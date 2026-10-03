@@ -20,6 +20,8 @@ import { ListToolbar } from "@/components/safety/ListToolbar";
 import { PersonAccess, PersonAssignment, PersonMenu } from "@/components/team/PeopleControls";
 import { InviteEmployeeForm } from "@/components/team/InviteEmployeeForm";
 import { LIST_PAGE } from "@/components/ui/layout";
+import { seatUsage } from "@/lib/seats";
+import { SUPPORT_EMAIL } from "@/lib/support";
 
 export default async function TrainingPage({ searchParams }: { searchParams: Promise<{ tab?: string; filter?: string; q?: string; page?: string; new?: string; qq?: string; qs?: string; qtype?: string; qemp?: string; qwhen?: string; cview?: string; remp?: string; rtype?: string; gq?: string; gstate?: string; gtype?: string; gsite?: string; gcrew?: string; gpage?: string; qsort?: string; qpage?: string; pq?: string; psite?: string; pcrew?: string; pacc?: string; psort?: string; ppage?: string }> }) {
   const v = await requireViewer();
@@ -369,6 +371,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
       prisma.employee.findMany({ where: { organizationId: v.organizationId }, include: { user: true, department: true }, orderBy: { user: { name: "asc" } } }),
       prisma.department.findMany({ where: { organizationId: v.organizationId }, orderBy: { name: "asc" } }),
     ]);
+    const seats = await seatUsage(v.organizationId);
     const siteName = new Map(sites.map((s) => [s.id, s.name]));
     const pq = (sp.pq ?? "").trim().toLowerCase();
     const acc = sp.pacc === "supervisor" || sp.pacc === "lead" || sp.pacc === "pending" ? sp.pacc : "";
@@ -406,6 +409,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Pro
           <div>
             <h2 className="text-sm font-semibold text-ink-900">People <span className="font-normal tabular-nums text-ink-500">{everyone.length}{pending > 0 ? ` · ${pending} invite${pending === 1 ? "" : "s"} pending` : ""}</span></h2>
             <p className="text-xs text-ink-500">Supervisors see their own site. Safety leads see every report and investigation. Only company admins change these roles.</p>
+            {seats.limit !== null && <p className={`mt-0.5 text-xs ${seats.used >= seats.limit ? "font-medium text-amber-deep" : "text-ink-500"}`}>{seats.used} of {seats.limit} seats in use{seats.used >= seats.limit ? `. To add more, email ${SUPPORT_EMAIL}.` : "."}</p>}
           </div>
         </div>
         <details className="group" open={sp.new === "person"}>

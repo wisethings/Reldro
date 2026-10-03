@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { MobileTabBar } from "./MobileTabBar";
-import { SupportChat } from "./SupportChat";
 import type { NavAudience } from "./nav";
 
 export function DashboardShell({
@@ -13,14 +12,12 @@ export function DashboardShell({
   orgName,
   name,
   roleLabel,
-  showSupport = false,
   children,
 }: {
   audience: NavAudience;
   orgName: string | null;
   name: string;
   roleLabel: string;
-  showSupport?: boolean;
   children: React.ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -42,7 +39,6 @@ export function DashboardShell({
         </div>
         <MobileTabBar onMenu={() => setMobileOpen(true)} />
       </div>
-      {showSupport && <SupportChat />}
     </div>
   );
 }

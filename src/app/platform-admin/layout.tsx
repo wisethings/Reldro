@@ -7,8 +7,8 @@ import { Logo } from "@/components/ui/Logo";
 const NAV = [
   { href: "/platform-admin", label: "Overview" },
   { href: "/platform-admin/organizations", label: "Organizations" },
-  { href: "/platform-admin/support", label: "Support inbox" },
   { href: "/platform-admin/product-updates", label: "Product updates" },
+  { href: "/platform-admin/activity", label: "Staff activity" },
 ];
 
 export default async function PlatformAdminLayout({ children }: { children: React.ReactNode }) {

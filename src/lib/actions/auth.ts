@@ -7,6 +7,7 @@ import { createSession, destroySession } from "@/lib/auth/session";
 import { destinationForRole } from "@/lib/auth/roleHome";
 import { logAudit } from "@/lib/audit";
 import { ensureSchemaMigrated } from "@/lib/runMigration";
+import { SUPPORT_EMAIL } from "@/lib/support";
 
 export type FormState = { error?: string } | undefined;
 
@@ -46,6 +47,11 @@ export async function login(_prevState: FormState, formData: FormData): Promise<
       }
     }
     return { error: "Invalid email or password." };
+  }
+
+  if (user.role !== "PLATFORM_ADMIN" && user.organizationId) {
+    const org = await prisma.organization.findUnique({ where: { id: user.organizationId }, select: { suspendedAt: true } });
+    if (org?.suspendedAt) return { error: `This workspace is suspended. Email ${SUPPORT_EMAIL} to get it reopened.` };
   }
 
   if (user.role === "SPECIALIST") {

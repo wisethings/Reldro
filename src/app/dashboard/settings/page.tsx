@@ -27,7 +27,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
   const [org, auditLogs, crews, admins, rules, sites, people] = await Promise.all([
     prisma.organization.findUnique({ where: { id: orgId } }),
-    prisma.auditLog.findMany({ where: { organizationId: orgId }, include: { user: true }, orderBy: { createdAt: "desc" }, take: 5 }),
+    prisma.auditLog.findMany({ where: { organizationId: orgId, NOT: { action: { startsWith: "platform." } } }, include: { user: true }, orderBy: { createdAt: "desc" }, take: 5 }),
     prisma.department.findMany({ where: { organizationId: orgId }, orderBy: { name: "asc" } }),
     prisma.user.findMany({ where: { organizationId: orgId, role: "COMPANY_ADMIN" }, orderBy: { createdAt: "asc" } }),
     prisma.escalationRule.findMany({ where: { organizationId: orgId }, orderBy: { createdAt: "asc" } }),

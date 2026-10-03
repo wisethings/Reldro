@@ -3,8 +3,9 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut } from "lucide-react";
+import { LogOut, Mail } from "lucide-react";
 import { logout } from "@/lib/actions/auth";
+import { SUPPORT_MAILTO } from "@/lib/support";
 import { Logo } from "@/components/ui/Logo";
 import { getNavItems, type NavAudience, type NavItem } from "./nav";
 
@@ -63,6 +64,14 @@ function NavContent({ audience, orgName, name, roleLabel, onNavigate }: { audien
         ))}
       </nav>
       <div className="shrink-0 border-t border-ink-200/70 p-3">
+        <a
+          href={SUPPORT_MAILTO}
+          onClick={onNavigate}
+          className="mb-2 flex min-h-10 items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm font-medium text-ink-600 transition-colors hover:bg-white/60 hover:text-ink-900 md:min-h-0"
+        >
+          <Mail size={16} aria-hidden className="text-ink-500" />
+          Contact support
+        </a>
         <div className="flex items-center gap-2.5">
           <Link href="/dashboard/account" onClick={onNavigate} className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg p-1 hover:bg-white/60" aria-label="Your account">
             <span aria-hidden className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-orchid-soft text-xs font-semibold text-orchid-deep">{initialsOf(name)}</span>

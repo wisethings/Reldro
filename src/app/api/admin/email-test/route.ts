@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 
   const to = request.nextUrl.searchParams.get("to") ?? "";
   const from = fromAddress();
-  const config = { resendKeySet: isEmailConfigured(), from, supportEmailSet: Boolean(process.env.SUPPORT_EMAIL), appUrl: process.env.APP_URL || "(default: https://app.reldro.com)" };
+  const config = { resendKeySet: isEmailConfigured(), from, appUrl: process.env.APP_URL || "(default: https://app.reldro.com)" };
   if (!config.resendKeySet) return NextResponse.json({ ok: false, config, problem: "RESEND_API_KEY is not set in this environment. Add it in Netlify environment variables and redeploy." }, { status: 200 });
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return NextResponse.json({ ok: false, config, problem: "Add ?to=an-email-address to the URL." }, { status: 200 });
 

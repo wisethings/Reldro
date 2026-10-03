@@ -1,7 +1,8 @@
 // Browser tests against a running, seeded app. Start it first (see docs/testing.md), then: npm run test:e2e
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
-import { BASE, closeBrowser, hasSideways, launch, signIn } from "./helpers.mjs";
+import { PrismaClient } from "@prisma/client";
+import { BASE, USERS, closeBrowser, hasSideways, launch, signIn, totpNow } from "./helpers.mjs";
 
 after(closeBrowser);
 
@@ -40,15 +41,150 @@ for (const [who, paths] of Object.entries(PAGES)) {
   }
 }
 
-test("platform admin sees the inbox and organizations", async () => {
+test("platform admin can open every console page on a phone and a desktop, and customer detail has no report content", async () => {
+  for (const phone of [false, true]) {
+    const page = await signIn("platform", { phone });
+    try {
+      for (const path of ["", "/organizations", "/organizations?q=Havenbrook&status=active", "/activity", "/product-updates"]) {
+        const res = await page.goto(`${BASE}/platform-admin${path}`, { waitUntil: "networkidle" });
+        assert.ok(res && res.status() < 400, `${path} returned ${res?.status()}`);
+        assert.equal(await hasSideways(page), false, `${path} scrolls sideways on ${phone ? "a phone" : "a desktop"}`);
+      }
+      await page.goto(`${BASE}/platform-admin/organizations`, { waitUntil: "networkidle" });
+      await page.getByRole("link", { name: /Havenbrook Electrical/ }).first().click();
+      await page.waitForURL(/organizations\/c/);
+      await page.getByText("Admins and setup").waitFor();
+      assert.equal(await hasSideways(page), false, "customer page scrolls sideways");
+      const body = await page.locator("body").innerText();
+      assert.ok(!/Worker fell about 6 feet|scaffold access ladder/.test(body), "the console shows report content");
+      assert.ok(!/MRR|Growth|Starter|Enterprise plan/.test(body), "the console still shows billing");
+      assert.deepEqual(page.errors, []);
+    } finally {
+      await page.context().close();
+    }
+  }
+});
+
+test("staff sign-in needs the authenticator code, and a code can't be used twice", async () => {
   const page = await signIn("platform");
   try {
-    for (const path of ["", "/organizations", "/support", "/product-updates"]) {
-      const res = await page.goto(`${BASE}/platform-admin${path}`, { waitUntil: "networkidle" });
-      assert.ok(res && res.status() < 400, `${path} returned ${res?.status()}`);
-    }
+    // Signed in with the code, so the console opens.
+    assert.ok((await page.goto(`${BASE}/platform-admin`)).status() < 400);
+    // A fresh browser that knows the password but not the code never gets in.
+    const b = await launch();
+    const ctx = await b.newContext();
+    const other = await ctx.newPage();
+    await other.goto(`${BASE}/login`);
+    await other.fill("input[name=email]", USERS.platform);
+    await other.fill("input[name=password]", "Demo1234!");
+    await other.click("button[type=submit]");
+    await other.waitForURL(/two-factor/, { timeout: 60_000 });
+    await other.goto(`${BASE}/platform-admin/organizations`);
+    assert.ok(other.url().includes("/two-factor"), "console opened without the code");
+    await other.fill("input[name=code]", "000000");
+    await other.click("button[type=submit]");
+    await other.getByText(/That code didn.t work/).waitFor();
+    // The code the first browser just used is refused here (replay).
+    await other.fill("input[name=code]", totpNow(page.totpSecret));
+    await other.click("button[type=submit]");
+    await other.getByText(/That code didn.t work/).waitFor();
+    await ctx.close();
   } finally {
     await page.context().close();
+  }
+});
+
+test("a workspace can be created with seats, limited, suspended and reopened from the console", async () => {
+  const db = new PrismaClient();
+  const stamp = Date.now();
+  const company = `FLOWTEST Seats ${stamp}`;
+  const staff = await signIn("platform");
+  let adminPage;
+  try {
+    await staff.goto(`${BASE}/platform-admin/organizations`, { waitUntil: "networkidle" });
+    await staff.getByRole("button", { name: /Create organization/ }).click();
+    await staff.fill("input[name=companyName]", company);
+    await staff.fill("input[name=adminName]", "Flow Admin");
+    await staff.fill("input[name=adminEmail]", `flow-admin-${stamp}@example.com`);
+    await staff.fill("input[name=seats]", "2");
+    await staff.getByRole("button", { name: "Create workspace" }).click();
+    const temp = (await staff.locator("span.tabular-nums.font-semibold").first().innerText({ timeout: 30_000 }).catch(() => "")).trim();
+    assert.ok(temp, "no temporary password was shown (is email configured in this environment?)");
+
+    // The new admin signs in and sees a working workspace (setup wizard is fine).
+    const b = await launch();
+    const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
+    adminPage = await ctx.newPage();
+    await adminPage.goto(`${BASE}/login`);
+    await adminPage.fill("input[name=email]", `flow-admin-${stamp}@example.com`);
+    await adminPage.fill("input[name=password]", temp);
+    await adminPage.click("button[type=submit]");
+    await adminPage.waitForURL(/dashboard|onboarding/, { timeout: 60_000 });
+
+    // Customer page: seats show 1 of 2; lowering below what's in use is refused.
+    const org = await db.organization.findFirst({ where: { name: company }, select: { id: true } });
+    await staff.goto(`${BASE}/platform-admin/organizations/${org.id}`, { waitUntil: "networkidle" });
+    await staff.getByText("1 of 2").first().waitFor();
+    await staff.fill("input[name=seats]", "0");
+    await staff.getByRole("button", { name: "Save seats" }).click();
+    await staff.getByText(/between 1 and/).waitFor();
+    await staff.fill("input[name=seats]", "5");
+    await staff.getByRole("button", { name: "Save seats" }).click();
+    await staff.getByText("Saved.").waitFor();
+    assert.equal((await db.organization.findUnique({ where: { id: org.id } })).seatLimit, 5);
+
+    // Suspend: needs a reason, then the open session stops working and sign-in is refused.
+    const suspend = staff.getByRole("button", { name: "Suspend workspace" });
+    assert.equal(await suspend.isDisabled(), true);
+    await staff.fill("textarea[name=reason]", "Flow test");
+    await suspend.click();
+    await staff.getByRole("button", { name: "Suspend workspace" }).last().click();
+    await staff.getByRole("button", { name: "Reopen workspace" }).waitFor();
+    await adminPage.goto(`${BASE}/dashboard/overview`);
+    await adminPage.waitForURL(/login/, { timeout: 30_000 });
+    await adminPage.fill("input[name=email]", `flow-admin-${stamp}@example.com`);
+    await adminPage.fill("input[name=password]", temp);
+    await adminPage.click("button[type=submit]");
+    await adminPage.getByText(/workspace is suspended/i).waitFor({ timeout: 30_000 });
+
+    // Reopen: sign-in works again, and the log shows who did what.
+    await staff.getByRole("button", { name: "Reopen workspace" }).first().click();
+    await staff.getByRole("button", { name: "Reopen workspace" }).last().click();
+    await staff.getByRole("button", { name: "Suspend workspace" }).waitFor();
+    await adminPage.fill("input[name=email]", `flow-admin-${stamp}@example.com`);
+    await adminPage.fill("input[name=password]", temp);
+    await adminPage.click("button[type=submit]");
+    await adminPage.waitForURL(/dashboard|onboarding/, { timeout: 60_000 });
+    await staff.goto(`${BASE}/platform-admin/activity`, { waitUntil: "networkidle" });
+    const log = await staff.locator("body").innerText();
+    for (const text of ["Suspended a workspace", "Reopened a workspace", "Changed a workspace's seat count", "Created a workspace"]) assert.ok(log.includes(text), `staff log is missing "${text}"`);
+    assert.deepEqual(staff.errors, []);
+  } finally {
+    await db.organization.deleteMany({ where: { name: company } });
+    await db.user.deleteMany({ where: { email: `flow-admin-${stamp}@example.com` } });
+    await db.$disconnect();
+    await adminPage?.context().close();
+    await staff.context().close();
+  }
+});
+
+test("a workspace at its seat limit can't add more people", async () => {
+  const db = new PrismaClient();
+  const admin = await signIn("admin");
+  try {
+    const org = await db.organization.findFirst({ where: { users: { some: { email: USERS.admin } } }, select: { id: true } });
+    const used = await db.user.count({ where: { organizationId: org.id, role: { in: ["COMPANY_ADMIN", "EMPLOYEE"] } } });
+    await db.organization.update({ where: { id: org.id }, data: { seatLimit: used } });
+    await admin.goto(`${BASE}/dashboard/training?tab=people&new=person`, { waitUntil: "networkidle" });
+    await admin.fill("input[name=name]", "Seat Test");
+    await admin.fill("input[name=email]", `seat-test-${Date.now()}@example.com`);
+    await admin.fill("input[name=jobTitle]", "Tester");
+    await admin.getByRole("button", { name: "Invite person" }).click();
+    await admin.getByText(/seats in this workspace are in use/).waitFor({ timeout: 30_000 });
+  } finally {
+    await db.organization.updateMany({ where: { users: { some: { email: USERS.admin } } }, data: { seatLimit: null } });
+    await db.$disconnect();
+    await admin.context().close();
   }
 });
 
@@ -100,22 +236,22 @@ test("an anonymous report returns a private case code that works on the follow-u
   }
 });
 
-test("the help button is for company admins only, and sending is off in the sample workspace", async () => {
-  const admin = await signIn("admin");
-  const worker = await signIn("priya");
-  try {
-    await admin.goto(`${BASE}/dashboard/overview`, { waitUntil: "networkidle" });
-    const button = admin.getByRole("button", { name: /Help and messages/ });
-    assert.equal(await button.count(), 1);
-    await button.click();
-    await admin.getByText("Help with Reldro").waitFor();
-    await admin.getByText("This is a sample conversation").waitFor({ timeout: 30_000 });
-    assert.equal(await admin.locator("#support-draft").isDisabled(), true);
-    await worker.goto(`${BASE}/dashboard/overview`, { waitUntil: "networkidle" });
-    assert.equal(await worker.getByRole("button", { name: /Help and messages/ }).count(), 0);
-  } finally {
-    await admin.context().close();
-    await worker.context().close();
+test("support is a plain email link for everyone, and there is no chat widget", async () => {
+  for (const who of ["admin", "priya"]) {
+    for (const phone of [false, true]) {
+      const page = await signIn(who, { phone });
+      try {
+        await page.goto(`${BASE}/dashboard/overview`, { waitUntil: "networkidle" });
+        assert.equal(await page.getByRole("button", { name: /Help and messages/ }).count(), 0);
+        if (phone) await page.getByRole("button", { name: "More" }).click();
+        const link = page.getByRole("link", { name: "Contact support" });
+        await link.waitFor();
+        assert.equal(await link.getAttribute("href"), "mailto:support@reldro.com");
+        assert.equal(await hasSideways(page), false, "support link causes sideways scrolling");
+      } finally {
+        await page.context().close();
+      }
+    }
   }
 });
 

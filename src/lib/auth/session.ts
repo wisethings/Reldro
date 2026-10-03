@@ -5,6 +5,10 @@ import type { Role } from "@prisma/client";
 
 export const SESSION_COOKIE = "reldro_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 14; // 14 days
+/** Reldro staff can see every customer, so their sign-in expires after a working day. */
+const STAFF_SESSION_TTL_SECONDS = 60 * 60 * 8;
+
+export const sessionTtl = (role: Role) => (role === "PLATFORM_ADMIN" ? STAFF_SESSION_TTL_SECONDS : SESSION_TTL_SECONDS);
 
 export type SessionPayload = {
   sub: string; // userId
@@ -14,6 +18,8 @@ export type SessionPayload = {
   organizationId: string | null;
   employeeId: string | null;
   specialistId: string | null;
+  /** Reldro staff only: true once the second sign-in step (authenticator code) has been completed in this session. */
+  mfa?: boolean;
 };
 
 function getSecretKey() {
@@ -24,11 +30,11 @@ function getSecretKey() {
   return new TextEncoder().encode(secret);
 }
 
-export async function signSessionToken(payload: SessionPayload): Promise<string> {
+export async function signSessionToken(payload: SessionPayload, ttlSeconds: number = sessionTtl(payload.role)): Promise<string> {
   return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime(`${SESSION_TTL_SECONDS}s`)
+    .setExpirationTime(`${ttlSeconds}s`)
     .sign(getSecretKey());
 }
 
@@ -49,7 +55,7 @@ export async function createSession(payload: SessionPayload) {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: SESSION_TTL_SECONDS,
+    maxAge: sessionTtl(payload.role),
   });
 }
 

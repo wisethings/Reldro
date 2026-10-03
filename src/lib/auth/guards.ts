@@ -8,7 +8,7 @@ import { destinationForRole } from "./roleHome";
 import { ensureSchemaMigrated } from "@/lib/runMigration";
 
 const loadAccount = cache(async (userId: string) =>
-  prisma.user.findUnique({ where: { id: userId }, select: { email: true, name: true, role: true, organizationId: true, employee: { select: { id: true } } } }),
+  prisma.user.findUnique({ where: { id: userId }, select: { email: true, name: true, role: true, organizationId: true, employee: { select: { id: true } }, organization: { select: { suspendedAt: true } } } }),
 );
 
 /**
@@ -21,6 +21,8 @@ export async function getFreshSession(): Promise<SessionPayload | null> {
   if (!session) return null;
   const user = await loadAccount(session.sub);
   if (!user) return null;
+  // A suspended workspace is locked for everyone in it, immediately, even with a valid cookie.
+  if (user.organization?.suspendedAt && user.role !== "PLATFORM_ADMIN") return null;
   return { ...session, email: user.email, name: user.name, role: user.role, organizationId: user.organizationId, employeeId: user.employee?.id ?? null };
 }
 
@@ -34,6 +36,8 @@ export async function requireSession(): Promise<SessionPayload> {
 export async function requireRole(roles: Role[]): Promise<SessionPayload> {
   const session = await requireSession();
   if (!roles.includes(session.role)) redirect(destinationForRole(session.role));
+  // Reldro staff must also have passed the authenticator-code step in this session.
+  if (session.role === "PLATFORM_ADMIN" && !session.mfa) redirect("/two-factor");
   return session;
 }
 

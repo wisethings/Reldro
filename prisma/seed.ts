@@ -719,16 +719,6 @@ export async function seedDatabase() {
   ];
   await prisma.auditLog.createMany({ data: logPlan.map(([who, action, entityType, hrs]) => ({ organizationId: org.id, userId: who ? actors[who] : null, action, entityType, createdAt: hoursAgo(hrs) })) });
 
-  // A sample support conversation, so the help button in the admin's workspace shows how it works. The last reply is unread.
-  await prisma.supportMessage.createMany({
-    data: [
-      { organizationId: org.id, userId: adminUser.id, fromStaff: false, senderName: "Jordan Cole", body: "Hi! We are adding a fourth jobsite next month. Can we copy the escalation rules from Riverside instead of setting them up again?", readAt: hoursAgo(70), createdAt: hoursAgo(72) },
-      { organizationId: org.id, userId: adminUser.id, fromStaff: true, senderName: "Reldro support", body: "Rules apply to the whole company by default, so a new site picks them up automatically. Only add a site-specific rule if that jobsite needs a different owner or response time.", readAt: hoursAgo(68), createdAt: hoursAgo(71) },
-      { organizationId: org.id, userId: adminUser.id, fromStaff: false, senderName: "Jordan Cole", body: "Perfect, that is what we hoped. One more thing: can Kevin be the safety lead for both Lakeshore and the new site?", readAt: hoursAgo(28), createdAt: hoursAgo(30) },
-      { organizationId: org.id, userId: adminUser.id, fromStaff: true, senderName: "Reldro support", body: "Yes. A person can lead more than one site. Open Sites, edit the new site, and choose Kevin under safety lead. Tell us if you would like us to look over the setup together.", readAt: null, createdAt: hoursAgo(26) },
-    ],
-  });
-
   // Sign-in times that look like a team in daily use.
   const lastSeen: Record<string, number> = { "admin@havenbrook.com": 0.4, "maria.delgado@havenbrook.com": 0.2, "kevin.park@havenbrook.com": 1.5, "tom.brennan@havenbrook.com": 0.8, "danielle.okafor@havenbrook.com": 2, "luis.ortega@havenbrook.com": 5, "priya.shah@havenbrook.com": 3, "fatima.haddad@havenbrook.com": 6, "marcus.bennett@havenbrook.com": 9, "wei.zhang@havenbrook.com": 12, "sofia.rossi@havenbrook.com": 26, "james.coleman@havenbrook.com": 30, "noah.park@havenbrook.com": 50, "liam.obrien@havenbrook.com": 8 };
   for (const [email, h] of Object.entries(lastSeen)) await prisma.user.update({ where: { email }, data: { lastLoginAt: hoursAgo(h) } });

@@ -30,6 +30,8 @@ export default async function ActivityLogPage({ searchParams }: { searchParams: 
 
   const where = {
     organizationId: orgId,
+    // What Reldro staff do inside a workspace is recorded for Reldro, in the platform console, not shown here.
+    NOT: { action: { startsWith: "platform." } },
     ...(since ? { createdAt: { gte: since } } : {}),
     ...(who === "system" ? { userId: null } : who ? { userId: who } : {}),
     ...(area ? { OR: AREAS[area].prefixes.map((prefix) => ({ action: { startsWith: prefix } })) } : {}),
