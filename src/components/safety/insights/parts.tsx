@@ -96,20 +96,34 @@ export function KpiGrid({ kpis }: { kpis: Kpi[] }) {
   );
 }
 
+const GAPS_SHOWN = 6;
+
 export function GapList({ gaps, empty }: { gaps: Gap[]; empty: string }) {
   if (gaps.length === 0) return <p className="flex items-center gap-2 text-sm text-sage-deep"><CheckCircle2 size={16} aria-hidden /> {empty}</p>;
+  const row = (g: Gap) => (
+    <li key={g.id}>
+      <Link href={g.href} className="flex items-start gap-3 py-2.5 hover:bg-surface-hover sm:-mx-2 sm:px-2 sm:rounded-md">
+        <span aria-hidden className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${g.tone === "bad" ? "bg-danger" : "bg-amber-deep"}`} />
+        <span className="min-w-0 flex-1 text-sm text-ink-800">{g.text}</span>
+        <span className="shrink-0 text-xs font-medium text-orchid-deep">Open →</span>
+      </Link>
+    </li>
+  );
+  // The list is worst first, so the top few are what matters; the rest sit behind one control instead of lengthening the page.
+  const rest = gaps.slice(GAPS_SHOWN);
   return (
-    <ul className="divide-y divide-ink-100">
-      {gaps.map((g) => (
-        <li key={g.id}>
-          <Link href={g.href} className="flex items-start gap-3 py-2.5 hover:bg-surface-hover sm:-mx-2 sm:px-2 sm:rounded-md">
-            <span aria-hidden className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${g.tone === "bad" ? "bg-danger" : "bg-amber-deep"}`} />
-            <span className="min-w-0 flex-1 text-sm text-ink-800">{g.text}</span>
-            <span className="shrink-0 text-xs font-medium text-orchid-deep">Open →</span>
-          </Link>
-        </li>
-      ))}
-    </ul>
+    <>
+      <ul className="divide-y divide-ink-100">{gaps.slice(0, GAPS_SHOWN).map(row)}</ul>
+      {rest.length > 0 && (
+        <details className="group border-t border-ink-100">
+          <summary className="flex min-h-9 cursor-pointer list-none items-center gap-1 py-2 text-xs font-medium text-orchid-deep hover:text-oxblood [&::-webkit-details-marker]:hidden">
+            <span className="group-open:hidden">Show {rest.length} more</span>
+            <span className="hidden group-open:inline">Show fewer</span>
+          </summary>
+          <ul className="divide-y divide-ink-100 border-t border-ink-100">{rest.map(row)}</ul>
+        </details>
+      )}
+    </>
   );
 }
 
@@ -173,8 +187,8 @@ export function TrendChart({ points, periodLabel }: { points: { label: string; c
 const cellTone = (bad: boolean, none = false) => (none ? "text-ink-400" : bad ? "font-semibold text-danger" : "text-ink-800");
 
 /** Every site side by side, worst first. A row opens that site's own page. */
-export function SiteTable({ rows, days }: { rows: SiteRow[]; days: number }) {
-  if (rows.length === 0) return <p className="text-sm text-ink-500">No active sites yet.</p>;
+export function SiteTable({ rows, days, empty = "No active sites yet." }: { rows: SiteRow[]; days: number; empty?: string }) {
+  if (rows.length === 0) return <p className="text-sm text-ink-500">{empty}</p>;
   const pctCell = (v: number | null, target: number | null) => (v === null ? "—" : `${v}%`);
   const head = "px-2 py-2 text-left text-xs font-medium text-ink-500";
   return (

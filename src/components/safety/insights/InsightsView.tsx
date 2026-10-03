@@ -5,26 +5,32 @@ import { severityInfo, reportTypeLabel } from "@/lib/safety/pack";
 import type { InsightsData } from "@/lib/safety/insightsData";
 import { Bars, Block, Delta, Figure, Figures, GapList, KpiGrid, SiteTable, TrendChart } from "./parts";
 import { ExportPanel, TargetsForm } from "./controls";
+import { ListToolbar } from "@/components/safety/ListToolbar";
+import { Pagination, paginate } from "@/components/safety/Pagination";
 
 export const TABS = [
   { key: "overview", label: "Overview" },
+  { key: "sites", label: "Sites" },
   { key: "reports", label: "Reports" },
   { key: "actions", label: "Corrective actions" },
   { key: "inspections", label: "Inspections and training" },
   { key: "certifications", label: "Certifications" },
+  { key: "setup", label: "Targets and export" },
 ] as const;
 export type TabKey = (typeof TABS)[number]["key"];
 export const readTab = (raw: string | undefined): TabKey => (TABS.find((t) => t.key === raw)?.key ?? "overview");
 
+const OVERVIEW_SITES = 5;
 const periodLabel = (days: number) => (days === 365 ? "over the last year" : `over the last ${days} days`);
 const stateLabel = { expired: "Expired", missing: "Missing", expiring: "Expires soon" } as const;
 const stateTone = { expired: "text-danger", missing: "text-danger", expiring: "text-amber-deep" } as const;
 
-export function InsightsTabs({ tab, hrefFor }: { tab: TabKey; hrefFor: (tab: TabKey) => string }) {
+/** The Sites tab compares sites with each other, so a single site's own page has no use for it. */
+export function InsightsTabs({ tab, hrefFor, withSites = true }: { tab: TabKey; hrefFor: (tab: TabKey) => string; withSites?: boolean }) {
   return (
     <nav aria-label="Insights sections" className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
       <div className="seg-group w-max max-w-none">
-        {TABS.map((t) => (
+        {TABS.filter((t) => withSites || t.key !== "sites").map((t) => (
           <QueryLink key={t.key} scroll={false} href={hrefFor(t.key)} aria-current={tab === t.key ? "page" : undefined} className={`seg whitespace-nowrap ${tab === t.key ? "seg-on" : "seg-off"}`}>{t.label}</QueryLink>
         ))}
       </div>
@@ -36,9 +42,17 @@ export function InsightsTabs({ tab, hrefFor }: { tab: TabKey; hrefFor: (tab: Tab
  * One body of numbers for the company-wide Insights page and for each site's own page. With a site chosen, every figure is
  * limited to that site; without one, it also shows the sites side by side.
  */
-export function InsightsView({ data, tab, days, isAdmin, lessons = [] }: { data: InsightsData; tab: TabKey; days: number; isAdmin: boolean; lessons?: { id: string; topic: string; text: string }[] }) {
+export type SitesView = { q: string; sort: string; page: string | undefined };
+const SITE_SORTS = [
+  { value: "", label: "Worst first" },
+  { value: "name", label: "Name" },
+  { value: "reports", label: "Most reports" },
+];
+
+export function InsightsView({ data, tab: requested, days, isAdmin, lessons = [], sitesView = { q: "", sort: "", page: undefined } }: { data: InsightsData; tab: TabKey; days: number; isAdmin: boolean; lessons?: { id: string; topic: string; text: string }[]; sitesView?: SitesView }) {
   const { metrics: m, targets } = data;
   const siteId = m.scope.siteId;
+  const tab: TabKey = requested === "sites" && siteId ? "overview" : requested;
   const where = periodLabel(days);
   const reportsHref = (extra = "") => `/dashboard/reports?status=all${siteId ? `&site=${siteId}` : ""}${extra}`;
 
@@ -60,44 +74,67 @@ export function InsightsView({ data, tab, days, isAdmin, lessons = [] }: { data:
             </dl>
           </Block>
         </div>
-        {!siteId && (
-          <Block title="Sites compared" note="Worst first. Select a site to open its own page with the same numbers, limited to that site.">
-            <SiteTable rows={m.sites} days={days} />
+        {!siteId && m.sites.length > 0 && (
+          <Block title="Sites compared" note={m.sites.length > OVERVIEW_SITES ? `The ${OVERVIEW_SITES} sites that need the most attention, of ${m.sites.length}.` : "Worst first. Select a site to open its own page with the same numbers, limited to that site."}>
+            <SiteTable rows={m.sites.slice(0, OVERVIEW_SITES)} days={days} />
+            {m.sites.length > OVERVIEW_SITES && (
+              <p className="mt-3 border-t border-ink-100 pt-3 text-sm"><QueryLink scroll={false} href={`/dashboard/insights?tab=sites${days !== 90 ? `&days=${days}` : ""}`} className="font-medium text-orchid-deep hover:text-oxblood">Compare all {m.sites.length} sites →</QueryLink></p>
+            )}
           </Block>
         )}
+        <p className="text-xs text-ink-500">
+          Targets are your own and do not show that a site is safe or meets any regulation.{" "}
+          <QueryLink scroll={false} href={`${siteId ? `/dashboard/sites/${siteId}` : "/dashboard/insights"}?tab=setup${days !== 90 ? `&days=${days}` : ""}`} className="font-medium text-orchid-deep hover:text-oxblood">Change targets, export data, and how to read these numbers →</QueryLink>
+        </p>
+      </div>
+    );
+  }
+
+  if (tab === "sites") {
+    const q = sitesView.q.trim().toLowerCase();
+    const sort = SITE_SORTS.some((o) => o.value === sitesView.sort) ? sitesView.sort : "";
+    let rows = q ? m.sites.filter((r) => r.name.toLowerCase().includes(q)) : [...m.sites];
+    if (sort === "name") rows.sort((a, b) => a.name.localeCompare(b.name));
+    if (sort === "reports") rows.sort((a, b) => b.reports - a.reports || a.name.localeCompare(b.name));
+    const { rows: pageRows, page } = paginate(rows, sitesView.page);
+    const hrefFor = (n: number) => {
+      const sp = new URLSearchParams({ tab: "sites" });
+      if (days !== 90) sp.set("days", String(days));
+      if (sitesView.q.trim()) sp.set("q", sitesView.q.trim());
+      if (sort) sp.set("sort", sort);
+      if (n > 1) sp.set("page", String(n));
+      return `/dashboard/insights?${sp.toString()}`;
+    };
+    return (
+      <div className="space-y-4">
+        <ListToolbar searchParam="q" placeholder="Search sites" selects={[]} sort={{ param: "sort", label: "Sort sites", options: SITE_SORTS, }} pageParam="page" />
+        <Block title="Sites compared" note={`${m.sites.length} active ${m.sites.length === 1 ? "site" : "sites"}. Select a site to open its own page with the same numbers, limited to that site.`}>
+          <SiteTable rows={pageRows} days={days} empty={q ? "No site matches that search." : undefined} />
+        </Block>
+        <Pagination page={page} total={rows.length} hrefFor={hrefFor} noun="sites" />
+      </div>
+    );
+  }
+
+  if (tab === "setup") {
+    return (
+      <div className="space-y-4">
         {isAdmin && (
-          <details className="group surface text-sm text-ink-700">
-            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between px-4 py-3 font-medium text-ink-900 sm:px-5 [&::-webkit-details-marker]:hidden">
-              Your targets
-              <span aria-hidden className="text-ink-400 transition-transform group-open:rotate-180">⌄</span>
-            </summary>
-            <div className="border-t border-ink-100 px-4 py-4 sm:px-5">
-              <p className="mb-4 max-w-2xl text-xs text-ink-600">These are the bars your own numbers are judged against, for every site. Change them to match your company&apos;s standards. Nothing here is a regulatory limit.</p>
-              <TargetsForm saved={data.saved} />
-            </div>
-          </details>
+          <Block title="Your targets" note="These are the bars your own numbers are judged against, for every site. Change them to match your company's standards. Nothing here is a regulatory limit.">
+            <TargetsForm saved={data.saved} />
+          </Block>
         )}
-        <details className="group surface text-sm text-ink-700">
-          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between px-4 py-3 font-medium text-ink-900 sm:px-5 [&::-webkit-details-marker]:hidden">
-            Export data
-            <span aria-hidden className="text-ink-400 transition-transform group-open:rotate-180">⌄</span>
-          </summary>
-          <div className="border-t border-ink-100 px-4 py-4 sm:px-5">
-            <ExportPanel siteId={siteId} siteName={m.scope.siteName} days={days} />
-          </div>
-        </details>
-        <details className="group surface text-sm text-ink-700">
-          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between px-4 py-3 font-medium text-ink-900 sm:px-5 [&::-webkit-details-marker]:hidden">
-            How to read these numbers
-            <span aria-hidden className="text-ink-400 transition-transform group-open:rotate-180">⌄</span>
-          </summary>
-          <ul className="list-disc space-y-1 px-4 pb-4 pl-9 text-sm sm:px-5 sm:pl-10">
+        <Block title="Export data" note="Download the rows behind these numbers as a spreadsheet.">
+          <ExportPanel siteId={siteId} siteName={m.scope.siteName} days={days} />
+        </Block>
+        <Block title="How to read these numbers">
+          <ul className="list-disc space-y-1 pl-5 text-sm text-ink-700">
             <li>Reporting patterns reflect both workplace conditions and how comfortable people feel reporting. Fewer reports do not mean fewer hazards, and more reports do not mean more hazards.</li>
             <li>With small numbers, two similar reports can look like a pattern by chance. Read the reports before acting.</li>
             <li>Anonymous and confidential reports are counted here but are never tied to a person.</li>
             <li>Targets are your own. Meeting them does not show that a site is safe or meets any regulation.</li>
           </ul>
-        </details>
+        </Block>
       </div>
     );
   }

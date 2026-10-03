@@ -624,19 +624,50 @@ test("targets: a company admin sets its own bar and the Insights cards are judge
   const db = new PrismaClient();
   const admin = await signIn("admin");
   try {
-    await admin.goto(`${BASE}/dashboard/insights`, { waitUntil: "networkidle" });
-    await admin.getByText("Your targets").click();
+    await admin.goto(`${BASE}/dashboard/insights?tab=setup`, { waitUntil: "networkidle" });
     await admin.fill("input[name=ackHours]", "0.5");
     await admin.getByRole("button", { name: "Save targets" }).click();
     await admin.getByText("Targets saved.").waitFor();
     await admin.goto(`${BASE}/dashboard/insights`, { waitUntil: "networkidle" });
     await admin.getByText("Target: 0.5 h or less").waitFor();
-    await admin.getByText("Your targets").click();
+    await admin.goto(`${BASE}/dashboard/insights?tab=setup`, { waitUntil: "networkidle" });
     await admin.fill("input[name=certPct]", "101");
     await admin.getByRole("button", { name: "Save targets" }).click();
     await admin.getByText(/can.t be above 100/).waitFor();
   } finally {
     await db.$executeRawUnsafe(`UPDATE "Organization" SET "kpiTargets" = NULL WHERE id IN (SELECT "organizationId" FROM "User" WHERE email = '${USERS.admin}')`);
+    await db.$disconnect();
+    await admin.context().close();
+  }
+});
+
+test("insights with many sites: the overview shows only the worst few and the Sites tab searches and pages the rest", async () => {
+  const db = new PrismaClient();
+  const admin = await signIn("admin");
+  const siteRows = (p) => p.locator("table", { hasText: "Response overdue" }).locator("tbody tr");
+  const tag = `ZZ Bulk ${Date.now()}`;
+  let orgId;
+  try {
+    orgId = (await db.user.findUnique({ where: { email: USERS.admin }, select: { organizationId: true } })).organizationId;
+    await db.site.createMany({ data: Array.from({ length: 45 }, (_, i) => ({ organizationId: orgId, name: `${tag} ${String(i + 1).padStart(2, "0")}` })) });
+    await admin.goto(`${BASE}/dashboard/insights`, { waitUntil: "networkidle" });
+    assert.ok((await siteRows(admin).count()) <= 5, "the overview lists at most five sites");
+    await admin.getByRole("link", { name: /Compare all \d+ sites/ }).click();
+    await admin.waitForURL(/tab=sites/);
+    await siteRows(admin).first().waitFor();
+    assert.equal(await siteRows(admin).count(), 15, "one page of fifteen sites");
+    await admin.getByText(/of \d+ sites/).first().waitFor();
+    await admin.getByPlaceholder("Search sites").fill(`${tag} 07`);
+    await admin.waitForFunction(() => [...document.querySelectorAll("table")].find((t) => t.textContent.includes("Response overdue"))?.querySelectorAll("tbody tr").length === 1);
+    await admin.getByPlaceholder("Search sites").fill("no such site anywhere");
+    await admin.getByText("No site matches that search.").waitFor();
+    assert.equal(await hasSideways(admin), false);
+    await admin.goto(`${BASE}/dashboard/insights?tab=setup`, { waitUntil: "networkidle" });
+    await admin.getByRole("button", { name: "Save targets" }).waitFor();
+    await admin.getByText("Download CSV").waitFor();
+    await admin.getByText("How to read these numbers").waitFor();
+  } finally {
+    if (orgId) await db.site.deleteMany({ where: { organizationId: orgId, name: { startsWith: tag } } });
     await db.$disconnect();
     await admin.context().close();
   }

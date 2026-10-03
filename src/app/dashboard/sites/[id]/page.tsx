@@ -60,7 +60,7 @@ export default async function SitePage({ params, searchParams }: { params: Promi
       <div role="group" aria-label="Time period" className="seg-group w-fit">
         {[30, 90, 365].map((n) => <QueryLink key={n} scroll={false} href={href({ days: n })} className={seg(days === n)} aria-pressed={days === n}>{n === 365 ? "Last year" : `${n} days`}</QueryLink>)}
       </div>
-      <InsightsTabs tab={tab} hrefFor={(t) => href({ tab: t })} />
+      <InsightsTabs tab={tab === "sites" ? "overview" : tab} hrefFor={(t) => href({ tab: t })} withSites={false} />
       <InsightsView data={data} tab={tab} days={days} isAdmin={v.isAdmin} lessons={lessons} />
     </div>
   );

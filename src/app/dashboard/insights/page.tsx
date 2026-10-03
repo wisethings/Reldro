@@ -9,7 +9,7 @@ import { InsightsTabs, InsightsView, readTab, type TabKey } from "@/components/s
 import { SiteScope } from "@/components/safety/insights/controls";
 import { LIST_PAGE } from "@/components/ui/layout";
 
-export default async function InsightsPage({ searchParams }: { searchParams: Promise<{ days?: string; tab?: string; site?: string }> }) {
+export default async function InsightsPage({ searchParams }: { searchParams: Promise<{ days?: string; tab?: string; site?: string; q?: string; sort?: string; page?: string }> }) {
   const v = await requireViewer();
   if (!v.isSafetyTeam) return <NoAccess what="cross-site insights" />;
   const p = await searchParams;
@@ -49,8 +49,8 @@ export default async function InsightsPage({ searchParams }: { searchParams: Pro
           {[30, 90, 365].map((n) => <QueryLink key={n} scroll={false} href={href({ days: n })} className={seg(days === n)} aria-pressed={days === n}>{n === 365 ? "Last year" : `${n} days`}</QueryLink>)}
         </div>
       </div>
-      <InsightsTabs tab={tab} hrefFor={(t) => href({ tab: t })} />
-      <InsightsView data={data} tab={tab} days={days} isAdmin={v.isAdmin} lessons={lessons} />
+      <InsightsTabs tab={tab === "sites" && siteId ? "overview" : tab} hrefFor={(t) => href({ tab: t })} withSites={!siteId} />
+      <InsightsView data={data} tab={tab} days={days} isAdmin={v.isAdmin} lessons={lessons} sitesView={{ q: p.q ?? "", sort: p.sort ?? "", page: p.page }} />
     </div>
   );
 }
