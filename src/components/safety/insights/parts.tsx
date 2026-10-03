@@ -113,6 +113,13 @@ export function GapList({ gaps, empty }: { gaps: Gap[]; empty: string }) {
   );
 }
 
+/** A bar with rounded top corners and a square bottom, so it sits flat on the baseline. */
+function topRounded(x: number, base: number, w: number, h: number): string {
+  const r = Math.min(3, h, w / 2);
+  const top = base - h;
+  return `M${x},${base} L${x},${top + r} Q${x},${top} ${x + r},${top} L${x + w - r},${top} Q${x + w},${top} ${x + w},${top + r} L${x + w},${base} Z`;
+}
+
 /** Reports per week (or month), with the serious ones drawn on top so a rising trend of near misses reads differently from a rising trend of injuries. */
 export function TrendChart({ points, periodLabel }: { points: { label: string; count: number; serious: number }[]; periodLabel: string }) {
   const max = Math.max(1, ...points.map((p) => p.count));
@@ -120,31 +127,35 @@ export function TrendChart({ points, periodLabel }: { points: { label: string; c
   const innerW = W - padL, innerH = H - padB - padT;
   const slot = innerW / Math.max(1, points.length);
   const bar = Math.min(26, slot * 0.62);
-  const y = (n: number) => padT + innerH - (n / max) * innerH;
+  const base = padT + innerH;
+  const y = (n: number) => base - (n / max) * innerH;
   const every = Math.ceil(points.length / 6);
   const ticks = [...new Set([0, Math.ceil(max / 2), max])];
   return (
     <figure>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Reports ${periodLabel}. ${points.map((p) => `${p.label}: ${p.count}`).join(", ")}`} className="h-auto w-full">
-        {ticks.map((t) => (
+        {ticks.filter((t) => t !== 0).map((t) => (
           <g key={t}>
             <line x1={padL} x2={W} y1={y(t)} y2={y(t)} className="stroke-ink-100" strokeWidth={1} />
             <text x={padL - 6} y={y(t) + 3} textAnchor="end" className="fill-ink-500 text-[10px]">{t}</text>
           </g>
         ))}
+        <text x={padL - 6} y={base + 3} textAnchor="end" className="fill-ink-500 text-[10px]">0</text>
         {points.map((p, i) => {
           const x = padL + i * slot + (slot - bar) / 2;
-          const h = Math.max(p.count > 0 ? 2 : 0, innerH - (y(p.count) - padT));
-          const hs = p.serious > 0 ? Math.max(2, innerH - (y(p.serious) - padT)) : 0;
+          const h = Math.max(p.count > 0 ? 2 : 0, base - y(p.count));
+          const hs = p.serious > 0 ? Math.max(2, base - y(p.serious)) : 0;
           return (
             <g key={i}>
               <title>{`${p.label}: ${p.count} ${p.count === 1 ? "report" : "reports"}${p.serious ? `, ${p.serious} serious or worse` : ""}`}</title>
-              <rect x={x} y={padT + innerH - h} width={bar} height={h} rx={3} className="fill-orchid-deep/45" />
-              {hs > 0 && <rect x={x} y={padT + innerH - hs} width={bar} height={hs} rx={3} className="fill-danger" />}
-              {i % every === 0 && <text x={x + bar / 2} y={H - 6} textAnchor="middle" className="fill-ink-500 text-[10px]">{p.label}</text>}
+              {h > 0 && <path d={topRounded(x, base, bar, h)} className="fill-orchid-deep/45" />}
+              {hs > 0 && <path d={topRounded(x, base, bar, hs)} className="fill-danger" />}
+              {(points.length - 1 - i) % every === 0 && <text x={x + bar / 2} y={H - 6} textAnchor="middle" className="fill-ink-500 text-[10px]">{p.label}</text>}
             </g>
           );
         })}
+        {/* The baseline is drawn last and the bars end exactly on it, so every bar sits flush on the line. */}
+        <line x1={padL} x2={W} y1={base} y2={base} className="stroke-ink-300" strokeWidth={1} />
       </svg>
       <figcaption className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-600">
         <span className="inline-flex items-center gap-1.5"><span aria-hidden className="h-2.5 w-2.5 rounded-sm bg-orchid-deep/45" />All reports</span>
