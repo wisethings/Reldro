@@ -1,10 +1,10 @@
 [
-  { "id": "s1", "text": "Frontline safety work shouldn't live in text threads, spreadsheets, and binders. Reldro connects it all, from the first report to a fix that's verified, in one place." },
-  { "id": "s2", "text": "It starts with the person who sees the problem. On their phone, a worker picks what they're reporting, describes it in their own words or by voice, adds photos, and decides whether to share their name. No training needed." },
-  { "id": "s3", "text": "The safety team sees every site in one queue. Serious incidents open a response workspace right away, and late or unowned reports are flagged, so nothing waits unseen." },
-  { "id": "s4", "text": "Investigations look at conditions, not blame. Capture the facts and the timeline, pick the contributing factors, and turn what you learn into a lesson crews can use tomorrow." },
-  { "id": "s5", "text": "Every corrective action has an owner, a due date, and a status. And it isn't done until someone verifies the fix." },
-  { "id": "s6", "text": "Inspections, toolbox talks, and certifications live in the same system. See who still needs to acknowledge a talk, and which required certifications are missing or about to expire." },
-  { "id": "s7", "text": "Zoom out to every site at a glance, with what needs attention, what's overdue, and when the next inspection is due." },
-  { "id": "s8", "text": "Reldro. One connected workflow for frontline safety, from report to verified fix. Book a demo to see it with your own sites." }
+{"id":"n1","text":"Safety management gets messy fast, whether you're managing a single facility or juggling multiple sites."},
+{"id":"n2","text":"A report comes in, an action item gets assigned, and someone has to chase down whether it actually got done. Between the initial report, the follow-up, and the eventual fix, critical details slip through the cracks."},
+{"id":"n3","text":"Reldro ties all of that work together in one place."},
+{"id":"n4","text":"When an issue pops up, your team gets instant visibility into what happened, what needs to be done, and who's on the hook to fix it."},
+{"id":"n5","text":"If a major incident occurs, the entire response, from the investigation and debrief to the corrective actions, is linked directly to the original record. You can easily trace the root cause, see what needs to change, and verify that the fix was completed."},
+{"id":"n6","text":"It handles your everyday safety operations the same way. Audits, certifications, inspections, and routine debriefs live in a single hub, giving you a live, accurate picture of what's finished and what's overdue."},
+{"id":"n7","text":"Instead of forcing your team to fill out another passive spreadsheet, Reldro keeps your safety operations connected, clear, and accountable, across a single site or multiple sites."},
+{"id":"n8","text":"Because safety isn't about logging data. It's about making sure the work actually gets done. Stop chasing updates. Connect your safety operations with Reldro."}
 ]

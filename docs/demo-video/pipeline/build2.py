@@ -1,24 +1,15 @@
 #!/usr/bin/env python3
-"""Assemble the demo: framed scene clips + cards + VO + captions -> mp4/srt/vtt."""
-import json, os, re, subprocess, sys, wave
+import json, os, re, subprocess, sys
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
-
 D = os.path.dirname(os.path.abspath(__file__))
 OUT = f"{D}/out"; os.makedirs(OUT, exist_ok=True)
 W, H = 1920, 1080
 BONE, OX, ORCHID, ORCHID_D, INK = (239, 235, 224), (42, 10, 12), (216, 150, 204), (138, 74, 126), (107, 90, 86)
 FONT = "/usr/share/fonts/opentype/inter/Inter-%s.otf"
 def font(w, s): return ImageFont.truetype(FONT % w, s)
-
-dur = json.load(open(f"{D}/durations.json"))
+plan = json.load(open(f"{D}/plan.json")); dur = json.load(open(f"{D}/durations.json"))
 script = {s["id"]: s["text"] for s in json.load(open(f"{D}/script.json"))}
-LEAD, TAIL = 0.35, 0.9
-ids = [f"s{i}" for i in range(1, 9)]
-total = {i: round(dur[i] + LEAD + TAIL, 2) for i in ids}
-starts, t = {}, 0.0
-for i in ids: starts[i] = t; t += total[i]
-TOTAL = t
-
+segs = plan["segs"]; TOTAL = plan["total"]; audio_at = plan["audio_at"]
 def run(cmd):
     r = subprocess.run(cmd, capture_output=True, text=True)
     if r.returncode: print(" ".join(cmd)[:400]); print(r.stderr[-1500:]); sys.exit(1)
@@ -47,8 +38,8 @@ def card_title():
 def card_end():
     im = bg_canvas().convert("RGBA"); l = logo(520); im.alpha_composite(l, ((W - l.width) // 2, 250))
     d = ImageDraw.Draw(im)
-    centered(d, 390, "One connected workflow", font("SemiBold", 64), OX)
-    centered(d, 470, "for frontline safety.", font("SemiBold", 64), OX)
+    centered(d, 390, "Stop chasing updates.", font("SemiBold", 68), OX)
+    centered(d, 480, "Connect your safety operations.", font("SemiBold", 48), ORCHID_D)
     bw, bh = 340, 84; x, y = (W - bw) // 2, 610
     d.rounded_rectangle((x, y, x + bw, y + bh), radius=42, fill=OX)
     f = font("SemiBold", 32); tw = d.textlength("Book a demo", font=f); d.text((x + (bw - tw) / 2, y + 21), "Book a demo", font=f, fill=BONE)
@@ -93,18 +84,6 @@ def frame_phone():
     im.putalpha(m); im.save(f"{OUT}/frame-phone.png")
     return box
 
-def scene_clip(sid, box, frame, scale_w, scale_h):
-    """frames/<sid>/list.txt -> framed 1920x1080 30fps clip of total[sid] seconds."""
-    x0, y0, x1, y1 = box
-    out = f"{OUT}/{sid}.mp4"
-    vf = (f"[0:v]fps=30,scale={x1-x0+4}:{y1-y0+4}:flags=lanczos,setsar=1[v];"
-          f"[2:v][v]overlay={x0-2}:{y0-2}:shortest=1[b];[b][1:v]overlay=0:0:format=auto,format=yuv420p[o]")
-    run(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", f"{D}/frames/{sid}/list.txt", "-loop", "1", "-i", frame,
-         "-f", "lavfi", "-i", f"color=c=0xEFEBE0:s={W}x{H}:r=30",
-         "-filter_complex", vf, "-map", "[o]", "-t", str(total[sid] if sid != "s1" else total[sid] - 4.7 + 0.0), "-r", "30",
-         "-c:v", "libx264", "-crf", "17", "-preset", "medium", "-pix_fmt", "yuv420p", out])
-    return out
-
 def still_clip(png, secs, out):
     run(["ffmpeg", "-v", "error", "-y", "-loop", "1", "-i", png, "-t", str(secs), "-r", "30", "-vf", f"scale={W}:{H},format=yuv420p",
          "-c:v", "libx264", "-crf", "17", "-pix_fmt", "yuv420p", out])
@@ -113,43 +92,52 @@ def fade(inp, out, secs, fin=0.3, fout=0.3):
     run(["ffmpeg", "-v", "error", "-y", "-i", inp, "-vf", f"fade=t=in:st=0:d={fin}:color=0xEFEBE0,fade=t=out:st={secs-fout:.2f}:d={fout}:color=0xEFEBE0",
          "-c:v", "libx264", "-crf", "17", "-pix_fmt", "yuv420p", "-r", "30", out])
 
-# ---------- build ----------
-card_title(); card_end(); dbox = frame_desktop(); pbox = frame_phone()
-parts = []
-for sid in ids:
-    final = f"{OUT}/{sid}-f.mp4"
-    if os.path.exists(final) and os.environ.get('REUSE'): parts.append(final); continue
-    if sid == "s1":
-        ov = scene_clip("s1", dbox, f"{OUT}/frame-desktop.png", 0, 0)
-        still_clip(f"{OUT}/card-title.png", 5.2, f"{OUT}/card-title.mp4")
-        # crossfade title card -> overview window (overlap 0.5s)
-        run(["ffmpeg", "-v", "error", "-y", "-i", f"{OUT}/card-title.mp4", "-i", ov, "-filter_complex",
-             "[0:v][1:v]xfade=transition=fade:duration=0.5:offset=4.7,format=yuv420p[o]", "-map", "[o]", "-r", "30",
-             "-c:v", "libx264", "-crf", "17", "-pix_fmt", "yuv420p", f"{OUT}/s1-x.mp4"])
-        src = f"{OUT}/s1-x.mp4"
-    elif sid == "s2":
-        src = scene_clip("s2", pbox, f"{OUT}/frame-phone.png", 0, 0)
-    elif sid == "s8":
-        src = f"{OUT}/s8-raw.mp4"; still_clip(f"{OUT}/card-end.png", total[sid], src)
-    else:
-        src = scene_clip(sid, dbox, f"{OUT}/frame-desktop.png", 0, 0)
-    fade(src, final, total[sid], 0.35 if sid != "s1" else 0.4, 0.35)
-    parts.append(final)
-    print("clip", sid, total[sid])
 
+def card_mid():
+    im = bg_canvas().convert("RGBA"); l = logo(520); im.alpha_composite(l, ((W - l.width) // 2, 300))
+    d = ImageDraw.Draw(im)
+    centered(d, 450, "All of it, in one place.", font("SemiBold", 66), OX)
+    centered(d, 545, "Reports, follow-up, fixes, and checks, connected.", font("Regular", 32), INK)
+    im.convert("RGB").save(f"{OUT}/card-mid.png")
+
+def card_statement():
+    im = bg_canvas().convert("RGBA"); d = ImageDraw.Draw(im)
+    centered(d, 360, "Safety isn't about logging data.", font("SemiBold", 76), OX)
+    centered(d, 470, "It's about making sure the work", font("SemiBold", 76), ORCHID_D)
+    centered(d, 570, "actually gets done.", font("SemiBold", 76), ORCHID_D)
+    im.convert("RGB").save(f"{OUT}/card-statement.png")
+
+def scene_clip(sid, box, frame, length):
+    x0, y0, x1, y1 = box; out = f"{OUT}/{sid}.mp4"
+    vf = (f"[0:v]fps=30,scale={x1-x0+4}:{y1-y0+4}:flags=lanczos,setsar=1[v];"
+          f"[2:v][v]overlay={x0-2}:{y0-2}:shortest=1[b];[b][1:v]overlay=0:0:format=auto,format=yuv420p[o]")
+    run(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", f"{D}/frames/{sid}/list.txt", "-loop", "1", "-i", frame,
+         "-f", "lavfi", "-i", f"color=c=0xEFEBE0:s={W}x{H}:r=30", "-filter_complex", vf, "-map", "[o]", "-t", str(length), "-r", "30",
+         "-c:v", "libx264", "-crf", "17", "-preset", "medium", "-pix_fmt", "yuv420p", out])
+    return out
+
+# ---------- build ----------
+card_title(); card_mid(); card_statement(); card_end(); dbox = frame_desktop(); pbox = frame_phone()
+cardmap = {"title": "card-title", "card3": "card-mid", "statement": "card-statement", "end": "card-end"}
+parts = []
+for sg in segs:
+    sid, ln = sg["id"], sg["len"]; final = f"{OUT}/{sid}-f.mp4"
+    if not (os.path.exists(final) and os.environ.get("REUSE")):
+        if sid in cardmap: src = f"{OUT}/{sid}-raw.mp4"; still_clip(f"{OUT}/{cardmap[sid]}.png", ln, src)
+        elif sid == "phone": src = scene_clip(sid, pbox, f"{OUT}/frame-phone.png", ln)
+        else: src = scene_clip(sid, dbox, f"{OUT}/frame-desktop.png", ln)
+        fade(src, final, ln, 0.25, 0.25)
+    parts.append(final); print("clip", sid, ln)
 with open(f"{OUT}/concat.txt", "w") as f:
     for p in parts: f.write(f"file '{p}'\n")
 run(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", f"{OUT}/concat.txt", "-c", "copy", f"{OUT}/video-silent.mp4"])
 
-# ---------- audio ----------
-inputs, filt = [], []
-for k, sid in enumerate(ids):
-    inputs += ["-i", f"{D}/{sid}.wav"]
-    ms = int((starts[sid] + LEAD) * 1000)
+blocks = sorted(audio_at, key=lambda b: audio_at[b]); inputs, filt = [], []
+for k, b in enumerate(blocks):
+    inputs += ["-i", f"{D}/{b}.wav"]; ms = int(audio_at[b] * 1000)
     filt.append(f"[{k}:a]aresample=48000,aformat=channel_layouts=mono,adelay={ms}|{ms}[a{k}]")
-mix = "".join(f"[a{k}]" for k in range(len(ids))) + f"amix=inputs={len(ids)}:normalize=0,loudnorm=I=-16:TP=-1.5:LRA=11,apad,atrim=0:{TOTAL:.2f}[aout]"
+mix = "".join(f"[a{k}]" for k in range(len(blocks))) + f"amix=inputs={len(blocks)}:normalize=0,loudnorm=I=-16:TP=-1.5:LRA=11,apad,atrim=0:{TOTAL:.2f}[aout]"
 run(["ffmpeg", "-v", "error", "-y", *inputs, "-filter_complex", ";".join(filt) + ";" + mix, "-map", "[aout]", "-ac", "1", "-ar", "48000", f"{OUT}/vo.wav"])
-
 # ---------- captions ----------
 def chunks(text, maxc=64):
     sents = re.split(r"(?<=[.!?])\s+", text.strip()); merged = []
@@ -169,9 +157,19 @@ def chunks(text, maxc=64):
         for c in cuts + [len(words)]: out.append(" ".join(words[prev:c])); prev = c
     return out
 
+CAPS = {
+ "n1": ["Safety management gets messy fast,", "whether you're managing a single facility or juggling multiple sites."],
+ "n2": ["A report comes in, an action item gets assigned,", "and someone has to chase down whether it actually got done.", "Between the initial report, the follow-up, and the eventual fix,", "critical details slip through the cracks."],
+ "n3": ["Reldro ties all of that work together in one place."],
+ "n4": ["When an issue pops up, your team gets instant visibility into what happened,", "what needs to be done, and who's on the hook to fix it."],
+ "n5": ["If a major incident occurs, the entire response,", "from the investigation and debrief to the corrective actions,", "is linked directly to the original record.", "You can easily trace the root cause, see what needs to change,", "and verify that the fix was completed."],
+ "n6": ["It handles your everyday safety operations the same way.", "Audits, certifications, inspections, and routine debriefs", "live in a single hub, giving you a live, accurate picture", "of what's finished and what's overdue."],
+ "n7": ["Instead of forcing your team to fill out another passive spreadsheet,", "Reldro keeps your safety operations connected, clear, and accountable,", "across a single site or multiple sites."],
+ "n8": ["Because safety isn't about logging data.", "It's about making sure the work actually gets done.", "Stop chasing updates.", "Connect your safety operations with Reldro."],
+}
 cues = []
-for sid in ids:
-    cs = chunks(script[sid]); n = sum(len(c) for c in cs); t0 = starts[sid] + LEAD; span = dur[sid]
+for sid in blocks:
+    cs = CAPS[sid]; n = sum(len(c) for c in cs); t0 = audio_at[sid]; span = dur[sid]
     for c in cs:
         d_ = span * len(c) / n; cues.append((t0, t0 + d_, c)); t0 += d_
 
@@ -193,5 +191,5 @@ with open(f"{OUT}/captions.ass", "w") as f:
 enc = ["-c:v", "libx264", "-crf", "19", "-preset", "slow", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", "-shortest"]
 run(["ffmpeg", "-v", "error", "-y", "-i", f"{OUT}/video-silent.mp4", "-i", f"{OUT}/vo.wav", *enc, f"{OUT}/reldro-demo-nocaptions.mp4"])
 run(["ffmpeg", "-v", "error", "-y", "-i", f"{OUT}/video-silent.mp4", "-i", f"{OUT}/vo.wav", "-vf", f"ass={OUT}/captions.ass:fontsdir=/usr/share/fonts/opentype/inter", *enc, f"{OUT}/reldro-demo.mp4"])
-run(["ffmpeg", "-v", "error", "-y", "-ss", "26", "-i", f"{OUT}/reldro-demo-nocaptions.mp4", "-frames:v", "1", "-q:v", "2", f"{OUT}/poster.jpg"])
+run(["ffmpeg", "-v", "error", "-y", "-ss", "40", "-i", f"{OUT}/reldro-demo-nocaptions.mp4", "-frames:v", "1", "-q:v", "2", f"{OUT}/poster.jpg"])
 print("TOTAL", TOTAL, "cues", len(cues))
