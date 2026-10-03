@@ -39,7 +39,7 @@ export function ReportFilters({ statuses, severities, sites, showSeverity }: { s
   const status = get("status") || "open";
   const attention = get("attention");
   const active = Boolean(get("severity") || get("site") || get("q") || attention);
-  const select = "h-10 w-full min-w-0 rounded-lg border border-ink-200 bg-white px-2.5 text-base md:h-8 md:w-auto md:text-xs text-ink-800 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500";
+  const select = "h-10 w-full min-w-0 rounded-lg border border-ink-200 bg-white px-2.5 text-base md:h-8 md:w-auto md:max-w-[15rem] md:text-xs truncate text-ink-800 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500";
 
   return (
     <div role="search" aria-busy={busy} className={`flex w-full sm:w-fit max-w-full flex-wrap items-center gap-2 surface p-1.5 transition-opacity ${busy ? "opacity-80" : ""}`}>

@@ -641,3 +641,27 @@ test("targets: a company admin sets its own bar and the Insights cards are judge
     await admin.context().close();
   }
 });
+
+test("list tables never cut a column off or crush the title at tablet and laptop widths", async () => {
+  const page = await signIn("admin");
+  try {
+    for (const width of [768, 1024, 1280, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const path of ["reports", "reports?status=all", "actions?view=all", "inspections", "investigations"]) {
+        await page.goto(`${BASE}/dashboard/${path}`, { waitUntil: "networkidle" });
+        const bad = await page.evaluate(() => {
+          const out = [];
+          for (const row of document.querySelectorAll("main [role=row]")) {
+            if (row.scrollWidth > row.clientWidth + 1) out.push(`row wider than its box (${row.scrollWidth} > ${row.clientWidth})`);
+            if (getComputedStyle(row).display === "grid" && row.firstElementChild && row.firstElementChild.getBoundingClientRect().width < 120) out.push(`title column only ${Math.round(row.firstElementChild.getBoundingClientRect().width)}px`);
+          }
+          return [...new Set(out)];
+        });
+        assert.deepEqual(bad, [], `${path} at ${width}px`);
+        assert.equal(await hasSideways(page), false, `${path} scrolls sideways at ${width}px`);
+      }
+    }
+  } finally {
+    await page.context().close();
+  }
+});

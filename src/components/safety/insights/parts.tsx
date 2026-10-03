@@ -16,7 +16,7 @@ export function Bars({ rows, empty = "Nothing to show yet.", unit = "" }: { rows
           </>
         );
         const cls = "grid grid-cols-[minmax(0,1fr)_5.5rem_2.5rem] items-center gap-3 rounded-md px-1 py-1.5 sm:grid-cols-[minmax(0,1fr)_8rem_3rem]";
-        return <li key={r.label}>{r.href ? <Link href={r.href} className={`${cls} hover:bg-surface-hover`}>{inner}</Link> : <div className={cls}>{inner}</div>}</li>;
+        return <li key={`${i}-${r.label}`}>{r.href ? <Link href={r.href} className={`${cls} hover:bg-surface-hover`}>{inner}</Link> : <div className={cls}>{inner}</div>}</li>;
       })}
     </ul>
   );
@@ -122,7 +122,7 @@ export function TrendChart({ points, periodLabel }: { points: { label: string; c
   const bar = Math.min(26, slot * 0.62);
   const y = (n: number) => padT + innerH - (n / max) * innerH;
   const every = Math.ceil(points.length / 6);
-  const ticks = [0, Math.ceil(max / 2), max];
+  const ticks = [...new Set([0, Math.ceil(max / 2), max])];
   return (
     <figure>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Reports ${periodLabel}. ${points.map((p) => `${p.label}: ${p.count}`).join(", ")}`} className="h-auto w-full">

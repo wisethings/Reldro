@@ -72,8 +72,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       aria-current={on ? "true" : undefined}
       className={`flex flex-1 items-baseline gap-2 px-3.5 py-2 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500 ${on ? "bg-orchid-soft/60" : "hover:bg-surface-hover"}`}
     >
-      <span className={`text-lg font-semibold tabular-nums ${hot && value > 0 ? "text-danger" : "text-ink-900"}`}>{value}</span>
-      <span className={`text-xs ${on ? "font-medium text-orchid-deep" : "text-ink-600"}`}>{label}</span>
+      <span className={`shrink-0 text-lg font-semibold tabular-nums ${hot && value > 0 ? "text-danger" : "text-ink-900"}`}>{value}</span>
+      <span className={`min-w-0 text-xs ${on ? "font-medium text-orchid-deep" : "text-ink-600"}`}>{label}</span>
     </QueryLink>
   );
 
@@ -94,7 +94,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         </div>
       )}
       {staff && (
-        <nav aria-label="Quick filters" className="grid grid-cols-2 divide-x divide-y divide-ink-100 overflow-hidden surface sm:flex sm:divide-y-0">
+        <nav aria-label="Quick filters" className="grid grid-cols-2 divide-x divide-y divide-ink-100 overflow-hidden surface lg:flex lg:divide-y-0">
           {metric("Open", sOpen, qs({ status: "open", attention: undefined, severity: undefined, site: siteSel?.id, q: undefined }), status === "open" && !attention && !filtered)}
           {metric("Response overdue", sLate, qs({ status: "open", attention: "overdue" }), attention === "overdue", true)}
           {metric("Without an owner", sNoOwner, qs({ status: "open", attention: "unowned" }), attention === "unowned", true)}
@@ -146,7 +146,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
             const sev = <SeverityBadge severity={r.severity} suggested={!r.severityConfirmedAt} compact />;
             const ownerCell = r.ownerId ? ownerName.get(r.ownerId) ?? "Assigned" : <span className={unowned ? "font-medium text-amber-deep" : "text-ink-500"}>No owner</span>;
             const cells = staff
-              ? [sev, <ReportStatusBadge key="s" status={r.status} />, <span key="site" className="text-ink-600">{r.site?.name ?? "Site not given"}</span>, ownerCell, <span key="d" className="text-ink-600">{fmtShort(r.occurredAt)}</span>]
+              ? [sev, <ReportStatusBadge key="s" status={r.status} />, <span key="site" className="line-clamp-2 break-words text-ink-600" title={r.site?.name}>{r.site?.name ?? "Site not given"}</span>, ownerCell, <span key="d" className="text-ink-600">{fmtShort(r.occurredAt)}</span>]
               : [<span key="s" className="block"><ReportStatusBadge status={r.status} /><ReportProgress status={r.status} /></span>, <span key="site" className="line-clamp-2 text-ink-700" title={r.site?.name}>{r.site?.name ?? "Site not given"}</span>, <span key="d" className="text-xs text-ink-500">{fmtShort(r.occurredAt)}</span>];
             return (
               <DataRow
@@ -156,7 +156,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                 template={staff ? "minmax(0,1fr) 6.5rem 10.5rem 13rem 9rem 4.5rem" : "minmax(0,1fr) 11rem minmax(9rem,14rem) 5rem"}
                 main={
                   <>
-                    <p title={r.title} className={`${staff ? "truncate" : "line-clamp-2"} text-sm font-semibold text-ink-900`}>{r.title}</p>
+                    <p title={r.title} className={`${staff ? "truncate" : "line-clamp-2 break-words"} text-sm font-semibold text-ink-900`}>{r.title}</p>
                     <div className="mt-0.5 flex items-center gap-1.5 text-xs text-ink-500">
                       <span className="shrink-0 tabular-nums text-ink-400">SR-{String(r.number).padStart(4, "0")}</span>
                       <span aria-hidden className="text-ink-300">·</span>
