@@ -1,12 +1,13 @@
 "use client";
 
-import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import Link from "next/link";
 import { X } from "lucide-react";
 import type { TrendPoint } from "@/lib/safety/metrics";
 
-const W = 640, H = 150, padL = 28, padB = 22, padT = 10;
-const innerW = W - padL, innerH = H - padB - padT;
+// The chart is drawn at its real pixel width (1 unit = 1px), so labels stay readable on a phone instead of shrinking with the box.
+const H = 160, padL = 28, padB = 22, padT = 10;
+const innerH = H - padB - padT;
 const base = padT + innerH;
 
 /** A bar with rounded top corners and a square bottom, so it sits flat on the baseline. */
@@ -29,13 +30,25 @@ export function TrendChart({ points, periodLabel, siteId }: { points: TrendPoint
   const [pinned, setPinned] = useState<number | null>(null);
   const [show, setShow] = useState({ all: true, serious: true });
   const svg = useRef<SVGSVGElement>(null);
+  const box = useRef<HTMLDivElement>(null);
+  const [W, setW] = useState(640);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const read = () => setW(Math.max(240, Math.round(el.clientWidth)));
+    read();
+    const ro = new ResizeObserver(read);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const innerW = W - padL;
 
   const n = points.length;
   const max = Math.max(1, ...points.map((p) => (show.all ? p.count : p.serious)));
   const slot = innerW / Math.max(1, n);
-  const bar = Math.min(26, slot * 0.62);
+  const bar = Math.min(28, Math.max(6, slot * 0.62));
   const y = (v: number) => base - (v / max) * innerH;
-  const every = Math.ceil(n / 6);
+  const every = Math.ceil(n / Math.max(2, Math.floor(innerW / 64)));
   const ticks = [...new Set([0, Math.ceil(max / 2), max])];
   const active = hover ?? focus;
   const onlySerious = !show.all && show.serious;
@@ -78,6 +91,7 @@ export function TrendChart({ points, periodLabel, siteId }: { points: TrendPoint
         role="group"
         tabIndex={0}
         aria-label={`Reports ${periodLabel}. Use the left and right arrow keys to move between periods, and Enter to select one.`}
+        ref={box}
         onKeyDown={onKey}
         onFocus={(e) => { if (e.currentTarget.matches(":focus-visible")) setFocus((f) => f ?? n - 1); }}
         onBlur={() => setFocus(null)}
@@ -86,9 +100,11 @@ export function TrendChart({ points, periodLabel, siteId }: { points: TrendPoint
         <svg
           ref={svg}
           viewBox={`0 0 ${W} ${H}`}
+          width={W}
+          height={H}
           role="img"
           aria-label={`Reports ${periodLabel}. ${points.map((p) => `${p.range}: ${p.count}`).join(", ")}`}
-          className="block h-auto w-full cursor-pointer touch-pan-y"
+          className="block max-w-full cursor-pointer touch-pan-y"
           onPointerMove={(e) => setHover(indexAt(e))}
           onPointerDown={(e) => setHover(indexAt(e))}
           onPointerLeave={() => setHover(null)}
@@ -99,10 +115,10 @@ export function TrendChart({ points, periodLabel, siteId }: { points: TrendPoint
           {ticks.filter((t) => t !== 0).map((t) => (
             <g key={t}>
               <line x1={padL} x2={W} y1={y(t)} y2={y(t)} className="stroke-ink-100" strokeWidth={1} />
-              <text x={padL - 6} y={y(t) + 3} textAnchor="end" className="fill-ink-500 text-[10px]">{t}</text>
+              <text x={padL - 6} y={y(t) + 3} textAnchor="end" className="fill-ink-500 text-[11px]">{t}</text>
             </g>
           ))}
-          <text x={padL - 6} y={base + 3} textAnchor="end" className="fill-ink-500 text-[10px]">0</text>
+          <text x={padL - 6} y={base + 3} textAnchor="end" className="fill-ink-500 text-[11px]">0</text>
           {points.map((p, i) => {
             const x = padL + i * slot + (slot - bar) / 2;
             const h = show.all ? Math.max(p.count > 0 ? 2 : 0, base - y(p.count)) : 0;
@@ -112,7 +128,9 @@ export function TrendChart({ points, periodLabel, siteId }: { points: TrendPoint
               <g key={i} opacity={dim ? 0.45 : 1}>
                 {h > 0 && <path d={topRounded(x, base, bar, h)} className="fill-orchid-deep/45" />}
                 {hs > 0 && <path d={topRounded(x, base, bar, hs)} className="fill-danger" />}
-                {(n - 1 - i) % every === 0 && <text x={x + bar / 2} y={H - 6} textAnchor="middle" className="fill-ink-500 text-[10px]">{p.label}</text>}
+                {(n - 1 - i) % every === 0 && (x + bar / 2 > W - 22
+                  ? <text x={W} y={H - 6} textAnchor="end" className="fill-ink-500 text-[11px]">{p.label}</text>
+                  : <text x={x + bar / 2} y={H - 6} textAnchor="middle" className="fill-ink-500 text-[11px]">{p.label}</text>)}
               </g>
             );
           })}
