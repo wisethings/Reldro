@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { reportWhere } from "@/lib/safety/access";
 import { requireViewer } from "@/lib/safety/context";
 import { categoryLabel, getPack, reportTypeLabel, REPORT_STATUSES, SEVERITIES } from "@/lib/safety/pack";
-import { DataRow, DataTable } from "@/components/safety/Table";
+import { DataRow, DataTable, inColumns } from "@/components/safety/Table";
 import { ReportFilters } from "@/components/safety/ReportFilters";
 import { EmptyHero, fmtShort, PageHeader, ReportProgress, ReportStatusBadge, SeverityBadge } from "@/components/safety/ui";
 
@@ -54,6 +54,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     return `?${sp.toString()}`;
   };
   const staff = v.isSafetyTeam || v.isSupervisor;
+  const rowTemplate = staff ? "minmax(0,1fr) 6.5rem 10.5rem 13rem 9rem 4.5rem" : "minmax(0,1fr) 11rem minmax(9rem,14rem) 5rem";
   const title = v.isSafetyTeam ? "Reports" : v.isSupervisor ? "Reports" : "My reports";
 
   const siteSel = v.isSafetyTeam && p.site ? sites.find((x) => x.id === p.site) ?? null : null;
@@ -130,7 +131,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       ) : (
         <DataTable
           columns={staff ? ["Report", "Seriousness", "Status", "Site", "Owner", "Occurred"] : ["Report", "Status", "Site", "Occurred"]}
-          template={staff ? "minmax(0,1fr) 6.5rem 10.5rem 13rem 9rem 4.5rem" : "minmax(0,1fr) 11rem minmax(9rem,14rem) 5rem"}
+          template={rowTemplate}
         >
           {reports.map((r) => {
             const late = Boolean(r.respondBy && !r.acknowledgedAt && r.respondBy < nowD && r.status !== "CLOSED");
@@ -139,8 +140,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
             const tone = incident || late ? "urgent" : unowned ? "warn" : undefined;
             const flags = (
               <>
-                {incident && <span className="shrink-0 font-semibold text-danger">Incident response</span>}
-                {late && <span className="shrink-0 font-semibold text-danger">Response overdue</span>}
+                {incident && <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap font-semibold text-danger"><span aria-hidden className="h-1.5 w-1.5 rounded-full bg-danger" />Incident response</span>}
+                {late && <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap font-semibold text-danger"><span aria-hidden className="h-1.5 w-1.5 rounded-full bg-danger" />Response overdue</span>}
               </>
             );
             const sev = <SeverityBadge severity={r.severity} suggested={!r.severityConfirmedAt} compact />;
@@ -153,15 +154,16 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                 key={r.id}
                 href={`/dashboard/reports/${r.id}`}
                 tone={tone}
-                template={staff ? "minmax(0,1fr) 6.5rem 10.5rem 13rem 9rem 4.5rem" : "minmax(0,1fr) 11rem minmax(9rem,14rem) 5rem"}
+                template={rowTemplate}
                 main={
                   <>
                     <p title={r.title} className={`${staff ? "truncate" : "line-clamp-2 break-words"} text-sm font-semibold text-ink-900`}>{r.title}</p>
                     <div className="mt-0.5 flex items-center gap-1.5 text-xs text-ink-500">
                       <span className="shrink-0 tabular-nums text-ink-400">SR-{String(r.number).padStart(4, "0")}</span>
                       <span aria-hidden className="text-ink-300">·</span>
-                      <span className="min-w-0 truncate">{reportTypeLabel(r.type)}<span className="hidden md:inline"> · {categoryLabel(r.category, pack)}</span></span>
-                      <span className="hidden shrink-0 items-center gap-2 md:flex">{(incident || late) && <span aria-hidden className="text-ink-300">·</span>}{flags}</span>
+                      <span className="min-w-0 flex-1 truncate">{reportTypeLabel(r.type)} · {categoryLabel(r.category, pack)}</span>
+                      {/* Flags sit at the right edge of the title column, so they line up row after row instead of following the text. */}
+                      {(incident || late) && <span className={`${inColumns(rowTemplate)} shrink-0 items-center gap-2.5 pl-3`}>{flags}</span>}
                     </div>
                   </>
                 }
