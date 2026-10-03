@@ -12,11 +12,16 @@ import { PAGE_SIZE, Pagination, readPage } from "@/components/safety/Pagination"
 import { ACTION_LIST_FIELDS } from "@/lib/safety/selects";
 import { daysUntil, startOfTodayUTC } from "@/lib/safety/dates";
 import { LIST_PAGE } from "@/components/ui/layout";
-export default async function ActionsPage({ searchParams }: { searchParams: Promise<{ view?: string; page?: string }> }) {
+export default async function ActionsPage({ searchParams }: { searchParams: Promise<{ view?: string; page?: string; site?: string }> }) {
   const v = await requireViewer();
-  const { view = v.isSafetyTeam ? "attention" : "open", page: pageParam } = await searchParams;
+  const { view = v.isSafetyTeam ? "attention" : "open", page: pageParam, site: siteParam } = await searchParams;
   const today = startOfTodayUTC();
-  const base = actionWhere(v);
+  // The safety team can narrow to one site: actions raised from that site's reports or inspections.
+  const site = v.isSafetyTeam && siteParam ? await prisma.site.findFirst({ where: { id: siteParam, organizationId: v.organizationId }, select: { id: true, name: true } }) : null;
+  const siteInspections = site ? await prisma.inspection.findMany({ where: { organizationId: v.organizationId, siteId: site.id }, select: { id: true } }) : [];
+  const siteScope = site ? { OR: [{ report: { siteId: site.id } }, { inspectionId: { in: siteInspections.map((i) => i.id) } }] } : {};
+  const base = { AND: [actionWhere(v), siteScope] };
+  const keep = site ? `&site=${site.id}` : "";
   const filters: Record<string, object> = {
     attention: { OR: [{ status: "PROPOSED" }, { status: "COMPLETED" }, { status: { in: OPEN_ACTION_STATUSES }, dueDate: { lt: today } }] },
     open: { status: { in: OPEN_ACTION_STATUSES } },
@@ -57,14 +62,20 @@ export default async function ActionsPage({ searchParams }: { searchParams: Prom
     <div className={LIST_PAGE}>
       <PageHeader title={staff ? "Corrective actions" : "My corrective actions"} subtitle="Track fixes identified in reports, investigations, and inspections. Verify a fix before closing it." />
       <StatStrip large items={[
-        { label: "Open", value: sOpen, href: "?view=open" },
-        { label: "Overdue", value: sOverdue, href: "?view=overdue", alert: sOverdue > 0 },
-        { label: "Ready to verify", value: sReady, href: "?view=attention" },
-        { label: "Verified in the last 30 days", value: sVerified, href: "?view=done" },
+        { label: "Open", value: sOpen, href: `?view=open${keep}` },
+        { label: "Overdue", value: sOverdue, href: `?view=overdue${keep}`, alert: sOverdue > 0 },
+        { label: "Ready to verify", value: sReady, href: `?view=attention${keep}` },
+        { label: "Verified in the last 30 days", value: sVerified, href: `?view=done${keep}` },
       ]} />
+      {site && (
+        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-700">
+          Showing actions for <span className="font-medium text-ink-900">{site.name}</span>
+          <QueryLink href={`?view=${view}`} className="text-xs font-medium text-orchid-deep hover:text-oxblood">Show all sites</QueryLink>
+        </p>
+      )}
       <div className="flex flex-wrap gap-2">
         {views.map(([key, label]) => (
-          <QueryLink key={key} href={`?view=${key}`} className={chip(view === key)}>{label}</QueryLink>
+          <QueryLink key={key} href={`?view=${key}${keep}`} className={chip(view === key)}>{label}</QueryLink>
         ))}
       </div>
       {actions.length === 0 ? (
@@ -108,7 +119,7 @@ export default async function ActionsPage({ searchParams }: { searchParams: Prom
           })}
         </DataTable>
       )}
-      <Pagination page={page} total={total} noun="corrective actions" hrefFor={(n) => `?view=${view}${n > 1 ? `&page=${n}` : ""}`} />
+      <Pagination page={page} total={total} noun="corrective actions" hrefFor={(n) => `?view=${view}${keep}${n > 1 ? `&page=${n}` : ""}`} />
     </div>
   );
 }

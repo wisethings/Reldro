@@ -16,12 +16,14 @@ import { LIST_PAGE } from "@/components/ui/layout";
 const DAY = 86400_000;
 type View = "all" | "overdue" | "soon" | "done" | "checklists";
 
-export default async function InspectionsPage({ searchParams }: { searchParams: Promise<{ view?: string; q?: string; page?: string; new?: string }> }) {
+export default async function InspectionsPage({ searchParams }: { searchParams: Promise<{ view?: string; q?: string; page?: string; new?: string; site?: string }> }) {
   const sp = await searchParams;
   const v = await requireViewer();
   const canSchedule = v.isSafetyTeam || v.isSupervisor;
   const scope = v.isSafetyTeam ? {} : v.isSupervisor ? { siteId: v.siteId ?? "__none__" } : { assigneeId: v.employeeId ?? "__none__" };
-  const org = { organizationId: v.organizationId, ...scope };
+  // The safety team can narrow to one site (the link from a site's page and from Insights).
+  const siteSel = v.isSafetyTeam && sp.site ? await prisma.site.findFirst({ where: { id: sp.site, organizationId: v.organizationId }, select: { id: true, name: true } }) : null;
+  const org = { organizationId: v.organizationId, ...scope, ...(siteSel ? { siteId: siteSel.id } : {}) };
   const now = Date.now();
   // Overdue = a whole due day has passed; due soon = today through the next 7 days (same rule as every other page).
   const lateCut = startOfTodayUTC();
@@ -68,7 +70,7 @@ export default async function InspectionsPage({ searchParams }: { searchParams: 
 
   const href = (over: Record<string, string | undefined>) => {
     const p2 = new URLSearchParams();
-    const merged: Record<string, string | undefined> = { view: view === "all" ? undefined : view, q: q || undefined, ...over };
+    const merged: Record<string, string | undefined> = { view: view === "all" ? undefined : view, q: q || undefined, site: siteSel?.id, ...over };
     for (const [k, val] of Object.entries(merged)) if (val) p2.set(k, val);
     const str = p2.toString();
     return str ? `?${str}` : "?";
@@ -90,10 +92,16 @@ export default async function InspectionsPage({ searchParams }: { searchParams: 
         actions={canSchedule && templates.length > 0 ? <ScheduleInspectionButton templates={templates.map((t) => ({ id: t.id, name: t.name }))} sites={sites.map((s) => ({ id: s.id, name: s.name }))} people={people.map((p) => ({ id: p.id, name: p.user.name, hint: p.jobTitle }))} defaultOpen={sp.new === "1"} /> : undefined}
       />
 
+      {siteSel && (
+        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-700">
+          Showing inspections for <span className="font-medium text-ink-900">{siteSel.name}</span>
+          <QueryLink href={href({ site: "", page: undefined })} className="text-xs font-medium text-orchid-deep hover:text-oxblood">Show all sites</QueryLink>
+        </p>
+      )}
       <p className="surface flex flex-wrap items-center gap-x-5 gap-y-1 px-4 py-2 text-xs text-ink-600">
-        <QueryLink href="?view=overdue" className="hover:text-ink-900"><span className={`mr-1 text-sm font-semibold tabular-nums ${nLate > 0 ? "text-danger" : "text-ink-900"}`}>{nLate}</span>overdue</QueryLink>
-        <QueryLink href="?view=soon" className="hover:text-ink-900"><span className={`mr-1 text-sm font-semibold tabular-nums ${nSoon > 0 ? "text-amber-deep" : "text-ink-900"}`}>{nSoon}</span>due in the next 7 days</QueryLink>
-        <QueryLink href="?view=done" className="hover:text-ink-900"><span className="mr-1 text-sm font-semibold tabular-nums text-ink-900">{nDone30}</span>completed in 30 days</QueryLink>
+        <QueryLink href={href({ view: "overdue", page: undefined })} className="hover:text-ink-900"><span className={`mr-1 text-sm font-semibold tabular-nums ${nLate > 0 ? "text-danger" : "text-ink-900"}`}>{nLate}</span>overdue</QueryLink>
+        <QueryLink href={href({ view: "soon", page: undefined })} className="hover:text-ink-900"><span className={`mr-1 text-sm font-semibold tabular-nums ${nSoon > 0 ? "text-amber-deep" : "text-ink-900"}`}>{nSoon}</span>due in the next 7 days</QueryLink>
+        <QueryLink href={href({ view: "done", page: undefined })} className="hover:text-ink-900"><span className="mr-1 text-sm font-semibold tabular-nums text-ink-900">{nDone30}</span>completed in 30 days</QueryLink>
         <span><span className={`mr-1 text-sm font-semibold tabular-nums ${sFailed > 0 ? "text-danger" : "text-ink-900"}`}>{sFailed}</span>failed items in 30 days</span>
       </p>
 
@@ -168,7 +176,7 @@ export default async function InspectionsPage({ searchParams }: { searchParams: 
                   );
                 })}
               </ul>
-              {nDone > recent.length && <div className="card-footer px-4 py-2"><QueryLink href="?view=done" className="text-xs font-medium text-orchid-deep hover:text-oxblood">View all completed →</QueryLink></div>}
+              {nDone > recent.length && <div className="card-footer px-4 py-2"><QueryLink href={href({ view: "done", page: undefined })} className="text-xs font-medium text-orchid-deep hover:text-oxblood">View all completed →</QueryLink></div>}
             </details>
           )}
         </>

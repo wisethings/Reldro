@@ -7,8 +7,8 @@ import { BASE, USERS, closeBrowser, hasSideways, launch, signIn, totpNow } from 
 after(closeBrowser);
 
 const PAGES = {
-  admin: ["overview", "reports", "reports/new", "investigations", "actions", "inspections", "training", "training?tab=qualifications", "training?tab=qualifications&cview=records", "training?tab=qualifications&cview=requirements", "sites", "insights", "settings", "settings/activity"],
-  maria: ["overview", "reports", "investigations", "actions", "inspections", "training", "training?tab=qualifications", "insights"],
+  admin: ["overview", "reports", "reports/new", "investigations", "actions", "inspections", "training", "training?tab=qualifications", "training?tab=qualifications&cview=records", "training?tab=qualifications&cview=requirements", "sites", "insights", "insights?tab=reports", "insights?tab=actions", "insights?tab=inspections", "insights?tab=certifications", "insights?days=30", "insights?site=not-a-real-site", "settings", "settings/activity"],
+  maria: ["overview", "reports", "investigations", "actions", "inspections", "training", "training?tab=qualifications", "insights", "insights?tab=certifications"],
   tom: ["overview", "reports", "actions", "inspections", "training", "training?tab=qualifications"],
   priya: ["overview", "reports", "reports/new", "actions", "training", "training?tab=mine"],
 };
@@ -558,5 +558,86 @@ test("voice input: a device that cannot dictate gets a clear next step instead o
     assert.equal(await page.getByRole("button", { name: /Speak instead/ }).isDisabled(), true);
   } finally {
     await ctx.close();
+  }
+});
+
+test("each site has its own page with the same insights, limited to that site", async () => {
+  for (const phone of [false, true]) {
+    const page = await signIn("admin", { phone });
+    try {
+      await page.goto(`${BASE}/dashboard/sites`, { waitUntil: "networkidle" });
+      await page.getByRole("link", { name: /Lakeshore Tower retrofit/ }).first().click();
+      await page.waitForURL(/dashboard\/sites\/c/);
+      await page.getByRole("heading", { name: /Lakeshore Tower retrofit/ }).waitFor();
+      const siteUrl = page.url().split("?")[0];
+      for (const tab of ["", "?tab=reports", "?tab=actions", "?tab=inspections", "?tab=certifications"]) {
+        const res = await page.goto(`${siteUrl}${tab}`, { waitUntil: "networkidle" });
+        assert.ok(res.status() < 400, `${tab} returned ${res.status()}`);
+        assert.equal(await hasSideways(page), false, `site page ${tab} scrolls sideways`);
+        const body = await page.locator("body").innerText();
+        assert.ok(!/Application error|Something went wrong/.test(body));
+        assert.ok(!body.includes("Riverside Medical Center"), `site page ${tab} shows another site`);
+      }
+      // The reports list and the corrective actions list can be narrowed to the same site.
+      const id = siteUrl.split("/").pop();
+      await page.goto(`${BASE}/dashboard/reports?site=${id}`, { waitUntil: "networkidle" });
+      await page.getByText("Reports for").waitFor();
+      const rowText = await page.evaluate(() => [...document.querySelectorAll("main a[href*='/dashboard/reports/']")].map((a) => a.innerText).join("\n"));
+      assert.ok(rowText.length > 0 && !rowText.includes("Riverside Medical Center"), "reports list shows another site");
+      await page.goto(`${BASE}/dashboard/actions?site=${id}&view=all`, { waitUntil: "networkidle" });
+      await page.getByText("Showing actions for").waitFor();
+      assert.deepEqual(page.errors, []);
+    } finally {
+      await page.context().close();
+    }
+  }
+});
+
+test("insights exports: every dataset downloads for the safety team only, columns can be chosen, and a made-up site is ignored", async () => {
+  const admin = await signIn("admin");
+  const worker = await signIn("priya");
+  try {
+    const heads = { reports: "Reference", actions: "Reference", inspections: "Checklist", talks: "Talk", certifications: "Person" };
+    for (const [dataset, first] of Object.entries(heads)) {
+      const res = await admin.request.get(`${BASE}/api/safety/export/data?dataset=${dataset}&days=90`);
+      assert.equal(res.status(), 200, dataset);
+      assert.match(res.headers()["content-type"], /text\/csv/);
+      const text = await res.text();
+      assert.ok(text.startsWith(first), `${dataset} starts with ${first}, got ${text.slice(0, 40)}`);
+      assert.ok(text.split("\n").length > 1, `${dataset} has rows`);
+      const denied = await worker.request.get(`${BASE}/api/safety/export/data?dataset=${dataset}`);
+      assert.equal(denied.status(), 403, `${dataset} must be safety team only`);
+    }
+    const cols = await (await admin.request.get(`${BASE}/api/safety/export/data?dataset=reports&cols=title,site`)).text();
+    assert.equal(cols.split("\r\n")[0], "Site,Title", "columns follow the standard order, not the order in the URL");
+    assert.ok(!cols.includes("Reference"), "unchosen columns are left out");
+    assert.equal((await admin.request.get(`${BASE}/api/safety/export/data?dataset=nope`)).status(), 400);
+    const bogus = await admin.request.get(`${BASE}/api/safety/export/data?dataset=reports&site=not-a-real-site`);
+    assert.equal(bogus.status(), 200);
+  } finally {
+    await admin.context().close();
+    await worker.context().close();
+  }
+});
+
+test("targets: a company admin sets its own bar and the Insights cards are judged against it", async () => {
+  const db = new PrismaClient();
+  const admin = await signIn("admin");
+  try {
+    await admin.goto(`${BASE}/dashboard/insights`, { waitUntil: "networkidle" });
+    await admin.getByText("Your targets").click();
+    await admin.fill("input[name=ackHours]", "0.5");
+    await admin.getByRole("button", { name: "Save targets" }).click();
+    await admin.getByText("Targets saved.").waitFor();
+    await admin.goto(`${BASE}/dashboard/insights`, { waitUntil: "networkidle" });
+    await admin.getByText("Target: 0.5 h or less").waitFor();
+    await admin.getByText("Your targets").click();
+    await admin.fill("input[name=certPct]", "101");
+    await admin.getByRole("button", { name: "Save targets" }).click();
+    await admin.getByText(/can.t be above 100/).waitFor();
+  } finally {
+    await db.$executeRawUnsafe(`UPDATE "Organization" SET "kpiTargets" = NULL WHERE id IN (SELECT "organizationId" FROM "User" WHERE email = '${USERS.admin}')`);
+    await db.$disconnect();
+    await admin.context().close();
   }
 });

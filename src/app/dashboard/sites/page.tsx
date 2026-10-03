@@ -104,13 +104,14 @@ export default async function SitesPage({ searchParams }: { searchParams: Promis
           {pageSites.map(({ s, nd, open, overdue, health, lead, people: headcountHere }) => {
             const h = HEALTH[health];
             const reportsHref = `/dashboard/reports?status=open&site=${s.id}`;
+            const pageHref = `/dashboard/sites/${s.id}`;
             return (
               <article key={s.id} className={`group relative overflow-hidden surface transition-shadow hover:border-ink-300 hover:shadow-[0_1px_2px_rgba(42,10,12,0.05),0_4px_14px_-6px_rgba(42,10,12,0.08)] ${s.active ? "" : "opacity-70"}`}>
                 <span aria-hidden className={`absolute inset-x-0 top-0 h-0.5 ${h.edge}`} />
                 <div className="space-y-4 p-4 sm:p-5">
                   <div className="min-w-0">
                     <h2 className="truncate text-base font-semibold text-ink-900">
-                      <Link href={reportsHref} className="after:absolute after:inset-0 after:content-[''] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-brand-500">{s.name}</Link>
+                      <Link href={pageHref} className="after:absolute after:inset-0 after:content-[''] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-brand-500">{s.name}</Link>
                     </h2>
                     <p className="mt-0.5 truncate text-xs text-ink-500">{SITE_KINDS.find((k) => k.key === s.kind)?.label}{s.address ? ` · ${s.address}` : ""}</p>
                   </div>

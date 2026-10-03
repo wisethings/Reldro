@@ -8,6 +8,6 @@ export function TimelineSummaryDraft({ reportId }: { reportId: string }) {
   return <AiTextDraft label="Draft a timeline summary" generate={() => aiSummarizeInvestigation(reportId)} />;
 }
 
-export function ThemesSummaryDraft({ days }: { days: number }) {
-  return <AiTextDraft label="Draft a themes summary" generate={() => aiSummarizeThemes(days)} />;
+export function ThemesSummaryDraft({ days, siteId = null }: { days: number; siteId?: string | null }) {
+  return <AiTextDraft label="Draft a themes summary" generate={() => aiSummarizeThemes(days, siteId)} />;
 }

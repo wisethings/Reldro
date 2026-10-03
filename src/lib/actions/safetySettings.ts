@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { audit, requireViewer } from "@/lib/safety/context";
 import { sendEmail, escapeHtml } from "@/lib/email";
 import { getPack, SEVERITY_ORDER, SITE_KINDS } from "@/lib/safety/pack";
+import { DEFAULT_TARGETS, TARGET_LIMITS } from "@/lib/safety/metrics";
 
 export type SettingsFormState = { error?: string; success?: string } | undefined;
 
@@ -151,4 +152,24 @@ export async function saveEmergencyInstructions(_prev: SettingsFormState, formDa
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard/reports/new");
   return { success: text ? "Saved. Reporters will see this on the report form." : "Cleared. Reporters will see the standard message only." };
+}
+
+/** Saves the company's own targets for the Insights page. Company admins only; blank fields go back to the default. */
+export async function saveKpiTargets(_prev: SettingsFormState, formData: FormData): Promise<SettingsFormState> {
+  const v = await requireViewer();
+  if (!v.isAdmin) return { error: "Only company admins can change targets." };
+  const out: Record<string, number> = {};
+  for (const key of Object.keys(DEFAULT_TARGETS)) {
+    const raw = String(formData.get(key) ?? "").trim();
+    if (!raw) continue;
+    if (!/^\d+(\.\d+)?$/.test(raw)) return { error: "Targets must be numbers." };
+    const n = Number(raw);
+    if (n > TARGET_LIMITS[key as keyof typeof TARGET_LIMITS]) return { error: key.endsWith("Pct") ? "Percentages can't be above 100." : "That target is too large." };
+    out[key] = n;
+  }
+  await prisma.organization.update({ where: { id: v.organizationId }, data: { kpiTargets: out } });
+  await audit(v, "safety.settings_changed", "Organization", v.organizationId, { targets: out });
+  revalidatePath("/dashboard/insights");
+  revalidatePath("/dashboard/sites", "layout");
+  return { success: "Targets saved." };
 }

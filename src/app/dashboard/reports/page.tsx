@@ -56,14 +56,15 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const staff = v.isSafetyTeam || v.isSupervisor;
   const title = v.isSafetyTeam ? "Reports" : v.isSupervisor ? "Reports" : "My reports";
 
-  const scoped = reportWhere(v);
+  const siteSel = v.isSafetyTeam && p.site ? sites.find((x) => x.id === p.site) ?? null : null;
+  const scoped = siteSel ? { AND: [reportWhere(v), { siteId: siteSel.id }] } : reportWhere(v);
   const [sOpen, sLate, sNoOwner, sClosed] = await Promise.all([
     prisma.safetyReport.count({ where: { AND: [scoped, { status: { in: STATUS_GROUPS.open! } }] } }),
     prisma.safetyReport.count({ where: { AND: [scoped, { status: { in: ["NEW", "ASSIGNED"] }, acknowledgedAt: null, respondBy: { lt: nowD } }] } }),
     prisma.safetyReport.count({ where: { AND: [scoped, { ownerId: null, status: { not: "CLOSED" } }] } }),
     prisma.safetyReport.count({ where: { AND: [scoped, { status: "CLOSED", closedAt: { gte: new Date(Date.now() - 30 * 86400_000) } }] } }),
   ]);
-  const filtered = Boolean(p.severity || p.site || p.q || attention);
+  const filtered = Boolean(p.severity || (p.site && !siteSel) || p.q || attention);
   const metric = (label: string, value: number, href: string, on: boolean, hot = false) => (
     <QueryLink
       key={label}
@@ -82,9 +83,19 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         title={title}
         subtitle={v.isSafetyTeam ? "Hazards, near misses, injuries, and other safety concerns reported across your sites." : v.isSupervisor ? "Safety concerns reported at your site, and ones you submitted." : "Safety concerns you submitted, and what happened next."}
       />
+      {siteSel && (
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl bg-orchid-soft/50 px-4 py-2.5 text-sm">
+          <p className="min-w-0 text-ink-800">Reports for <span className="font-semibold text-ink-900">{siteSel.name}</span> only</p>
+          <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-medium">
+            <Link href={`/dashboard/sites/${siteSel.id}`} className="text-orchid-deep hover:text-oxblood">Site page and insights →</Link>
+            <a href={`/api/safety/export/data?dataset=reports&site=${siteSel.id}&days=365`} download className="text-orchid-deep hover:text-oxblood">Export last year (CSV)</a>
+            <QueryLink href={qs({ site: undefined })} className="text-ink-600 hover:text-ink-900">Show all sites</QueryLink>
+          </p>
+        </div>
+      )}
       {staff && (
         <nav aria-label="Quick filters" className="grid grid-cols-2 divide-x divide-y divide-ink-100 overflow-hidden surface sm:flex sm:divide-y-0">
-          {metric("Open", sOpen, qs({ status: "open", attention: undefined, severity: undefined, site: undefined, q: undefined }), status === "open" && !attention && !filtered)}
+          {metric("Open", sOpen, qs({ status: "open", attention: undefined, severity: undefined, site: siteSel?.id, q: undefined }), status === "open" && !attention && !filtered)}
           {metric("Response overdue", sLate, qs({ status: "open", attention: "overdue" }), attention === "overdue", true)}
           {metric("Without an owner", sNoOwner, qs({ status: "open", attention: "unowned" }), attention === "unowned", true)}
           {metric("Closed in the last 30 days", sClosed, qs({ status: "closed", attention: undefined }), status === "closed" && !attention)}

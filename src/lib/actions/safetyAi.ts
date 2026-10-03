@@ -82,17 +82,20 @@ export async function aiSummarizeInvestigation(reportId: string): Promise<Summar
   });
 }
 
-export async function aiSummarizeThemes(windowDays = 90): Promise<SummaryDraft> {
+export async function aiSummarizeThemes(windowDays = 90, siteId: string | null = null): Promise<SummaryDraft> {
   const v = await requireViewer();
   if (!v.isSafetyTeam) return fail("Only the safety team can draft cross-site summaries.");
   const limited = await limit(v.userId);
   if (limited) return limited;
   const since = new Date(Date.now() - windowDays * 86400_000);
   const pack = getPack();
+  // Limit to one site only when it is really this company's site; anything else means "all sites".
+  const site = siteId ? await prisma.site.findFirst({ where: { id: siteId, organizationId: v.organizationId }, select: { id: true } }) : null;
+  const siteInspections = site ? await prisma.inspection.findMany({ where: { organizationId: v.organizationId, siteId: site.id }, select: { id: true } }) : [];
   const [reports, investigations, overdue] = await Promise.all([
-    prisma.safetyReport.findMany({ where: { ...reportWhere(v), createdAt: { gte: since } }, select: { ...REPORT_LIST_FIELDS, site: true } }),
-    prisma.investigation.findMany({ where: { organizationId: v.organizationId, openedAt: { gte: since } }, select: { contributingFactors: true } }),
-    prisma.correctiveAction.count({ where: { organizationId: v.organizationId, status: { in: OPEN_ACTION_STATUSES }, dueDate: { lt: startOfTodayUTC() } } }),
+    prisma.safetyReport.findMany({ where: { ...reportWhere(v), createdAt: { gte: since }, ...(site ? { siteId: site.id } : {}) }, select: { ...REPORT_LIST_FIELDS, site: true } }),
+    prisma.investigation.findMany({ where: { organizationId: v.organizationId, openedAt: { gte: since }, ...(site ? { report: { siteId: site.id } } : {}) }, select: { contributingFactors: true } }),
+    prisma.correctiveAction.count({ where: { organizationId: v.organizationId, status: { in: OPEN_ACTION_STATUSES }, dueDate: { lt: startOfTodayUTC() }, ...(site ? { OR: [{ report: { siteId: site.id } }, { inspectionId: { in: siteInspections.map((i) => i.id) } }] } : {}) } }),
   ]);
   const tally = (keys: string[]) => {
     const m = new Map<string, number>();

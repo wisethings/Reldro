@@ -169,6 +169,8 @@ model Organization {
   isDemo                     Boolean  @default(false)
   // How many people (admins and employees) Reldro has agreed this workspace may have. null = no limit set.
   seatLimit                  Int?
+  // The company's own targets for the Insights page (see DEFAULT_TARGETS in lib/safety/metrics.ts). null = defaults.
+  kpiTargets                 Json?
   // Set by Reldro staff to lock a workspace. Nobody in it can sign in until it is cleared.
   suspendedAt                DateTime?
   createdAt                  DateTime @default(now())
