@@ -312,6 +312,7 @@ model Employee {
 
   @@index([organizationId])
   @@index([departmentId])
+  @@index([siteId])
 }
 
 // ---------------------------------------------------------------------------
@@ -1163,6 +1164,7 @@ model AuditLog {
 
   @@index([organizationId])
   @@index([action, createdAt])
+  @@index([organizationId, createdAt])
 }
 
 // ---------------------------------------------------------------------------
@@ -1454,6 +1456,9 @@ model SafetyReport {
   @@unique([organizationId, number])
   @@index([organizationId, status])
   @@index([siteId])
+  @@index([organizationId, createdAt])
+  @@index([reporterId])
+  @@index([ownerId])
 }
 
 model ReportEvent {
@@ -1584,6 +1589,8 @@ model CorrectiveAction {
   @@unique([organizationId, number])
   @@index([organizationId, status])
   @@index([reportId])
+  @@index([ownerId])
+  @@index([organizationId, dueDate])
 }
 
 model InspectionTemplate {
@@ -1620,6 +1627,7 @@ model Inspection {
 
   @@index([organizationId, status])
   @@index([siteId])
+  @@index([organizationId, dueDate])
 }
 
 model ToolboxTalk {
@@ -1639,6 +1647,7 @@ model ToolboxTalk {
   acknowledgements TalkAcknowledgement[]
 
   @@index([organizationId])
+  @@index([organizationId, scheduledFor])
 }
 
 model TalkAcknowledgement {

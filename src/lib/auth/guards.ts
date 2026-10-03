@@ -1,15 +1,10 @@
 import "server-only";
-import { cache } from "react";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
 import type { Role } from "@prisma/client";
 import { getSession, type SessionPayload } from "./session";
 import { destinationForRole } from "./roleHome";
 import { ensureSchemaMigrated } from "@/lib/runMigration";
-
-const loadAccount = cache(async (userId: string) =>
-  prisma.user.findUnique({ where: { id: userId }, select: { email: true, name: true, role: true, organizationId: true, employee: { select: { id: true } }, organization: { select: { suspendedAt: true } } } }),
-);
+import { loadAccount } from "./account";
 
 /**
  * The signed session cookie proves who signed in, but it is valid for 14 days, so it can never be the source of truth
@@ -22,8 +17,8 @@ export async function getFreshSession(): Promise<SessionPayload | null> {
   const user = await loadAccount(session.sub);
   if (!user) return null;
   // A suspended workspace is locked for everyone in it, immediately, even with a valid cookie.
-  if (user.organization?.suspendedAt && user.role !== "PLATFORM_ADMIN") return null;
-  return { ...session, email: user.email, name: user.name, role: user.role, organizationId: user.organizationId, employeeId: user.employee?.id ?? null };
+  if (user.suspendedAt && user.role !== "PLATFORM_ADMIN") return null;
+  return { ...session, email: user.email, name: user.name, role: user.role, organizationId: user.organizationId, employeeId: user.employeeId };
 }
 
 export async function requireSession(): Promise<SessionPayload> {

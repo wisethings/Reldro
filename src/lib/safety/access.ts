@@ -1,7 +1,7 @@
 import "server-only";
 import type { Prisma } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
 import type { SessionPayload } from "@/lib/auth/session";
+import { loadAccount } from "@/lib/auth/account";
 
 /**
  * Who can see and do what. One place, used by every page and action, so
@@ -27,12 +27,8 @@ export type Viewer = {
 };
 
 export async function loadViewer(session: SessionPayload): Promise<Viewer> {
-  const employee = session.employeeId
-    ? await prisma.employee.findUnique({
-        where: { id: session.employeeId },
-        select: { siteId: true, isSafetyLead: true, isDepartmentAdmin: true },
-      })
-    : null;
+  // Read once per request and shared with the session check and the dashboard layout.
+  const employee = session.employeeId ? await loadAccount(session.sub) : null;
   const isAdmin = session.role === "COMPANY_ADMIN";
   const isSafetyLead = Boolean(employee?.isSafetyLead);
   return {

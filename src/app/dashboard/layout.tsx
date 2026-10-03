@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { loadAccount } from "@/lib/auth/account";
 import { requireSession } from "@/lib/auth/guards";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 
@@ -9,25 +9,19 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (session.role === "SPECIALIST") redirect("/login");
   if (session.role === "PLATFORM_ADMIN") redirect("/platform-admin");
 
-  const [org, employee] = await Promise.all([
-    session.organizationId ? prisma.organization.findUnique({ where: { id: session.organizationId } }) : Promise.resolve(null),
-    session.employeeId
-      ? prisma.employee.findUnique({ where: { id: session.employeeId }, select: { isDepartmentAdmin: true, isSafetyLead: true } })
-      : Promise.resolve(null),
-  ]);
-
-  if (!org) redirect("/login");
+  const account = session.organizationId ? await loadAccount(session.sub) : null;
+  if (!account || account.orgName === null) redirect("/login");
   const isAdmin = session.role === "COMPANY_ADMIN";
-  if (!org.onboardingDone && isAdmin) redirect("/onboarding");
+  if (!account.onboardingDone && isAdmin) redirect("/onboarding");
 
-  const isSafetyLead = Boolean(employee?.isSafetyLead);
-  const isSupervisor = Boolean(employee?.isDepartmentAdmin);
+  const isSafetyLead = Boolean(account.isSafetyLead);
+  const isSupervisor = Boolean(account.isDepartmentAdmin);
   const roleLabel = isAdmin ? "Company Admin" : isSafetyLead ? "Safety Lead" : isSupervisor ? "Supervisor" : "Employee";
 
   return (
     <DashboardShell
       audience={{ isAdmin, isSafetyTeam: isAdmin || isSafetyLead, isSupervisor }}
-      orgName={org.name}
+      orgName={account.orgName}
       name={session.name}
       roleLabel={roleLabel}
     >

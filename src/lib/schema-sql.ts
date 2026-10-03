@@ -1702,4 +1702,15 @@ ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "totpEnabledAt" TIMESTAMP(3);
 ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "totpLastStep" INTEGER;
 CREATE INDEX IF NOT EXISTS "AuditLog_action_createdAt_idx" ON "AuditLog"("action", "createdAt");
 
+-- Indexes for the filters every list and dashboard uses
+CREATE INDEX IF NOT EXISTS "SafetyReport_organizationId_createdAt_idx" ON "SafetyReport"("organizationId", "createdAt");
+CREATE INDEX IF NOT EXISTS "SafetyReport_reporterId_idx" ON "SafetyReport"("reporterId");
+CREATE INDEX IF NOT EXISTS "SafetyReport_ownerId_idx" ON "SafetyReport"("ownerId");
+CREATE INDEX IF NOT EXISTS "CorrectiveAction_ownerId_idx" ON "CorrectiveAction"("ownerId");
+CREATE INDEX IF NOT EXISTS "CorrectiveAction_organizationId_dueDate_idx" ON "CorrectiveAction"("organizationId", "dueDate");
+CREATE INDEX IF NOT EXISTS "Inspection_organizationId_dueDate_idx" ON "Inspection"("organizationId", "dueDate");
+CREATE INDEX IF NOT EXISTS "ToolboxTalk_organizationId_scheduledFor_idx" ON "ToolboxTalk"("organizationId", "scheduledFor");
+CREATE INDEX IF NOT EXISTS "AuditLog_organizationId_createdAt_idx" ON "AuditLog"("organizationId", "createdAt");
+CREATE INDEX IF NOT EXISTS "Employee_siteId_idx" ON "Employee"("siteId");
+
 `;

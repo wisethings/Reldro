@@ -21,16 +21,20 @@ export async function loadInsights(v: Viewer, opts: { siteId: string | null; day
   const prevSince = new Date(since.getTime() - opts.days * DAY);
   const pack = getPack();
 
-  const sites = await prisma.site.findMany({ where: { organizationId: orgId }, select: { id: true, name: true, active: true, safetyLeadId: true }, orderBy: { name: "asc" } });
+  // Sites and the site's inspections are independent, so they go out together; everything else follows in one parallel batch.
+  const [sites, siteInspections] = await Promise.all([
+    prisma.site.findMany({ where: { organizationId: orgId }, select: { id: true, name: true, active: true, safetyLeadId: true }, orderBy: { name: "asc" } }),
+    // Scoped to this company, so a site id from elsewhere simply matches nothing.
+    opts.siteId ? prisma.inspection.findMany({ where: { organizationId: orgId, siteId: opts.siteId }, select: { id: true } }) : Promise.resolve([]),
+  ]);
   // A site id that isn't this company's is treated as "all sites", never as someone else's data.
   const siteId = opts.siteId && sites.some((s) => s.id === opts.siteId) ? opts.siteId : null;
   const reportSite = siteId ? { siteId } : {};
   const open = ["PROPOSED", "APPROVED", "IN_PROGRESS", "COMPLETED"];
 
-  const siteInspections = siteId ? await prisma.inspection.findMany({ where: { organizationId: orgId, siteId }, select: { id: true } }) : [];
   const actionScope = siteId ? { OR: [{ report: { siteId } }, { inspectionId: { in: siteInspections.map((i) => i.id) } }] } : {};
 
-  const [org, employees, reports, actions, inspections, talks, certTypes, incidents, investigations] = await Promise.all([
+  const [org, employees, reports, actions, inspections, talks, certTypes, incidents, investigations, allQuals] = await Promise.all([
     prisma.organization.findUnique({ where: { id: orgId }, select: { kpiTargets: true } }),
     prisma.employee.findMany({ where: { organizationId: orgId, ...(siteId ? { siteId } : {}) }, select: { id: true, siteId: true, departmentId: true, department: { select: { name: true } }, user: { select: { name: true } } } }),
     prisma.safetyReport.findMany({
@@ -52,11 +56,12 @@ export async function loadInsights(v: Viewer, opts: { siteId: string | null; day
     prisma.certificationType.findMany({ where: { organizationId: orgId }, select: { id: true, name: true, requiredScope: true, requiredSiteIds: true, requiredCrewIds: true } }),
     prisma.incidentResponse.findMany({ where: { organizationId: orgId, ...(siteId ? { report: { siteId } } : {}), openedAt: { gte: since } }, select: { status: true, openedAt: true, resolvedAt: true, standDownReason: true, report: { select: { siteId: true } } } }),
     prisma.investigation.findMany({ where: { organizationId: orgId, ...(siteId ? { report: { siteId } } : {}), OR: [{ openedAt: { gte: since } }, { completedAt: { gte: since } }] }, select: { status: true, openedAt: true, completedAt: true, contributingFactors: true, report: { select: { siteId: true } } } }),
+    // Fetched with the rest (one narrow query for the company) and narrowed to the site's people below, instead of waiting for the employee list first.
+    prisma.qualification.findMany({ where: { organizationId: orgId }, select: { id: true, employeeId: true, typeId: true, name: true, expiresOn: true, issuedOn: true } }),
   ]);
 
-  const certRecords = employees.length
-    ? await prisma.qualification.findMany({ where: { organizationId: orgId, employeeId: { in: employees.map((e) => e.id) } }, select: { id: true, employeeId: true, typeId: true, name: true, expiresOn: true, issuedOn: true } })
-    : [];
+  const peopleIds = new Set(employees.map((e) => e.id));
+  const certRecords = allQuals.filter((q) => peopleIds.has(q.employeeId));
 
   // Actions from an inspection belong to that inspection's site; look those up so the per-site rows count them too.
   const inspectionIds = [...new Set(actions.map((a) => a.inspectionId).filter((x): x is string => Boolean(x)))];

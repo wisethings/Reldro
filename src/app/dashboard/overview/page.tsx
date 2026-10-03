@@ -4,6 +4,7 @@ import { BadgeCheck, Bell, CalendarCheck, CalendarDays, CheckCircle2, ClipboardC
 import { prisma } from "@/lib/prisma";
 import { actionWhere, reportWhere } from "@/lib/safety/access";
 import { requireViewer } from "@/lib/safety/context";
+import { loadAccount } from "@/lib/auth/account";
 import { actionStatusInfo, getPack, OPEN_ACTION_STATUSES, severityRank } from "@/lib/safety/pack";
 import { Badge } from "@/components/ui/Badge";
 import { ActionStatusBadge, dueLabel, fmtDate, fmtShort, ReportStatusBadge, SeverityBadge } from "@/components/safety/ui";
@@ -64,7 +65,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   const in30 = dayStartIn(31);
   const pack = getPack();
 
-  const org = await prisma.organization.findUnique({ where: { id: v.organizationId }, select: { name: true } });
+  const org = { name: (await loadAccount(v.userId))?.orgName ?? "" };
   const firstName = v.name.split(" ")[0];
 
   // ---- WORKER HOME -------------------------------------------------------
