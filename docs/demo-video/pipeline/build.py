@@ -7,9 +7,8 @@ W, H = 1920, 1080
 BONE, OX, ORCHID, ORCHID_D, INK = (239, 235, 224), (42, 10, 12), (216, 150, 204), (138, 74, 126), (107, 90, 86)
 FONT = "/usr/share/fonts/opentype/inter/Inter-%s.otf"
 def font(w, s): return ImageFont.truetype(FONT % w, s)
-plan = json.load(open(f"{D}/plan.json")); dur = json.load(open(f"{D}/durations.json"))
-script = {s["id"]: s["text"] for s in json.load(open(f"{D}/script.json"))}
-segs = plan["segs"]; TOTAL = plan["total"]; audio_at = plan["audio_at"]
+plan = json.load(open(f"{D}/plan.json"))
+segs = plan["segs"]; TOTAL = plan["total"]; LEAD = plan["lead"]
 def run(cmd):
     r = subprocess.run(cmd, capture_output=True, text=True)
     if r.returncode: print(" ".join(cmd)[:400]); print(r.stderr[-1500:]); sys.exit(1)
@@ -132,46 +131,12 @@ with open(f"{OUT}/concat.txt", "w") as f:
     for p in parts: f.write(f"file '{p}'\n")
 run(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", f"{OUT}/concat.txt", "-c", "copy", f"{OUT}/video-silent.mp4"])
 
-blocks = sorted(audio_at, key=lambda b: audio_at[b]); inputs, filt = [], []
-for k, b in enumerate(blocks):
-    inputs += ["-i", f"{D}/{b}.wav"]; ms = int(audio_at[b] * 1000)
-    filt.append(f"[{k}:a]aresample=48000,aformat=channel_layouts=mono,adelay={ms}|{ms}[a{k}]")
-mix = "".join(f"[a{k}]" for k in range(len(blocks))) + f"amix=inputs={len(blocks)}:normalize=0,loudnorm=I=-16:TP=-1.5:LRA=11,apad,atrim=0:{TOTAL:.2f}[aout]"
-run(["ffmpeg", "-v", "error", "-y", *inputs, "-filter_complex", ";".join(filt) + ";" + mix, "-map", "[aout]", "-ac", "1", "-ar", "48000", f"{OUT}/vo.wav"])
-# ---------- captions ----------
-def chunks(text, maxc=64):
-    sents = re.split(r"(?<=[.!?])\s+", text.strip()); merged = []
-    for s in sents:
-        if merged and len(merged[-1]) < 14: merged[-1] += " " + s
-        else: merged.append(s)
-    out = []
-    for s in merged:
-        if len(s) <= maxc: out.append(s); continue
-        n = -(-len(s) // maxc); words = s.split(" "); pos = []; acc = 0
-        for w in words: acc += len(w) + 1; pos.append(acc)
-        cuts = []
-        for k in range(1, n):
-            t = len(s) * k / n; best = min(range(len(words) - 1), key=lambda i: abs(pos[i] - t) - (8 if words[i].endswith(",") else 0))
-            cuts.append(best + 1)
-        prev = 0
-        for c in cuts + [len(words)]: out.append(" ".join(words[prev:c])); prev = c
-    return out
-
-CAPS = {
- "n1": ["Safety management gets messy fast,", "whether you're managing a single facility or juggling multiple sites."],
- "n2": ["A report comes in, an action item gets assigned,", "and someone has to chase down whether it actually got done.", "Between the initial report, the follow-up, and the eventual fix,", "critical details slip through the cracks."],
- "n3": ["Reldro ties all of that work together in one place."],
- "n4": ["When an issue pops up, your team gets instant visibility into what happened,", "what needs to be done, and who's on the hook to fix it."],
- "n5": ["If a major incident occurs, the entire response,", "from the investigation and debrief to the corrective actions,", "is linked directly to the original record.", "You can easily trace the root cause, see what needs to change,", "and verify that the fix was completed."],
- "n6": ["It handles your everyday safety operations the same way.", "Audits, certifications, inspections, and routine debriefs", "live in a single hub, giving you a live, accurate picture", "of what's finished and what's overdue."],
- "n7": ["Instead of forcing your team to fill out another passive spreadsheet,", "Reldro keeps your safety operations connected, clear, and accountable,", "across a single site or multiple sites."],
- "n8": ["Because safety isn't about logging data.", "It's about making sure the work actually gets done.", "Stop chasing updates.", "Connect your safety operations with Reldro."],
-}
-cues = []
-for sid in blocks:
-    cs = CAPS[sid]; n = sum(len(c) for c in cs); t0 = audio_at[sid]; span = dur[sid]
-    for c in cs:
-        d_ = span * len(c) / n; cues.append((t0, t0 + d_, c)); t0 += d_
+ms = int(LEAD * 1000)
+run(["ffmpeg", "-v", "error", "-y", "-i", f"{D}/narration.wav", "-filter_complex",
+     f"[0:a]aresample=48000,aformat=channel_layouts=mono,adelay={ms}|{ms},loudnorm=I=-16:TP=-1.5:LRA=11,apad,atrim=0:{TOTAL:.2f}[aout]",
+     "-map", "[aout]", "-ac", "1", "-ar", "48000", f"{OUT}/vo.wav"])
+# ---------- captions: timed from the pauses in the recording (see plan.py) ----------
+cues = [(c["start"], c["end"], c["text"]) for c in plan["cues"]]
 
 def ts(t, sep): h = int(t // 3600); m = int(t % 3600 // 60); s = t % 60; return f"{h:02d}:{m:02d}:{int(s):02d}{sep}{int(round((s % 1) * 1000)):03d}"
 with open(f"{OUT}/reldro-demo.srt", "w") as f:
@@ -191,5 +156,5 @@ with open(f"{OUT}/captions.ass", "w") as f:
 enc = ["-c:v", "libx264", "-crf", "19", "-preset", "slow", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", "-shortest"]
 run(["ffmpeg", "-v", "error", "-y", "-i", f"{OUT}/video-silent.mp4", "-i", f"{OUT}/vo.wav", *enc, f"{OUT}/reldro-demo-nocaptions.mp4"])
 run(["ffmpeg", "-v", "error", "-y", "-i", f"{OUT}/video-silent.mp4", "-i", f"{OUT}/vo.wav", "-vf", f"ass={OUT}/captions.ass:fontsdir=/usr/share/fonts/opentype/inter", *enc, f"{OUT}/reldro-demo.mp4"])
-run(["ffmpeg", "-v", "error", "-y", "-ss", "40", "-i", f"{OUT}/reldro-demo-nocaptions.mp4", "-frames:v", "1", "-q:v", "2", f"{OUT}/poster.jpg"])
+run(["ffmpeg", "-v", "error", "-y", "-ss", "45", "-i", f"{OUT}/reldro-demo-nocaptions.mp4", "-frames:v", "1", "-q:v", "2", f"{OUT}/poster.jpg"])
 print("TOTAL", TOTAL, "cues", len(cues))

@@ -146,14 +146,22 @@ const defs = {
   } },
   sites: { start: '/dashboard/sites', run: async (p, at, h, L) => {
     await at(0.5); await h.point(p.getByText('Next inspection').first(), 1100);
-    await at(2.2); await h.point(p.getByText('Needs attention').nth(2), 1000);
-    await at(3.8); await h.scrollMainTo(240, 1200);
+    await at(1.9); await h.point(p.getByText('Needs attention').nth(2), 900);
+    await at(3.2); await h.scrollMainTo(240, 1000);
   } },
   insights: { start: '/dashboard/insights', run: async (p, at, h, L) => {
-    await at(0.6); await h.point(p.getByText('Repeated hazards'), 1000, 0.3, 0.5);
-    await at(2.4); await h.glide(1100, 450, 1000); await at(3.8); await h.scrollMainTo(260, 1300);
+    const bars = async () => { const b = await p.locator('figure svg[role=img]').first().boundingBox(); return (f) => ({ x: b.x + b.width * f, y: b.y + b.height * 0.5 }); };
+    await at(0.4); await h.point(p.getByText('Time to acknowledge').first(), 900, 0.3, 0.5);
+    await at(1.5); await h.point(p.getByText('Close these first'), 800, 0.3, 0.5);
+    await at(2.4); await h.scrollIntoCenter(p.locator('figure').first(), 1000);
+    await at(3.6); const g = await bars(); await h.glide(g(0.55).x, g(0.55).y, 700);
+    await at(4.5); await h.glide(g(0.9).x, g(0.9).y, 500);
+    await at(5.3); await h.glide(g(0.895).x, g(0.895).y, 350); await sleep(150); await page_click(p);
+    await at(6.6); await h.glide(1000, 560, 400);
   } },
 };
+
+async function page_click(p) { await p.mouse.down(); await sleep(60); await p.mouse.up(); }
 
 async function record(browser, id) {
   const d = defs[id]; const len = LEN[id];
