@@ -65,7 +65,7 @@ export function InsightsView({ data, tab: requested, days, isAdmin, lessons = []
             <GapList gaps={m.gaps} empty={siteId ? "Nothing needs attention at this site right now." : "Nothing needs attention right now."} />
           </Block>
           <Block title="Reports over time" note={`${m.reports.total} ${m.reports.total === 1 ? "report" : "reports"} ${where}. ${m.reports.prevTotal > 0 || m.reports.total > 0 ? "" : ""}`}>
-            <TrendChart points={m.reports.trend} periodLabel={where} />
+            <TrendChart points={m.reports.trend} periodLabel={where} siteId={siteId} />
             <p className="mt-2 text-xs"><Delta now={m.reports.total} before={m.reports.prevTotal} days={days} goodWhenDown={false} /></p>
             <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-ink-100 pt-4">
               <Figure label="Open now" value={m.reports.openNow} note={m.reports.aging.old ? `${m.reports.aging.old} over 30 days` : undefined} />
@@ -152,7 +152,7 @@ export function InsightsView({ data, tab: requested, days, isAdmin, lessons = []
           <Figure label="Incident responses" value={r.incidents.total} note={r.incidents.open ? `${r.incidents.open} still open` : r.incidents.avgDaysToResolve !== null ? `${r.incidents.avgDaysToResolve} days to resolve` : undefined} />
         </Figures>
         <Block title="Reports over time" note={`${r.total} ${r.total === 1 ? "report" : "reports"} ${where}.`}>
-          <TrendChart points={r.trend} periodLabel={where} />
+          <TrendChart points={r.trend} periodLabel={where} siteId={siteId} />
         </Block>
         <div className="grid gap-4 lg:grid-cols-2">
           <Block title="Repeated hazards" note="Same topic at the same site, two or more times. The strongest signal on this page.">

@@ -13,13 +13,18 @@ const STATUS_GROUPS: Record<string, string[] | undefined> = { open: ["NEW", "ASS
 import { PAGE_SIZE, Pagination, readPage } from "@/components/safety/Pagination";
 import { REPORT_LIST_FIELDS } from "@/lib/safety/selects";
 import { LIST_PAGE } from "@/components/ui/layout";
-export default async function ReportsPage({ searchParams }: { searchParams: Promise<{ status?: string; severity?: string; site?: string; q?: string; page?: string; attention?: string }> }) {
+import { rangeLabel } from "@/lib/safety/metrics";
+export default async function ReportsPage({ searchParams }: { searchParams: Promise<{ status?: string; severity?: string; site?: string; q?: string; page?: string; attention?: string; from?: string; to?: string }> }) {
   const v = await requireViewer();
   const p = await searchParams;
   const pack = getPack();
   const status = p.status ?? "open";
 
   const nowD = new Date();
+  // A span of time, set by clicking a bar on the Insights chart. Both ends must be real dates, in order.
+  const spanFrom = p.from ? new Date(p.from) : null, spanTo = p.to ? new Date(p.to) : null;
+  const span = spanFrom && spanTo && !Number.isNaN(spanFrom.getTime()) && !Number.isNaN(spanTo.getTime()) && spanFrom < spanTo ? { from: spanFrom, to: spanTo } : null;
+  const severities = (p.severity ?? "").split(",").filter((x) => SEVERITIES.some((s) => s.key === x));
   const attention = p.attention === "overdue" || p.attention === "unowned" ? p.attention : "";
   // Every clause sits inside AND, so search and filters can only narrow what this person may see, never widen it.
   const where = {
@@ -32,7 +37,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           : status === "incidents"
             ? { incident: { status: { not: "RESOLVED" } } }
             : STATUS_GROUPS[status] ? { status: { in: STATUS_GROUPS[status]! } } : status !== "all" ? { status } : {},
-      ...(p.severity ? [{ severity: p.severity }] : []),
+      ...(p.severity ? [{ severity: severities.length > 1 ? { in: severities } : (severities[0] ?? p.severity) }] : []),
+      ...(span ? [{ createdAt: { gte: span.from, lt: span.to } }] : []),
       ...(p.site ? [{ siteId: p.site }] : []),
       ...(p.q ? [{ OR: [{ title: { contains: p.q, mode: "insensitive" as const } }, { description: { contains: p.q, mode: "insensitive" as const } }] }] : []),
     ],
@@ -49,7 +55,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const qs = (over: Record<string, string | undefined>) => {
     const sp = new URLSearchParams();
     // Changing a filter starts again at page 1; only page links pass `page`.
-    const merged = { status, attention: attention || undefined, severity: p.severity, site: p.site, q: p.q, page: undefined, ...over };
+    const merged = { status, attention: attention || undefined, severity: p.severity, site: p.site, q: p.q, from: span ? p.from : undefined, to: span ? p.to : undefined, page: undefined, ...over };
     for (const [k, val] of Object.entries(merged)) if (val) sp.set(k, val);
     return `?${sp.toString()}`;
   };
@@ -65,7 +71,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     prisma.safetyReport.count({ where: { AND: [scoped, { ownerId: null, status: { not: "CLOSED" } }] } }),
     prisma.safetyReport.count({ where: { AND: [scoped, { status: "CLOSED", closedAt: { gte: new Date(Date.now() - 30 * 86400_000) } }] } }),
   ]);
-  const filtered = Boolean(p.severity || (p.site && !siteSel) || p.q || attention);
+  const filtered = Boolean(p.severity || (p.site && !siteSel) || p.q || attention || span);
   const metric = (label: string, value: number, href: string, on: boolean, hot = false) => (
     <QueryLink
       key={label}
@@ -84,6 +90,12 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         title={title}
         subtitle={v.isSafetyTeam ? "Hazards, near misses, injuries, and other safety concerns reported across your sites." : v.isSupervisor ? "Safety concerns reported at your site, and ones you submitted." : "Safety concerns you submitted, and what happened next."}
       />
+      {span && (
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl bg-orchid-soft/50 px-4 py-2.5 text-sm">
+          <p className="min-w-0 text-ink-800">Reports filed <span className="font-semibold text-ink-900">{rangeLabel(span.from.getTime(), span.to.getTime() - 1)}</span>{severities.length === 2 && severities.includes("HIGH") && severities.includes("CRITICAL") ? <>, serious or life-threatening only</> : null}</p>
+          <QueryLink href={qs({ from: undefined, to: undefined })} className="text-xs font-medium text-ink-600 hover:text-ink-900">Show all dates</QueryLink>
+        </div>
+      )}
       {siteSel && (
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl bg-orchid-soft/50 px-4 py-2.5 text-sm">
           <p className="min-w-0 text-ink-800">Reports for <span className="font-semibold text-ink-900">{siteSel.name}</span> only</p>

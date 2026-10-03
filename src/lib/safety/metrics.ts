@@ -87,6 +87,9 @@ export type SiteRow = {
 };
 export type CertProblem = { person: string; site: string | null; cert: string; state: "expired" | "missing" | "expiring"; expiresOn: Date | null };
 
+/** One slice of the reports-over-time chart. `from` is inclusive and `to` exclusive, as ISO timestamps, so a click can open exactly these reports. */
+export type TrendPoint = { label: string; range: string; from: string; to: string; count: number; serious: number };
+
 export type Metrics = {
   scope: { siteId: string | null; siteName: string | null; days: number };
   reports: {
@@ -94,7 +97,7 @@ export type Metrics = {
     aging: { fresh: number; mid: number; old: number };
     medianAckHours: number | null; responsePct: number | null; responseMet: number; responseMissed: number;
     byType: Tally[]; bySeverity: Tally[]; byCategory: Tally[]; bySite: (Tally & { siteId: string | null })[];
-    trend: { label: string; count: number; serious: number }[];
+    trend: TrendPoint[];
     repeats: Tally[];
     incidents: { total: number; open: number; avgDaysToResolve: number | null };
   };
@@ -131,6 +134,14 @@ export const doneBy = (done: Date | null, due: Date | null): boolean => Boolean(
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const short = (d: Date) => `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`;
 
+/** "Jul 5 – 11", "Jul 28 – Aug 3", or just "Jul 5" when a slice falls inside one day. Both ends are inclusive days. */
+export function rangeLabel(fromMs: number, lastMs: number): string {
+  const a = new Date(fromMs), b = new Date(lastMs);
+  const sameMonth = a.getUTCMonth() === b.getUTCMonth() && a.getUTCFullYear() === b.getUTCFullYear();
+  if (sameMonth && a.getUTCDate() === b.getUTCDate()) return short(a);
+  return sameMonth ? `${short(a)} – ${b.getUTCDate()}` : `${short(a)} – ${short(b)}`;
+}
+
 /**
  * Report counts in equal slices that end today and together cover the whole period, oldest first: weeks for 30 and 90 days,
  * about a month each for a year. Because the slices cover the period exactly, the bars always add up to the total shown beside them.
@@ -142,14 +153,14 @@ export function reportTrend(reports: Pick<ReportRow, "createdAt" | "severity">[]
   const end = now.getTime() + 1;
   const buckets = Array.from({ length: n }, (_, i) => {
     const hi = end - (n - 1 - i) * slice;
-    return { start: hi - slice, end: hi, label: short(new Date(hi - slice)), count: 0, serious: 0 };
+    return { start: hi - slice, end: hi, label: short(new Date(hi - slice)), range: rangeLabel(hi - slice, hi - 1), count: 0, serious: 0 };
   });
   for (const r of reports) {
     const t = r.createdAt.getTime();
     const b = buckets.find((x) => t >= x.start && t < x.end);
     if (b) { b.count++; if (isSerious(r.severity)) b.serious++; }
   }
-  return buckets.map(({ label, count, serious }) => ({ label, count, serious }));
+  return buckets.map(({ start, end, label, range, count, serious }): TrendPoint => ({ label, range, from: new Date(start).toISOString(), to: new Date(end).toISOString(), count, serious }));
 }
 
 type Slice = Pick<MetricsInput, "reports" | "actions" | "inspections" | "talks" | "incidents" | "investigations">;

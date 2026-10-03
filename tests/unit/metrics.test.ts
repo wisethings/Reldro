@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { computeMetrics, DEFAULT_TARGETS, readSavedTargets, readTargets, reportTrend, type MetricsInput } from "../../src/lib/safety/metrics";
+import { computeMetrics, DEFAULT_TARGETS, readSavedTargets, readTargets, reportTrend, rangeLabel, type MetricsInput } from "../../src/lib/safety/metrics";
 
 const NOW = new Date(Date.UTC(2026, 9, 3, 12, 0, 0));
 const ago = (days: number, hours = 0) => new Date(NOW.getTime() - days * 86_400_000 - hours * 3_600_000);
@@ -33,6 +33,16 @@ test("targets: saved values are used, bad ones fall back to the defaults", () =>
   assert.equal(t.certPct, DEFAULT_TARGETS.certPct, "over 100% is ignored");
   assert.equal(t.talkAckPct, DEFAULT_TARGETS.talkAckPct, "text is ignored");
   assert.equal(t.overdueActions, DEFAULT_TARGETS.overdueActions, "negative is ignored");
+});
+
+test("trend: every bar carries the exact span it covers, with no gaps or overlaps, so a click can open its reports", () => {
+  const t = reportTrend([], 90, NOW);
+  for (let i = 1; i < t.length; i++) assert.equal(t[i].from, t[i - 1].to);
+  assert.equal(new Date(t[t.length - 1].to).getTime(), NOW.getTime() + 1);
+  assert.match(t[0].range, /^[A-Z][a-z]{2} \d{1,2}( – (\d{1,2}|[A-Z][a-z]{2} \d{1,2}))?$/);
+  assert.equal(rangeLabel(Date.UTC(2026, 6, 5), Date.UTC(2026, 6, 11)), "Jul 5 – 11");
+  assert.equal(rangeLabel(Date.UTC(2026, 6, 28), Date.UTC(2026, 7, 3)), "Jul 28 – Aug 3");
+  assert.equal(rangeLabel(Date.UTC(2026, 6, 5), Date.UTC(2026, 6, 5)), "Jul 5");
 });
 
 test("trend: weekly buckets for 30 and 90 days, calendar months for a year, counting serious reports separately", () => {

@@ -641,6 +641,48 @@ test("targets: a company admin sets its own bar and the Insights cards are judge
   }
 });
 
+test("insights chart: hovering shows exact figures, selecting pins a period and opens exactly those reports, and the legend switches series", async () => {
+  const admin = await signIn("admin", { phone: false });
+  try {
+    await admin.setViewportSize({ width: 1280, height: 900 });
+    await admin.goto(`${BASE}/dashboard/insights`, { waitUntil: "networkidle" });
+    const svg = admin.locator("figure svg[role=img]").first();
+    const box = await svg.boundingBox();
+    // Hover the newest bar: a tooltip appears with its period and counts.
+    await admin.mouse.move(box.x + box.width - 20, box.y + box.height / 2);
+    const tip = admin.locator("figure [aria-hidden=true].absolute").first();
+    await tip.waitFor();
+    assert.match(await tip.innerText(), /reports?[\s\S]*serious or worse/);
+    await admin.mouse.move(box.x + 2, box.y - 40);
+    await admin.waitForFunction(() => !document.querySelector("figure [aria-hidden=true].absolute"));
+    // Select it: the figures are pinned below and the link opens that span, with the same number of reports.
+    await admin.mouse.click(box.x + box.width - 20, box.y + box.height / 2);
+    const link = admin.getByRole("link", { name: /^Open \d+ reports?/ });
+    await link.waitFor();
+    const want = Number((await link.innerText()).match(/Open (\d+)/)[1]);
+    await link.click();
+    await admin.waitForURL(/\/dashboard\/reports\?.*from=.*to=/);
+    await admin.getByText(/Reports filed/).waitFor();
+    assert.equal(await hasSideways(admin), false);
+    const rows = await admin.locator("main a[href^='/dashboard/reports/c']").evaluateAll((els) => new Set(els.map((e) => e.getAttribute("href"))).size);
+    assert.equal(rows, Math.min(want, 15), "the reports list holds the reports the bar counted");
+    // Keyboard and legend.
+    await admin.goto(`${BASE}/dashboard/insights`, { waitUntil: "networkidle" });
+    await admin.locator("figure [role=group]").first().focus();
+    await admin.keyboard.press("ArrowLeft");
+    await admin.locator("figure [aria-hidden=true].absolute").first().waitFor();
+    await admin.keyboard.press("Enter");
+    await admin.getByRole("link", { name: /^Open \d+ reports?/ }).waitFor();
+    const pressed = admin.getByRole("button", { name: "All reports" });
+    await pressed.click();
+    assert.equal(await pressed.getAttribute("aria-pressed"), "false");
+    await admin.getByRole("button", { name: "Serious or life-threatening" }).click();
+    assert.equal(await admin.getByRole("button", { name: "Serious or life-threatening" }).getAttribute("aria-pressed"), "true", "the last visible series cannot be switched off");
+  } finally {
+    await admin.context().close();
+  }
+});
+
 test("insights with many sites: the overview shows only the worst few and the Sites tab searches and pages the rest", async () => {
   const db = new PrismaClient();
   const admin = await signIn("admin");
